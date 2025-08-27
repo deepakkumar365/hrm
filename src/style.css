@@ -1,0 +1,219 @@
+/* Toolbar - Full Width */
+.win-toolbar {
+    background: #eff3f8;
+    border-bottom: 1px solid #dde3ea;
+    padding: 2px 8px;
+    width: 100%;
+    margin: 0;
+}
+.win-toolbar .navbar-brand {
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0;
+}
+.win-toolbar .nav-link {
+    color: #325a9a;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+}
+
+/* Main content area - 80% centered */
+.win-main {
+    background: #ffffff;
+    min-height: 90vh;
+    padding: 8px;
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Panels */
+.win-panel {
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+.win-panel h5, 
+.win-panel h6 {
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+/* Small buttons */
+.btn-xs {
+    font-size: 0.7rem;
+    padding: 1px 6px;
+}
+
+/* Apply btn-xs styling to all badges by default */
+.badge {
+    font-size: 0.7rem;
+    padding: 5px;
+}
+
+/* Compact table */
+table.table-sm th, 
+table.table-sm td {
+    font-size: 0.75rem;
+    padding: 2px 4px;
+}
+
+/* Login page */
+.login-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f7fafd;
+}
+.login-box {
+    background: #fff;
+    padding: 16px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    width: 280px;
+}
+.login-box h4 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+    color: #325a9a;
+}
+.login-box input {
+    font-size: 0.8rem;
+    padding: 4px 6px;
+}
+
+/* Layout Improvements */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+/* Navbar full width container */
+.navbar-container {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .win-main {
+        width: 95%;
+        padding: 4px;
+    }
+    
+    .win-toolbar {
+        padding: 2px 4px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .win-main {
+        width: 70%;
+    }
+}
+
+/* Ensure full width for navbar */
+.win-toolbar.navbar {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Dashboard specific styles */
+.dashboard-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Summary cards */
+.win-panel h4 {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.win-panel h6 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.chart-container canvas {
+    max-width: 100% !important;
+    max-height: 100% !important;
+}
+
+/* Activity indicators */
+.activity-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Alert customizations */
+.alert-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+}
+
+/* Quick action buttons */
+.btn-block {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Birthday and anniversary cards */
+.celebration-card {
+    border-left: 4px solid;
+    padding-left: 1rem;
+}
+
+.celebration-card.birthday {
+    border-left-color: #ffc107;
+}
+
+.celebration-card.anniversary {
+    border-left-color: #28a745;
+}
+
+/* Loading states */
+.loading-shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* Responsive improvements for dashboard */
+@media (max-width: 576px) {
+    .win-panel h4 {
+        font-size: 1.4rem;
+    }
+    
+    .btn-block {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}

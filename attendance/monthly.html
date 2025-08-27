@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Monthly Attendance - HRM</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="../src/style.css">
+<style>
+    .attendance-calendar {
+        font-size: 0.7rem;
+    }
+    .attendance-cell {
+        width: 30px;
+        height: 25px;
+        text-align: center;
+        vertical-align: middle;
+        padding: 2px !important;
+    }
+    .attendance-present { background-color: #d4edda; color: #155724; }
+    .attendance-absent { background-color: #f8d7da; color: #721c24; }
+    .attendance-late { background-color: #fff3cd; color: #856404; }
+    .attendance-halfday { background-color: #cce7ff; color: #004085; }
+    .attendance-leave { background-color: #e2e3e5; color: #383d41; }
+    .attendance-weekend { background-color: #f8f9fa; color: #6c757d; }
+    .attendance-holiday { background-color: #ffeaa7; color: #2d3436; }
+</style>
+</head>
+<body>
+
+<div id="navbar"></div>
+
+<div class="win-main container-fluid">
+    <div class="win-panel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6>Monthly Attendance Report</h6>
+            <div class="d-flex align-items-center">
+                <select class="form-control form-control-sm mr-2" id="monthSelect" style="width: auto;">
+                    <!-- Filled dynamically -->
+                </select>
+                <select class="form-control form-control-sm mr-2" id="yearSelect" style="width: auto;">
+                    <!-- Filled dynamically -->
+                </select>
+                <button class="btn btn-primary btn-xs" onclick="loadMonthlyAttendance()">Load</button>
+            </div>
+        </div>
+        
+        <!-- Monthly Summary -->
+        <div class="row mb-3">
+            <div class="col-md-2">
+                <div class="win-panel bg-light">
+                    <h6 class="text-success">Working Days</h6>
+                    <h4 id="workingDays">0</h4>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="win-panel bg-light">
+                    <h6 class="text-info">Total Present</h6>
+                    <h4 id="totalPresent">0</h4>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="win-panel bg-light">
+                    <h6 class="text-danger">Total Absent</h6>
+                    <h4 id="totalAbsent">0</h4>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="win-panel bg-light">
+                    <h6 class="text-warning">Avg Attendance</h6>
+                    <h4 id="avgAttendance">0%</h4>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="win-panel bg-light">
+                    <h6 class="text-secondary">Employees</h6>
+                    <h4 id="totalEmployees">0</h4>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-success btn-xs btn-block" onclick="exportMonthlyReport()">Export Report</button>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="win-panel bg-light">
+                    <h6>Legend:</h6>
+                    <div class="d-flex flex-wrap">
+                        <span class="badge attendance-present mr-2 mb-1">P - Present</span>
+                        <span class="badge attendance-absent mr-2 mb-1">A - Absent</span>
+                        <span class="badge attendance-late mr-2 mb-1">L - Late</span>
+                        <span class="badge attendance-halfday mr-2 mb-1">H - Half Day</span>
+                        <span class="badge attendance-leave mr-2 mb-1">LV - Leave</span>
+                        <span class="badge attendance-weekend mr-2 mb-1">W - Weekend</span>
+                        <span class="badge attendance-holiday mr-2 mb-1">HO - Holiday</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter and Search -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <select class="form-control form-control-sm" id="departmentFilter">
+                    <option value="">All Departments</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="text" class="form-control form-control-sm" id="searchEmployee" placeholder="Search employees...">
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-primary btn-xs mr-2" onclick="applyFilters()">Filter</button>
+                <button class="btn btn-secondary btn-xs" onclick="clearFilters()">Clear</button>
+            </div>
+        </div>
+
+        <!-- Monthly Attendance Calendar -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm attendance-calendar" id="monthlyAttendanceTable">
+                <thead>
+                    <tr id="calendarHeader">
+                        <th style="min-width: 150px;">Employee</th>
+                        <th style="min-width: 100px;">Department</th>
+                        <!-- Date columns will be added dynamically -->
+                        <th style="min-width: 60px;">Present</th>
+                        <th style="min-width: 60px;">Absent</th>
+                        <th style="min-width: 60px;">%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filled dynamically -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <nav aria-label="Monthly attendance pagination">
+            <ul class="pagination pagination-sm justify-content-center" id="pagination">
+                <!-- Filled dynamically -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Employee Detail Modal -->
+<div class="modal fade" id="employeeDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Employee Attendance Details</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 id="modalEmployeeName"></h6>
+                        <p id="modalEmployeeInfo"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-success" id="modalPresentDays">0</h4>
+                                    <small>Present Days</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-danger" id="modalAbsentDays">0</h4>
+                                    <small>Absent Days</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Time In</th>
+                                <th>Time Out</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalAttendanceDetails">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-xs" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/navbar.js"></script>
+<script src="js/monthly.js"></script>
+
+</body>
+</html>

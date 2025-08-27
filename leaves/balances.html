@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Leave Balances - HRM</title>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="stylesheet" href="../src/style.css">
+<style>
+    .balance-card {
+        transition: transform 0.2s;
+    }
+    .balance-card:hover {
+        transform: translateY(-2px);
+    }
+    .leave-type-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    .progress-custom {
+        height: 8px;
+    }
+    .balance-summary {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .leave-history-item {
+        border-left: 3px solid #007bff;
+        padding-left: 1rem;
+        margin-bottom: 1rem;
+    }
+    .leave-history-item.approved {
+        border-left-color: #28a745;
+    }
+    .leave-history-item.rejected {
+        border-left-color: #dc3545;
+    }
+    .leave-history-item.pending {
+        border-left-color: #ffc107;
+    }
+</style>
+</head>
+<body>
+
+<div id="navbar"></div>
+
+<div class="win-main container-fluid">
+    <div class="win-panel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6>Leave Balances Management</h6>
+            <div class="d-flex align-items-center">
+                <select class="form-control form-control-sm mr-2" id="yearSelect" style="width: auto;">
+                    <!-- Filled dynamically -->
+                </select>
+                <select class="form-control form-control-sm mr-2" id="departmentFilter" style="width: auto;">
+                    <option value="">All Departments</option>
+                    <!-- Filled dynamically -->
+                </select>
+                <button class="btn btn-primary btn-xs mr-2" onclick="loadBalances()">Load</button>
+                <button class="btn btn-success btn-xs mr-2" onclick="exportBalances()">Export Report</button>
+                <button class="btn btn-warning btn-xs" onclick="showAdjustmentModal()">Adjust Balances</button>
+            </div>
+        </div>
+
+        <!-- Overall Summary Cards -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="win-panel bg-light">
+                    <h6 class="text-primary">Total Employees</h6>
+                    <h4 id="totalEmployeesCount">0</h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="win-panel bg-light">
+                    <h6 class="text-success">Total Available Days</h6>
+                    <h4 id="totalAvailableDays">0</h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="win-panel bg-light">
+                    <h6 class="text-warning">Total Used Days</h6>
+                    <h4 id="totalUsedDays">0</h4>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="win-panel bg-light">
+                    <h6 class="text-info">Average Utilization</h6>
+                    <h4 id="averageUtilization">0%</h4>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" id="searchEmployee" placeholder="Search employees...">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" onclick="searchEmployees()">Search</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-right">
+                <button class="btn btn-info btn-xs mr-2" onclick="showLeaveTypesModal()">Manage Leave Types</button>
+                <button class="btn btn-primary btn-xs" onclick="showBulkUpdateModal()">Bulk Update</button>
+            </div>
+        </div>
+
+        <!-- Employee Balances Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm" id="employeeBalancesTable">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Annual Leave</th>
+                        <th>Sick Leave</th>
+                        <th>Personal Leave</th>
+                        <th>Total Available</th>
+                        <th>Total Used</th>
+                        <th>Utilization</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filled dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <nav aria-label="Balances pagination">
+            <ul class="pagination pagination-sm justify-content-center" id="balancesPagination">
+                <!-- Filled dynamically -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Employee Balance Details Modal -->
+<div class="modal fade" id="balanceDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="balanceDetailsTitle">Employee Leave Balance Details</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <!-- Employee Information -->
+                        <div class="win-panel bg-light mb-3">
+                            <h6>Employee Information</h6>
+                            <div id="employeeInfo">
+                                <!-- Filled dynamically -->
+                            </div>
+                        </div>
+                        
+                        <!-- Leave Types Balance Table -->
+                        <h6>Leave Balances by Type</h6>
+                        <div class="table-responsive mb-4">
+                            <table class="table table-bordered table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Leave Type</th>
+                                        <th>Allocated</th>
+                                        <th>Used</th>
+                                        <th>Available</th>
+                                        <th>Carry Forward</th>
+                                        <th>Utilization</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaveTypesBalanceTable">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Leave History -->
+                        <h6>Leave History</h6>
+                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-bordered table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date Range</th>
+                                        <th>Leave Type</th>
+                                        <th>Days</th>
+                                        <th>Status</th>
+                                        <th>Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaveHistoryTable">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- Summary Stats -->
+                        <div class="win-panel bg-light mb-3">
+                            <h6>Leave Summary</h6>
+                            <div id="leaveSummary">
+                                <!-- Filled dynamically -->
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Actions -->
+                        <div class="win-panel">
+                            <h6>Quick Actions</h6>
+                            <button class="btn btn-primary btn-xs btn-block mb-2" onclick="showAdjustBalanceModal()">Adjust Balance</button>
+                            <button class="btn btn-success btn-xs btn-block mb-2" onclick="showAddLeaveModal()">Add Leave</button>
+                            <button class="btn btn-info btn-xs btn-block" onclick="exportEmployeeReport()">Export Report</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-xs" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adjust Balance Modal -->
+<div class="modal fade" id="adjustBalanceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adjust Leave Balance</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="adjustBalanceForm">
+                    <div class="form-group">
+                        <label for="adjustEmployee">Employee:</label>
+                        <select class="form-control form-control-sm" id="adjustEmployee" required>
+                            <option value="">Select Employee</option>
+                            <!-- Filled dynamically -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="adjustLeaveType">Leave Type:</label>
+                        <select class="form-control form-control-sm" id="adjustLeaveType" required>
+                            <option value="">Select Leave Type</option>
+                            <option value="annual">Annual Leave</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="personal">Personal Leave</option>
+                            <option value="maternity">Maternity Leave</option>
+                            <option value="emergency">Emergency Leave</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="currentBalance">Current Balance:</label>
+                                <input type="number" class="form-control form-control-sm" id="currentBalance" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="adjustmentType">Adjustment Type:</label>
+                                <select class="form-control form-control-sm" id="adjustmentType" required>
+                                    <option value="add">Add Days</option>
+                                    <option value="subtract">Subtract Days</option>
+                                    <option value="set">Set Balance</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="adjustmentDays">Days:</label>
+                        <input type="number" class="form-control form-control-sm" id="adjustmentDays" 
+                               min="0" step="0.5" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="adjustmentReason">Reason for Adjustment:</label>
+                        <textarea class="form-control form-control-sm" id="adjustmentReason" rows="3" 
+                                  placeholder="Enter reason for balance adjustment..." required></textarea>
+                    </div>
+                    
+                    <div class="balance-summary">
+                        <h6>Adjustment Summary:</h6>
+                        <p class="mb-1"><strong>Current Balance:</strong> <span id="summaryCurrentBalance">0</span> days</p>
+                        <p class="mb-1"><strong>Adjustment:</strong> <span id="summaryAdjustment">0</span> days</p>
+                        <p class="mb-0"><strong>New Balance:</strong> <span id="summaryNewBalance">0</span> days</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-xs" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-xs" onclick="saveBalanceAdjustment()">Save Adjustment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Types Management Modal -->
+<div class="modal fade" id="leaveTypesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Leave Types</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <button class="btn btn-primary btn-xs" onclick="showAddLeaveTypeModal()">Add Leave Type</button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>Leave Type</th>
+                                <th>Default Annual Allocation</th>
+                                <th>Max Carry Forward</th>
+                                <th>Requires Approval</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaveTypesTable">
+                            <!-- Filled dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-xs" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Update Modal -->
+<div class="modal fade" id="bulkUpdateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Update Leave Balances</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkUpdateForm">
+                    <div class="form-group">
+                        <label for="bulkDepartment">Department:</label>
+                        <select class="form-control form-control-sm" id="bulkDepartment">
+                            <option value="">All Departments</option>
+                            <!-- Filled dynamically -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bulkLeaveType">Leave Type:</label>
+                        <select class="form-control form-control-sm" id="bulkLeaveType" required>
+                            <option value="">Select Leave Type</option>
+                            <option value="annual">Annual Leave</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="personal">Personal Leave</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bulkOperation">Operation:</label>
+                        <select class="form-control form-control-sm" id="bulkOperation" required>
+                            <option value="add">Add Days to All</option>
+                            <option value="set">Set Same Balance for All</option>
+                            <option value="reset">Reset to Default</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bulkDays">Days:</label>
+                        <input type="number" class="form-control form-control-sm" id="bulkDays" 
+                               min="0" step="0.5" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bulkReason">Reason:</label>
+                        <textarea class="form-control form-control-sm" id="bulkReason" rows="2" 
+                                  placeholder="Enter reason for bulk update..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-xs" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning btn-xs" onclick="previewBulkUpdate()">Preview</button>
+                <button type="button" class="btn btn-primary btn-xs" onclick="executeBulkUpdate()">Execute</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/navbar.js"></script>
+<script src="js/balances.js"></script>
+
+</body>
+</html>
