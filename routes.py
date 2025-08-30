@@ -542,16 +542,10 @@ def attendance_list():
         query = query.filter(Attendance.employee_id == employee_filter)
 
     # Role-based filtering
-    print(f"DEBUG: Current user role: {current_user.role}")
-    print(f"DEBUG: Has employee_profile: {hasattr(current_user, 'employee_profile')}")
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        print(f"DEBUG: Employee profile ID: {current_user.employee_profile.id}")
-    
-    if current_user.role == 'Employee' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    if current_user.role in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Employee: Only their own attendance
         employee_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == employee_id)
-        print(f"DEBUG: Employee filter applied for employee_id: {employee_id}")
     elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager: Their own attendance + their team's attendance
         manager_id = current_user.employee_profile.id
@@ -561,20 +555,32 @@ def attendance_list():
                 Employee.manager_id == manager_id      # Team's attendance
             )
         )
-        print(f"DEBUG: Manager filter applied for manager_id: {manager_id}")
-    elif current_user.role in ['Admin', 'Super Admin']:
-        # Admin/Super Admin: Can see all attendance records
-        print("DEBUG: Admin/Super Admin - no filtering applied")
+    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        # Admin: Only their own attendance (as per requirement)
+        admin_id = current_user.employee_profile.id
+        query = query.filter(Attendance.employee_id == admin_id)
+    elif current_user.role == 'Super Admin':
+        # Super Admin: Can see all attendance records
         pass
 
     attendance_records = query.order_by(Attendance.date.desc()).paginate(
         page=page, per_page=20, error_out=False)
 
-    # Get employees for filter (if admin/manager)
+    # Get employees for filter dropdown based on role
     employees = []
-    if current_user.role in ['Super Admin', 'Admin', 'Manager']:
+    if current_user.role == 'Super Admin':
+        # Super Admin can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
+    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        # Manager can filter by themselves and their team
+        manager_id = current_user.employee_profile.id
+        employees = Employee.query.filter(
+            db.or_(
+                Employee.id == manager_id,
+                Employee.manager_id == manager_id
+            )
+        ).filter_by(is_active=True).order_by(Employee.first_name).all()
 
     return render_template('attendance/list.html',
                            attendance_records=attendance_records,

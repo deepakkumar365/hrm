@@ -40,7 +40,7 @@
                             <label for="date" class="form-label">Date</label>
                             <input type="date" name="date" class="form-control" value="{{ date_filter or '' }}">
                         </div>
-                        {% if current_user.role in ['Admin', 'Manager'] and employees %}
+                        {% if current_user.role in ['Super Admin', 'Admin', 'Manager'] and employees %}
                         <div class="col-md-4">
                             <label for="employee" class="form-label">Employee</label>
                             <select name="employee" class="form-select">
