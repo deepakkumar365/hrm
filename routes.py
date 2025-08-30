@@ -542,25 +542,30 @@ def attendance_list():
         query = query.filter(Attendance.employee_id == employee_filter)
 
     # Role-based filtering
-    if current_user.role == 'Employee' and hasattr(current_user,
-                                                   'employee_profile'):
+    print(f"DEBUG: Current user role: {current_user.role}")
+    print(f"DEBUG: Has employee_profile: {hasattr(current_user, 'employee_profile')}")
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        print(f"DEBUG: Employee profile ID: {current_user.employee_profile.id}")
+    
+    if current_user.role == 'Employee' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Employee: Only their own attendance
-        query = query.filter(
-            Attendance.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user,
-                                                    'employee_profile'):
+        employee_id = current_user.employee_profile.id
+        query = query.filter(Attendance.employee_id == employee_id)
+        print(f"DEBUG: Employee filter applied for employee_id: {employee_id}")
+    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager: Their own attendance + their team's attendance
         manager_id = current_user.employee_profile.id
         query = query.filter(
             db.or_(
-                Attendance.employee_id ==
-                manager_id,  # Manager's own attendance
-                Employee.manager_id == manager_id  # Team's attendance
-            ))
-    elif current_user.role == 'Admin' and hasattr(current_user,
-                                                  'employee_profile'):
-        # Admin: Their own attendance + all employees' attendance (but they see everything anyway)
-        pass  # No filtering - they can see all
+                Attendance.employee_id == manager_id,  # Manager's own attendance
+                Employee.manager_id == manager_id      # Team's attendance
+            )
+        )
+        print(f"DEBUG: Manager filter applied for manager_id: {manager_id}")
+    elif current_user.role in ['Admin', 'Super Admin']:
+        # Admin/Super Admin: Can see all attendance records
+        print("DEBUG: Admin/Super Admin - no filtering applied")
+        pass
 
     attendance_records = query.order_by(Attendance.date.desc()).paginate(
         page=page, per_page=20, error_out=False)
