@@ -256,8 +256,10 @@ function loadWeekSummary() {
     document.getElementById('weekOvertime').textContent = '2h';
 }
 
-// Form submission with confirmation
+// Form submission with confirmation and API call
 document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+    e.preventDefault(); // Prevent default form submission
+    
     const action = e.submitter.value;
     const actionText = {
         'clock_in': 'Clock In',
@@ -267,13 +269,43 @@ document.getElementById('attendanceForm').addEventListener('submit', function(e)
     };
     
     if (!confirm(`Are you sure you want to ${actionText[action]}?`)) {
-        e.preventDefault();
         return false;
     }
     
     // Show loading state
     e.submitter.disabled = true;
+    const originalText = e.submitter.innerHTML;
     e.submitter.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('latitude', document.getElementById('latitude').value);
+    formData.append('longitude', document.getElementById('longitude').value);
+    
+    // Make API call
+    fetch('/attendance/mark', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.text();
+        }
+        throw new Error('Network response was not ok');
+    })
+    .then(data => {
+        // Success - reload the page to show updated status
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to mark attendance. Please try again.');
+        
+        // Reset button state
+        e.submitter.disabled = false;
+        e.submitter.innerHTML = originalText;
+    });
 });
 
 // Initialize

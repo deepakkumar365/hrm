@@ -43,7 +43,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        if user and user.check_password(form.password.data) and user.active:
+        if user and user.check_password(form.password.data) and user.is_active:
             login_user(user)
             flash(f'Welcome back, {user.first_name}!', 'success')
             next_page = request.args.get('next')
