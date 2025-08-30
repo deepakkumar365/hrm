@@ -1,5 +1,5 @@
 /**
- * Singapore HRM System - Mobile-First JavaScript
+ * TalaTalent - Mobile-First JavaScript
  * Progressive Web App functionality and mobile optimizations
  */
 
@@ -17,7 +17,7 @@ class HRMApp {
         this.initializeMobileOptimizations();
         this.setupAttendanceFeatures();
         this.initializeNotifications();
-        console.log('HRM System initialized');
+        console.log('TalaTalent initialized');
     }
 
     setupEventListeners() {

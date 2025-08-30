@@ -1,5 +1,5 @@
-// Simple Service Worker for HRM System
-const CACHE_NAME = 'hrm-system-v1';
+// Simple Service Worker for TalaTalent
+const CACHE_NAME = 'talatalent-v1';
 const urlsToCache = [
     '/',
     '/static/css/styles.css',

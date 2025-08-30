@@ -1,4 +1,4 @@
-# HRM System - Singapore Human Resource Management
+# TalaTalent - Singapore Human Resource Management
 
 ## Overview
 
