@@ -460,7 +460,6 @@ small,
     
     /* Enhanced mobile dropdown visibility */
     .navbar-collapse {
-        background-color: white;
         padding: 8px 0;
         border-top: 1px solid #dee2e6;
         margin-top: 8px;
@@ -494,35 +493,57 @@ small,
         margin-left: 0.5em;
     }
     
-    /* Mobile dropdown improvements */
+    /* Mobile dropdown improvements - Bootstrap 5 compatible */
     @media (max-width: 991.98px) {
-        .navbar-nav .dropdown-menu {
+        /* Force dropdowns to display in mobile collapsed navbar */
+        .navbar-collapse .navbar-nav .dropdown-menu {
             position: static !important;
             float: none !important;
             width: auto !important;
-            margin-top: 0 !important;
+            margin: 0 !important;
             background-color: #f8f9fa !important;
             border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
-            padding: 0.25rem 0 !important;
+            padding: 0 !important;
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: none !important;
         }
         
-        .navbar-nav .dropdown-item {
+        /* Initially hide all dropdowns */
+        .navbar-collapse .navbar-nav .dropdown-menu {
+            display: none !important;
+        }
+        
+        /* Show dropdown when parent has 'show' class */
+        .navbar-collapse .navbar-nav .dropdown.show .dropdown-menu {
+            display: block !important;
+        }
+        
+        .navbar-collapse .navbar-nav .dropdown-item {
             color: #495057 !important;
             padding: 0.5rem 2rem !important;
             font-size: 0.9rem !important;
+            background: none !important;
+            border: none !important;
         }
         
-        .navbar-nav .dropdown-item:hover,
-        .navbar-nav .dropdown-item:focus {
+        .navbar-collapse .navbar-nav .dropdown-item:hover,
+        .navbar-collapse .navbar-nav .dropdown-item:focus {
             background-color: #e9ecef !important;
             color: #AF3E3E !important;
         }
         
-        .navbar-nav .dropdown-toggle::after {
+        .navbar-collapse .navbar-nav .dropdown-toggle::after {
             float: right !important;
-            margin-top: 0.5rem !important;
+            margin-top: 0.25rem !important;
+        }
+        
+        /* Make dropdown toggle clickable in mobile */
+        .navbar-collapse .navbar-nav .dropdown-toggle {
+            cursor: pointer !important;
         }
     }
 }
