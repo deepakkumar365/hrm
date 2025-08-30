@@ -8,6 +8,36 @@ A comprehensive Human Resource Management System specifically designed for Singa
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Updates & Features
+
+### Master Data Management (Latest)
+- **Role Management**: Create and manage job positions/roles with descriptions
+- **Department Management**: Set up organizational departments with manager assignments
+- **Working Hours Configuration**: Define standard and flexible working hour policies
+- **Work Schedule Management**: Configure day shifts, evening shifts, and custom schedules
+- **Role-based Access**: Only Super Admin and Admin can manage master data configurations
+
+### Employee Management Enhancements
+- **Master Data Integration**: Employee forms now use dropdowns populated from master data instead of free text
+- **Form Data Preservation**: All forms preserve entered data on validation errors - no more retyping everything
+- **Automatic User Account Creation**: When creating new employees, system automatically:
+  - Creates user account with username based on name (e.g., john.doe)
+  - Sets temporary password using first name + "123" (e.g., John123)
+  - Links employee record to user account
+  - Assigns "User" role by default
+  - Shows login credentials in success message
+
+### Form Improvements Applied To:
+- Employee add/edit forms (all fields preserved on errors)
+- Leave request forms (dates, types, reasons preserved)
+- Master data forms (roles, departments, working hours, schedules)
+- All validation errors now maintain user input
+
+### Database Schema Updates
+- Added `working_hours_id` and `work_schedule_id` foreign keys to Employee table
+- Proper relationships between Employee and master data tables
+- Database constraints ensure data integrity
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -26,6 +56,7 @@ Preferred communication style: Simple, everyday language.
 - **ORM**: SQLAlchemy with declarative base for model definitions
 - **Core Models**: 
   - User/Employee management with role-based permissions (Admin, Manager, Employee)
+  - Master data models (Role, Department, WorkingHours, WorkSchedule)
   - Payroll system with Singapore-specific calculations
   - Attendance tracking with overtime calculations
   - Leave management with approval workflows
@@ -35,7 +66,7 @@ Preferred communication style: Simple, everyday language.
 - **Data Integrity**: Foreign key relationships and unique constraints for data consistency
 
 ### Role-Based Access Control
-- **Three-Tier System**: Admin (full access), Manager (team management), Employee (self-service)
+- **Four-Tier System**: Super Admin (full system access), Admin (full access), Manager (team management), User (self-service)
 - **Permission Decorators**: `@require_login` and `@require_role` for route protection
 - **Contextual Access**: Users can only access data relevant to their role and scope
 
@@ -76,3 +107,17 @@ Preferred communication style: Simple, everyday language.
 - **Werkzeug**: WSGI utilities and proxy fix for production deployment
 - **Python Logging**: Comprehensive logging system for debugging and monitoring
 - **Environment Variables**: Configuration management for database URLs and session secrets
+
+## Quick Start Guide
+
+### For New Employees
+1. Admin creates employee record through Employee > Add Employee
+2. System automatically creates user account with temporary credentials
+3. Employee receives username (firstname.lastname) and password (Firstname123)
+4. Employee logs in and can access dashboard, attendance, leave requests, payslips
+
+### For Administrators
+1. **Master Data Setup**: Configure roles, departments, working hours, and schedules via Masters menu
+2. **Employee Management**: Add employees using master data dropdowns for consistency
+3. **Role Management**: Assign appropriate system roles (Super Admin, Admin, Manager, User)
+4. **Compliance**: Generate CPF reports, payroll summaries, and Singapore compliance documents
