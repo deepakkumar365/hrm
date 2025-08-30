@@ -376,6 +376,19 @@ def employee_edit(employee_id):
             employee.department = request.form.get('department')
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
+            
+            # Handle additional personal fields
+            employee.gender = request.form.get('gender')
+            employee.nationality = request.form.get('nationality')
+            
+            # Handle date fields
+            hire_date = request.form.get('hire_date')
+            if hire_date:
+                employee.hire_date = parse_date(hire_date)
+                
+            date_of_birth = request.form.get('date_of_birth')
+            if date_of_birth:
+                employee.date_of_birth = parse_date(date_of_birth)
 
             work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
