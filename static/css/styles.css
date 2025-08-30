@@ -1,21 +1,21 @@
 /* TalaTalent - Light Theme with Custom Colors */
 
-/* Color Variables - Based on reference design */
+/* Color Variables - Warm Light Red/Pink Theme */
 :root {
-    --primary: #2c5f87;      /* Medium blue from navbar */
-    --secondary: #4a90a4;    /* Light blue accent */
+    --primary: #AF3E3E;      /* Deep red primary */
+    --secondary: #CD5656;    /* Medium red accent */
     --success: #5cb85c;      /* Success green */
     --info: #5bc0de;         /* Info blue */
     --warning: #f0ad4e;      /* Warning orange */
-    --light: #e8f4f8;        /* Very light blue-green */
+    --light: #EAEBD0;        /* Light cream background */
     --bg-primary: #ffffff;   /* White background */
-    --bg-secondary: #f8f9fa; /* Light gray background */
-    --filter-bg: #ddf4e7;    /* Light green filter background */
+    --bg-secondary: #EAEBD0; /* Light cream background */
+    --filter-bg: #DA6C6C;    /* Light red filter background */
     --text-primary: #333333; /* Dark text */
     --text-secondary: #666666; /* Gray text */
     --border: #ddd;          /* Light border */
     --table-border: #e0e0e0; /* Table border */
-    --filter-text: #2e7d32;  /* Filter section text color */
+    --filter-text: #AF3E3E;  /* Filter section text color */
 }
 
 /* Global medium sizing for all elements */
