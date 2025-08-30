@@ -54,7 +54,7 @@ def dashboard():
     if working_days > 0:
         expected_records = stats['total_employees'] * working_days
         if expected_records > 0:
-            stats['attendance_rate'] = round(float(total_attendance_records / expected_records) * 100.0, 1)
+            stats['attendance_rate'] = round((total_attendance_records / expected_records) * 100.0, 1)
         else:
             stats['attendance_rate'] = 0
     else:

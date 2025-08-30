@@ -26,6 +26,9 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 db = SQLAlchemy(app, model_class=Base)
 
+# Add hasattr to Jinja2 global functions
+app.jinja_env.globals['hasattr'] = hasattr
+
 # Create tables
 with app.app_context():
     import models  # noqa: F401
