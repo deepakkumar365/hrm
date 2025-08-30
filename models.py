@@ -75,7 +75,7 @@ class Employee(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     # Relationships
-    user = db.relationship('User', backref='employee_profile')
+    user = db.relationship('User', backref=db.backref('employee_profile', uselist=False))
     manager = db.relationship('Employee', remote_side=[id], backref='team_members')
 
 class Payroll(db.Model):
