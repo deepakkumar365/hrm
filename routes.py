@@ -528,6 +528,11 @@ def attendance_mark():
     """Mark attendance (for employees)"""
     if request.method == 'POST':
         try:
+            print(f"DEBUG: current_user.id = {current_user.id}")
+            print(f"DEBUG: hasattr(current_user, 'employee_profile') = {hasattr(current_user, 'employee_profile')}")
+            if hasattr(current_user, 'employee_profile'):
+                print(f"DEBUG: current_user.employee_profile = {current_user.employee_profile}")
+            
             if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
                 flash('Employee profile required for attendance marking', 'error')
                 return redirect(url_for('dashboard'))
