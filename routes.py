@@ -528,11 +528,6 @@ def attendance_mark():
     """Mark attendance (for employees)"""
     if request.method == 'POST':
         try:
-            print(f"DEBUG: current_user.id = {current_user.id}")
-            print(f"DEBUG: hasattr(current_user, 'employee_profile') = {hasattr(current_user, 'employee_profile')}")
-            if hasattr(current_user, 'employee_profile'):
-                print(f"DEBUG: current_user.employee_profile = {current_user.employee_profile}")
-            
             if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
                 flash('Employee profile required for attendance marking', 'error')
                 return redirect(url_for('dashboard'))
@@ -547,15 +542,9 @@ def attendance_mark():
             
             action = request.form.get('action')  # clock_in, clock_out, break_start, break_end
             current_time = datetime.now().time()
-            print(f"DEBUG: action = {action}")
-            print(f"DEBUG: current_time = {current_time}")
-            print(f"DEBUG: today = {today}")
-            print(f"DEBUG: employee_id = {employee_id}")
-            print(f"DEBUG: existing = {existing}")
             
             if action == 'clock_in':
                 if not existing:
-                    print("DEBUG: Creating new attendance record")
                     # Create new attendance record
                     attendance = Attendance()
                     attendance.employee_id = employee_id
@@ -570,12 +559,9 @@ def attendance_mark():
                         attendance.location_lat = lat
                         attendance.location_lng = lng
                     
-                    print(f"DEBUG: About to add attendance record: {attendance}")
                     db.session.add(attendance)
-                    print("DEBUG: Added to session, about to commit")
                     flash('Clocked in successfully', 'success')
                 else:
-                    print("DEBUG: Already has existing record for today")
                     flash('Already clocked in for today', 'warning')
             elif existing:
                 # Update existing record
@@ -621,13 +607,9 @@ def attendance_mark():
                     flash('Please clock in first before performing this action', 'warning')
                     return redirect(url_for('attendance_mark'))
             
-            print("DEBUG: About to commit to database")
             db.session.commit()
-            print("DEBUG: Commit successful")
             
         except Exception as e:
-            print(f"DEBUG: Exception occurred: {str(e)}")
-            print(f"DEBUG: Exception type: {type(e)}")
             db.session.rollback()
             flash(f'Error marking attendance: {str(e)}', 'error')
     

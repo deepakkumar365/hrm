@@ -1,0 +1,321 @@
+/* GitHub-inspired Minimal Theme for HRM System */
+
+:root {
+    --github-bg: #ffffff;
+    --github-bg-secondary: #f6f8fa;
+    --github-border: #d0d7de;
+    --github-text: #24292f;
+    --github-text-secondary: #656d76;
+    --github-primary: #0969da;
+    --github-success: #1f883d;
+    --github-warning: #f85149;
+    --github-danger: #cf222e;
+    --github-info: #0969da;
+    --github-shadow: rgba(31, 35, 40, 0.04);
+    --github-shadow-hover: rgba(31, 35, 40, 0.08);
+}
+
+/* Base styles */
+body {
+    background-color: var(--github-bg-secondary);
+    color: var(--github-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Cards */
+.card {
+    background: var(--github-bg);
+    border: 1px solid var(--github-border);
+    border-radius: 6px;
+    box-shadow: var(--github-shadow);
+    transition: box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: var(--github-shadow-hover);
+}
+
+.card-header {
+    background: var(--github-bg-secondary);
+    border-bottom: 1px solid var(--github-border);
+    font-weight: 600;
+    padding: 16px;
+}
+
+.card-body {
+    padding: 16px;
+}
+
+/* Buttons - GitHub style */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 5px 16px;
+    border: 1px solid;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: var(--github-primary);
+    border-color: var(--github-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0860ca;
+    border-color: #0860ca;
+}
+
+.btn-success {
+    background-color: var(--github-success);
+    border-color: var(--github-success);
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #1a7f37;
+    border-color: #1a7f37;
+}
+
+.btn-warning {
+    background-color: #fb8500;
+    border-color: #fb8500;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #f07b00;
+    border-color: #f07b00;
+}
+
+.btn-danger {
+    background-color: var(--github-danger);
+    border-color: var(--github-danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #b91c2c;
+    border-color: #b91c2c;
+}
+
+.btn-outline-primary {
+    background-color: transparent;
+    border-color: var(--github-border);
+    color: var(--github-text);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--github-bg-secondary);
+    border-color: var(--github-border);
+    color: var(--github-text);
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    border-color: var(--github-border);
+    color: var(--github-text-secondary);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--github-bg-secondary);
+    border-color: var(--github-border);
+}
+
+/* Forms */
+.form-control {
+    border: 1px solid var(--github-border);
+    border-radius: 6px;
+    font-size: 14px;
+    padding: 5px 12px;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    border-color: var(--github-primary);
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.1);
+}
+
+.form-select {
+    border: 1px solid var(--github-border);
+    border-radius: 6px;
+    font-size: 14px;
+    padding: 5px 12px;
+}
+
+/* Navbar */
+.navbar {
+    background-color: var(--github-bg);
+    border-bottom: 1px solid var(--github-border);
+    box-shadow: var(--github-shadow);
+}
+
+.navbar-brand {
+    font-weight: 600;
+    color: var(--github-text);
+}
+
+.nav-link {
+    color: var(--github-text);
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    color: var(--github-primary);
+}
+
+/* Tables */
+.table {
+    color: var(--github-text);
+    font-size: 14px;
+}
+
+.table th {
+    border-top: none;
+    border-bottom: 1px solid var(--github-border);
+    font-weight: 600;
+    background-color: var(--github-bg-secondary);
+    color: var(--github-text);
+}
+
+.table td {
+    border-top: 1px solid var(--github-border);
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--github-bg-secondary);
+}
+
+/* Alerts */
+.alert {
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: 14px;
+}
+
+.alert-success {
+    background-color: #dafbe1;
+    border-color: #2da44e;
+    color: #1f883d;
+}
+
+.alert-warning {
+    background-color: #fff8c5;
+    border-color: #f1c232;
+    color: #7d4e00;
+}
+
+.alert-danger {
+    background-color: #ffebe9;
+    border-color: #f85149;
+    color: var(--github-danger);
+}
+
+.alert-info {
+    background-color: #ddf4ff;
+    border-color: var(--github-primary);
+    color: var(--github-primary);
+}
+
+/* Text colors */
+.text-muted {
+    color: var(--github-text-secondary) !important;
+}
+
+.text-primary {
+    color: var(--github-primary) !important;
+}
+
+.text-success {
+    color: var(--github-success) !important;
+}
+
+.text-warning {
+    color: #fb8500 !important;
+}
+
+.text-danger {
+    color: var(--github-danger) !important;
+}
+
+/* Containers */
+.container {
+    max-width: 1200px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 12px;
+    }
+    
+    .btn {
+        font-size: 16px;
+        padding: 8px 16px;
+    }
+    
+    .btn-lg {
+        padding: 12px 24px;
+        font-size: 18px;
+    }
+}
+
+/* Dashboard specific */
+.dashboard-card {
+    background: var(--github-bg);
+    border: 1px solid var(--github-border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--github-shadow);
+}
+
+.dashboard-stat {
+    text-align: center;
+    padding: 16px;
+}
+
+.dashboard-stat h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.dashboard-stat p {
+    color: var(--github-text-secondary);
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+/* Pagination */
+.pagination .page-link {
+    border-color: var(--github-border);
+    color: var(--github-text);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--github-primary);
+    border-color: var(--github-primary);
+}
+
+/* Background color overrides */
+.bg-primary {
+    background-color: var(--github-primary) !important;
+}
+
+.bg-success {
+    background-color: var(--github-success) !important;
+}
+
+.bg-warning {
+    background-color: #fb8500 !important;
+}
+
+.bg-danger {
+    background-color: var(--github-danger) !important;
+}
