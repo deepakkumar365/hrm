@@ -166,7 +166,7 @@ body {
 
 /* Navbar */
 .navbar {
-    background-color: var(--github-bg);
+    background-color: var(--github-bg) !important;
     border-bottom: 1px solid var(--github-border);
     box-shadow: var(--github-shadow);
     padding: 8px 0;
@@ -175,22 +175,58 @@ body {
 .navbar-brand {
     font-weight: 600;
     font-size: 16px;
-    color: var(--github-text);
+    color: var(--github-text) !important;
+}
+
+.navbar-brand:hover {
+    color: var(--github-primary) !important;
 }
 
 .nav-link {
-    color: var(--github-text);
+    color: var(--github-text) !important;
     font-weight: 500;
     font-size: 13px;
     padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
 }
 
-.nav-link:hover {
-    color: var(--github-primary);
+.nav-link:hover, .nav-link:focus {
+    color: var(--github-primary) !important;
+    background-color: var(--github-bg-secondary);
 }
 
 .nav-link i {
     font-size: 12px;
+}
+
+.navbar-toggler {
+    border: 1px solid var(--github-border);
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.1);
+}
+
+.dropdown-menu {
+    background-color: var(--github-bg);
+    border: 1px solid var(--github-border);
+    border-radius: 6px;
+    box-shadow: var(--github-shadow-hover);
+    font-size: 12px;
+}
+
+.dropdown-item {
+    color: var(--github-text);
+    font-size: 12px;
+    padding: 6px 12px;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background-color: var(--github-bg-secondary);
+    color: var(--github-text);
 }
 
 /* Tables */
@@ -371,4 +407,79 @@ small { font-size: 10px; }
 
 .bg-danger {
     background-color: var(--github-danger) !important;
+}
+
+/* Filter sections and form cards */
+.card .card-body form {
+    margin: 0;
+}
+
+.card .card-body .row {
+    margin: 0;
+}
+
+.card .card-body .col-md-3,
+.card .card-body .col-md-4 {
+    padding: 4px 8px;
+}
+
+/* Override Bootstrap filter styling */
+.form-control, .form-select {
+    background-color: var(--github-bg) !important;
+    border: 1px solid var(--github-border) !important;
+    color: var(--github-text) !important;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: var(--github-bg) !important;
+    border-color: var(--github-primary) !important;
+    box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.1) !important;
+    color: var(--github-text) !important;
+}
+
+/* Button overrides for filter sections */
+.btn-outline-primary {
+    background-color: transparent !important;
+    border-color: var(--github-border) !important;
+    color: var(--github-text) !important;
+}
+
+.btn-outline-primary:hover, .btn-outline-primary:focus {
+    background-color: var(--github-bg-secondary) !important;
+    border-color: var(--github-primary) !important;
+    color: var(--github-primary) !important;
+}
+
+.btn-outline-secondary {
+    background-color: transparent !important;
+    border-color: var(--github-border) !important;
+    color: var(--github-text-secondary) !important;
+}
+
+.btn-outline-secondary:hover, .btn-outline-secondary:focus {
+    background-color: var(--github-bg-secondary) !important;
+    border-color: var(--github-border) !important;
+    color: var(--github-text) !important;
+}
+
+/* Navbar light overrides */
+.navbar-light .navbar-brand {
+    color: var(--github-text) !important;
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: var(--github-text) !important;
+}
+
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .nav-link:focus {
+    color: var(--github-primary) !important;
+}
+
+.navbar-light .navbar-toggler {
+    border-color: var(--github-border) !important;
+}
+
+.navbar-light .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23656d76' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
 }
