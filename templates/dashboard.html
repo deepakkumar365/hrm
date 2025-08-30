@@ -156,7 +156,7 @@
                                     <p class="mb-0 small text-muted">{{ activity.details }}</p>
                                 </div>
                                 <small class="text-muted">
-                                    {{ moment(activity.date).fromNow() }}
+                                    {{ activity.date.strftime('%b %d, %Y') if activity.date else 'Unknown' }}
                                 </small>
                             </div>
                         </div>
