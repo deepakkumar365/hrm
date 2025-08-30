@@ -370,6 +370,7 @@ def employee_edit(employee_id):
             employee.last_name = request.form.get('last_name')
             employee.email = request.form.get('email')
             employee.phone = request.form.get('phone')
+            employee.nric = request.form.get('nric')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
             employee.position = request.form.get('position')
