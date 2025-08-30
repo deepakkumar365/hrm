@@ -399,16 +399,17 @@ def payroll_list():
             extract('year', Payroll.pay_period_end) == year)
 
     # Role-based filtering
-    if current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+    if current_user.role == 'Manager' and hasattr(current_user,
+                                                  'employee_profile'):
         # Manager: Their own payroll + their team's payroll
         manager_id = current_user.employee_profile.id
         query = query.filter(
             db.or_(
                 Payroll.employee_id == manager_id,  # Manager's own payroll
-                Employee.manager_id == manager_id   # Team's payroll
-            )
-        )
-    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile'):
+                Employee.manager_id == manager_id  # Team's payroll
+            ))
+    elif current_user.role == 'Admin' and hasattr(current_user,
+                                                  'employee_profile'):
         # Admin: Their own payroll + all employees' payroll (they see everything anyway)
         pass  # No filtering - they can see all
 
@@ -541,20 +542,23 @@ def attendance_list():
         query = query.filter(Attendance.employee_id == employee_filter)
 
     # Role-based filtering
-    if current_user.role == 'Employee' and hasattr(current_user, 'employee_profile'):
+    if current_user.role == 'Employee' and hasattr(current_user,
+                                                   'employee_profile'):
         # Employee: Only their own attendance
         query = query.filter(
             Attendance.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+    elif current_user.role == 'Manager' and hasattr(current_user,
+                                                    'employee_profile'):
         # Manager: Their own attendance + their team's attendance
         manager_id = current_user.employee_profile.id
         query = query.filter(
             db.or_(
-                Attendance.employee_id == manager_id,  # Manager's own attendance
-                Employee.manager_id == manager_id      # Team's attendance
-            )
-        )
-    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile'):
+                Attendance.employee_id ==
+                manager_id,  # Manager's own attendance
+                Employee.manager_id == manager_id  # Team's attendance
+            ))
+    elif current_user.role == 'Admin' and hasattr(current_user,
+                                                  'employee_profile'):
         # Admin: Their own attendance + all employees' attendance (but they see everything anyway)
         pass  # No filtering - they can see all
 
@@ -602,30 +606,38 @@ def attendance_mark():
                 # Check for incomplete attendance from previous day(s)
                 yesterday = today - timedelta(days=1)
                 incomplete_attendance = Attendance.query.filter(
-                    Attendance.employee_id == employee_id,
-                    Attendance.date < today,
-                    Attendance.clock_out.is_(None)
-                ).order_by(Attendance.date.desc()).first()
-                
+                    Attendance.employee_id == employee_id, Attendance.date
+                    < today, Attendance.clock_out.is_(None)).order_by(
+                        Attendance.date.desc()).first()
+
                 if incomplete_attendance:
                     # Auto-complete previous day with default 6PM clock out
                     default_clock_out = time(18, 0)  # 6:00 PM
                     incomplete_attendance.clock_out = default_clock_out
-                    
+
                     # Calculate hours for the incomplete day
-                    clock_in_dt = datetime.combine(incomplete_attendance.date, incomplete_attendance.clock_in)
-                    clock_out_dt = datetime.combine(incomplete_attendance.date, default_clock_out)
-                    total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
-                    
+                    clock_in_dt = datetime.combine(
+                        incomplete_attendance.date,
+                        incomplete_attendance.clock_in)
+                    clock_out_dt = datetime.combine(incomplete_attendance.date,
+                                                    default_clock_out)
+                    total_seconds = (clock_out_dt -
+                                     clock_in_dt).total_seconds()
+
                     # Subtract break time if applicable
                     if incomplete_attendance.break_start and incomplete_attendance.break_end:
-                        break_start_dt = datetime.combine(incomplete_attendance.date, incomplete_attendance.break_start)
-                        break_end_dt = datetime.combine(incomplete_attendance.date, incomplete_attendance.break_end)
-                        break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                        break_start_dt = datetime.combine(
+                            incomplete_attendance.date,
+                            incomplete_attendance.break_start)
+                        break_end_dt = datetime.combine(
+                            incomplete_attendance.date,
+                            incomplete_attendance.break_end)
+                        break_seconds = (break_end_dt -
+                                         break_start_dt).total_seconds()
                         total_seconds -= break_seconds
-                    
+
                     total_hours = total_seconds / 3600
-                    
+
                     # Standard work day is 8 hours
                     if total_hours > 8:
                         incomplete_attendance.regular_hours = 8
@@ -633,11 +645,13 @@ def attendance_mark():
                     else:
                         incomplete_attendance.regular_hours = total_hours
                         incomplete_attendance.overtime_hours = 0
-                    
+
                     incomplete_attendance.total_hours = total_hours
                     incomplete_attendance.notes = f"Auto-completed: Forgot to clock out on {incomplete_attendance.date.strftime('%Y-%m-%d')}"
-                    
-                    flash(f'Previous incomplete attendance for {incomplete_attendance.date.strftime("%B %d")} has been auto-completed with 6:00 PM clock out.', 'info')
+
+                    flash(
+                        f'Previous incomplete attendance for {incomplete_attendance.date.strftime("%B %d")} has been auto-completed with 6:00 PM clock out.',
+                        'info')
 
                 if not existing:
                     # Create new attendance record
@@ -736,36 +750,43 @@ def attendance_mark():
 def attendance_correct(attendance_id):
     """Correct incomplete attendance records (Manager only)"""
     attendance = Attendance.query.get_or_404(attendance_id)
-    
+
     # Check if manager can access this employee's record
     if current_user.role == 'Manager':
         if not hasattr(current_user, 'employee_profile') or \
            attendance.employee.manager_id != current_user.employee_profile.id:
             flash('Access denied', 'error')
             return redirect(url_for('attendance_list'))
-    
+
     if request.method == 'POST':
         try:
             # Update attendance record
             clock_out_str = request.form.get('clock_out')
             if clock_out_str:
-                attendance.clock_out = datetime.strptime(clock_out_str, '%H:%M').time()
-                
+                attendance.clock_out = datetime.strptime(
+                    clock_out_str, '%H:%M').time()
+
                 # Recalculate hours
                 if attendance.clock_in:
-                    clock_in_dt = datetime.combine(attendance.date, attendance.clock_in)
-                    clock_out_dt = datetime.combine(attendance.date, attendance.clock_out)
-                    total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
-                    
+                    clock_in_dt = datetime.combine(attendance.date,
+                                                   attendance.clock_in)
+                    clock_out_dt = datetime.combine(attendance.date,
+                                                    attendance.clock_out)
+                    total_seconds = (clock_out_dt -
+                                     clock_in_dt).total_seconds()
+
                     # Subtract break time if applicable
                     if attendance.break_start and attendance.break_end:
-                        break_start_dt = datetime.combine(attendance.date, attendance.break_start)
-                        break_end_dt = datetime.combine(attendance.date, attendance.break_end)
-                        break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                        break_start_dt = datetime.combine(
+                            attendance.date, attendance.break_start)
+                        break_end_dt = datetime.combine(
+                            attendance.date, attendance.break_end)
+                        break_seconds = (break_end_dt -
+                                         break_start_dt).total_seconds()
                         total_seconds -= break_seconds
-                    
+
                     total_hours = total_seconds / 3600
-                    
+
                     # Standard work day is 8 hours
                     if total_hours > 8:
                         attendance.regular_hours = 8
@@ -773,56 +794,54 @@ def attendance_correct(attendance_id):
                     else:
                         attendance.regular_hours = total_hours
                         attendance.overtime_hours = 0
-                    
+
                     attendance.total_hours = total_hours
-            
+
             # Add correction note
             correction_note = request.form.get('notes', '')
             if attendance.notes:
                 attendance.notes += f"\nCorrected by {current_user.first_name} {current_user.last_name}: {correction_note}"
             else:
                 attendance.notes = f"Corrected by {current_user.first_name} {current_user.last_name}: {correction_note}"
-            
+
             db.session.commit()
             flash('Attendance record corrected successfully', 'success')
             return redirect(url_for('attendance_list'))
-            
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error correcting attendance: {str(e)}', 'error')
-    
+
     return render_template('attendance/correct.html', attendance=attendance)
 
 
 def auto_complete_incomplete_attendance():
     """Auto-complete attendance records that are still incomplete after 24 hours"""
     yesterday = date.today() - timedelta(days=1)
-    
+
     # Find all incomplete attendance records from yesterday
     incomplete_records = Attendance.query.filter(
-        Attendance.date == yesterday,
-        Attendance.clock_out.is_(None)
-    ).all()
-    
+        Attendance.date == yesterday, Attendance.clock_out.is_(None)).all()
+
     for record in incomplete_records:
         # Auto-complete with 6 PM clock out
         default_clock_out = time(18, 0)
         record.clock_out = default_clock_out
-        
+
         # Calculate hours
         clock_in_dt = datetime.combine(record.date, record.clock_in)
         clock_out_dt = datetime.combine(record.date, default_clock_out)
         total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
-        
+
         # Subtract break time if applicable
         if record.break_start and record.break_end:
             break_start_dt = datetime.combine(record.date, record.break_start)
             break_end_dt = datetime.combine(record.date, record.break_end)
             break_seconds = (break_end_dt - break_start_dt).total_seconds()
             total_seconds -= break_seconds
-        
+
         total_hours = total_seconds / 3600
-        
+
         # Standard work day is 8 hours
         if total_hours > 8:
             record.regular_hours = 8
@@ -830,13 +849,15 @@ def auto_complete_incomplete_attendance():
         else:
             record.regular_hours = total_hours
             record.overtime_hours = 0
-        
+
         record.total_hours = total_hours
         record.notes = f"Auto-completed by system: Forgot to clock out on {record.date.strftime('%Y-%m-%d')}"
-    
+
     if incomplete_records:
         db.session.commit()
-        print(f"Auto-completed {len(incomplete_records)} incomplete attendance records")
+        print(
+            f"Auto-completed {len(incomplete_records)} incomplete attendance records"
+        )
 
 
 @app.route('/attendance/incomplete')
@@ -845,20 +866,21 @@ def attendance_incomplete():
     """View incomplete attendance records that need correction"""
     # Find incomplete attendance records from the last 7 days
     week_ago = date.today() - timedelta(days=7)
-    
+
     query = Attendance.query.filter(
         Attendance.date >= week_ago,
-        Attendance.clock_out.is_(None)
-    ).join(Employee)
-    
+        Attendance.clock_out.is_(None)).join(Employee)
+
     # Role-based filtering
-    if current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
-        query = query.filter(Employee.manager_id == current_user.employee_profile.id)
-    
+    if current_user.role == 'Manager' and hasattr(current_user,
+                                                  'employee_profile'):
+        query = query.filter(
+            Employee.manager_id == current_user.employee_profile.id)
+
     incomplete_records = query.order_by(Attendance.date.desc()).all()
-    
-    return render_template('attendance/incomplete.html', 
-                         incomplete_records=incomplete_records)
+
+    return render_template('attendance/incomplete.html',
+                           incomplete_records=incomplete_records)
 
 
 # Leave Management Routes
@@ -879,20 +901,23 @@ def leave_list():
         query = query.filter(Leave.employee_id == employee_filter)
 
     # Role-based filtering
-    if current_user.role == 'Employee' and hasattr(current_user, 'employee_profile'):
+    if current_user.role == 'Employee' and hasattr(current_user,
+                                                   'employee_profile'):
         # Employee: Only their own leave requests
         query = query.filter(
             Leave.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+    elif current_user.role == 'Manager' and hasattr(current_user,
+                                                    'employee_profile'):
         # Manager: Their own leave requests + their team's leave requests
         manager_id = current_user.employee_profile.id
         query = query.filter(
             db.or_(
-                Leave.employee_id == manager_id,  # Manager's own leave requests
+                Leave.employee_id ==
+                manager_id,  # Manager's own leave requests
                 Employee.manager_id == manager_id  # Team's leave requests
-            )
-        )
-    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile'):
+            ))
+    elif current_user.role == 'Admin' and hasattr(current_user,
+                                                  'employee_profile'):
         # Admin: Their own leave requests + all employees' leave requests (they see everything anyway)
         pass  # No filtering - they can see all
 
