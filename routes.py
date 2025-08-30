@@ -382,7 +382,43 @@ def employee_add():
             db.session.add(employee)
             db.session.commit()
 
-            flash('Employee added successfully', 'success')
+            # Create user account for the new employee
+            try:
+                # Generate username from employee details
+                base_username = f"{employee.first_name.lower()}.{employee.last_name.lower()}"
+                username = base_username
+                counter = 1
+                
+                # Ensure unique username
+                while User.query.filter_by(username=username).first():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                # Create user account
+                user = User()
+                user.username = username
+                user.email = employee.email
+                user.first_name = employee.first_name
+                user.last_name = employee.last_name
+                user.role = 'User'  # Default role for new employees
+                
+                # Set temporary password (employee should change on first login)
+                temp_password = f"{employee.first_name}123"  # Simple temp password
+                user.set_password(temp_password)
+                
+                db.session.add(user)
+                db.session.commit()
+                
+                # Link employee to user account
+                employee.user_id = user.id
+                db.session.commit()
+                
+                flash(f'Employee added successfully. Login credentials created - Username: {username}, Temporary Password: {temp_password}', 'success')
+                
+            except Exception as user_error:
+                # Employee was created but user creation failed
+                flash(f'Employee added successfully, but user account creation failed: {str(user_error)}. Please create manually.', 'warning')
+            
             return redirect(url_for('employee_list'))
 
         except Exception as e:
@@ -410,11 +446,6 @@ def employee_add():
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
     managers = Employee.query.filter_by(is_active=True).filter(
         Employee.position.ilike('%manager%')).all()
-
-    # Debug logging
-    print(f"Loading employee form - Roles: {len(roles)}, Departments: {len(departments)}")
-    for role in roles:
-        print(f"Role: {role.name}")
 
     return render_template('employees/form.html', 
                            managers=managers,
