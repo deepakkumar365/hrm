@@ -157,7 +157,7 @@ def dashboard():
                     'date': leave.created_at
                 })
     
-    return render_template('dashboard.html', stats=stats, recent_activities=recent_activities)
+    return render_template('dashboard.html', stats=stats, recent_activities=recent_activities, moment=datetime.now)
 
 # Employee Management Routes
 @app.route('/employees')

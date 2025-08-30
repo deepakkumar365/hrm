@@ -68,7 +68,7 @@ class Employee(db.Model):
     termination_date = db.Column(db.Date)
     
     # Foreign key to User for system access
-    user_id = db.Column(db.String, db.ForeignKey(User.id), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
     manager_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
     
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -107,7 +107,7 @@ class Payroll(db.Model):
     
     # Status
     status = db.Column(db.String(20), default='Draft')  # Draft, Approved, Paid
-    generated_by = db.Column(db.String, db.ForeignKey(User.id))
+    generated_by = db.Column(db.Integer, db.ForeignKey(User.id))
     generated_at = db.Column(db.DateTime, default=datetime.now)
     
     # Relationships
@@ -158,8 +158,8 @@ class Leave(db.Model):
     status = db.Column(db.String(20), default='Pending')  # Pending, Approved, Rejected
     
     # Approval workflow
-    requested_by = db.Column(db.String, db.ForeignKey(User.id))
-    approved_by = db.Column(db.String, db.ForeignKey(User.id))
+    requested_by = db.Column(db.Integer, db.ForeignKey(User.id))
+    approved_by = db.Column(db.Integer, db.ForeignKey(User.id))
     approved_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.Text)
     
@@ -183,8 +183,8 @@ class Claim(db.Model):
     status = db.Column(db.String(20), default='Pending')  # Pending, Approved, Rejected, Paid
     
     # Approval workflow
-    submitted_by = db.Column(db.String, db.ForeignKey(User.id))
-    approved_by = db.Column(db.String, db.ForeignKey(User.id))
+    submitted_by = db.Column(db.Integer, db.ForeignKey(User.id))
+    approved_by = db.Column(db.Integer, db.ForeignKey(User.id))
     approved_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.Text)
     
@@ -219,7 +219,7 @@ class Appraisal(db.Model):
     status = db.Column(db.String(20), default='Draft')  # Draft, Submitted, Completed
     
     # Workflow
-    reviewed_by = db.Column(db.String, db.ForeignKey(User.id))
+    reviewed_by = db.Column(db.Integer, db.ForeignKey(User.id))
     completed_at = db.Column(db.DateTime)
     
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -242,7 +242,7 @@ class ComplianceReport(db.Model):
     total_employees = db.Column(db.Integer)
     total_amount = db.Column(db.Numeric(12, 2))
     
-    generated_by = db.Column(db.String, db.ForeignKey(User.id))
+    generated_by = db.Column(db.Integer, db.ForeignKey(User.id))
     generated_at = db.Column(db.DateTime, default=datetime.now)
     submitted_at = db.Column(db.DateTime)
     
