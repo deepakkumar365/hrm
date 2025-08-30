@@ -14,11 +14,9 @@
                     </h3>
                     <p class="text-muted mb-0">{{ leave_requests.total }} leave requests</p>
                 </div>
-                {% if current_user.role == 'Employee' %}
                 <a href="{{ url_for('leave_request') }}" class="btn btn-primary">
                     <i class="fas fa-plus me-1"></i>Request Leave
                 </a>
-                {% endif %}
             </div>
             
             <!-- Filters -->
@@ -104,15 +102,33 @@
                 </div>
                 {% endif %}
                 
-                {% if current_user.role in ['Admin', 'Manager'] and leave.status == 'Pending' %}
+                {% if leave.status == 'Pending' %}
                 <div class="mt-3 pt-2 border-top">
+                    {% set can_edit = false %}
+                    <!-- Check if user can edit this leave request -->
+                    {% if current_user.employee_profile and leave.employee_id == current_user.employee_profile.id %}
+                        {% set can_edit = true %}
+                    {% elif current_user.role == 'Manager' and current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
+                        {% set can_edit = true %}
+                    {% elif current_user.role in ['Admin', 'Super Admin'] %}
+                        {% set can_edit = true %}
+                    {% endif %}
+                    
                     <div class="btn-group w-100">
+                        {% if can_edit %}
+                        <a href="{{ url_for('leave_edit', leave_id=leave.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                        {% endif %}
+                        
+                        {% if current_user.role in ['Admin', 'Manager', 'Super Admin'] %}
                         <button class="btn btn-sm btn-success" onclick="approveLeave({{ leave.id }}, 'approve')">
                             <i class="fas fa-check me-1"></i>Approve
                         </button>
                         <button class="btn btn-sm btn-danger" onclick="showRejectModal({{ leave.id }})">
                             <i class="fas fa-times me-1"></i>Reject
                         </button>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -138,9 +154,7 @@
                             <th>Reason</th>
                             <th>Status</th>
                             <th>Requested On</th>
-                            {% if current_user.role in ['Admin', 'Manager'] %}
                             <th>Actions</th>
-                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -178,22 +192,38 @@
                                 {% endif %}
                             </td>
                             <td>{{ leave.created_at.strftime('%d/%m/%Y') }}</td>
-                            {% if current_user.role in ['Admin', 'Manager'] %}
                             <td>
-                                {% if leave.status == 'Pending' %}
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-success" onclick="approveLeave({{ leave.id }}, 'approve')">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger" onclick="showRejectModal({{ leave.id }})">
-                                        <i class="fas fa-times"></i>
-                                    </button>
+                                    {% if leave.status == 'Pending' %}
+                                        {% set can_edit = false %}
+                                        <!-- Check if user can edit this leave request -->
+                                        {% if current_user.employee_profile and leave.employee_id == current_user.employee_profile.id %}
+                                            {% set can_edit = true %}
+                                        {% elif current_user.role == 'Manager' and current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
+                                            {% set can_edit = true %}
+                                        {% elif current_user.role in ['Admin', 'Super Admin'] %}
+                                            {% set can_edit = true %}
+                                        {% endif %}
+                                        
+                                        {% if can_edit %}
+                                        <a href="{{ url_for('leave_edit', leave_id=leave.id) }}" class="btn btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        
+                                        {% if current_user.role in ['Admin', 'Manager', 'Super Admin'] %}
+                                        <button class="btn btn-outline-success" onclick="approveLeave({{ leave.id }}, 'approve')" title="Approve">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="showRejectModal({{ leave.id }})" title="Reject">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted small">{{ leave.status }}</span>
+                                    {% endif %}
                                 </div>
-                                {% else %}
-                                <span class="text-muted small">{{ leave.status }}</span>
-                                {% endif %}
                             </td>
-                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>

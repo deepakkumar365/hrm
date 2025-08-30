@@ -997,6 +997,59 @@ def leave_request():
     return render_template('leave/form.html')
 
 
+@app.route('/leave/<int:leave_id>/edit', methods=['GET', 'POST'])
+@require_login
+def leave_edit(leave_id):
+    """Edit leave request"""
+    leave = Leave.query.get_or_404(leave_id)
+    
+    # Check if user can edit this leave request
+    can_edit = False
+    
+    # Requestor can edit their own pending requests
+    if (hasattr(current_user, 'employee_profile') and 
+        current_user.employee_profile and 
+        leave.employee_id == current_user.employee_profile.id and 
+        leave.status == 'Pending'):
+        can_edit = True
+    
+    # Approvers (Manager/Admin/Super Admin) can edit pending requests for their scope
+    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+        if leave.employee.manager_id == current_user.employee_profile.id and leave.status == 'Pending':
+            can_edit = True
+    elif current_user.role in ['Admin', 'Super Admin']:
+        if leave.status == 'Pending':
+            can_edit = True
+    
+    if not can_edit:
+        flash('You cannot edit this leave request', 'error')
+        return redirect(url_for('leave_list'))
+    
+    if request.method == 'POST':
+        try:
+            leave.leave_type = request.form.get('leave_type')
+            leave.start_date = parse_date(request.form.get('start_date'))
+            leave.end_date = parse_date(request.form.get('end_date'))
+            leave.reason = request.form.get('reason')
+            
+            # Recalculate days
+            if leave.start_date and leave.end_date:
+                days = (leave.end_date - leave.start_date).days + 1
+                leave.days_requested = days
+            
+            leave.updated_at = datetime.now()
+            db.session.commit()
+            
+            flash('Leave request updated successfully', 'success')
+            return redirect(url_for('leave_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating leave request: {str(e)}', 'error')
+    
+    return render_template('leave/form.html', leave=leave, is_edit=True)
+
+
 @app.route('/leave/<int:leave_id>/approve', methods=['POST'])
 @require_role(['Super Admin', 'Admin', 'Manager'])
 def leave_approve(leave_id):
