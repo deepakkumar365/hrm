@@ -213,13 +213,10 @@ h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
 .table th {
     padding: 12px 15px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: bold;
     background-color: var(--filter-bg);
     color: var(--text-primary);
-    border-top: none;
-    border-bottom: 1px solid var(--table-border);
-    border-left: none;
-    border-right: none;
+    border: none;
     text-align: left;
 }
 
