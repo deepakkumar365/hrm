@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit Work Schedule" if work_schedule else "Add Work Schedule" }} - TalaTalent{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        {{ "Edit Work Schedule" if work_schedule else "Add Work Schedule" }}
+                    </h3>
+                </div>
+                <a href="{{ url_for('work_schedule_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Form -->
+            <form method="POST" class="needs-validation" novalidate>
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Work Schedule Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Schedule Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ work_schedule.name if work_schedule else '' }}" 
+                                   placeholder="e.g., Standard Hours, Morning Shift, Evening Shift" required>
+                            <div class="invalid-feedback">Please provide a schedule name.</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_time" class="form-label">Start Time *</label>
+                                    <input type="time" class="form-control" id="start_time" name="start_time" 
+                                           value="{{ work_schedule.start_time.strftime('%H:%M') if work_schedule else '' }}" 
+                                           required>
+                                    <div class="invalid-feedback">Please provide a start time.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_time" class="form-label">End Time *</label>
+                                    <input type="time" class="form-control" id="end_time" name="end_time" 
+                                           value="{{ work_schedule.end_time.strftime('%H:%M') if work_schedule else '' }}" 
+                                           required>
+                                    <div class="invalid-feedback">Please provide an end time.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="break_duration" class="form-label">Break Duration *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="break_duration" name="break_duration" 
+                                       min="0" max="480" step="15"
+                                       value="{{ work_schedule.break_duration if work_schedule else '60' }}" 
+                                       required>
+                                <span class="input-group-text">minutes</span>
+                            </div>
+                            <small class="form-text text-muted">Total break time during the work day</small>
+                            <div class="invalid-feedback">Please provide valid break duration.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3" placeholder="Optional description or notes about this schedule">{{ work_schedule.description if work_schedule else '' }}</textarea>
+                        </div>
+
+                        <!-- Quick presets -->
+                        <div class="mb-3">
+                            <label class="form-label">Quick Presets</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        onclick="setPreset('Standard Hours', '09:00', '18:00', 60)">
+                                    Standard (9:00-18:00, 1h break)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        onclick="setPreset('Early Shift', '07:00', '16:00', 60)">
+                                    Early (7:00-16:00, 1h break)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        onclick="setPreset('Late Shift', '14:00', '23:00', 60)">
+                                    Late (14:00-23:00, 1h break)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Live preview -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-1"></i>Schedule Preview</h6>
+                            <div id="schedulePreview">
+                                <span class="text-muted">Select times to see preview</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{{ url_for('work_schedule_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {{ "Update Schedule" if work_schedule else "Add Schedule" }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Preset functionality
+function setPreset(name, startTime, endTime, breakDuration) {
+    if (!document.getElementById('name').value) {
+        document.getElementById('name').value = name;
+    }
+    document.getElementById('start_time').value = startTime;
+    document.getElementById('end_time').value = endTime;
+    document.getElementById('break_duration').value = breakDuration;
+    updatePreview();
+}
+
+// Preview functionality
+function updatePreview() {
+    const startTime = document.getElementById('start_time').value;
+    const endTime = document.getElementById('end_time').value;
+    const breakDuration = parseInt(document.getElementById('break_duration').value) || 0;
+    
+    if (startTime && endTime) {
+        const start = new Date('2000-01-01 ' + startTime);
+        const end = new Date('2000-01-01 ' + endTime);
+        
+        if (end > start) {
+            const totalMinutes = (end - start) / 60000; // Convert to minutes
+            const workingMinutes = totalMinutes - breakDuration;
+            const hours = Math.floor(workingMinutes / 60);
+            const minutes = workingMinutes % 60;
+            
+            document.getElementById('schedulePreview').innerHTML = `
+                <strong>Working Hours:</strong> ${hours}h ${minutes}m<br>
+                <strong>Total Time:</strong> ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m (including breaks)<br>
+                <strong>Schedule:</strong> ${startTime} - ${endTime} with ${breakDuration}min break
+            `;
+        } else {
+            document.getElementById('schedulePreview').innerHTML = 
+                '<span class="text-danger">End time must be after start time</span>';
+        }
+    } else {
+        document.getElementById('schedulePreview').innerHTML = 
+            '<span class="text-muted">Select times to see preview</span>';
+    }
+}
+
+// Add event listeners for live preview
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('start_time').addEventListener('change', updatePreview);
+    document.getElementById('end_time').addEventListener('change', updatePreview);
+    document.getElementById('break_duration').addEventListener('input', updatePreview);
+    
+    // Initial preview
+    updatePreview();
+});
+</script>
+{% endblock %}

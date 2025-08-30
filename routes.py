@@ -6,7 +6,8 @@ import calendar
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
-from models import Employee, Payroll, Attendance, Leave, Claim, Appraisal, ComplianceReport, User
+from models import (Employee, Payroll, Attendance, Leave, Claim, Appraisal, 
+                    ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -1546,6 +1547,312 @@ def api_attendance_check():
             'clocked_out': False,
             'on_break': False
         })
+
+
+# Master Data Management Routes
+
+# Role Management Routes
+@app.route('/masters/roles')
+@require_role(['Super Admin', 'Admin'])
+def role_list():
+    """List all roles"""
+    page = request.args.get('page', 1, type=int)
+    roles = Role.query.filter_by(is_active=True).paginate(
+        page=page, per_page=20, error_out=False)
+    return render_template('masters/roles/list.html', roles=roles)
+
+
+@app.route('/masters/roles/add', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def role_add():
+    """Add new role"""
+    if request.method == 'POST':
+        try:
+            role = Role(
+                name=request.form.get('name'),
+                description=request.form.get('description')
+            )
+            db.session.add(role)
+            db.session.commit()
+            flash('Role created successfully', 'success')
+            return redirect(url_for('role_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating role: {str(e)}', 'error')
+    
+    return render_template('masters/roles/form.html')
+
+
+@app.route('/masters/roles/<int:role_id>/edit', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def role_edit(role_id):
+    """Edit role"""
+    role = Role.query.get_or_404(role_id)
+    
+    if request.method == 'POST':
+        try:
+            role.name = request.form.get('name')
+            role.description = request.form.get('description')
+            db.session.commit()
+            flash('Role updated successfully', 'success')
+            return redirect(url_for('role_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating role: {str(e)}', 'error')
+    
+    return render_template('masters/roles/form.html', role=role)
+
+
+@app.route('/masters/roles/<int:role_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def role_delete(role_id):
+    """Delete role (soft delete)"""
+    role = Role.query.get_or_404(role_id)
+    try:
+        role.is_active = False
+        db.session.commit()
+        flash('Role deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting role: {str(e)}', 'error')
+    
+    return redirect(url_for('role_list'))
+
+
+# Department Management Routes
+@app.route('/masters/departments')
+@require_role(['Super Admin', 'Admin'])
+def department_list():
+    """List all departments"""
+    page = request.args.get('page', 1, type=int)
+    departments = Department.query.filter_by(is_active=True).paginate(
+        page=page, per_page=20, error_out=False)
+    return render_template('masters/departments/list.html', departments=departments)
+
+
+@app.route('/masters/departments/add', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def department_add():
+    """Add new department"""
+    if request.method == 'POST':
+        try:
+            manager_id = request.form.get('manager_id')
+            department = Department(
+                name=request.form.get('name'),
+                description=request.form.get('description'),
+                manager_id=int(manager_id) if manager_id else None
+            )
+            db.session.add(department)
+            db.session.commit()
+            flash('Department created successfully', 'success')
+            return redirect(url_for('department_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating department: {str(e)}', 'error')
+    
+    # Get potential managers
+    managers = Employee.query.filter_by(is_active=True).filter(
+        Employee.position.ilike('%manager%')).all()
+    return render_template('masters/departments/form.html', managers=managers)
+
+
+@app.route('/masters/departments/<int:department_id>/edit', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def department_edit(department_id):
+    """Edit department"""
+    department = Department.query.get_or_404(department_id)
+    
+    if request.method == 'POST':
+        try:
+            manager_id = request.form.get('manager_id')
+            department.name = request.form.get('name')
+            department.description = request.form.get('description')
+            department.manager_id = int(manager_id) if manager_id else None
+            db.session.commit()
+            flash('Department updated successfully', 'success')
+            return redirect(url_for('department_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating department: {str(e)}', 'error')
+    
+    # Get potential managers
+    managers = Employee.query.filter_by(is_active=True).filter(
+        Employee.position.ilike('%manager%')).all()
+    return render_template('masters/departments/form.html', department=department, managers=managers)
+
+
+@app.route('/masters/departments/<int:department_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def department_delete(department_id):
+    """Delete department (soft delete)"""
+    department = Department.query.get_or_404(department_id)
+    try:
+        department.is_active = False
+        db.session.commit()
+        flash('Department deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting department: {str(e)}', 'error')
+    
+    return redirect(url_for('department_list'))
+
+
+# Working Hours Management Routes
+@app.route('/masters/working-hours')
+@require_role(['Super Admin', 'Admin'])
+def working_hours_list():
+    """List all working hours configurations"""
+    page = request.args.get('page', 1, type=int)
+    working_hours = WorkingHours.query.filter_by(is_active=True).paginate(
+        page=page, per_page=20, error_out=False)
+    return render_template('masters/working_hours/list.html', working_hours=working_hours)
+
+
+@app.route('/masters/working-hours/add', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def working_hours_add():
+    """Add new working hours configuration"""
+    if request.method == 'POST':
+        try:
+            working_hours = WorkingHours(
+                name=request.form.get('name'),
+                hours_per_day=float(request.form.get('hours_per_day')),
+                hours_per_week=float(request.form.get('hours_per_week')),
+                description=request.form.get('description')
+            )
+            db.session.add(working_hours)
+            db.session.commit()
+            flash('Working hours configuration created successfully', 'success')
+            return redirect(url_for('working_hours_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating working hours: {str(e)}', 'error')
+    
+    return render_template('masters/working_hours/form.html')
+
+
+@app.route('/masters/working-hours/<int:working_hours_id>/edit', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def working_hours_edit(working_hours_id):
+    """Edit working hours configuration"""
+    working_hours = WorkingHours.query.get_or_404(working_hours_id)
+    
+    if request.method == 'POST':
+        try:
+            working_hours.name = request.form.get('name')
+            working_hours.hours_per_day = float(request.form.get('hours_per_day'))
+            working_hours.hours_per_week = float(request.form.get('hours_per_week'))
+            working_hours.description = request.form.get('description')
+            db.session.commit()
+            flash('Working hours configuration updated successfully', 'success')
+            return redirect(url_for('working_hours_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating working hours: {str(e)}', 'error')
+    
+    return render_template('masters/working_hours/form.html', working_hours=working_hours)
+
+
+@app.route('/masters/working-hours/<int:working_hours_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def working_hours_delete(working_hours_id):
+    """Delete working hours configuration (soft delete)"""
+    working_hours = WorkingHours.query.get_or_404(working_hours_id)
+    try:
+        working_hours.is_active = False
+        db.session.commit()
+        flash('Working hours configuration deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting working hours: {str(e)}', 'error')
+    
+    return redirect(url_for('working_hours_list'))
+
+
+# Work Schedule Management Routes
+@app.route('/masters/work-schedules')
+@require_role(['Super Admin', 'Admin'])
+def work_schedule_list():
+    """List all work schedules"""
+    page = request.args.get('page', 1, type=int)
+    work_schedules = WorkSchedule.query.filter_by(is_active=True).paginate(
+        page=page, per_page=20, error_out=False)
+    return render_template('masters/work_schedules/list.html', work_schedules=work_schedules)
+
+
+@app.route('/masters/work-schedules/add', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def work_schedule_add():
+    """Add new work schedule"""
+    if request.method == 'POST':
+        try:
+            # Parse time strings
+            start_time_str = request.form.get('start_time')
+            end_time_str = request.form.get('end_time')
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+            
+            work_schedule = WorkSchedule(
+                name=request.form.get('name'),
+                start_time=start_time,
+                end_time=end_time,
+                break_duration=int(request.form.get('break_duration', 60)),
+                description=request.form.get('description')
+            )
+            db.session.add(work_schedule)
+            db.session.commit()
+            flash('Work schedule created successfully', 'success')
+            return redirect(url_for('work_schedule_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating work schedule: {str(e)}', 'error')
+    
+    return render_template('masters/work_schedules/form.html')
+
+
+@app.route('/masters/work-schedules/<int:work_schedule_id>/edit', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def work_schedule_edit(work_schedule_id):
+    """Edit work schedule"""
+    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
+    
+    if request.method == 'POST':
+        try:
+            # Parse time strings
+            start_time_str = request.form.get('start_time')
+            end_time_str = request.form.get('end_time')
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+            
+            work_schedule.name = request.form.get('name')
+            work_schedule.start_time = start_time
+            work_schedule.end_time = end_time
+            work_schedule.break_duration = int(request.form.get('break_duration', 60))
+            work_schedule.description = request.form.get('description')
+            db.session.commit()
+            flash('Work schedule updated successfully', 'success')
+            return redirect(url_for('work_schedule_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating work schedule: {str(e)}', 'error')
+    
+    return render_template('masters/work_schedules/form.html', work_schedule=work_schedule)
+
+
+@app.route('/masters/work-schedules/<int:work_schedule_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def work_schedule_delete(work_schedule_id):
+    """Delete work schedule (soft delete)"""
+    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
+    try:
+        work_schedule.is_active = False
+        db.session.commit()
+        flash('Work schedule deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting work schedule: {str(e)}', 'error')
+    
+    return redirect(url_for('work_schedule_list'))
 
 
 # Error handlers

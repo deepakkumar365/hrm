@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit Working Hours" if working_hours else "Add Working Hours" }} - TalaTalent{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>
+                        <i class="fas fa-clock me-2"></i>
+                        {{ "Edit Working Hours" if working_hours else "Add Working Hours" }}
+                    </h3>
+                </div>
+                <a href="{{ url_for('working_hours_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Form -->
+            <form method="POST" class="needs-validation" novalidate>
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Working Hours Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Configuration Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ working_hours.name if working_hours else '' }}" 
+                                   placeholder="e.g., Standard Hours, Shift A, Part-time" required>
+                            <div class="invalid-feedback">Please provide a configuration name.</div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="hours_per_day" class="form-label">Hours per Day *</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="hours_per_day" name="hours_per_day" 
+                                               step="0.25" min="0" max="24"
+                                               value="{{ working_hours.hours_per_day if working_hours else '' }}" 
+                                               placeholder="8.00" required>
+                                        <span class="input-group-text">hours</span>
+                                    </div>
+                                    <small class="form-text text-muted">Standard working hours per day</small>
+                                    <div class="invalid-feedback">Please provide valid hours per day.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="hours_per_week" class="form-label">Hours per Week *</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="hours_per_week" name="hours_per_week" 
+                                               step="0.25" min="0" max="168"
+                                               value="{{ working_hours.hours_per_week if working_hours else '' }}" 
+                                               placeholder="40.00" required>
+                                        <span class="input-group-text">hours</span>
+                                    </div>
+                                    <small class="form-text text-muted">Total weekly working hours</small>
+                                    <div class="invalid-feedback">Please provide valid hours per week.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3" placeholder="Optional description or notes about this configuration">{{ working_hours.description if working_hours else '' }}</textarea>
+                        </div>
+
+                        <!-- Quick presets -->
+                        <div class="mb-3">
+                            <label class="form-label">Quick Presets</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        onclick="setPreset('Full-time Standard', 8, 40)">
+                                    Full-time (8h/day, 40h/week)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        onclick="setPreset('Part-time', 4, 20)">
+                                    Part-time (4h/day, 20h/week)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        onclick="setPreset('Extended Hours', 9, 45)">
+                                    Extended (9h/day, 45h/week)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{{ url_for('working_hours_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {{ "Update Configuration" if working_hours else "Add Configuration" }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Preset functionality
+function setPreset(name, hoursPerDay, hoursPerWeek) {
+    if (!document.getElementById('name').value) {
+        document.getElementById('name').value = name;
+    }
+    document.getElementById('hours_per_day').value = hoursPerDay;
+    document.getElementById('hours_per_week').value = hoursPerWeek;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Working Hours Management - TalaTalent{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3>
+                <i class="fas fa-clock me-2"></i>Working Hours Management
+            </h3>
+            <p class="text-muted mb-0">Manage different working hour configurations</p>
+        </div>
+        <a href="{{ url_for('working_hours_add') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Working Hours
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if working_hours.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Configuration Name</th>
+                            <th>Hours/Day</th>
+                            <th>Hours/Week</th>
+                            <th>Description</th>
+                            <th>Created</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for wh in working_hours.items %}
+                        <tr>
+                            <td>
+                                <strong>{{ wh.name }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ wh.hours_per_day }}h</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ wh.hours_per_week }}h</span>
+                            </td>
+                            <td>{{ wh.description or '-' }}</td>
+                            <td>{{ wh.created_at.strftime('%d %b %Y') }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('working_hours_edit', working_hours_id=wh.id) }}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger"
+                                            onclick="confirmDelete('{{ wh.name }}', '{{ url_for('working_hours_delete', working_hours_id=wh.id) }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if working_hours.pages > 1 %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if working_hours.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('working_hours_list', page=working_hours.prev_num) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in working_hours.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != working_hours.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('working_hours_list', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if working_hours.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('working_hours_list', page=working_hours.next_num) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                <h5>No working hours configurations found</h5>
+                <p class="text-muted">Get started by adding your first working hours configuration.</p>
+                <a href="{{ url_for('working_hours_add') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Working Hours
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the working hours configuration "<span id="workingHoursName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(name, url) {
+    document.getElementById('workingHoursName').textContent = name;
+    document.getElementById('deleteForm').action = url;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

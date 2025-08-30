@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, time
 from app import db
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 from flask_login import UserMixin
@@ -248,3 +248,72 @@ class ComplianceReport(db.Model):
     
     # Relationships
     generated_by_user = db.relationship('User')
+
+    def __repr__(self):
+        return f'<ComplianceReport {self.report_type} for {self.period_year}-{self.period_month:02d}>'
+
+
+# Master Data Models
+class Role(db.Model):
+    """Master data for employee roles/positions"""
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    def __repr__(self):
+        return f'<Role {self.name}>'
+
+
+class Department(db.Model):
+    """Master data for departments"""
+    __tablename__ = 'departments'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    manager_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationship
+    manager = db.relationship('Employee', foreign_keys=[manager_id])
+
+    def __repr__(self):
+        return f'<Department {self.name}>'
+
+
+class WorkingHours(db.Model):
+    """Master data for working hours configuration"""
+    __tablename__ = 'working_hours'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "Standard 9-6", "Shift A"
+    hours_per_day = db.Column(db.Numeric(4, 2), nullable=False)  # e.g., 8.00, 8.50
+    hours_per_week = db.Column(db.Numeric(4, 2), nullable=False)  # e.g., 40.00, 44.00
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    def __repr__(self):
+        return f'<WorkingHours {self.name}: {self.hours_per_day}h/day>'
+
+
+class WorkSchedule(db.Model):
+    """Master data for work start/end times"""
+    __tablename__ = 'work_schedules'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "Standard Hours", "Early Shift"
+    start_time = db.Column(db.Time, nullable=False)  # e.g., 09:00:00
+    end_time = db.Column(db.Time, nullable=False)    # e.g., 18:00:00
+    break_duration = db.Column(db.Integer, default=60)  # break duration in minutes
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    def __repr__(self):
+        return f'<WorkSchedule {self.name}: {self.start_time}-{self.end_time}>'
