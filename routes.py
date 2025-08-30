@@ -6,7 +6,7 @@ import calendar
 
 from app import app, db
 from replit_auth import require_login, require_role, make_replit_blueprint
-from models import Employee, Payroll, Attendance, Leave, Claim, Appraisal, ComplianceReport
+from models import Employee, Payroll, Attendance, Leave, Claim, Appraisal, ComplianceReport, User
 from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date, 
                   validate_nric, generate_employee_id, check_permission,
@@ -965,6 +965,29 @@ def compliance_generate(report_type):
         return redirect(url_for('compliance_dashboard'))
 
 # Export routes
+@app.route('/users')
+@require_role(['Admin'])
+def user_management():
+    """User management for admins"""
+    users = User.query.order_by(User.first_name).all()
+    return render_template('users/list.html', users=users)
+
+@app.route('/users/<user_id>/role', methods=['POST'])
+@require_role(['Admin'])
+def update_user_role(user_id):
+    """Update user role"""
+    user = User.query.get_or_404(user_id)
+    new_role = request.form.get('role')
+    
+    if new_role in ['Admin', 'Manager', 'Employee']:
+        user.role = new_role
+        db.session.commit()
+        flash(f'User role updated to {new_role}', 'success')
+    else:
+        flash('Invalid role specified', 'error')
+    
+    return redirect(url_for('user_management'))
+
 @app.route('/export/employees')
 @require_role(['Admin', 'Manager'])
 def export_employees():

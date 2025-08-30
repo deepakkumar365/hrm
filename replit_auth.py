@@ -139,7 +139,12 @@ def save_user(user_claims):
     if existing_user:
         user.role = existing_user.role
     else:
-        user.role = 'Employee'
+        # Check if this is the first user - make them admin
+        user_count = User.query.count()
+        if user_count == 0:
+            user.role = 'Admin'
+        else:
+            user.role = 'Employee'
     
     merged_user = db.session.merge(user)
     db.session.commit()
