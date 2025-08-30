@@ -29,9 +29,25 @@ h4 { font-size: 16px; font-weight: 600; color: var(--secondary); }
 h5 { font-size: 14px; font-weight: 600; color: var(--secondary); }
 h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
 
-/* Remove all rounded borders */
+/* Remove all rounded borders and ensure 1px borders */
 * {
     border-radius: 0 !important;
+}
+
+/* Global 1px border styling for sleek appearance */
+.card,
+.form-control,
+.form-select,
+.btn,
+.table,
+.table th,
+.table td,
+.alert,
+.navbar,
+.dropdown-menu,
+.modal-content,
+.pagination .page-link {
+    border-width: 1px !important;
 }
 
 /* Buttons - medium sizing with custom colors */
