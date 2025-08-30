@@ -46,7 +46,7 @@
                         </a>
                     </li>
                     
-                    {% if current_user.role in ['Admin', 'Manager'] %}
+                    {% if current_user.role in ['Super Admin', 'Admin', 'Manager'] %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                             <i class="fas fa-users me-1"></i>Employees
@@ -55,7 +55,7 @@
                             <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
                                 <i class="fas fa-list me-1"></i>View All
                             </a></li>
-                            {% if current_user.role == 'Admin' %}
+                            {% if current_user.role in ['Super Admin', 'Admin'] %}
                             <li><a class="dropdown-item" href="{{ url_for('employee_add') }}">
                                 <i class="fas fa-plus me-1"></i>Add Employee
                             </a></li>
@@ -94,7 +94,7 @@
                         </ul>
                     </li>
                     
-                    {% if current_user.role in ['Admin', 'Manager'] %}
+                    {% if current_user.role in ['Super Admin', 'Admin', 'Manager'] %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('payroll_list') }}">
                             <i class="fas fa-dollar-sign me-1"></i>Payroll
@@ -102,7 +102,7 @@
                     </li>
                     {% endif %}
                     
-                    {% if current_user.role == 'Admin' %}
+                    {% if current_user.role in ['Super Admin', 'Admin'] %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('compliance_dashboard') }}">
                             <i class="fas fa-file-alt me-1"></i>Compliance
@@ -133,7 +133,7 @@
                                 <i class="fas fa-user me-1"></i>My Profile
                             </a></li>
                             {% endif %}
-                            <li><a class="dropdown-item" href="{{ url_for('replit_auth.logout') }}">
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
                                 <i class="fas fa-sign-out-alt me-1"></i>Logout
                             </a></li>
                         </ul>
@@ -161,7 +161,7 @@
     </main>
 
     <!-- Mobile quick actions floating button -->
-    {% if current_user.is_authenticated and current_user.role == 'Employee' %}
+    {% if current_user.is_authenticated and current_user.role == 'User' %}
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
         <div class="dropdown dropup">
             <button class="btn btn-primary rounded-circle shadow" style="width: 56px; height: 56px;" 

@@ -5,17 +5,22 @@ from datetime import datetime, date, timedelta
 import calendar
 
 from app import app, db
-from replit_auth import require_login, require_role, make_replit_blueprint
+from auth import require_login, require_role, create_default_users
 from models import Employee, Payroll, Attendance, Leave, Claim, Appraisal, ComplianceReport, User
+from forms import LoginForm, RegisterForm
+from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date, 
                   validate_nric, generate_employee_id, check_permission,
                   mobile_optimized_pagination, get_current_month_dates)
 
-app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
-
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
+
+# Create default users on first run
+with app.app_context():
+    if create_default_users():
+        print("Default users created successfully!")
 
 @app.before_request
 def make_session_permanent():
@@ -25,9 +30,57 @@ def make_session_permanent():
 def index():
     """Landing page and dashboard"""
     if not current_user.is_authenticated:
-        return render_template('index.html')
+        return redirect(url_for('login'))
     
     return redirect(url_for('dashboard'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """User login"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user.check_password(form.password.data) and user.is_active:
+            login_user(user)
+            flash(f'Welcome back, {user.first_name}!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
+        else:
+            flash('Invalid username or password', 'error')
+    
+    return render_template('auth/login.html', form=form)
+
+@app.route('/register', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def register():
+    """Register new user (Admin only)"""
+    form = RegisterForm()
+    if form.validate_on_submit():
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            first_name=form.first_name.data,
+            last_name=form.last_name.data,
+            role=form.role.data if current_user.role in ['Super Admin', 'Admin'] else 'User'
+        )
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash(f'User {user.username} created successfully!', 'success')
+        return redirect(url_for('user_management'))
+    
+    return render_template('auth/register.html', form=form)
+
+@app.route('/logout')
+@require_login
+def logout():
+    """User logout"""
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @require_login
@@ -63,7 +116,7 @@ def dashboard():
     # Recent activities based on role
     recent_activities = []
     
-    if current_user.role == 'Admin':
+    if current_user.role in ['Super Admin', 'Admin']:
         # Recent leaves for approval
         recent_leaves = Leave.query.filter_by(status='Pending').order_by(
             Leave.created_at.desc()).limit(5).all()
@@ -151,7 +204,7 @@ def employee_list():
                          departments=departments)
 
 @app.route('/employees/add', methods=['GET', 'POST'])
-@require_role(['Admin'])
+@require_role(['Super Admin', 'Admin'])
 def employee_add():
     """Add new employee"""
     if request.method == 'POST':
@@ -253,7 +306,7 @@ def employee_view(employee_id):
                          recent_attendance=recent_attendance)
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
-@require_role(['Admin'])
+@require_role(['Super Admin', 'Admin'])
 def employee_edit(employee_id):
     """Edit employee details"""
     employee = Employee.query.get_or_404(employee_id)
@@ -309,7 +362,7 @@ def employee_edit(employee_id):
 
 # Payroll Management Routes
 @app.route('/payroll')
-@require_role(['Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def payroll_list():
     """List payroll records"""
     page = request.args.get('page', 1, type=int)
@@ -335,7 +388,7 @@ def payroll_list():
     return render_template('payroll/list.html', payrolls=payrolls, month=month, year=year)
 
 @app.route('/payroll/generate', methods=['GET', 'POST'])
-@require_role(['Admin'])
+@require_role(['Super Admin', 'Admin'])
 def payroll_generate():
     """Generate payroll for selected period"""
     if request.method == 'POST':
@@ -459,7 +512,7 @@ def attendance_list():
     
     # Get employees for filter (if admin/manager)
     employees = []
-    if current_user.role in ['Admin', 'Manager']:
+    if current_user.role in ['Super Admin', 'Admin', 'Manager']:
         employees = Employee.query.filter_by(is_active=True).order_by(Employee.first_name).all()
     
     return render_template('attendance/list.html', 
@@ -589,7 +642,7 @@ def leave_list():
     )
     
     employees = []
-    if current_user.role in ['Admin', 'Manager']:
+    if current_user.role in ['Super Admin', 'Admin', 'Manager']:
         employees = Employee.query.filter_by(is_active=True).order_by(Employee.first_name).all()
     
     return render_template('leave/list.html', 
@@ -634,7 +687,7 @@ def leave_request():
     return render_template('leave/form.html')
 
 @app.route('/leave/<int:leave_id>/approve', methods=['POST'])
-@require_role(['Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def leave_approve(leave_id):
     """Approve/reject leave request"""
     leave = Leave.query.get_or_404(leave_id)
@@ -727,7 +780,7 @@ def claims_submit():
     return render_template('claims/form.html')
 
 @app.route('/claims/<int:claim_id>/approve', methods=['POST'])
-@require_role(['Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def claims_approve(claim_id):
     """Approve/reject claim"""
     claim = Claim.query.get_or_404(claim_id)
@@ -778,7 +831,7 @@ def appraisal_list():
     return render_template('appraisal/list.html', appraisals=appraisals)
 
 @app.route('/appraisal/create', methods=['GET', 'POST'])
-@require_role(['Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def appraisal_create():
     """Create new appraisal"""
     if request.method == 'POST':
@@ -829,7 +882,7 @@ def appraisal_create():
 
 # Compliance and Reports
 @app.route('/compliance')
-@require_role(['Admin'])
+@require_role(['Super Admin', 'Admin'])
 def compliance_dashboard():
     """Compliance dashboard"""
     
@@ -856,7 +909,7 @@ def compliance_dashboard():
                          current_year=current_year)
 
 @app.route('/compliance/generate/<report_type>')
-@require_role(['Admin'])
+@require_role(['Super Admin', 'Admin'])
 def compliance_generate(report_type):
     """Generate compliance reports"""
     month = request.args.get('month', datetime.now().month, type=int)
@@ -966,20 +1019,20 @@ def compliance_generate(report_type):
 
 # Export routes
 @app.route('/users')
-@require_role(['Admin'])
+@require_role(['Super Admin', 'Admin'])
 def user_management():
     """User management for admins"""
     users = User.query.order_by(User.first_name).all()
     return render_template('users/list.html', users=users)
 
 @app.route('/users/<user_id>/role', methods=['POST'])
-@require_role(['Admin'])
+@require_role(['Super Admin', 'Admin'])
 def update_user_role(user_id):
     """Update user role"""
     user = User.query.get_or_404(user_id)
     new_role = request.form.get('role')
     
-    if new_role in ['Admin', 'Manager', 'Employee']:
+    if new_role in ['Super Admin', 'Admin', 'Manager', 'User']:
         user.role = new_role
         db.session.commit()
         flash(f'User role updated to {new_role}', 'success')
@@ -989,7 +1042,7 @@ def update_user_role(user_id):
     return redirect(url_for('user_management'))
 
 @app.route('/export/employees')
-@require_role(['Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def export_employees():
     """Export employees to CSV"""
     employees = Employee.query.filter_by(is_active=True).all()
