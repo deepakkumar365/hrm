@@ -399,10 +399,18 @@ def payroll_list():
             extract('year', Payroll.pay_period_end) == year)
 
     # Role-based filtering
-    if current_user.role == 'Manager' and hasattr(current_user,
-                                                  'employee_profile'):
+    if current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+        # Manager: Their own payroll + their team's payroll
+        manager_id = current_user.employee_profile.id
         query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
+            db.or_(
+                Payroll.employee_id == manager_id,  # Manager's own payroll
+                Employee.manager_id == manager_id   # Team's payroll
+            )
+        )
+    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile'):
+        # Admin: Their own payroll + all employees' payroll (they see everything anyway)
+        pass  # No filtering - they can see all
 
     payrolls = query.order_by(Payroll.pay_period_end.desc()).paginate(
         page=page, per_page=20, error_out=False)
@@ -410,7 +418,8 @@ def payroll_list():
     return render_template('payroll/list.html',
                            payrolls=payrolls,
                            month=month,
-                           year=year)
+                           year=year,
+                           calendar=calendar)
 
 
 @app.route('/payroll/generate', methods=['GET', 'POST'])
@@ -532,14 +541,22 @@ def attendance_list():
         query = query.filter(Attendance.employee_id == employee_filter)
 
     # Role-based filtering
-    if current_user.role == 'Employee' and hasattr(current_user,
-                                                   'employee_profile'):
+    if current_user.role == 'Employee' and hasattr(current_user, 'employee_profile'):
+        # Employee: Only their own attendance
         query = query.filter(
             Attendance.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user,
-                                                    'employee_profile'):
+    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+        # Manager: Their own attendance + their team's attendance
+        manager_id = current_user.employee_profile.id
         query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
+            db.or_(
+                Attendance.employee_id == manager_id,  # Manager's own attendance
+                Employee.manager_id == manager_id      # Team's attendance
+            )
+        )
+    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile'):
+        # Admin: Their own attendance + all employees' attendance (but they see everything anyway)
+        pass  # No filtering - they can see all
 
     attendance_records = query.order_by(Attendance.date.desc()).paginate(
         page=page, per_page=20, error_out=False)
@@ -862,14 +879,22 @@ def leave_list():
         query = query.filter(Leave.employee_id == employee_filter)
 
     # Role-based filtering
-    if current_user.role == 'Employee' and hasattr(current_user,
-                                                   'employee_profile'):
+    if current_user.role == 'Employee' and hasattr(current_user, 'employee_profile'):
+        # Employee: Only their own leave requests
         query = query.filter(
             Leave.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user,
-                                                    'employee_profile'):
+    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+        # Manager: Their own leave requests + their team's leave requests
+        manager_id = current_user.employee_profile.id
         query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
+            db.or_(
+                Leave.employee_id == manager_id,  # Manager's own leave requests
+                Employee.manager_id == manager_id  # Team's leave requests
+            )
+        )
+    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile'):
+        # Admin: Their own leave requests + all employees' leave requests (they see everything anyway)
+        pass  # No filtering - they can see all
 
     leave_requests = query.order_by(Leave.created_at.desc()).paginate(
         page=page, per_page=20, error_out=False)
