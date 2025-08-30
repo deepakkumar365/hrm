@@ -127,7 +127,7 @@
                             </span></li>
                             <li><hr class="dropdown-divider"></li>
                             {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile %}
-                            <li><a class="dropdown-item" href="{{ url_for('employee_view', employee_id=current_user.employee_profile.id) }}">
+                            <li><a class="dropdown-item" href="{{ url_for('profile') }}">
                                 <i class="fas fa-user me-1"></i>My Profile
                             </a></li>
                             {% endif %}

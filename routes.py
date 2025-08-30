@@ -325,6 +325,39 @@ def employee_view(employee_id):
                            today=date.today())
 
 
+@app.route('/profile')
+@require_login
+def profile():
+    """User's own profile page"""
+    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+        flash('Profile not found. Please contact your administrator.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    employee = current_user.employee_profile
+    
+    # Get recent payslips
+    recent_payslips = Payroll.query.filter_by(
+        employee_id=employee.id).order_by(
+            Payroll.pay_period_end.desc()).limit(3).all()
+
+    # Get recent attendance
+    recent_attendance = Attendance.query.filter_by(
+        employee_id=employee.id).order_by(
+            Attendance.date.desc()).limit(10).all()
+            
+    # Get recent leaves
+    recent_leaves = Leave.query.filter_by(
+        employee_id=employee.id).order_by(
+            Leave.created_at.desc()).limit(5).all()
+
+    return render_template('profile.html',
+                           employee=employee,
+                           recent_payslips=recent_payslips,
+                           recent_attendance=recent_attendance,
+                           recent_leaves=recent_leaves,
+                           today=date.today())
+
+
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin'])
 def employee_edit(employee_id):

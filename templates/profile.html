@@ -1,0 +1,445 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - TalaTalent{% endblock %}
+
+{% block head %}
+<style>
+.profile-header {
+    background: linear-gradient(135deg, #AF3E3E 0%, #DA6C6C 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-top: -20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #AF3E3E;
+    border: 4px solid rgba(255,255,255,0.3);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.profile-stats {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.linkedin-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e6e6e6;
+    transition: all 0.3s ease;
+}
+
+.linkedin-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.card-header-custom {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e6e6e6;
+    padding: 1rem 1.5rem;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.skill-tag {
+    background: #f0f0f0;
+    color: #333;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    margin: 0.25rem;
+    display: inline-block;
+}
+
+.activity-item {
+    padding: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.activity-item:hover {
+    background-color: #fafafa;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.status-active { background-color: #28a745; }
+.status-pending { background-color: #ffc107; }
+.status-inactive { background-color: #dc3545; }
+
+.metric-card {
+    text-align: center;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #AF3E3E;
+}
+
+.metric-label {
+    color: #666;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .profile-header {
+        padding: 1.5rem 0;
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+    }
+    
+    .profile-stats {
+        margin-top: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Profile Header -->
+<div class="profile-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center">
+                <div class="profile-avatar mx-auto">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mt-3 mt-md-0">
+                    <h1 class="mb-2">{{ employee.first_name }} {{ employee.last_name }}</h1>
+                    <p class="h5 mb-2 opacity-75">{{ employee.position }}</p>
+                    <p class="mb-0 opacity-75">
+                        <i class="fas fa-building me-2"></i>{{ employee.department or 'TalaTalent' }} • 
+                        <i class="fas fa-id-badge me-2"></i>{{ employee.employee_id }}
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="profile-stats p-3 mt-3 mt-md-0">
+                    <div class="text-center">
+                        <div class="h4 mb-1">{{ (today - employee.hire_date).days }}</div>
+                        <div class="small">Days with us</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- About Section -->
+            <div class="linkedin-card mb-4">
+                <div class="card-header-custom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2 text-primary"></i>About
+                    </h5>
+                </div>
+                <div class="p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-envelope text-muted me-3"></i>
+                                <div>
+                                    <small class="text-muted d-block">Email</small>
+                                    <a href="mailto:{{ employee.email }}" class="text-decoration-none">{{ employee.email }}</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-phone text-muted me-3"></i>
+                                <div>
+                                    <small class="text-muted d-block">Phone</small>
+                                    <span>{{ employee.phone or '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-birthday-cake text-muted me-3"></i>
+                                <div>
+                                    <small class="text-muted d-block">Date of Birth</small>
+                                    <span>{{ employee.date_of_birth | date if employee.date_of_birth else '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-flag text-muted me-3"></i>
+                                <div>
+                                    <small class="text-muted d-block">Nationality</small>
+                                    <span>{{ employee.nationality or '-' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% if employee.address %}
+                        <div class="col-12">
+                            <div class="d-flex align-items-start mb-3">
+                                <i class="fas fa-map-marker-alt text-muted me-3 mt-1"></i>
+                                <div>
+                                    <small class="text-muted d-block">Address</small>
+                                    <span>{{ employee.address }}{% if employee.postal_code %} {{ employee.postal_code }}{% endif %}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employment Details -->
+            <div class="linkedin-card mb-4">
+                <div class="card-header-custom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-briefcase me-2 text-primary"></i>Employment Information
+                    </h5>
+                </div>
+                <div class="p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="metric-card">
+                                <div class="metric-value">{{ employee.hire_date | date }}</div>
+                                <div class="metric-label">Start Date</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="metric-card">
+                                <div class="metric-value">{{ employee.employment_type }}</div>
+                                <div class="metric-label">Employment Type</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <span class="skill-tag">
+                                    <i class="fas fa-user-tie me-1"></i>{{ employee.work_permit_type }}
+                                </span>
+                            </div>
+                            {% if employee.manager %}
+                            <div class="col-md-6">
+                                <span class="skill-tag">
+                                    <i class="fas fa-user-friends me-1"></i>Reports to {{ employee.manager.first_name }} {{ employee.manager.last_name }}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="linkedin-card mb-4">
+                <div class="card-header-custom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2 text-primary"></i>Recent Activity
+                    </h5>
+                </div>
+                <div class="p-0">
+                    {% if recent_attendance %}
+                    <div class="activity-item">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-clock text-info me-3"></i>
+                            <div class="flex-grow-1">
+                                <strong>Latest Attendance</strong>
+                                <p class="mb-0 text-muted small">
+                                    {{ recent_attendance[0].date | date }} - 
+                                    {% if recent_attendance[0].status == 'Present' %}
+                                    <span class="badge bg-success">{{ recent_attendance[0].status }}</span>
+                                    {% elif recent_attendance[0].status == 'Absent' %}
+                                    <span class="badge bg-danger">{{ recent_attendance[0].status }}</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">{{ recent_attendance[0].status }}</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if recent_leaves %}
+                    <div class="activity-item">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-plane-departure text-warning me-3"></i>
+                            <div class="flex-grow-1">
+                                <strong>Recent Leave Request</strong>
+                                <p class="mb-0 text-muted small">
+                                    {{ recent_leaves[0].leave_type }} - {{ recent_leaves[0].start_date | date }} to {{ recent_leaves[0].end_date | date }}
+                                    {% if recent_leaves[0].status == 'Approved' %}
+                                    <span class="badge bg-success">{{ recent_leaves[0].status }}</span>
+                                    {% elif recent_leaves[0].status == 'Rejected' %}
+                                    <span class="badge bg-danger">{{ recent_leaves[0].status }}</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">{{ recent_leaves[0].status }}</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if recent_payslips %}
+                    <div class="activity-item">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-invoice-dollar text-success me-3"></i>
+                            <div class="flex-grow-1">
+                                <strong>Latest Payslip</strong>
+                                <p class="mb-0 text-muted small">
+                                    {{ recent_payslips[0].pay_period_end | date }} - {{ recent_payslips[0].net_pay | currency }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Quick Stats -->
+            <div class="linkedin-card mb-4">
+                <div class="card-header-custom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2 text-primary"></i>Quick Stats
+                    </h6>
+                </div>
+                <div class="p-3">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="text-center p-2">
+                                <div class="h4 mb-1 text-info">{{ recent_attendance|length }}</div>
+                                <small class="text-muted">Recent Records</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-2">
+                                <div class="h4 mb-1 text-warning">{{ recent_leaves|length }}</div>
+                                <small class="text-muted">Leave Requests</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Card -->
+            <div class="linkedin-card mb-4">
+                <div class="card-header-custom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-user-check me-2 text-primary"></i>Status
+                    </h6>
+                </div>
+                <div class="p-4 text-center">
+                    {% if employee.is_active %}
+                    <div class="status-dot status-active"></div>
+                    <strong class="text-success">Active Employee</strong>
+                    <p class="small text-muted mt-2 mb-0">
+                        {{ (today - employee.hire_date).days }} days with TalaTalent
+                    </p>
+                    {% else %}
+                    <div class="status-dot status-inactive"></div>
+                    <strong class="text-danger">Inactive</strong>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="linkedin-card mb-4">
+                <div class="card-header-custom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightning-bolt me-2 text-primary"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="p-3">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('attendance_mark') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-clock me-1"></i>Mark Attendance
+                        </a>
+                        <a href="{{ url_for('leave_request') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-plane-departure me-1"></i>Request Leave
+                        </a>
+                        <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-info">
+                            <i class="fas fa-list me-1"></i>View My Records
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Payslips -->
+            {% if recent_payslips %}
+            <div class="linkedin-card">
+                <div class="card-header-custom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Recent Payslips
+                    </h6>
+                </div>
+                <div class="p-0">
+                    {% for payslip in recent_payslips %}
+                    <div class="activity-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">{{ payslip.pay_period_end | date }}</div>
+                                <div class="text-success fw-bold">{{ payslip.net_pay | currency }}</div>
+                            </div>
+                            <a href="{{ url_for('payroll_payslip', payroll_id=payslip.id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
