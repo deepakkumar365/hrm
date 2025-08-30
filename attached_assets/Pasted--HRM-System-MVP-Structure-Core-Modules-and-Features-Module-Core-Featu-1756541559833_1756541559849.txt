@@ -1,0 +1,67 @@
+ HRM System MVP Structure
+
+Core Modules and Features
+
+| Module                      | Core Feature                                   | Screen/Functionality       |
+|-----------------------------|------------------------------------------------|---------------------------|
+| Personnel Management        | Add/Edit/Delete Employee                       | Employee List/Add Form    |
+| Payroll Management          | Monthly Salary & Payslip Generation            | Payslip Form/View         |
+| Leave Management            | Request, Approve, Track Leave                  | Leave Form/Status Table   |
+| Attendance Management       | Daily Attendance, Overtime Recording           | Attendance/Overtime Table |
+| Benefits & Claims Management| Submit Claims, Track Status                    | Claim Form/List           |
+| Performance Appraisal       | Review Submission, Feedback Storage            | Appraisal Form/List       |
+| Dashboard/Reports           | HR Metrics Summary, CSV Download               | Dashboard/Main Page       |
+
+
+
+Overtime Calculation (Monthly)
+
+- Track overtime hours in attendance records, differentiated from normal hours.
+- Monthly Overtime Pay computation:
+  
+  \text{Overtime Pay} = \text{Overtime Hours (Month)} \times \text{Hourly Wage} \times \text{Multiplier} 
+  
+  - Indian standard: multiplier = 2.
+- Overtime pay appears separately in payroll and reports, calculated automatically at month-end.
+
+
+
+Role-Based Access Control (RBAC)
+
+- Predefined Roles:
+  - Admin: Full access and configuration rights.
+  - Manager/Supervisor: Can operate modules for direct reports/team.
+  - Employee: Limited self-service access.
+- Permissions enforce which actions and modules are available for each role.
+- Access checking middleware validates users before rendering screens or processing actions.
+
+
+
+Configurable Payslip Columns
+
+- Admins can add/remove columns on payslips for each pay group or employee type via an easy configuration UI.
+- Supports standard, optional, and custom fields: salary, overtime, tax, loans, leave summary, employee ID, project code, etc.
+- Visibility and sequence of columns are set per role/group.
+
+
+
+Rapid Prototyping and Deployment on Replit
+
+- Use Replit’s built-in database for quick setup—no external DB required at MVP stage.
+- Simple forms/tables for input, list, and reporting; minimal UI, focused on workflow and feedback.
+- Early, frequent iterations; leverage Replit’s instant deployment and AI tools for code and configuration.
+
+
+
+ MVP Implementation Checklist
+
+- [ ] Personnel CRUD, role assignment
+- [ ] Monthly payroll including overtime pay, configurable columns
+- [ ] Attendance + overtime capture per day
+- [ ] Leave request/approval workflow
+- [ ] Benefits and claims recording
+- [ ] Basic appraisal input & feedback tracking
+- [ ] RBAC middleware, customizable roles/permissions
+- [ ] Dashboard with stats/reporting, CSV export
+
+This MVP delivers essential HR functions, role-based access, monthly overtime calculation, and customizable payroll reporting, ready for launch and iterative feedback on Replit.
