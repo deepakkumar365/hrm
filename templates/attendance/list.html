@@ -18,7 +18,10 @@
                     <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
                         <i class="fas fa-clock me-1"></i>Mark Attendance
                     </a>
-                    {% if current_user.role in ['Admin', 'Manager'] %}
+                    {% if current_user.role in ['Super Admin', 'Admin', 'Manager'] %}
+                    <a href="{{ url_for('attendance_incomplete') }}" class="btn btn-outline-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Incomplete
+                    </a>
                     <a href="#" class="btn btn-outline-success">
                         <i class="fas fa-download me-1"></i>Export
                     </a>

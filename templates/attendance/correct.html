@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Correct Attendance - TalaTalent{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Correct Attendance Record</h1>
+                <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Attendance
+                </a>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header" style="background-color: #ddf4e7; border: 1px solid #000;">
+                            <h5 class="mb-0">
+                                <i class="fas fa-edit me-2"></i>
+                                Attendance Correction - {{ attendance.employee.first_name }} {{ attendance.employee.last_name }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label"><strong>Employee:</strong></label>
+                                        <p>{{ attendance.employee.first_name }} {{ attendance.employee.last_name }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label"><strong>Date:</strong></label>
+                                        <p>{{ attendance.date.strftime('%B %d, %Y') }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label"><strong>Clock In:</strong></label>
+                                        <p>{{ attendance.clock_in.strftime('%I:%M %p') if attendance.clock_in else 'Not recorded' }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="clock_out" class="form-label"><strong>Clock Out:</strong></label>
+                                        {% if attendance.clock_out %}
+                                            <p>{{ attendance.clock_out.strftime('%I:%M %p') }}</p>
+                                        {% else %}
+                                            <input type="time" 
+                                                   class="form-control" 
+                                                   id="clock_out" 
+                                                   name="clock_out" 
+                                                   value="18:00"
+                                                   required>
+                                            <small class="text-muted">Missing clock out time - please enter correct time</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                {% if attendance.break_start or attendance.break_end %}
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label"><strong>Break Start:</strong></label>
+                                        <p>{{ attendance.break_start.strftime('%I:%M %p') if attendance.break_start else 'Not taken' }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label"><strong>Break End:</strong></label>
+                                        <p>{{ attendance.break_end.strftime('%I:%M %p') if attendance.break_end else 'Not ended' }}</p>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label"><strong>Correction Notes:</strong></label>
+                                    <textarea class="form-control" 
+                                              id="notes" 
+                                              name="notes" 
+                                              rows="3" 
+                                              placeholder="Enter reason for correction (e.g., Employee forgot to clock out, was in meeting, etc.)"></textarea>
+                                </div>
+
+                                {% if attendance.notes %}
+                                <div class="mb-3">
+                                    <label class="form-label"><strong>Existing Notes:</strong></label>
+                                    <div class="p-2 bg-light border rounded">
+                                        {{ attendance.notes }}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Correction
+                                    </button>
+                                    <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header" style="background-color: #ddf4e7; border: 1px solid #000;">
+                            <h6 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>Correction Guidelines
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="small mb-0">
+                                <li>Missing clock out times are automatically set to 6:00 PM</li>
+                                <li>Hours will be recalculated based on the corrected times</li>
+                                <li>Overtime is calculated for hours worked beyond 8 hours</li>
+                                <li>Break times are deducted from total working hours</li>
+                                <li>All corrections are logged with your name and timestamp</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
