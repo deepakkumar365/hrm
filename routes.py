@@ -43,7 +43,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        if user and user.check_password(form.password.data) and user.is_active:
+        if user and user.check_password(form.password.data) and user.active:
             login_user(user)
             flash(f'Welcome back, {user.first_name}!', 'success')
             next_page = request.args.get('next')
@@ -59,13 +59,12 @@ def register():
     """Register new user (Admin only)"""
     form = RegisterForm()
     if form.validate_on_submit():
-        user = User(
-            username=form.username.data,
-            email=form.email.data,
-            first_name=form.first_name.data,
-            last_name=form.last_name.data,
-            role=form.role.data if current_user.role in ['Super Admin', 'Admin'] else 'User'
-        )
+        user = User()
+        user.username = form.username.data
+        user.email = form.email.data
+        user.first_name = form.first_name.data
+        user.last_name = form.last_name.data
+        user.role = form.role.data if current_user.role in ['Super Admin', 'Admin'] else 'User'
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
@@ -107,7 +106,7 @@ def dashboard():
     if working_days > 0:
         expected_records = stats['total_employees'] * working_days
         if expected_records > 0:
-            stats['attendance_rate'] = round((total_attendance_records / expected_records) * 100.0, 1)
+            stats['attendance_rate'] = round((total_attendance_records / expected_records) * 100.0)
         else:
             stats['attendance_rate'] = 0
     else:

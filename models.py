@@ -14,7 +14,7 @@ class User(UserMixin, db.Model):
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     role = db.Column(db.String(20), default='User')  # Super Admin, Admin, Manager, User
-    is_active = db.Column(db.Boolean, default=True)
+    active = db.Column(db.Boolean, default=True)
     
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
