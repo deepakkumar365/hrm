@@ -33,15 +33,15 @@
                                 <label for="leave_type" class="form-label">Leave Type *</label>
                                 <select class="form-select" id="leave_type" name="leave_type" required>
                                     <option value="">Select Leave Type</option>
-                                    <option value="Annual Leave" {% if leave and leave.leave_type == 'Annual Leave' %}selected{% endif %}>Annual Leave</option>
-                                    <option value="Medical Leave" {% if leave and leave.leave_type == 'Medical Leave' %}selected{% endif %}>Medical Leave</option>
-                                    <option value="Maternity Leave" {% if leave and leave.leave_type == 'Maternity Leave' %}selected{% endif %}>Maternity Leave</option>
-                                    <option value="Paternity Leave" {% if leave and leave.leave_type == 'Paternity Leave' %}selected{% endif %}>Paternity Leave</option>
-                                    <option value="Compassionate Leave" {% if leave and leave.leave_type == 'Compassionate Leave' %}selected{% endif %}>Compassionate Leave</option>
-                                    <option value="Childcare Leave" {% if leave and leave.leave_type == 'Childcare Leave' %}selected{% endif %}>Childcare Leave</option>
-                                    <option value="Emergency Leave" {% if leave and leave.leave_type == 'Emergency Leave' %}selected{% endif %}>Emergency Leave</option>
-                                    <option value="Study Leave" {% if leave and leave.leave_type == 'Study Leave' %}selected{% endif %}>Study Leave</option>
-                                    <option value="Unpaid Leave" {% if leave and leave.leave_type == 'Unpaid Leave' %}selected{% endif %}>Unpaid Leave</option>
+                                    <option value="Annual Leave" {% if (form_data and form_data.get('leave_type') == 'Annual Leave') or (leave and leave.leave_type == 'Annual Leave' and not form_data) %}selected{% endif %}>Annual Leave</option>
+                                    <option value="Medical Leave" {% if (form_data and form_data.get('leave_type') == 'Medical Leave') or (leave and leave.leave_type == 'Medical Leave' and not form_data) %}selected{% endif %}>Medical Leave</option>
+                                    <option value="Maternity Leave" {% if (form_data and form_data.get('leave_type') == 'Maternity Leave') or (leave and leave.leave_type == 'Maternity Leave' and not form_data) %}selected{% endif %}>Maternity Leave</option>
+                                    <option value="Paternity Leave" {% if (form_data and form_data.get('leave_type') == 'Paternity Leave') or (leave and leave.leave_type == 'Paternity Leave' and not form_data) %}selected{% endif %}>Paternity Leave</option>
+                                    <option value="Compassionate Leave" {% if (form_data and form_data.get('leave_type') == 'Compassionate Leave') or (leave and leave.leave_type == 'Compassionate Leave' and not form_data) %}selected{% endif %}>Compassionate Leave</option>
+                                    <option value="Childcare Leave" {% if (form_data and form_data.get('leave_type') == 'Childcare Leave') or (leave and leave.leave_type == 'Childcare Leave' and not form_data) %}selected{% endif %}>Childcare Leave</option>
+                                    <option value="Emergency Leave" {% if (form_data and form_data.get('leave_type') == 'Emergency Leave') or (leave and leave.leave_type == 'Emergency Leave' and not form_data) %}selected{% endif %}>Emergency Leave</option>
+                                    <option value="Study Leave" {% if (form_data and form_data.get('leave_type') == 'Study Leave') or (leave and leave.leave_type == 'Study Leave' and not form_data) %}selected{% endif %}>Study Leave</option>
+                                    <option value="Unpaid Leave" {% if (form_data and form_data.get('leave_type') == 'Unpaid Leave') or (leave and leave.leave_type == 'Unpaid Leave' and not form_data) %}selected{% endif %}>Unpaid Leave</option>
                                 </select>
                                 <div class="invalid-feedback">Please select a leave type.</div>
                             </div>
@@ -66,12 +66,12 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="start_date" class="form-label">Start Date *</label>
-                                <input type="date" class="form-control" id="start_date" name="start_date" value="{% if leave %}{{ leave.start_date.strftime('%Y-%m-%d') }}{% endif %}" required>
+                                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ form_data.get('start_date') if form_data else (leave.start_date.strftime('%Y-%m-%d') if leave else '') }}" required>
                                 <div class="invalid-feedback">Please select a start date.</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="end_date" class="form-label">End Date *</label>
-                                <input type="date" class="form-control" id="end_date" name="end_date" value="{% if leave %}{{ leave.end_date.strftime('%Y-%m-%d') }}{% endif %}" required>
+                                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ form_data.get('end_date') if form_data else (leave.end_date.strftime('%Y-%m-%d') if leave else '') }}" required>
                                 <div class="invalid-feedback">Please select an end date.</div>
                             </div>
                         </div>
@@ -112,7 +112,7 @@
                         <div class="mb-3">
                             <label for="reason" class="form-label">Reason for Leave</label>
                             <textarea class="form-control" id="reason" name="reason" rows="4" 
-                                      placeholder="Please provide a brief explanation for your leave request...">{% if leave %}{{ leave.reason }}{% endif %}</textarea>
+                                      placeholder="Please provide a brief explanation for your leave request...">{{ form_data.get('reason') if form_data else (leave.reason if leave else '') }}</textarea>
                             <small class="text-muted">
                                 <i class="fas fa-lightbulb me-1"></i>
                                 Tip: Provide specific details for medical or emergency leaves

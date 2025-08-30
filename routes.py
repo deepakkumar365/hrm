@@ -300,12 +300,36 @@ def employee_add():
             nric = request.form.get('nric', '').upper()
             if not validate_nric(nric):
                 flash('Invalid NRIC format', 'error')
-                return render_template('employees/form.html')
+                # Load master data and preserve form data for re-rendering
+                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                return render_template('employees/form.html', 
+                                       form_data=request.form,
+                                       roles=roles,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers)
 
             # Check for duplicate NRIC
             if Employee.query.filter_by(nric=nric).first():
                 flash('Employee with this NRIC already exists', 'error')
-                return render_template('employees/form.html')
+                # Load master data and preserve form data for re-rendering
+                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                return render_template('employees/form.html', 
+                                       form_data=request.form,
+                                       roles=roles,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers)
 
             # Create new employee
             employee = Employee()
@@ -364,6 +388,19 @@ def employee_add():
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding employee: {str(e)}', 'error')
+            # Load master data and preserve form data for re-rendering
+            roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+            departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+            working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+            work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+            managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+            return render_template('employees/form.html', 
+                                   form_data=request.form,
+                                   roles=roles,
+                                   departments=departments,
+                                   working_hours=working_hours,
+                                   work_schedules=work_schedules,
+                                   managers=managers)
 
     # Get managers for dropdown
     # Load master data for dropdowns
@@ -523,6 +560,20 @@ def employee_edit(employee_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating employee: {str(e)}', 'error')
+            # Load master data and preserve form data for re-rendering
+            roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+            departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+            working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+            work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+            managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%'), Employee.id != employee_id).all()
+            return render_template('employees/form.html',
+                                   employee=employee,
+                                   form_data=request.form,
+                                   managers=managers,
+                                   roles=roles,
+                                   departments=departments,
+                                   working_hours=working_hours,
+                                   work_schedules=work_schedules)
 
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
@@ -1153,6 +1204,7 @@ def leave_request():
         except Exception as e:
             db.session.rollback()
             flash(f'Error submitting leave request: {str(e)}', 'error')
+            return render_template('leave/form.html', form_data=request.form)
 
     return render_template('leave/form.html')
 
@@ -1206,6 +1258,7 @@ def leave_edit(leave_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating leave request: {str(e)}', 'error')
+            return render_template('leave/form.html', leave=leave, is_edit=True, form_data=request.form)
     
     return render_template('leave/form.html', leave=leave, is_edit=True)
 
