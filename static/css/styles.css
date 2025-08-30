@@ -457,5 +457,71 @@ small,
         font-size: 14px;
         padding: 8px 12px;
     }
+    
+    /* Enhanced mobile dropdown visibility */
+    .navbar-collapse {
+        background-color: white;
+        padding: 8px 0;
+        border-top: 1px solid #dee2e6;
+        margin-top: 8px;
+    }
+    
+    .dropdown-menu {
+        position: static !important;
+        float: none !important;
+        width: 100% !important;
+        margin-top: 0 !important;
+        background-color: #f8f9fa !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 4px 0 !important;
+    }
+    
+    .dropdown-item {
+        padding: 8px 20px !important;
+        font-size: 14px !important;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .dropdown-item:hover,
+    .dropdown-item:focus {
+        background-color: #e9ecef !important;
+    }
+    
+    /* Fix dropdown toggle on mobile */
+    .dropdown-toggle::after {
+        margin-left: 0.5em;
+    }
+    
+    /* Ensure dropdowns open in mobile - simpler approach */
+    .navbar-nav .dropdown-menu {
+        position: static !important;
+        display: none;
+        transform: none !important;
+    }
+    
+    .navbar-nav .dropdown.show .dropdown-menu {
+        display: block !important;
+    }
+    
+    /* Fix Bootstrap mobile dropdown behavior */
+    @media (max-width: 991.98px) {
+        .navbar-nav .dropdown-menu {
+            border: none;
+            box-shadow: none;
+            background-color: transparent;
+            padding-left: 1rem;
+        }
+        
+        .navbar-nav .dropdown-item {
+            color: rgba(0,0,0,.65) !important;
+            padding: 0.5rem 1rem !important;
+        }
+        
+        .navbar-nav .dropdown-item:hover {
+            background-color: rgba(0,0,0,.1) !important;
+        }
+    }
 }
 
