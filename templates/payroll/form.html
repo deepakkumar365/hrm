@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Payroll - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>
+                        <i class="fas fa-calculator me-2"></i>Generate Payroll
+                    </h3>
+                    <p class="text-muted mb-0">Calculate payroll for selected employees and pay period</p>
+                </div>
+                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Payroll
+                </a>
+            </div>
+
+            <form method="POST" class="needs-validation" novalidate>
+                <!-- Pay Period -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar me-2"></i>Pay Period
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="pay_period_start" class="form-label">Pay Period Start *</label>
+                                <input type="date" class="form-control" id="pay_period_start" name="pay_period_start" required>
+                                <div class="invalid-feedback">Please select a start date.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="pay_period_end" class="form-label">Pay Period End *</label>
+                                <input type="date" class="form-control" id="pay_period_end" name="pay_period_end" required>
+                                <div class="invalid-feedback">Please select an end date.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-primary" onclick="setCurrentMonth()">
+                                    Current Month
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setPreviousMonth()">
+                                    Previous Month
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setLastMonth()">
+                                    Last 30 Days
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employee Selection -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>Select Employees
+                        </h5>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="selectAll">
+                            <label class="form-check-label" for="selectAll">
+                                Select All
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for employee in employees %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body p-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input employee-checkbox" type="checkbox" 
+                                                   name="employees" value="{{ employee.id }}" id="emp_{{ employee.id }}">
+                                            <label class="form-check-label w-100" for="emp_{{ employee.id }}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <h6 class="mb-1">{{ employee.first_name }} {{ employee.last_name }}</h6>
+                                                        <p class="text-muted small mb-1">{{ employee.employee_id }}</p>
+                                                        <p class="mb-1">{{ employee.position }}</p>
+                                                        <div class="d-flex gap-1 flex-wrap">
+                                                            {% if employee.department %}
+                                                            <span class="badge bg-secondary small">{{ employee.department }}</span>
+                                                            {% endif %}
+                                                            <span class="badge bg-info small">{{ employee.employment_type }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <p class="mb-0 fw-semibold text-success">{{ employee.basic_salary | currency }}</p>
+                                                        <small class="text-muted">Basic</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        {% if not employees %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No active employees found</p>
+                            <a href="{{ url_for('employee_add') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Add Employee
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Payroll Settings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cog me-2"></i>Payroll Settings
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info d-flex align-items-center" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <div>
+                                <strong>Singapore Compliance:</strong> CPF contributions, overtime calculations (2x rate), 
+                                and AIS requirements will be automatically calculated based on employee details.
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="includeOvertime" checked>
+                                    <label class="form-check-label" for="includeOvertime">
+                                        Include Overtime Pay (2x rate)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="includeCpf" checked>
+                                    <label class="form-check-label" for="includeCpf">
+                                        Calculate CPF Contributions
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="includeAllowances" checked>
+                                    <label class="form-check-label" for="includeAllowances">
+                                        Include Monthly Allowances
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="generateFiles" checked>
+                                    <label class="form-check-label" for="generateFiles">
+                                        Generate Compliance Files
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary and Actions -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h6 class="mb-2">Payroll Summary</h6>
+                                <p class="mb-1">Selected Employees: <span id="selectedCount">0</span></p>
+                                <p class="mb-0 text-muted">Review all details before generating payroll</p>
+                            </div>
+                            <div class="col-md-6 text-md-end">
+                                <div class="d-flex gap-2 justify-content-md-end">
+                                    <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary" id="generateBtn" disabled>
+                                        <i class="fas fa-calculator me-1"></i>Generate Payroll
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Date helpers
+function setCurrentMonth() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    document.getElementById('pay_period_start').value = start.toISOString().split('T')[0];
+    document.getElementById('pay_period_end').value = end.toISOString().split('T')[0];
+}
+
+function setPreviousMonth() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    document.getElementById('pay_period_start').value = start.toISOString().split('T')[0];
+    document.getElementById('pay_period_end').value = end.toISOString().split('T')[0];
+}
+
+function setLastMonth() {
+    const now = new Date();
+    const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    document.getElementById('pay_period_start').value = start.toISOString().split('T')[0];
+    document.getElementById('pay_period_end').value = now.toISOString().split('T')[0];
+}
+
+// Employee selection
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateSelectedCount();
+});
+
+// Update count when individual checkboxes change
+document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedCount);
+});
+
+function updateSelectedCount() {
+    const selected = document.querySelectorAll('.employee-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = selected;
+    document.getElementById('generateBtn').disabled = selected === 0;
+    
+    // Update select all checkbox
+    const total = document.querySelectorAll('.employee-checkbox').length;
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    if (selected === 0) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = false;
+    } else if (selected === total) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = true;
+    } else {
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+// Set current month as default
+document.addEventListener('DOMContentLoaded', function() {
+    setCurrentMonth();
+    updateSelectedCount();
+});
+
+// Validate dates
+document.getElementById('pay_period_end').addEventListener('change', function() {
+    const startDate = new Date(document.getElementById('pay_period_start').value);
+    const endDate = new Date(this.value);
+    
+    if (endDate <= startDate) {
+        this.setCustomValidity('End date must be after start date');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}

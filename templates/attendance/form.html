@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <h3>
+                    <i class="fas fa-clock me-2"></i>Mark Attendance
+                </h3>
+                <p class="text-muted mb-0" id="currentDateTime"></p>
+            </div>
+
+            <!-- Today's Status Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-day me-2"></i>Today's Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if today_attendance %}
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h6 class="text-muted mb-1">Clock In</h6>
+                                {% if today_attendance.clock_in %}
+                                <h5 class="text-success mb-0">{{ today_attendance.clock_in.strftime('%H:%M') }}</h5>
+                                {% else %}
+                                <h5 class="text-muted mb-0">Not clocked in</h5>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-muted mb-1">Clock Out</h6>
+                            {% if today_attendance.clock_out %}
+                            <h5 class="text-danger mb-0">{{ today_attendance.clock_out.strftime('%H:%M') }}</h5>
+                            {% else %}
+                            <h5 class="text-muted mb-0">Not clocked out</h5>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if today_attendance.total_hours %}
+                    <div class="row mt-3 pt-3 border-top text-center">
+                        <div class="col-4">
+                            <small class="text-muted d-block">Regular Hours</small>
+                            <strong>{{ today_attendance.regular_hours or 0 }}h</strong>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">Overtime</small>
+                            <strong class="text-warning">{{ today_attendance.overtime_hours or 0 }}h</strong>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted d-block">Total</small>
+                            <strong class="text-primary">{{ today_attendance.total_hours or 0 }}h</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if today_attendance.break_start and not today_attendance.break_end %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="fas fa-coffee me-1"></i>
+                        Currently on break since {{ today_attendance.break_start.strftime('%H:%M') }}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No attendance marked for today</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Attendance Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-hand-pointer me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="attendanceForm">
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+                        
+                        <div class="d-grid gap-3">
+                            {% if not today_attendance or not today_attendance.clock_in %}
+                            <button type="submit" name="action" value="clock_in" class="btn btn-success btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Clock In
+                            </button>
+                            {% endif %}
+                            
+                            {% if today_attendance and today_attendance.clock_in and not today_attendance.clock_out %}
+                            {% if not today_attendance.break_start %}
+                            <button type="submit" name="action" value="break_start" class="btn btn-warning btn-lg">
+                                <i class="fas fa-coffee me-2"></i>Start Break
+                            </button>
+                            {% elif today_attendance.break_start and not today_attendance.break_end %}
+                            <button type="submit" name="action" value="break_end" class="btn btn-info btn-lg">
+                                <i class="fas fa-play me-2"></i>End Break
+                            </button>
+                            {% endif %}
+                            
+                            <button type="submit" name="action" value="clock_out" class="btn btn-danger btn-lg">
+                                <i class="fas fa-sign-out-alt me-2"></i>Clock Out
+                            </button>
+                            {% endif %}
+                        </div>
+                    </form>
+                    
+                    {% if today_attendance and today_attendance.clock_out %}
+                    <div class="alert alert-success mt-3 mb-0">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Attendance completed for today. Have a great day!
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Location Info -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3">
+                        <i class="fas fa-map-marker-alt me-2"></i>Location Tracking
+                    </h6>
+                    <div id="locationInfo" class="text-muted">
+                        <i class="fas fa-spinner fa-spin me-1"></i>Getting your location...
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        Your location is used for attendance verification and will be stored securely.
+                    </small>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3">
+                        <i class="fas fa-chart-line me-2"></i>This Week Summary
+                    </h6>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h5 class="text-primary mb-1" id="weekDays">-</h5>
+                            <small class="text-muted">Days Worked</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-success mb-1" id="weekHours">-</h5>
+                            <small class="text-muted">Total Hours</small>
+                        </div>
+                        <div class="col-4">
+                            <h5 class="text-warning mb-1" id="weekOvertime">-</h5>
+                            <small class="text-muted">Overtime</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3">
+                        <i class="fas fa-link me-2"></i>Quick Links
+                    </h6>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-1"></i>View Attendance History
+                        </a>
+                        <a href="{{ url_for('leave_request') }}" class="btn btn-outline-warning">
+                            <i class="fas fa-plane-departure me-1"></i>Request Leave
+                        </a>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-1"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update current date and time
+function updateDateTime() {
+    const now = new Date();
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    };
+    document.getElementById('currentDateTime').textContent = now.toLocaleDateString('en-SG', options);
+}
+
+// Get user's location
+function getLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                document.getElementById('latitude').value = position.coords.latitude;
+                document.getElementById('longitude').value = position.coords.longitude;
+                document.getElementById('locationInfo').innerHTML = 
+                    '<i class="fas fa-check-circle text-success me-1"></i>Location detected successfully';
+            },
+            function(error) {
+                let message = 'Location access denied or unavailable';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Location access denied by user';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Location information unavailable';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Location request timed out';
+                        break;
+                }
+                document.getElementById('locationInfo').innerHTML = 
+                    '<i class="fas fa-exclamation-triangle text-warning me-1"></i>' + message;
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    } else {
+        document.getElementById('locationInfo').innerHTML = 
+            '<i class="fas fa-times-circle text-danger me-1"></i>Geolocation not supported';
+    }
+}
+
+// Load week summary (mock data for demo)
+function loadWeekSummary() {
+    // In a real app, this would fetch from API
+    document.getElementById('weekDays').textContent = '5';
+    document.getElementById('weekHours').textContent = '42h';
+    document.getElementById('weekOvertime').textContent = '2h';
+}
+
+// Form submission with confirmation
+document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+    const action = e.submitter.value;
+    const actionText = {
+        'clock_in': 'Clock In',
+        'clock_out': 'Clock Out',
+        'break_start': 'Start Break',
+        'break_end': 'End Break'
+    };
+    
+    if (!confirm(`Are you sure you want to ${actionText[action]}?`)) {
+        e.preventDefault();
+        return false;
+    }
+    
+    // Show loading state
+    e.submitter.disabled = true;
+    e.submitter.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    getLocation();
+    loadWeekSummary();
+});
+</script>
+{% endblock %}

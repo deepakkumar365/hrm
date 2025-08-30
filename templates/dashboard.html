@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Welcome back, {{ current_user.first_name or 'User' }}!</h2>
+                    <p class="text-muted mb-0">{{ current_user.role }} Dashboard</p>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">{{ moment().format('dddd, MMMM DD, YYYY') }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row mb-4">
+        {% if current_user.role in ['Admin', 'Manager'] %}
+        <div class="col-6 col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                    <h4 class="mb-1">{{ stats.total_employees }}</h4>
+                    <small class="text-muted">Active Employees</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-plane-departure fa-2x text-warning mb-2"></i>
+                    <h4 class="mb-1">{{ stats.pending_leaves }}</h4>
+                    <small class="text-muted">Pending Leaves</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-receipt fa-2x text-info mb-2"></i>
+                    <h4 class="mb-1">{{ stats.pending_claims }}</h4>
+                    <small class="text-muted">Pending Claims</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-md-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                    <h4 class="mb-1">{{ stats.attendance_rate }}%</h4>
+                    <small class="text-muted">Attendance Rate</small>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Employee Quick Actions -->
+        <div class="col-6 mb-3">
+            <a href="{{ url_for('attendance_mark') }}" class="card text-decoration-none">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-2x text-primary mb-2"></i>
+                    <h6 class="mb-0">Mark Attendance</h6>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-6 mb-3">
+            <a href="{{ url_for('leave_request') }}" class="card text-decoration-none">
+                <div class="card-body text-center">
+                    <i class="fas fa-plane-departure fa-2x text-warning mb-2"></i>
+                    <h6 class="mb-0">Request Leave</h6>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-6 mb-3">
+            <a href="{{ url_for('claims_submit') }}" class="card text-decoration-none">
+                <div class="card-body text-center">
+                    <i class="fas fa-receipt fa-2x text-info mb-2"></i>
+                    <h6 class="mb-0">Submit Claim</h6>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-6 mb-3">
+            {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile %}
+            <a href="{{ url_for('employee_view', employee_id=current_user.employee_profile.id) }}" class="card text-decoration-none">
+            {% else %}
+            <div class="card">
+            {% endif %}
+                <div class="card-body text-center">
+                    <i class="fas fa-user fa-2x text-success mb-2"></i>
+                    <h6 class="mb-0">My Profile</h6>
+                </div>
+            {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile %}
+            </a>
+            {% else %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Recent Activities
+                    </h5>
+                    {% if current_user.role in ['Admin', 'Manager'] %}
+                    <div class="btn-group btn-group-sm">
+                        {% if current_user.role == 'Admin' %}
+                        <a href="{{ url_for('employee_list') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-users me-1"></i>Employees
+                        </a>
+                        <a href="{{ url_for('compliance_dashboard') }}" class="btn btn-outline-success">
+                            <i class="fas fa-file-alt me-1"></i>Compliance
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-info">
+                            <i class="fas fa-dollar-sign me-1"></i>Payroll
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if recent_activities %}
+                    <div class="list-group list-group-flush">
+                        {% for activity in recent_activities %}
+                        <div class="list-group-item border-0 px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    {% if activity.type == 'leave_request' %}
+                                    <i class="fas fa-plane-departure text-warning me-2"></i>
+                                    {% elif activity.type == 'team_leave' %}
+                                    <i class="fas fa-users text-info me-2"></i>
+                                    {% elif activity.type == 'my_leave' %}
+                                    <i class="fas fa-user text-primary me-2"></i>
+                                    {% else %}
+                                    <i class="fas fa-bell text-secondary me-2"></i>
+                                    {% endif %}
+                                    
+                                    <strong>
+                                        {% if activity.employee %}{{ activity.employee }}{% else %}You{% endif %}
+                                    </strong>
+                                    <p class="mb-0 small text-muted">{{ activity.details }}</p>
+                                </div>
+                                <small class="text-muted">
+                                    {{ moment(activity.date).fromNow() }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No recent activities to display</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links for Mobile -->
+    <div class="row mt-4 d-md-none">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-link me-2"></i>Quick Access
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-calendar-check me-1"></i>Attendance
+                            </a>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <a href="{{ url_for('leave_list') }}" class="btn btn-outline-warning btn-sm w-100">
+                                <i class="fas fa-plane-departure me-1"></i>Leave
+                            </a>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <a href="{{ url_for('claims_list') }}" class="btn btn-outline-info btn-sm w-100">
+                                <i class="fas fa-receipt me-1"></i>Claims
+                            </a>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <a href="{{ url_for('appraisal_list') }}" class="btn btn-outline-success btn-sm w-100">
+                                <i class="fas fa-star me-1"></i>Appraisal
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add moment.js for time formatting
+document.addEventListener('DOMContentLoaded', function() {
+    // Simple relative time function
+    function timeAgo(date) {
+        const now = new Date();
+        const diff = now - new Date(date);
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        
+        if (days > 0) return days + ' day' + (days > 1 ? 's' : '') + ' ago';
+        if (hours > 0) return hours + ' hour' + (hours > 1 ? 's' : '') + ' ago';
+        if (minutes > 0) return minutes + ' minute' + (minutes > 1 ? 's' : '') + ' ago';
+        return 'Just now';
+    }
+    
+    // Mock moment.js functions for template
+    window.moment = function(date) {
+        return {
+            format: function(format) {
+                if (format === 'dddd, MMMM DD, YYYY') {
+                    return new Date().toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                }
+                return new Date(date || Date.now()).toLocaleDateString();
+            },
+            fromNow: function() {
+                return timeAgo(date || Date.now());
+            }
+        };
+    };
+});
+</script>
+{% endblock %}

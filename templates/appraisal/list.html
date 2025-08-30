@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+
+{% block title %}Performance Appraisals - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h3>
+                        <i class="fas fa-star me-2"></i>Performance Appraisals
+                    </h3>
+                    <p class="text-muted mb-0">{{ appraisals.total }} appraisal records</p>
+                </div>
+                {% if current_user.role in ['Admin', 'Manager'] %}
+                <div class="btn-group">
+                    <a href="{{ url_for('appraisal_create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Create Appraisal
+                    </a>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-export me-1"></i>Reports
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="exportAppraisals('summary')">
+                                <i class="fas fa-chart-bar me-1"></i>Performance Summary
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportAppraisals('detailed')">
+                                <i class="fas fa-file-csv me-1"></i>Detailed Report
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Filters -->
+            <form method="GET" class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <select name="status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="year" class="form-select">
+                                <option value="">All Years</option>
+                                {% for y in range(2020, 2030) %}
+                                <option value="{{ y }}">{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('appraisal_list') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Performance Overview Cards -->
+    {% if current_user.role in ['Admin', 'Manager'] %}
+    <div class="row mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
+                    <h5 class="mb-1" id="avgRating">-</h5>
+                    <small class="text-muted">Avg Rating</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                    <h5 class="mb-1" id="pendingCount">-</h5>
+                    <small class="text-muted">Pending</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h5 class="mb-1" id="completedCount">-</h5>
+                    <small class="text-muted">Completed</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                    <h5 class="mb-1" id="totalEmployees">-</h5>
+                    <small class="text-muted">Employees</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mobile Cards -->
+    <div class="d-md-none">
+        {% for appraisal in appraisals.items %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        {% if current_user.role in ['Admin', 'Manager'] %}
+                        <h6 class="mb-1">{{ appraisal.employee.first_name }} {{ appraisal.employee.last_name }}</h6>
+                        <p class="text-muted small mb-0">{{ appraisal.employee.employee_id }} • {{ appraisal.employee.position }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-{{ 'success' if appraisal.status == 'Completed' else 'info' if appraisal.status == 'Submitted' else 'secondary' }}">
+                            {{ appraisal.status }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted d-block">
+                        Review Period: {{ appraisal.review_period_start | date }} - {{ appraisal.review_period_end | date }}
+                    </small>
+                    {% if appraisal.overall_rating %}
+                    <div class="d-flex align-items-center mt-1">
+                        <span class="me-2 small text-muted">Overall Rating:</span>
+                        <div class="d-flex">
+                            {% for i in range(1, 6) %}
+                            <i class="fas fa-star {{ 'text-warning' if i <= appraisal.overall_rating else 'text-muted' }}"></i>
+                            {% endfor %}
+                        </div>
+                        <span class="ms-2 fw-semibold">{{ appraisal.overall_rating }}/5</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if appraisal.manager_feedback %}
+                <div class="border-top pt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-comment me-1"></i>{{ appraisal.manager_feedback[:100] }}{{ '...' if appraisal.manager_feedback|length > 100 else '' }}
+                    </small>
+                </div>
+                {% endif %}
+                
+                <div class="mt-3">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewAppraisal({{ appraisal.id }})">
+                            <i class="fas fa-eye me-1"></i>View Details
+                        </button>
+                        {% if current_user.role in ['Admin', 'Manager'] and appraisal.status != 'Completed' %}
+                        <a href="{{ url_for('appraisal_create') }}?edit={{ appraisal.id }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Desktop Table -->
+    <div class="d-none d-md-block">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            <th>Employee</th>
+                            {% endif %}
+                            <th>Review Period</th>
+                            <th>Overall Rating</th>
+                            <th>Performance</th>
+                            <th>Goals</th>
+                            <th>Teamwork</th>
+                            <th>Communication</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appraisal in appraisals.items %}
+                        <tr>
+                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            <td>
+                                <div>
+                                    <strong>{{ appraisal.employee.first_name }} {{ appraisal.employee.last_name }}</strong>
+                                    <br><small class="text-muted">{{ appraisal.employee.position }}</small>
+                                </div>
+                            </td>
+                            {% endif %}
+                            <td>
+                                <div>
+                                    {{ appraisal.review_period_start | date }}<br>
+                                    <small class="text-muted">to {{ appraisal.review_period_end | date }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                {% if appraisal.overall_rating %}
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        {% for i in range(1, 6) %}
+                                        <i class="fas fa-star small {{ 'text-warning' if i <= appraisal.overall_rating else 'text-muted' }}"></i>
+                                        {% endfor %}
+                                    </div>
+                                    <span class="fw-semibold">{{ appraisal.overall_rating }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">Not rated</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appraisal.performance_rating %}
+                                <span class="badge bg-{{ 'success' if appraisal.performance_rating >= 4 else 'warning' if appraisal.performance_rating >= 3 else 'danger' }}">
+                                    {{ appraisal.performance_rating }}/5
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appraisal.goals_achievement %}
+                                <span class="badge bg-{{ 'success' if appraisal.goals_achievement >= 4 else 'warning' if appraisal.goals_achievement >= 3 else 'danger' }}">
+                                    {{ appraisal.goals_achievement }}/5
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appraisal.teamwork_rating %}
+                                <span class="badge bg-{{ 'success' if appraisal.teamwork_rating >= 4 else 'warning' if appraisal.teamwork_rating >= 3 else 'danger' }}">
+                                    {{ appraisal.teamwork_rating }}/5
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if appraisal.communication_rating %}
+                                <span class="badge bg-{{ 'success' if appraisal.communication_rating >= 4 else 'warning' if appraisal.communication_rating >= 3 else 'danger' }}">
+                                    {{ appraisal.communication_rating }}/5
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if appraisal.status == 'Completed' else 'info' if appraisal.status == 'Submitted' else 'secondary' }}">
+                                    {{ appraisal.status }}
+                                </span>
+                                {% if appraisal.reviewed_by_user and appraisal.status == 'Completed' %}
+                                <br><small class="text-muted">by {{ appraisal.reviewed_by_user.first_name }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" onclick="viewAppraisal({{ appraisal.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if current_user.role in ['Admin', 'Manager'] and appraisal.status != 'Completed' %}
+                                    <a href="{{ url_for('appraisal_create') }}?edit={{ appraisal.id }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if not appraisals.items %}
+    <div class="text-center py-5">
+        <i class="fas fa-star fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No appraisals found</h5>
+        <p class="text-muted">
+            {% if current_user.role in ['Admin', 'Manager'] %}
+            Create the first performance appraisal to get started
+            {% else %}
+            No appraisals have been created for you yet
+            {% endif %}
+        </p>
+        {% if current_user.role in ['Admin', 'Manager'] %}
+        <a href="{{ url_for('appraisal_create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Create First Appraisal
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if appraisals.pages > 1 %}
+    <nav aria-label="Appraisal pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if appraisals.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('appraisal_list', page=appraisals.prev_num) }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in appraisals.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != appraisals.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('appraisal_list', page=page_num) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if appraisals.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('appraisal_list', page=appraisals.next_num) }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- Appraisal Details Modal -->
+<div class="modal fade" id="appraisalModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-star me-2"></i>Appraisal Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="appraisalDetails">
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p class="mt-2">Loading appraisal details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load summary statistics
+function loadSummaryStats() {
+    // Mock data - in real app, fetch from API
+    {% if current_user.role in ['Admin', 'Manager'] %}
+    const ratings = [
+        {% for appraisal in appraisals.items %}
+        {% if appraisal.overall_rating %}{{ appraisal.overall_rating }},{% endif %}
+        {% endfor %}
+    ];
+    
+    if (ratings.length > 0) {
+        const avgRating = (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1);
+        document.getElementById('avgRating').textContent = avgRating;
+    } else {
+        document.getElementById('avgRating').textContent = 'N/A';
+    }
+    
+    document.getElementById('pendingCount').textContent = '{{ appraisals.items | selectattr("status", "equalto", "Draft") | list | length }}';
+    document.getElementById('completedCount').textContent = '{{ appraisals.items | selectattr("status", "equalto", "Completed") | list | length }}';
+    document.getElementById('totalEmployees').textContent = '{{ appraisals.total }}';
+    {% endif %}
+}
+
+function viewAppraisal(appraisalId) {
+    const modal = new bootstrap.Modal(document.getElementById('appraisalModal'));
+    modal.show();
+    
+    // Mock detailed view - in real app, fetch from API
+    setTimeout(() => {
+        document.getElementById('appraisalDetails').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Rating Breakdown</h6>
+                    <div class="mb-2">
+                        <small class="text-muted">Performance:</small>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-success" style="width: 80%"></div>
+                                </div>
+                            </div>
+                            <span class="ms-2 small">4/5</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Goals Achievement:</small>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" style="width: 70%"></div>
+                                </div>
+                            </div>
+                            <span class="ms-2 small">3.5/5</span>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Teamwork:</small>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1">
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-info" style="width: 90%"></div>
+                                </div>
+                            </div>
+                            <span class="ms-2 small">4.5/5</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6>Development Goals</h6>
+                    <ul class="small">
+                        <li>Improve project management skills</li>
+                        <li>Enhance technical expertise in new technologies</li>
+                        <li>Develop leadership capabilities</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h6>Manager Feedback</h6>
+                <p class="text-muted small">Excellent performance throughout the review period. Shows strong initiative and contributes positively to team dynamics. Areas for improvement include project planning and time management.</p>
+            </div>
+        `;
+    }, 1000);
+}
+
+function exportAppraisals(type) {
+    // Mock export functionality
+    alert(`Exporting ${type} appraisal report...`);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadSummaryStats();
+});
+</script>
+{% endblock %}

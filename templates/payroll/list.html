@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll Management - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h3>
+                        <i class="fas fa-dollar-sign me-2"></i>Payroll Management
+                    </h3>
+                    <p class="text-muted mb-0">{{ payrolls.total }} payroll records</p>
+                </div>
+                {% if current_user.role == 'Admin' %}
+                <div class="btn-group">
+                    <a href="{{ url_for('payroll_generate') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Generate Payroll
+                    </a>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-export me-1"></i>Export
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('compliance_generate', report_type='cpf') }}">
+                                <i class="fas fa-file-csv me-1"></i>CPF Submission
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('compliance_generate', report_type='bank') }}">
+                                <i class="fas fa-university me-1"></i>Bank Transfer
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Filters -->
+            <form method="GET" class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <select name="month" class="form-select">
+                                <option value="">All Months</option>
+                                {% for i in range(1, 13) %}
+                                <option value="{{ i }}" {% if i == month %}selected{% endif %}>
+                                    {{ calendar.month_name[i] }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="year" class="form-select">
+                                <option value="">All Years</option>
+                                {% for y in range(2020, 2030) %}
+                                <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="d-md-none">
+        {% for payroll in payrolls.items %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="mb-1">
+                            {{ payroll.employee.first_name }} {{ payroll.employee.last_name }}
+                        </h6>
+                        <p class="text-muted small mb-0">{{ payroll.employee.employee_id }}</p>
+                    </div>
+                    <div class="text-end">
+                        <h6 class="text-success mb-1">{{ payroll.net_pay | currency }}</h6>
+                        <span class="badge bg-{{ 'success' if payroll.status == 'Paid' else 'warning' if payroll.status == 'Approved' else 'secondary' }}">
+                            {{ payroll.status }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="row text-center border-top pt-2">
+                    <div class="col-4">
+                        <small class="text-muted d-block">Gross Pay</small>
+                        <strong>{{ payroll.gross_pay | currency }}</strong>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted d-block">CPF</small>
+                        <strong>{{ payroll.employee_cpf | currency }}</strong>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted d-block">Period</small>
+                        <strong>{{ payroll.pay_period_end.strftime('%m/%Y') }}</strong>
+                    </div>
+                </div>
+                
+                <div class="mt-2">
+                    <div class="btn-group w-100">
+                        <a href="{{ url_for('payroll_payslip', payroll_id=payroll.id) }}" 
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-file-invoice me-1"></i>Payslip
+                        </a>
+                        {% if current_user.role == 'Admin' and payroll.status == 'Draft' %}
+                        <button class="btn btn-sm btn-outline-success" onclick="approvePayroll({{ payroll.id }})">
+                            <i class="fas fa-check me-1"></i>Approve
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Desktop Table -->
+    <div class="d-none d-md-block">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Pay Period</th>
+                            <th>Gross Pay</th>
+                            <th>CPF (Employee)</th>
+                            <th>Net Pay</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payroll in payrolls.items %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>{{ payroll.employee.first_name }} {{ payroll.employee.last_name }}</strong>
+                                    <br><small class="text-muted">{{ payroll.employee.employee_id }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    {{ payroll.pay_period_start | date }} - 
+                                    <br>{{ payroll.pay_period_end | date }}
+                                </div>
+                            </td>
+                            <td class="text-success fw-semibold">{{ payroll.gross_pay | currency }}</td>
+                            <td>{{ payroll.employee_cpf | currency }}</td>
+                            <td class="text-success fw-bold">{{ payroll.net_pay | currency }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if payroll.status == 'Paid' else 'warning' if payroll.status == 'Approved' else 'secondary' }}">
+                                    {{ payroll.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('payroll_payslip', payroll_id=payroll.id) }}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-file-invoice"></i>
+                                    </a>
+                                    {% if current_user.role == 'Admin' and payroll.status == 'Draft' %}
+                                    <button class="btn btn-outline-success" onclick="approvePayroll({{ payroll.id }})">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if not payrolls.items %}
+    <div class="text-center py-5">
+        <i class="fas fa-file-invoice-dollar fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No payroll records found</h5>
+        <p class="text-muted">Generate payroll for your employees to see records here</p>
+        {% if current_user.role == 'Admin' %}
+        <a href="{{ url_for('payroll_generate') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Generate First Payroll
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if payrolls.pages > 1 %}
+    <nav aria-label="Payroll pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if payrolls.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('payroll_list', page=payrolls.prev_num, month=month, year=year) }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in payrolls.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != payrolls.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('payroll_list', page=page_num, month=month, year=year) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if payrolls.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('payroll_list', page=payrolls.next_num, month=month, year=year) }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<script>
+// Add calendar module for template
+const calendar = {
+    month_name: [
+        '', 'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+};
+
+function approvePayroll(payrollId) {
+    if (confirm('Are you sure you want to approve this payroll?')) {
+        fetch(`/payroll/${payrollId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error approving payroll');
+            }
+        })
+        .catch(error => {
+            alert('Error approving payroll');
+        });
+    }
+}
+</script>
+{% endblock %}

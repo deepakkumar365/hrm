@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Claim - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>
+                        <i class="fas fa-receipt me-2"></i>Submit Claim
+                    </h3>
+                    <p class="text-muted mb-0">Submit an expense claim for reimbursement</p>
+                </div>
+                <a href="{{ url_for('claims_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Claims
+                </a>
+            </div>
+
+            <form method="POST" class="needs-validation" novalidate enctype="multipart/form-data">
+                <!-- Claim Details -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Claim Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="claim_type" class="form-label">Claim Type *</label>
+                                <select class="form-select" id="claim_type" name="claim_type" required>
+                                    <option value="">Select Claim Type</option>
+                                    <option value="Medical">Medical Expenses</option>
+                                    <option value="Transport">Transport & Travel</option>
+                                    <option value="Meal">Business Meals</option>
+                                    <option value="Phone">Phone & Communication</option>
+                                    <option value="Parking">Parking</option>
+                                    <option value="Accommodation">Accommodation</option>
+                                    <option value="Office Supplies">Office Supplies</option>
+                                    <option value="Training">Training & Education</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a claim type.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="amount" class="form-label">Amount (SGD) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">S$</span>
+                                    <input type="number" class="form-control" id="amount" name="amount" 
+                                           step="0.01" min="0.01" max="10000" required>
+                                    <div class="invalid-feedback">Please enter a valid amount.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mt-2">
+                            <div class="col-md-6">
+                                <label for="claim_date" class="form-label">Expense Date *</label>
+                                <input type="date" class="form-control" id="claim_date" name="claim_date" required>
+                                <div class="invalid-feedback">Please select the expense date.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="receipt_number" class="form-label">Receipt/Invoice Number</label>
+                                <input type="text" class="form-control" id="receipt_number" name="receipt_number" 
+                                       placeholder="e.g., INV-2024-001">
+                                <small class="text-muted">Optional but recommended for tracking</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comment me-2"></i>Expense Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description *</label>
+                            <textarea class="form-control" id="description" name="description" rows="4" 
+                                      placeholder="Provide detailed description of the expense..." required></textarea>
+                            <div class="invalid-feedback">Please provide a description of the expense.</div>
+                            <small class="text-muted">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Be specific: include purpose, location, attendees (for meals), or project details
+                            </small>
+                        </div>
+                        
+                        <!-- Business Purpose -->
+                        <div class="mb-3">
+                            <label for="business_purpose" class="form-label">Business Purpose</label>
+                            <select class="form-select" id="business_purpose" name="business_purpose">
+                                <option value="">Select purpose (optional)</option>
+                                <option value="Client Meeting">Client Meeting</option>
+                                <option value="Business Travel">Business Travel</option>
+                                <option value="Team Building">Team Building</option>
+                                <option value="Training">Training/Conference</option>
+                                <option value="Project Work">Project Work</option>
+                                <option value="Office Operations">Office Operations</option>
+                                <option value="Health & Safety">Health & Safety</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project/Client Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-project-diagram me-2"></i>Project Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="project_code" class="form-label">Project/Cost Center</label>
+                                <input type="text" class="form-control" id="project_code" name="project_code" 
+                                       placeholder="e.g., PRJ-2024-001">
+                                <small class="text-muted">For project-related expenses</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="client_name" class="form-label">Client/Vendor</label>
+                                <input type="text" class="form-control" id="client_name" name="client_name" 
+                                       placeholder="Client or vendor name">
+                                <small class="text-muted">If applicable</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Supporting Documents -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-paperclip me-2"></i>Supporting Documents
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="receipt_file" class="form-label">Upload Receipt/Invoice</label>
+                            <input type="file" class="form-control" id="receipt_file" name="receipt_file" 
+                                   accept=".jpg,.jpeg,.png,.pdf" multiple>
+                            <small class="text-muted">
+                                Accepted formats: JPG, PNG, PDF (Max: 5MB each). You can select multiple files.
+                            </small>
+                        </div>
+                        
+                        <div class="alert alert-info d-flex align-items-start">
+                            <i class="fas fa-info-circle me-2 mt-1"></i>
+                            <div>
+                                <strong>Documentation Requirements:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Original receipts required for amounts above S$20</li>
+                                    <li>Medical claims require detailed invoices/receipts</li>
+                                    <li>Travel claims should include tickets/booking confirmations</li>
+                                    <li>Meal claims above S$50 require business justification</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-plus-circle me-2"></i>Additional Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="currency" class="form-label">Original Currency</label>
+                                <select class="form-select" id="currency" name="currency">
+                                    <option value="SGD" selected>Singapore Dollar (SGD)</option>
+                                    <option value="USD">US Dollar (USD)</option>
+                                    <option value="EUR">Euro (EUR)</option>
+                                    <option value="GBP">British Pound (GBP)</option>
+                                    <option value="MYR">Malaysian Ringgit (MYR)</option>
+                                    <option value="JPY">Japanese Yen (JPY)</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="originalAmountDiv" style="display: none;">
+                                <label for="original_amount" class="form-label">Original Amount</label>
+                                <input type="number" class="form-control" id="original_amount" name="original_amount" 
+                                       step="0.01" min="0">
+                                <small class="text-muted">Amount in original currency</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="urgent_claim">
+                                <label class="form-check-label" for="urgent_claim">
+                                    <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                    Urgent processing required
+                                </label>
+                            </div>
+                            <small class="text-muted">Check if this claim needs immediate attention</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Declaration -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Declaration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="declaration" name="declaration" required>
+                            <label class="form-check-label" for="declaration">
+                                <strong>I declare that:</strong>
+                            </label>
+                            <div class="invalid-feedback">You must accept the declaration to proceed.</div>
+                        </div>
+                        <ul class="small mb-3">
+                            <li>The information provided is true and accurate</li>
+                            <li>The expense was incurred for legitimate business purposes</li>
+                            <li>I have not claimed this expense elsewhere</li>
+                            <li>I understand that false claims may result in disciplinary action</li>
+                            <li>I will return any overpayments if discovered</li>
+                        </ul>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="receipt_original" name="receipt_original">
+                            <label class="form-check-label" for="receipt_original">
+                                I confirm that original receipts will be submitted if requested
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Ready to Submit?</h6>
+                                <p class="text-muted small mb-0">
+                                    Review all details carefully. You'll receive email updates on the approval status.
+                                </p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
+                                    <i class="fas fa-save me-1"></i>Save Draft
+                                </button>
+                                <a href="{{ url_for('claims_list') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas fa-paper-plane me-1"></i>Submit Claim
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Set maximum date to today
+function setMaxDate() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('claim_date').setAttribute('max', today);
+    
+    // Set default to today
+    document.getElementById('claim_date').value = today;
+}
+
+// Show original currency amount field
+document.getElementById('currency').addEventListener('change', function() {
+    const originalAmountDiv = document.getElementById('originalAmountDiv');
+    if (this.value !== 'SGD') {
+        originalAmountDiv.style.display = 'block';
+        document.getElementById('original_amount').required = true;
+    } else {
+        originalAmountDiv.style.display = 'none';
+        document.getElementById('original_amount').required = false;
+        document.getElementById('original_amount').value = '';
+    }
+});
+
+// Auto-fill descriptions based on claim type
+document.getElementById('claim_type').addEventListener('change', function() {
+    const descriptions = {
+        'Medical': 'Medical consultation/treatment on [DATE] for [CONDITION/REASON]',
+        'Transport': 'Transportation expense for [PURPOSE] from [FROM] to [TO]',
+        'Meal': 'Business meal with [CLIENT/TEAM] at [LOCATION] for [PURPOSE]',
+        'Phone': 'Phone/communication expenses for [PERIOD]',
+        'Parking': 'Parking fees at [LOCATION] for [BUSINESS PURPOSE]',
+        'Accommodation': 'Accommodation at [HOTEL] for [BUSINESS TRIP]',
+        'Office Supplies': 'Office supplies: [ITEMS] for [PURPOSE]',
+        'Training': 'Training/conference: [EVENT NAME] on [DATE]'
+    };
+    
+    const descriptionField = document.getElementById('description');
+    if (descriptions[this.value] && !descriptionField.value) {
+        descriptionField.placeholder = descriptions[this.value];
+    }
+});
+
+// File upload validation
+document.getElementById('receipt_file').addEventListener('change', function() {
+    const files = this.files;
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        if (file.size > maxSize) {
+            alert(`File "${file.name}" is too large. Maximum size is 5MB.`);
+            this.value = '';
+            return;
+        }
+        
+        if (!allowedTypes.includes(file.type)) {
+            alert(`File "${file.name}" type is not supported. Use JPG, PNG, or PDF.`);
+            this.value = '';
+            return;
+        }
+    }
+});
+
+// Calculate exchange rate (mock function)
+function calculateExchangeRate() {
+    const currency = document.getElementById('currency').value;
+    const originalAmount = parseFloat(document.getElementById('original_amount').value);
+    
+    if (currency !== 'SGD' && originalAmount) {
+        // Mock exchange rates
+        const rates = {
+            'USD': 1.35,
+            'EUR': 1.45,
+            'GBP': 1.65,
+            'MYR': 0.30,
+            'JPY': 0.009
+        };
+        
+        if (rates[currency]) {
+            const sgdAmount = (originalAmount * rates[currency]).toFixed(2);
+            document.getElementById('amount').value = sgdAmount;
+        }
+    }
+}
+
+// Save draft functionality
+function saveDraft() {
+    // In a real app, this would save to localStorage or send to server
+    alert('Draft saved locally. You can continue editing later.');
+}
+
+// Form submission with confirmation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const amount = document.getElementById('amount').value;
+    const claimType = document.getElementById('claim_type').value;
+    const description = document.getElementById('description').value.substring(0, 50) + '...';
+    
+    if (!confirm(`Submit claim for S$${amount} (${claimType})?\n\n"${description}"`)) {
+        e.preventDefault();
+        return false;
+    }
+    
+    // Show loading state
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Submitting...';
+});
+
+// Event listeners for exchange rate calculation
+document.getElementById('original_amount').addEventListener('blur', calculateExchangeRate);
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    setMaxDate();
+});
+</script>
+{% endblock %}

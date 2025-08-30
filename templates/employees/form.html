@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit Employee" if employee else "Add Employee" }} - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>
+                        <i class="fas fa-user-{{ 'edit' if employee else 'plus' }} me-2"></i>
+                        {{ "Edit Employee" if employee else "Add Employee" }}
+                    </h3>
+                    {% if employee %}
+                    <p class="text-muted mb-0">Employee ID: {{ employee.employee_id }}</p>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Form -->
+            <form method="POST" class="needs-validation" novalidate>
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Personal Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="first_name" class="form-label">First Name *</label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                       value="{{ employee.first_name if employee else '' }}" required>
+                                <div class="invalid-feedback">Please provide a first name.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="last_name" class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                       value="{{ employee.last_name if employee else '' }}" required>
+                                <div class="invalid-feedback">Please provide a last name.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ employee.email if employee else '' }}" required>
+                                <div class="invalid-feedback">Please provide a valid email.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                       value="{{ employee.phone if employee else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="nric" class="form-label">NRIC/Passport *</label>
+                                <input type="text" class="form-control" id="nric" name="nric" 
+                                       value="{{ employee.nric if employee else '' }}" 
+                                       {% if employee %}readonly{% else %}required{% endif %}>
+                                <div class="invalid-feedback">Please provide a valid NRIC/Passport.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
+                                       value="{{ employee.date_of_birth.strftime('%Y-%m-%d') if employee and employee.date_of_birth else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="gender" class="form-label">Gender</label>
+                                <select class="form-select" id="gender" name="gender">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male" {% if employee and employee.gender == 'Male' %}selected{% endif %}>Male</option>
+                                    <option value="Female" {% if employee and employee.gender == 'Female' %}selected{% endif %}>Female</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="nationality" class="form-label">Nationality</label>
+                                <select class="form-select" id="nationality" name="nationality">
+                                    <option value="">Select Nationality</option>
+                                    <option value="Singaporean" {% if employee and employee.nationality == 'Singaporean' %}selected{% endif %}>Singaporean</option>
+                                    <option value="Malaysian" {% if employee and employee.nationality == 'Malaysian' %}selected{% endif %}>Malaysian</option>
+                                    <option value="Indian" {% if employee and employee.nationality == 'Indian' %}selected{% endif %}>Indian</option>
+                                    <option value="Chinese" {% if employee and employee.nationality == 'Chinese' %}selected{% endif %}>Chinese</option>
+                                    <option value="Filipino" {% if employee and employee.nationality == 'Filipino' %}selected{% endif %}>Filipino</option>
+                                    <option value="Indonesian" {% if employee and employee.nationality == 'Indonesian' %}selected{% endif %}>Indonesian</option>
+                                    <option value="Other" {% if employee and employee.nationality == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="address" class="form-label">Address</label>
+                                <textarea class="form-control" id="address" name="address" rows="2">{{ employee.address if employee else '' }}</textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="postal_code" class="form-label">Postal Code</label>
+                                <input type="text" class="form-control" id="postal_code" name="postal_code" 
+                                       value="{{ employee.postal_code if employee else '' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-briefcase me-2"></i>Employment Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="position" class="form-label">Position *</label>
+                                <input type="text" class="form-control" id="position" name="position" 
+                                       value="{{ employee.position if employee else '' }}" required>
+                                <div class="invalid-feedback">Please provide a position.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="department" class="form-label">Department</label>
+                                <input type="text" class="form-control" id="department" name="department" 
+                                       value="{{ employee.department if employee else '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="hire_date" class="form-label">Hire Date *</label>
+                                <input type="date" class="form-control" id="hire_date" name="hire_date" 
+                                       value="{{ employee.hire_date.strftime('%Y-%m-%d') if employee and employee.hire_date else '' }}" 
+                                       {% if not employee %}required{% endif %}>
+                                <div class="invalid-feedback">Please provide a hire date.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="employment_type" class="form-label">Employment Type *</label>
+                                <select class="form-select" id="employment_type" name="employment_type" required>
+                                    <option value="">Select Type</option>
+                                    <option value="Full-time" {% if employee and employee.employment_type == 'Full-time' %}selected{% endif %}>Full-time</option>
+                                    <option value="Part-time" {% if employee and employee.employment_type == 'Part-time' %}selected{% endif %}>Part-time</option>
+                                    <option value="Contract" {% if employee and employee.employment_type == 'Contract' %}selected{% endif %}>Contract</option>
+                                    <option value="Intern" {% if employee and employee.employment_type == 'Intern' %}selected{% endif %}>Intern</option>
+                                </select>
+                                <div class="invalid-feedback">Please select an employment type.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="work_permit_type" class="form-label">Work Permit Type *</label>
+                                <select class="form-select" id="work_permit_type" name="work_permit_type" required>
+                                    <option value="">Select Type</option>
+                                    <option value="Citizen" {% if employee and employee.work_permit_type == 'Citizen' %}selected{% endif %}>Singapore Citizen</option>
+                                    <option value="PR" {% if employee and employee.work_permit_type == 'PR' %}selected{% endif %}>Permanent Resident</option>
+                                    <option value="Work Permit" {% if employee and employee.work_permit_type == 'Work Permit' %}selected{% endif %}>Work Permit</option>
+                                    <option value="S Pass" {% if employee and employee.work_permit_type == 'S Pass' %}selected{% endif %}>S Pass</option>
+                                    <option value="Employment Pass" {% if employee and employee.work_permit_type == 'Employment Pass' %}selected{% endif %}>Employment Pass</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a work permit type.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="work_permit_expiry" class="form-label">Work Permit Expiry</label>
+                                <input type="date" class="form-control" id="work_permit_expiry" name="work_permit_expiry" 
+                                       value="{{ employee.work_permit_expiry.strftime('%Y-%m-%d') if employee and employee.work_permit_expiry else '' }}">
+                                <small class="form-text text-muted">Leave blank for Citizens/PRs</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="manager_id" class="form-label">Manager</label>
+                                <select class="form-select" id="manager_id" name="manager_id">
+                                    <option value="">Select Manager</option>
+                                    {% for manager in managers %}
+                                    <option value="{{ manager.id }}" {% if employee and employee.manager_id == manager.id %}selected{% endif %}>
+                                        {{ manager.first_name }} {{ manager.last_name }} ({{ manager.position }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-dollar-sign me-2"></i>Salary & Benefits
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="basic_salary" class="form-label">Basic Salary (SGD) *</label>
+                                <input type="number" class="form-control" id="basic_salary" name="basic_salary" 
+                                       step="0.01" min="0" value="{{ employee.basic_salary if employee else '' }}" required>
+                                <div class="invalid-feedback">Please provide a basic salary.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="allowances" class="form-label">Monthly Allowances (SGD)</label>
+                                <input type="number" class="form-control" id="allowances" name="allowances" 
+                                       step="0.01" min="0" value="{{ employee.allowances if employee else '0' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="hourly_rate" class="form-label">Hourly Rate (SGD)</label>
+                                <input type="number" class="form-control" id="hourly_rate" name="hourly_rate" 
+                                       step="0.01" min="0" value="{{ employee.hourly_rate if employee else '' }}">
+                                <small class="form-text text-muted">For overtime calculations</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cpf_account" class="form-label">CPF Account Number</label>
+                                <input type="text" class="form-control" id="cpf_account" name="cpf_account" 
+                                       value="{{ employee.cpf_account if employee else '' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-university me-2"></i>Banking Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="bank_name" class="form-label">Bank Name</label>
+                                <select class="form-select" id="bank_name" name="bank_name">
+                                    <option value="">Select Bank</option>
+                                    <option value="DBS" {% if employee and employee.bank_name == 'DBS' %}selected{% endif %}>DBS Bank</option>
+                                    <option value="OCBC" {% if employee and employee.bank_name == 'OCBC' %}selected{% endif %}>OCBC Bank</option>
+                                    <option value="UOB" {% if employee and employee.bank_name == 'UOB' %}selected{% endif %}>UOB Bank</option>
+                                    <option value="POSB" {% if employee and employee.bank_name == 'POSB' %}selected{% endif %}>POSB Bank</option>
+                                    <option value="Maybank" {% if employee and employee.bank_name == 'Maybank' %}selected{% endif %}>Maybank</option>
+                                    <option value="Standard Chartered" {% if employee and employee.bank_name == 'Standard Chartered' %}selected{% endif %}>Standard Chartered</option>
+                                    <option value="HSBC" {% if employee and employee.bank_name == 'HSBC' %}selected{% endif %}>HSBC</option>
+                                    <option value="Other" {% if employee and employee.bank_name == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="bank_account" class="form-label">Bank Account Number</label>
+                                <input type="text" class="form-control" id="bank_account" name="bank_account" 
+                                       value="{{ employee.bank_account if employee else '' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {{ "Update Employee" if employee else "Add Employee" }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Auto-calculate hourly rate from basic salary
+document.getElementById('basic_salary').addEventListener('input', function() {
+    const basicSalary = parseFloat(this.value) || 0;
+    const hourlyRateField = document.getElementById('hourly_rate');
+    
+    if (basicSalary > 0 && !hourlyRateField.value) {
+        // Assume 22 working days, 8 hours per day
+        const hourlyRate = (basicSalary / (22 * 8)).toFixed(2);
+        hourlyRateField.value = hourlyRate;
+    }
+});
+
+// Show/hide work permit expiry based on permit type
+document.getElementById('work_permit_type').addEventListener('change', function() {
+    const expiryField = document.getElementById('work_permit_expiry');
+    const citizenTypes = ['Citizen', 'PR'];
+    
+    if (citizenTypes.includes(this.value)) {
+        expiryField.disabled = true;
+        expiryField.value = '';
+    } else {
+        expiryField.disabled = false;
+    }
+});
+</script>
+{% endblock %}

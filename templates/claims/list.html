@@ -1,0 +1,401 @@
+{% extends "base.html" %}
+
+{% block title %}Claims Management - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h3>
+                        <i class="fas fa-receipt me-2"></i>Claims Management
+                    </h3>
+                    <p class="text-muted mb-0">{{ claims.total }} claims submitted</p>
+                </div>
+                <div class="btn-group">
+                    {% if current_user.role == 'Employee' %}
+                    <a href="{{ url_for('claims_submit') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Submit Claim
+                    </a>
+                    {% endif %}
+                    {% if current_user.role in ['Admin', 'Manager'] %}
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-export me-1"></i>Export
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="exportClaims('csv')">
+                                <i class="fas fa-file-csv me-1"></i>Export to CSV
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportClaims('pdf')">
+                                <i class="fas fa-file-pdf me-1"></i>Export to PDF
+                            </a></li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <form method="GET" class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <select name="status" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
+                                <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+                                <option value="Paid" {% if status_filter == 'Paid' %}selected{% endif %}>Paid</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="claim_type" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="Medical">Medical</option>
+                                <option value="Transport">Transport</option>
+                                <option value="Meal">Meal</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Parking">Parking</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('claims_list') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    {% if current_user.role == 'Employee' %}
+    <div class="row mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                    <h5 class="mb-1" id="pendingCount">-</h5>
+                    <small class="text-muted">Pending</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h5 class="mb-1" id="approvedCount">-</h5>
+                    <small class="text-muted">Approved</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-dollar-sign fa-2x text-info mb-2"></i>
+                    <h5 class="mb-1" id="totalAmount">-</h5>
+                    <small class="text-muted">This Month</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-calendar fa-2x text-primary mb-2"></i>
+                    <h5 class="mb-1" id="thisYear">-</h5>
+                    <small class="text-muted">This Year</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mobile Cards -->
+    <div class="d-md-none">
+        {% for claim in claims.items %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        {% if current_user.role in ['Admin', 'Manager'] %}
+                        <h6 class="mb-1">{{ claim.employee.first_name }} {{ claim.employee.last_name }}</h6>
+                        <p class="text-muted small mb-0">{{ claim.employee.employee_id }}</p>
+                        {% endif %}
+                        <span class="badge bg-primary">{{ claim.claim_type }}</span>
+                    </div>
+                    <div class="text-end">
+                        <h6 class="text-success mb-1">{{ claim.amount | currency }}</h6>
+                        <span class="badge bg-{{ 'success' if claim.status == 'Approved' or claim.status == 'Paid' else 'danger' if claim.status == 'Rejected' else 'warning' }}">
+                            {{ claim.status }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted d-block">Date: {{ claim.claim_date | date }}</small>
+                    {% if claim.receipt_number %}
+                    <small class="text-muted d-block">Receipt: {{ claim.receipt_number }}</small>
+                    {% endif %}
+                </div>
+                
+                {% if claim.description %}
+                <div class="border-top pt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-comment me-1"></i>{{ claim.description[:100] }}{{ '...' if claim.description|length > 100 else '' }}
+                    </small>
+                </div>
+                {% endif %}
+                
+                {% if current_user.role in ['Admin', 'Manager'] and claim.status == 'Pending' %}
+                <div class="mt-3 pt-2 border-top">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-sm btn-success" onclick="approveClaim({{ claim.id }}, 'approve')">
+                            <i class="fas fa-check me-1"></i>Approve
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="showRejectModal({{ claim.id }})">
+                            <i class="fas fa-times me-1"></i>Reject
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Desktop Table -->
+    <div class="d-none d-md-block">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            <th>Employee</th>
+                            {% endif %}
+                            <th>Claim Type</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Receipt #</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Submitted On</th>
+                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in claims.items %}
+                        <tr>
+                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            <td>
+                                <div>
+                                    <strong>{{ claim.employee.first_name }} {{ claim.employee.last_name }}</strong>
+                                    <br><small class="text-muted">{{ claim.employee.employee_id }}</small>
+                                </div>
+                            </td>
+                            {% endif %}
+                            <td>
+                                <span class="badge bg-primary">{{ claim.claim_type }}</span>
+                            </td>
+                            <td class="fw-semibold text-success">{{ claim.amount | currency }}</td>
+                            <td>{{ claim.claim_date | date }}</td>
+                            <td>
+                                {% if claim.receipt_number %}
+                                <code>{{ claim.receipt_number }}</code>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if claim.description %}
+                                <span class="text-truncate" style="max-width: 200px;" title="{{ claim.description }}">
+                                    {{ claim.description[:50] }}{{ '...' if claim.description|length > 50 else '' }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if claim.status == 'Approved' or claim.status == 'Paid' else 'danger' if claim.status == 'Rejected' else 'warning' }}">
+                                    {{ claim.status }}
+                                </span>
+                                {% if claim.approved_by_user and claim.status != 'Pending' %}
+                                <br><small class="text-muted">by {{ claim.approved_by_user.first_name }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ claim.created_at.strftime('%d/%m/%Y') }}</td>
+                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            <td>
+                                {% if claim.status == 'Pending' %}
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-success" onclick="approveClaim({{ claim.id }}, 'approve')">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="showRejectModal({{ claim.id }})">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% else %}
+                                <span class="text-muted small">{{ claim.status }}</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if not claims.items %}
+    <div class="text-center py-5">
+        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No claims found</h5>
+        <p class="text-muted">
+            {% if current_user.role == 'Employee' %}
+            Submit your first claim to see it here
+            {% else %}
+            No claims match your current filters
+            {% endif %}
+        </p>
+        {% if current_user.role == 'Employee' %}
+        <a href="{{ url_for('claims_submit') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Submit First Claim
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if claims.pages > 1 %}
+    <nav aria-label="Claims pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if claims.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('claims_list', page=claims.prev_num, status=status_filter) }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in claims.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != claims.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('claims_list', page=page_num, status=status_filter) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if claims.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('claims_list', page=claims.next_num, status=status_filter) }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle text-danger me-2"></i>Reject Claim
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rejectForm" method="POST">
+                <div class="modal-body">
+                    <p>Please provide a reason for rejecting this claim:</p>
+                    <textarea class="form-control" name="rejection_reason" rows="3" 
+                              placeholder="Enter rejection reason..." required></textarea>
+                    <input type="hidden" name="action" value="reject">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-1"></i>Reject Claim
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load summary statistics for employee view
+function loadSummaryStats() {
+    // Mock data - in real app, fetch from API
+    {% if current_user.role == 'Employee' %}
+    document.getElementById('pendingCount').textContent = '{{ claims.items | selectattr("status", "equalto", "Pending") | list | length }}';
+    document.getElementById('approvedCount').textContent = '{{ claims.items | selectattr("status", "equalto", "Approved") | list | length }}';
+    document.getElementById('totalAmount').textContent = 'S$ {{ "{:,.2f}".format(claims.items | sum(attribute="amount") | float) }}';
+    document.getElementById('thisYear').textContent = '{{ claims.total }}';
+    {% endif %}
+}
+
+function approveClaim(claimId, action) {
+    if (confirm('Are you sure you want to ' + action + ' this claim?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/claims/${claimId}/approve`;
+        
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = action;
+        
+        form.appendChild(actionInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function showRejectModal(claimId) {
+    const form = document.getElementById('rejectForm');
+    form.action = `/claims/${claimId}/approve`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+    modal.show();
+}
+
+function exportClaims(format) {
+    const params = new URLSearchParams(window.location.search);
+    params.append('export', format);
+    window.open('?' + params.toString(), '_blank');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadSummaryStats();
+});
+</script>
+{% endblock %}

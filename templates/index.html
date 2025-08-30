@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Singapore HRM System - Home{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center min-vh-100 align-items-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="text-center mb-5">
+                <i class="fas fa-building fa-4x text-primary mb-3"></i>
+                <h1 class="display-5 fw-bold">Singapore HRM System</h1>
+                <p class="lead text-muted">
+                    Complete Human Resource Management with Singapore compliance, 
+                    CPF calculations, and mobile-first design.
+                </p>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <h5 class="card-title text-center mb-4">
+                        <i class="fas fa-shield-alt text-success me-2"></i>
+                        Secure Access Required
+                    </h5>
+                    
+                    <div class="d-grid gap-3">
+                        <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            Sign In to Continue
+                        </a>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <i class="fas fa-mobile-alt fa-2x text-primary mb-2"></i>
+                            <h6 class="small">Mobile First</h6>
+                        </div>
+                        <div class="col-4">
+                            <i class="fas fa-calculator fa-2x text-success mb-2"></i>
+                            <h6 class="small">CPF Ready</h6>
+                        </div>
+                        <div class="col-4">
+                            <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
+                            <h6 class="small">Real-time</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-0 bg-transparent">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users fa-2x text-primary mb-3"></i>
+                            <h6>Employee Management</h6>
+                            <p class="small text-muted">Complete CRUD operations with role-based access control</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-0 bg-transparent">
+                        <div class="card-body text-center">
+                            <i class="fas fa-dollar-sign fa-2x text-success mb-3"></i>
+                            <h6>Singapore Payroll</h6>
+                            <p class="small text-muted">Automated CPF, AIS, and MOM OED calculations</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-0 bg-transparent">
+                        <div class="card-body text-center">
+                            <i class="fas fa-calendar-check fa-2x text-info mb-3"></i>
+                            <h6>Attendance Tracking</h6>
+                            <p class="small text-muted">Mobile attendance with GPS and overtime calculation</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 border-0 bg-transparent">
+                        <div class="card-body text-center">
+                            <i class="fas fa-file-alt fa-2x text-warning mb-3"></i>
+                            <h6>Compliance Reports</h6>
+                            <p class="small text-muted">Automated compliance file generation and submissions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

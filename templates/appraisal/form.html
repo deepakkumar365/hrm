@@ -1,0 +1,639 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit Appraisal" if employee else "Create Appraisal" }} - HRM System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>
+                        <i class="fas fa-star me-2"></i>{{ "Edit Appraisal" if employee else "Create Performance Appraisal" }}
+                    </h3>
+                    {% if employee %}
+                    <p class="text-muted mb-0">{{ employee.first_name }} {{ employee.last_name }} • {{ employee.position }}</p>
+                    {% else %}
+                    <p class="text-muted mb-0">Conduct performance review and provide feedback</p>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('appraisal_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Appraisals
+                </a>
+            </div>
+
+            <form method="POST" class="needs-validation" novalidate>
+                <!-- Employee Selection -->
+                {% if not employee %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user me-2"></i>Employee Selection
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="employee_id" class="form-label">Select Employee *</label>
+                                <select class="form-select" id="employee_id" name="employee_id" required>
+                                    <option value="">Choose employee for appraisal...</option>
+                                    {% for emp in employees %}
+                                    <option value="{{ emp.id }}" data-position="{{ emp.position }}" data-department="{{ emp.department }}">
+                                        {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }}) - {{ emp.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select an employee.</div>
+                            </div>
+                            <div class="col-md-4" id="employeeInfo" style="display: none;">
+                                <label class="form-label">Employee Details</label>
+                                <div class="card bg-light">
+                                    <div class="card-body p-2">
+                                        <small id="empPosition" class="d-block fw-semibold"></small>
+                                        <small id="empDepartment" class="text-muted"></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Review Period -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar me-2"></i>Review Period
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="review_period_start" class="form-label">Period Start Date *</label>
+                                <input type="date" class="form-control" id="review_period_start" name="review_period_start" required>
+                                <div class="invalid-feedback">Please select the review start date.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="review_period_end" class="form-label">Period End Date *</label>
+                                <input type="date" class="form-control" id="review_period_end" name="review_period_end" required>
+                                <div class="invalid-feedback">Please select the review end date.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-outline-primary" onclick="setQuarterPeriod(1)">Q1</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setQuarterPeriod(2)">Q2</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setQuarterPeriod(3)">Q3</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setQuarterPeriod(4)">Q4</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setAnnualPeriod()">Annual</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Ratings -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>Performance Ratings
+                        </h5>
+                        <small class="text-muted">Rate performance on a scale of 1-5 (1 = Poor, 5 = Excellent)</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <!-- Performance Rating -->
+                            <div class="col-md-6">
+                                <label class="form-label">Job Performance *</label>
+                                <div class="rating-group" data-rating="performance_rating">
+                                    {% for i in range(1, 6) %}
+                                    <input type="radio" name="performance_rating" value="{{ i }}" id="perf_{{ i }}" required>
+                                    <label for="perf_{{ i }}" class="rating-label">
+                                        <i class="fas fa-star"></i>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted">Quality of work, productivity, technical skills</small>
+                                <div class="invalid-feedback">Please rate job performance.</div>
+                            </div>
+
+                            <!-- Goals Achievement -->
+                            <div class="col-md-6">
+                                <label class="form-label">Goals Achievement *</label>
+                                <div class="rating-group" data-rating="goals_achievement">
+                                    {% for i in range(1, 6) %}
+                                    <input type="radio" name="goals_achievement" value="{{ i }}" id="goals_{{ i }}" required>
+                                    <label for="goals_{{ i }}" class="rating-label">
+                                        <i class="fas fa-star"></i>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted">Meeting objectives and targets</small>
+                                <div class="invalid-feedback">Please rate goals achievement.</div>
+                            </div>
+
+                            <!-- Teamwork -->
+                            <div class="col-md-6">
+                                <label class="form-label">Teamwork & Collaboration *</label>
+                                <div class="rating-group" data-rating="teamwork_rating">
+                                    {% for i in range(1, 6) %}
+                                    <input type="radio" name="teamwork_rating" value="{{ i }}" id="team_{{ i }}" required>
+                                    <label for="team_{{ i }}" class="rating-label">
+                                        <i class="fas fa-star"></i>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted">Cooperation, support, team contribution</small>
+                                <div class="invalid-feedback">Please rate teamwork.</div>
+                            </div>
+
+                            <!-- Communication -->
+                            <div class="col-md-6">
+                                <label class="form-label">Communication Skills *</label>
+                                <div class="rating-group" data-rating="communication_rating">
+                                    {% for i in range(1, 6) %}
+                                    <input type="radio" name="communication_rating" value="{{ i }}" id="comm_{{ i }}" required>
+                                    <label for="comm_{{ i }}" class="rating-label">
+                                        <i class="fas fa-star"></i>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted">Verbal, written, presentation skills</small>
+                                <div class="invalid-feedback">Please rate communication skills.</div>
+                            </div>
+                        </div>
+
+                        <!-- Overall Rating Display -->
+                        <div class="mt-4 p-3 bg-light rounded">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="mb-1">Overall Rating</h6>
+                                    <div id="overallRating" class="d-flex align-items-center">
+                                        <div id="overallStars" class="me-2"></div>
+                                        <span id="overallScore" class="fw-semibold text-primary">-/5</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div id="ratingDescription" class="text-muted small">
+                                        Select ratings to see overall score
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-comment me-2"></i>Detailed Feedback
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label for="manager_feedback" class="form-label">Manager Feedback *</label>
+                            <textarea class="form-control" id="manager_feedback" name="manager_feedback" rows="6" 
+                                      placeholder="Provide comprehensive feedback on performance, achievements, and areas for improvement..." required></textarea>
+                            <div class="invalid-feedback">Please provide manager feedback.</div>
+                            <small class="text-muted">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Include specific examples, achievements, challenges, and constructive suggestions
+                            </small>
+                        </div>
+                        
+                        <!-- Self Review Section (if applicable) -->
+                        <div class="mb-4">
+                            <label for="self_review" class="form-label">Employee Self-Review</label>
+                            <textarea class="form-control" id="self_review" name="self_review" rows="4" 
+                                      placeholder="Employee's self-assessment and reflection..." readonly></textarea>
+                            <small class="text-muted">This section can be filled by the employee before manager review</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Development Planning -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-rocket me-2"></i>Development Planning
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label for="development_goals" class="form-label">Development Goals</label>
+                            <textarea class="form-control" id="development_goals" name="development_goals" rows="4"
+                                      placeholder="Set specific, measurable development objectives for the next review period..."></textarea>
+                            <small class="text-muted">Define clear goals for professional growth and skill development</small>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="training_recommendations" class="form-label">Training Recommendations</label>
+                            <textarea class="form-control" id="training_recommendations" name="training_recommendations" rows="3"
+                                      placeholder="Suggest training programs, courses, or learning opportunities..."></textarea>
+                            <small class="text-muted">Identify specific training needs and learning resources</small>
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="strengths" class="form-label">Key Strengths</label>
+                                <textarea class="form-control" id="strengths" name="strengths" rows="3"
+                                          placeholder="List employee's main strengths and talents..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="improvement_areas" class="form-label">Areas for Improvement</label>
+                                <textarea class="form-control" id="improvement_areas" name="improvement_areas" rows="3"
+                                          placeholder="Identify areas where employee can grow and develop..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Review Planning -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-plus me-2"></i>Next Review Planning
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="next_review_date" class="form-label">Next Review Date</label>
+                                <input type="date" class="form-control" id="next_review_date" name="next_review_date">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="review_frequency" class="form-label">Review Frequency</label>
+                                <select class="form-select" id="review_frequency" name="review_frequency">
+                                    <option value="quarterly">Quarterly</option>
+                                    <option value="semi-annual" selected>Semi-Annual</option>
+                                    <option value="annual">Annual</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="follow_up_meeting">
+                                <label class="form-check-label" for="follow_up_meeting">
+                                    Schedule follow-up meeting to discuss development progress
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Items -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tasks me-2"></i>Action Items
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="actionItems">
+                            <div class="action-item mb-3">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="action_items[]" 
+                                           placeholder="Add an action item...">
+                                    <input type="date" class="form-control" name="action_due_dates[]">
+                                    <button type="button" class="btn btn-outline-danger" onclick="removeActionItem(this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addActionItem()">
+                            <i class="fas fa-plus me-1"></i>Add Action Item
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Complete Appraisal</h6>
+                                <p class="text-muted small mb-0">
+                                    Review all sections before submitting. The employee will be notified once completed.
+                                </p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-secondary" onclick="saveDraft()">
+                                    <i class="fas fa-save me-1"></i>Save Draft
+                                </button>
+                                <a href="{{ url_for('appraisal_list') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="fas fa-check me-1"></i>Complete Appraisal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.rating-group {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+.rating-group input[type="radio"] {
+    display: none;
+}
+
+.rating-label {
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #ddd;
+    transition: color 0.2s;
+}
+
+.rating-group input[type="radio"]:checked ~ .rating-label,
+.rating-group .rating-label:hover,
+.rating-group .rating-label.active {
+    color: #ffc107;
+}
+
+.rating-group input[type="radio"]:checked ~ .rating-label ~ .rating-label {
+    color: #ddd;
+}
+
+.action-item {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Employee selection handler
+{% if not employee %}
+document.getElementById('employee_id').addEventListener('change', function() {
+    const selected = this.options[this.selectedIndex];
+    const employeeInfo = document.getElementById('employeeInfo');
+    
+    if (selected.value) {
+        document.getElementById('empPosition').textContent = selected.dataset.position;
+        document.getElementById('empDepartment').textContent = selected.dataset.department;
+        employeeInfo.style.display = 'block';
+    } else {
+        employeeInfo.style.display = 'none';
+    }
+});
+{% endif %}
+
+// Quarter period setters
+function setQuarterPeriod(quarter) {
+    const year = new Date().getFullYear();
+    const quarters = {
+        1: { start: `${year}-01-01`, end: `${year}-03-31` },
+        2: { start: `${year}-04-01`, end: `${year}-06-30` },
+        3: { start: `${year}-07-01`, end: `${year}-09-30` },
+        4: { start: `${year}-10-01`, end: `${year}-12-31` }
+    };
+    
+    document.getElementById('review_period_start').value = quarters[quarter].start;
+    document.getElementById('review_period_end').value = quarters[quarter].end;
+}
+
+function setAnnualPeriod() {
+    const year = new Date().getFullYear();
+    document.getElementById('review_period_start').value = `${year}-01-01`;
+    document.getElementById('review_period_end').value = `${year}-12-31`;
+}
+
+// Rating system
+function setupRatingSystem() {
+    document.querySelectorAll('.rating-group').forEach(group => {
+        const inputs = group.querySelectorAll('input[type="radio"]');
+        const labels = group.querySelectorAll('.rating-label');
+        
+        labels.forEach((label, index) => {
+            label.addEventListener('click', function() {
+                inputs[index].checked = true;
+                updateRatingVisuals(group, index + 1);
+                calculateOverallRating();
+            });
+            
+            label.addEventListener('mouseenter', function() {
+                updateRatingVisuals(group, index + 1, true);
+            });
+        });
+        
+        group.addEventListener('mouseleave', function() {
+            const checkedInput = group.querySelector('input:checked');
+            if (checkedInput) {
+                const checkedIndex = Array.from(inputs).indexOf(checkedInput);
+                updateRatingVisuals(group, checkedIndex + 1);
+            } else {
+                updateRatingVisuals(group, 0);
+            }
+        });
+    });
+}
+
+function updateRatingVisuals(group, rating, isHover = false) {
+    const labels = group.querySelectorAll('.rating-label');
+    labels.forEach((label, index) => {
+        if (index < rating) {
+            label.style.color = '#ffc107';
+        } else {
+            label.style.color = '#ddd';
+        }
+    });
+}
+
+function calculateOverallRating() {
+    const ratings = ['performance_rating', 'goals_achievement', 'teamwork_rating', 'communication_rating'];
+    let total = 0;
+    let count = 0;
+    
+    ratings.forEach(rating => {
+        const checked = document.querySelector(`input[name="${rating}"]:checked`);
+        if (checked) {
+            total += parseInt(checked.value);
+            count++;
+        }
+    });
+    
+    if (count > 0) {
+        const average = (total / count).toFixed(1);
+        document.getElementById('overallScore').textContent = `${average}/5`;
+        
+        // Update stars
+        const starsContainer = document.getElementById('overallStars');
+        starsContainer.innerHTML = '';
+        for (let i = 1; i <= 5; i++) {
+            const star = document.createElement('i');
+            star.className = 'fas fa-star';
+            star.style.color = i <= Math.round(average) ? '#ffc107' : '#ddd';
+            starsContainer.appendChild(star);
+        }
+        
+        // Update description
+        const descriptions = {
+            '1': 'Needs Significant Improvement',
+            '2': 'Below Expectations',
+            '3': 'Meets Expectations',
+            '4': 'Exceeds Expectations',
+            '5': 'Outstanding Performance'
+        };
+        
+        const roundedRating = Math.round(average);
+        document.getElementById('ratingDescription').textContent = descriptions[roundedRating] || 'Performance Rating';
+    }
+}
+
+// Action items management
+function addActionItem() {
+    const container = document.getElementById('actionItems');
+    const newItem = document.createElement('div');
+    newItem.className = 'action-item mb-3';
+    newItem.innerHTML = `
+        <div class="input-group">
+            <input type="text" class="form-control" name="action_items[]" 
+                   placeholder="Add an action item...">
+            <input type="date" class="form-control" name="action_due_dates[]">
+            <button type="button" class="btn btn-outline-danger" onclick="removeActionItem(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(newItem);
+}
+
+function removeActionItem(button) {
+    const actionItem = button.closest('.action-item');
+    actionItem.style.animation = 'fadeOut 0.3s ease-out';
+    setTimeout(() => actionItem.remove(), 300);
+}
+
+// Auto-save draft functionality
+function saveDraft() {
+    const formData = new FormData(document.querySelector('form'));
+    localStorage.setItem('appraisal_draft', JSON.stringify(Object.fromEntries(formData)));
+    
+    // Show success message
+    const toast = document.createElement('div');
+    toast.className = 'toast position-fixed top-0 end-0 m-3';
+    toast.innerHTML = `
+        <div class="toast-body bg-success text-white">
+            <i class="fas fa-check me-2"></i>Draft saved successfully
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Load draft if exists
+function loadDraft() {
+    const draft = localStorage.getItem('appraisal_draft');
+    if (draft && confirm('Found a saved draft. Would you like to restore it?')) {
+        const data = JSON.parse(draft);
+        Object.keys(data).forEach(key => {
+            const element = document.querySelector(`[name="${key}"]`);
+            if (element) {
+                if (element.type === 'radio') {
+                    document.querySelector(`[name="${key}"][value="${data[key]}"]`).checked = true;
+                } else {
+                    element.value = data[key];
+                }
+            }
+        });
+        
+        // Recalculate ratings
+        setupRatingSystem();
+        calculateOverallRating();
+    }
+}
+
+// Date validation
+function validateDates() {
+    const startDate = new Date(document.getElementById('review_period_start').value);
+    const endDate = new Date(document.getElementById('review_period_end').value);
+    
+    if (endDate <= startDate) {
+        document.getElementById('review_period_end').setCustomValidity('End date must be after start date');
+    } else {
+        document.getElementById('review_period_end').setCustomValidity('');
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    setupRatingSystem();
+    loadDraft();
+    
+    // Set up date validation
+    document.getElementById('review_period_start').addEventListener('change', validateDates);
+    document.getElementById('review_period_end').addEventListener('change', validateDates);
+    
+    // Set next review date automatically
+    document.getElementById('review_frequency').addEventListener('change', function() {
+        const endDate = new Date(document.getElementById('review_period_end').value);
+        if (endDate) {
+            const nextReviewDate = new Date(endDate);
+            switch(this.value) {
+                case 'quarterly':
+                    nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+                    break;
+                case 'semi-annual':
+                    nextReviewDate.setMonth(nextReviewDate.getMonth() + 6);
+                    break;
+                case 'annual':
+                    nextReviewDate.setFullYear(nextReviewDate.getFullYear() + 1);
+                    break;
+            }
+            document.getElementById('next_review_date').value = nextReviewDate.toISOString().split('T')[0];
+        }
+    });
+});
+
+// Form submission
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (confirm('Submit this performance appraisal? The employee will be notified.')) {
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+        
+        // Clear draft
+        localStorage.removeItem('appraisal_draft');
+    } else {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}
