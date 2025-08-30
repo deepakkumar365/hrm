@@ -165,9 +165,9 @@ h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
     font-size: 14px;
     font-weight: 600;
     padding: 8px 12px;
+    color: #AF3E3E !important;
     background-color: var(--filter-bg);
     border-bottom: 1px solid var(--border);
-    color: var(--text-primary);
 }
 
 /* Filter card specific styling */
