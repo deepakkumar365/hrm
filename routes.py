@@ -543,23 +543,26 @@ def attendance_mark():
             action = request.form.get('action')  # clock_in, clock_out, break_start, break_end
             current_time = datetime.now().time()
             
-            if not existing and action == 'clock_in':
-                # Create new attendance record
-                attendance = Attendance()
-                attendance.employee_id = employee_id
-                attendance.date = today
-                attendance.clock_in = current_time
-                attendance.status = 'Present'
-                
-                # Get location if provided
-                lat = request.form.get('latitude')
-                lng = request.form.get('longitude')
-                if lat and lng:
-                    attendance.location_lat = lat
-                    attendance.location_lng = lng
-                
-                db.session.add(attendance)
-                flash('Clocked in successfully', 'success')
+            if action == 'clock_in':
+                if not existing:
+                    # Create new attendance record
+                    attendance = Attendance()
+                    attendance.employee_id = employee_id
+                    attendance.date = today
+                    attendance.clock_in = current_time
+                    attendance.status = 'Present'
+                    
+                    # Get location if provided
+                    lat = request.form.get('latitude')
+                    lng = request.form.get('longitude')
+                    if lat and lng:
+                        attendance.location_lat = lat
+                        attendance.location_lng = lng
+                    
+                    db.session.add(attendance)
+                    flash('Clocked in successfully', 'success')
+                else:
+                    flash('Already clocked in for today', 'warning')
             elif existing:
                 # Update existing record
                 if action == 'clock_out':
@@ -598,6 +601,11 @@ def attendance_mark():
                 elif action == 'break_end':
                     existing.break_end = current_time
                     flash('Break ended', 'success')
+            else:
+                # No existing record found for break/clock_out actions
+                if action in ['break_start', 'break_end', 'clock_out']:
+                    flash('Please clock in first before performing this action', 'warning')
+                    return redirect(url_for('attendance_mark'))
             
             db.session.commit()
             
