@@ -193,21 +193,42 @@ small,
 .p-3 { padding: 8px !important; }
 .p-4 { padding: 12px !important; }
 
-/* Mobile responsiveness - even smaller on mobile */
+/* Mobile responsiveness - larger on mobile for touch */
 @media (max-width: 768px) {
     body {
-        font-size: 11px;
+        font-size: 13px;
     }
     
     .btn {
-        font-size: 12px;
-        padding: 6px 10px;
+        font-size: 14px;
+        padding: 8px 12px;
     }
     
     .form-control,
     .form-select {
-        font-size: 12px;
-        padding: 6px 8px;
+        font-size: 14px;
+        padding: 8px 10px;
+        min-height: 40px;
+    }
+    
+    .form-label {
+        font-size: 13px;
+        margin-bottom: 4px;
+    }
+    
+    .table th,
+    .table td {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    .nav-link {
+        font-size: 14px;
+        padding: 8px 12px;
     }
 }
 
