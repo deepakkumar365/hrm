@@ -527,8 +527,8 @@ def attendance_mark():
     """Mark attendance (for employees)"""
     if request.method == 'POST':
         try:
-            if not hasattr(current_user, 'employee_profile'):
-                flash('Employee profile not found', 'error')
+            if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+                flash('Employee profile required for attendance marking', 'error')
                 return redirect(url_for('dashboard'))
             
             today = date.today()
@@ -606,11 +606,13 @@ def attendance_mark():
     
     # Get today's attendance record
     today_attendance = None
-    if hasattr(current_user, 'employee_profile'):
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         today_attendance = Attendance.query.filter_by(
             employee_id=current_user.employee_profile.id,
             date=date.today()
         ).first()
+    else:
+        flash('You need an employee profile to mark attendance. Contact your administrator.', 'warning')
     
     return render_template('attendance/form.html', today_attendance=today_attendance)
 
@@ -657,8 +659,8 @@ def leave_request():
     """Submit leave request"""
     if request.method == 'POST':
         try:
-            if not hasattr(current_user, 'employee_profile'):
-                flash('Employee profile not found', 'error')
+            if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+                flash('Employee profile required for attendance marking', 'error')
                 return redirect(url_for('dashboard'))
             
             leave = Leave()
@@ -753,8 +755,8 @@ def claims_submit():
     """Submit new claim"""
     if request.method == 'POST':
         try:
-            if not hasattr(current_user, 'employee_profile'):
-                flash('Employee profile not found', 'error')
+            if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+                flash('Employee profile required for attendance marking', 'error')
                 return redirect(url_for('dashboard'))
             
             claim = Claim()
