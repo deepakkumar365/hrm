@@ -111,14 +111,27 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="position" class="form-label">Position *</label>
-                                <input type="text" class="form-control" id="position" name="position" 
-                                       value="{{ employee.position if employee else '' }}" required>
-                                <div class="invalid-feedback">Please provide a position.</div>
+                                <select class="form-select" id="position" name="position" required>
+                                    <option value="">Select Position</option>
+                                    {% for role in roles %}
+                                    <option value="{{ role.name }}" {% if employee and employee.position == role.name %}selected{% endif %}>
+                                        {{ role.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a position.</div>
                             </div>
                             <div class="col-md-6">
                                 <label for="department" class="form-label">Department</label>
-                                <input type="text" class="form-control" id="department" name="department" 
-                                       value="{{ employee.department if employee else '' }}">
+                                <select class="form-select" id="department" name="department">
+                                    <option value="">Select Department</option>
+                                    {% for dept in departments %}
+                                    <option value="{{ dept.name }}" {% if employee and employee.department == dept.name %}selected{% endif %}>
+                                        {{ dept.name }}
+                                        {% if dept.manager %} - ({{ dept.manager.first_name }} {{ dept.manager.last_name }}){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label for="hire_date" class="form-label">Hire Date *</label>
@@ -155,6 +168,28 @@
                                 <input type="date" class="form-control" id="work_permit_expiry" name="work_permit_expiry" 
                                        value="{{ employee.work_permit_expiry.strftime('%Y-%m-%d') if employee and employee.work_permit_expiry else '' }}">
                                 <small class="form-text text-muted">Leave blank for Citizens/PRs</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="working_hours_id" class="form-label">Working Hours</label>
+                                <select class="form-select" id="working_hours_id" name="working_hours_id">
+                                    <option value="">Select Working Hours</option>
+                                    {% for wh in working_hours %}
+                                    <option value="{{ wh.id }}" {% if employee and employee.working_hours_id == wh.id %}selected{% endif %}>
+                                        {{ wh.name }} ({{ wh.hours_per_day }}h/day, {{ wh.hours_per_week }}h/week)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="work_schedule_id" class="form-label">Work Schedule</label>
+                                <select class="form-select" id="work_schedule_id" name="work_schedule_id">
+                                    <option value="">Select Work Schedule</option>
+                                    {% for schedule in work_schedules %}
+                                    <option value="{{ schedule.id }}" {% if employee and employee.work_schedule_id == schedule.id %}selected{% endif %}>
+                                        {{ schedule.name }} ({{ schedule.start_time.strftime('%H:%M') }}-{{ schedule.end_time.strftime('%H:%M') }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
                             <div class="col-md-6">
                                 <label for="manager_id" class="form-label">Manager</label>

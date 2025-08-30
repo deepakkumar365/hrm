@@ -71,12 +71,18 @@ class Employee(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
     manager_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
     
+    # Master data relationships
+    working_hours_id = db.Column(db.Integer, db.ForeignKey('working_hours.id'), nullable=True)
+    work_schedule_id = db.Column(db.Integer, db.ForeignKey('work_schedules.id'), nullable=True)
+    
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     # Relationships
     user = db.relationship('User', backref=db.backref('employee_profile', uselist=False))
     manager = db.relationship('Employee', remote_side=[id], backref='team_members')
+    working_hours = db.relationship('WorkingHours', backref='employees')
+    work_schedule = db.relationship('WorkSchedule', backref='employees')
 
 class Payroll(db.Model):
     id = db.Column(db.Integer, primary_key=True)

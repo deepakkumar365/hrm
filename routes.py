@@ -18,10 +18,81 @@ from utils import (export_to_csv, format_currency, format_date, parse_date,
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
 
-# Create default users on first run
+# Create default users and master data on first run
+def create_default_master_data():
+    """Create default master data if it doesn't exist"""
+    try:
+        # Create default roles if none exist
+        if Role.query.count() == 0:
+            roles = [
+                Role(name='Software Engineer', description='Develops and maintains software applications'),
+                Role(name='Senior Developer', description='Senior software development role with leadership responsibilities'),
+                Role(name='Team Lead', description='Leads development teams and manages projects'),
+                Role(name='HR Manager', description='Manages human resources operations'),
+                Role(name='Sales Executive', description='Responsible for sales activities and client relationships'),
+                Role(name='Marketing Specialist', description='Handles marketing campaigns and brand management'),
+                Role(name='Accountant', description='Manages financial records and accounting operations'),
+                Role(name='Operations Manager', description='Oversees daily business operations'),
+            ]
+            for role in roles:
+                db.session.add(role)
+        
+        # Create default departments if none exist
+        if Department.query.count() == 0:
+            departments = [
+                Department(name='Information Technology', description='Software development and IT services'),
+                Department(name='Human Resources', description='Employee relations and HR operations'),
+                Department(name='Sales & Marketing', description='Sales and marketing activities'),
+                Department(name='Finance & Accounting', description='Financial planning and accounting'),
+                Department(name='Operations', description='Business operations and logistics'),
+                Department(name='Administration', description='General administration and support'),
+            ]
+            for dept in departments:
+                db.session.add(dept)
+        
+        # Create default working hours if none exist
+        if WorkingHours.query.count() == 0:
+            working_hours = [
+                WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0, 
+                           description='Standard full-time working hours'),
+                WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0, 
+                           description='Half day part-time schedule'),
+                WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0, 
+                           description='Extended working hours with overtime'),
+                WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0, 
+                           description='Flexible working arrangement'),
+            ]
+            for wh in working_hours:
+                db.session.add(wh)
+        
+        # Create default work schedules if none exist
+        if WorkSchedule.query.count() == 0:
+            from datetime import time
+            schedules = [
+                WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0), 
+                           break_duration=60, description='Standard 9-to-6 schedule'),
+                WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0), 
+                           break_duration=60, description='Early morning shift'),
+                WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0), 
+                           break_duration=60, description='Afternoon to evening shift'),
+                WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0), 
+                           break_duration=60, description='Flexible timing schedule'),
+            ]
+            for schedule in schedules:
+                db.session.add(schedule)
+        
+        db.session.commit()
+        return True
+    except Exception as e:
+        print(f"Error creating master data: {e}")
+        db.session.rollback()
+        return False
+
 with app.app_context():
     if create_default_users():
         print("Default users created successfully!")
+    if create_default_master_data():
+        print("Default master data created successfully!")
 
 
 @app.before_request
@@ -271,6 +342,15 @@ def employee_add():
             employee.bank_name = request.form.get('bank_name')
             employee.bank_account = request.form.get('bank_account')
 
+            # Handle master data relationships
+            working_hours_id = request.form.get('working_hours_id')
+            if working_hours_id:
+                employee.working_hours_id = int(working_hours_id)
+                
+            work_schedule_id = request.form.get('work_schedule_id')
+            if work_schedule_id:
+                employee.work_schedule_id = int(work_schedule_id)
+                
             manager_id = request.form.get('manager_id')
             if manager_id:
                 employee.manager_id = int(manager_id)
@@ -286,10 +366,20 @@ def employee_add():
             flash(f'Error adding employee: {str(e)}', 'error')
 
     # Get managers for dropdown
+    # Load master data for dropdowns
+    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
     managers = Employee.query.filter_by(is_active=True).filter(
         Employee.position.ilike('%manager%')).all()
 
-    return render_template('employees/form.html', managers=managers)
+    return render_template('employees/form.html', 
+                           managers=managers,
+                           roles=roles,
+                           departments=departments,
+                           working_hours=working_hours,
+                           work_schedules=work_schedules)
 
 
 @app.route('/employees/<int:employee_id>')
@@ -407,6 +497,19 @@ def employee_edit(employee_id):
             employee.bank_name = request.form.get('bank_name')
             employee.bank_account = request.form.get('bank_account')
 
+            # Handle master data relationships  
+            working_hours_id = request.form.get('working_hours_id')
+            if working_hours_id:
+                employee.working_hours_id = int(working_hours_id)
+            else:
+                employee.working_hours_id = None
+                
+            work_schedule_id = request.form.get('work_schedule_id')
+            if work_schedule_id:
+                employee.work_schedule_id = int(work_schedule_id)
+            else:
+                employee.work_schedule_id = None
+                
             manager_id = request.form.get('manager_id')
             if manager_id:
                 employee.manager_id = int(manager_id)
@@ -421,13 +524,22 @@ def employee_edit(employee_id):
             db.session.rollback()
             flash(f'Error updating employee: {str(e)}', 'error')
 
+    # Load master data for dropdowns
+    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
     managers = Employee.query.filter_by(is_active=True).filter(
         Employee.position.ilike('%manager%'), Employee.id
         != employee_id).all()
 
     return render_template('employees/form.html',
                            employee=employee,
-                           managers=managers)
+                           managers=managers,
+                           roles=roles,
+                           departments=departments,
+                           working_hours=working_hours,
+                           work_schedules=work_schedules)
 
 
 # Payroll Management Routes
