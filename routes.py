@@ -912,33 +912,44 @@ def leave_list():
         query = query.filter(Leave.employee_id == employee_filter)
 
     # Role-based filtering
-    if current_user.role == 'Employee' and hasattr(current_user,
-                                                   'employee_profile'):
-        # Employee: Only their own leave requests
+    if current_user.role in ['User', 'Employee'] and hasattr(current_user, 'employee_profile'):
+        # Employee/User: Only their own leave requests
         query = query.filter(
             Leave.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user,
-                                                    'employee_profile'):
+    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
         # Manager: Their own leave requests + their team's leave requests
         manager_id = current_user.employee_profile.id
         query = query.filter(
             db.or_(
-                Leave.employee_id ==
-                manager_id,  # Manager's own leave requests
+                Leave.employee_id == manager_id,  # Manager's own leave requests
                 Employee.manager_id == manager_id  # Team's leave requests
             ))
-    elif current_user.role == 'Admin' and hasattr(current_user,
-                                                  'employee_profile'):
-        # Admin: Their own leave requests + all employees' leave requests (they see everything anyway)
+    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile'):
+        # Admin: Only their own leave requests (as per attendance requirement)
+        admin_id = current_user.employee_profile.id
+        query = query.filter(Leave.employee_id == admin_id)
+    elif current_user.role == 'Super Admin':
+        # Super Admin: Can see all leave requests
         pass  # No filtering - they can see all
 
     leave_requests = query.order_by(Leave.created_at.desc()).paginate(
         page=page, per_page=20, error_out=False)
 
+    # Get employees for filter dropdown based on role
     employees = []
-    if current_user.role in ['Super Admin', 'Admin', 'Manager']:
+    if current_user.role == 'Super Admin':
+        # Super Admin can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
+    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        # Manager can filter by themselves and their team
+        manager_id = current_user.employee_profile.id
+        employees = Employee.query.filter(
+            db.or_(
+                Employee.id == manager_id,
+                Employee.manager_id == manager_id
+            )
+        ).filter_by(is_active=True).order_by(Employee.first_name).all()
 
     return render_template('leave/list.html',
                            leave_requests=leave_requests,
