@@ -10,11 +10,12 @@
     --light: #e8f4f8;        /* Very light blue-green */
     --bg-primary: #ffffff;   /* White background */
     --bg-secondary: #f8f9fa; /* Light gray background */
-    --filter-bg: #dff0d8;    /* Light green filter background */
+    --filter-bg: #c8e6c9;    /* Light green filter background - stronger */
     --text-primary: #333333; /* Dark text */
     --text-secondary: #666666; /* Gray text */
     --border: #ddd;          /* Light border */
     --table-border: #e0e0e0; /* Table border */
+    --filter-text: #2e7d32;  /* Filter section text color */
 }
 
 /* Global medium sizing for all elements */
@@ -155,20 +156,36 @@ h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
     border-color: var(--border);
 }
 
-/* Cards - medium spacing with custom colors */
+/* Cards - clean design matching reference */
 .card {
     background-color: var(--bg-primary);
     border: 1px solid var(--border);
     box-shadow: none;
+    margin-bottom: 0;
 }
 
 .card-header {
     font-size: 14px;
     font-weight: 600;
-    padding: 12px 15px;
+    padding: 10px 15px;
     background-color: var(--filter-bg);
     border-bottom: 1px solid var(--border);
     color: var(--text-primary);
+}
+
+/* Filter card specific styling */
+.filter-card {
+    border: none;
+    border-top: 3px solid var(--filter-bg);
+    background-color: var(--filter-bg);
+    margin-bottom: 20px;
+}
+
+.filter-card .card-body {
+    padding: 15px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-top: none;
 }
 
 .card-body {
@@ -185,36 +202,50 @@ h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
     font-size: 13px;
 }
 
-/* Tables - medium sizing with clean borders */
+/* Tables - clean design matching reference */
 .table {
     font-size: 13px;
     color: var(--text-primary);
     border-collapse: collapse;
-}
-
-.table th,
-.table td {
-    padding: 8px 12px;
-    font-size: 13px;
-    border: 1px solid var(--table-border);
-    border-left: none;
-    border-right: none;
+    margin-bottom: 0;
 }
 
 .table th {
+    padding: 12px 15px;
+    font-size: 13px;
     font-weight: 600;
     background-color: var(--filter-bg);
     color: var(--text-primary);
-    border-top: 1px solid var(--table-border);
+    border-top: none;
     border-bottom: 1px solid var(--table-border);
+    border-left: none;
+    border-right: none;
+    text-align: left;
 }
 
-.table tbody tr {
+.table td {
+    padding: 12px 15px;
+    font-size: 13px;
+    border-top: none;
     border-bottom: 1px solid var(--table-border);
+    border-left: none;
+    border-right: none;
+    vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
 }
 
 .table-hover tbody tr:hover {
-    background-color: var(--light);
+    background-color: #f8f9fa;
+}
+
+/* Table container styling */
+.table-container {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border);
+    overflow: hidden;
 }
 
 /* Alerts - medium sized alerts with custom colors */
