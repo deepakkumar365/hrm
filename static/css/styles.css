@@ -494,41 +494,35 @@ small,
         margin-left: 0.5em;
     }
     
-    /* Ensure dropdowns open in mobile - simpler approach */
-    .navbar-nav .dropdown-menu {
-        position: static !important;
-        display: none;
-        transform: none !important;
-    }
-    
-    .navbar-nav .dropdown.show .dropdown-menu {
-        display: block !important;
-    }
-    
-    /* Fix Bootstrap mobile dropdown behavior */
+    /* Mobile dropdown improvements */
     @media (max-width: 991.98px) {
         .navbar-nav .dropdown-menu {
-            border: 1px solid #dee2e6;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            background-color: #ffffff !important;
-            padding-left: 0;
-            margin-top: 0.5rem;
-            margin-left: 1rem;
-            border-radius: 0.375rem;
+            position: static !important;
+            float: none !important;
+            width: auto !important;
+            margin-top: 0 !important;
+            background-color: #f8f9fa !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 0.25rem 0 !important;
         }
         
         .navbar-nav .dropdown-item {
-            color: #212529 !important;
-            padding: 0.5rem 1rem !important;
-            display: block !important;
-            width: 100% !important;
-            text-decoration: none !important;
+            color: #495057 !important;
+            padding: 0.5rem 2rem !important;
+            font-size: 0.9rem !important;
         }
         
         .navbar-nav .dropdown-item:hover,
         .navbar-nav .dropdown-item:focus {
-            background-color: #f8f9fa !important;
+            background-color: #e9ecef !important;
             color: #AF3E3E !important;
+        }
+        
+        .navbar-nav .dropdown-toggle::after {
+            float: right !important;
+            margin-top: 0.5rem !important;
         }
     }
 }
