@@ -41,12 +41,12 @@ body {
     background: var(--github-bg-secondary);
     border-bottom: 1px solid var(--github-border);
     font-weight: 600;
-    font-size: 13px;
-    padding: 12px;
+    font-size: 12px;
+    padding: 8px 12px;
 }
 
 .card-body {
-    padding: 12px;
+    padding: 10px 12px;
 }
 
 /* Buttons - GitHub style */
@@ -169,13 +169,15 @@ body {
     background-color: var(--github-bg) !important;
     border-bottom: 1px solid var(--github-border);
     box-shadow: var(--github-shadow);
-    padding: 8px 0;
+    padding: 4px 0;
+    min-height: 40px;
 }
 
 .navbar-brand {
     font-weight: 600;
-    font-size: 16px;
+    font-size: 14px;
     color: var(--github-text) !important;
+    padding: 4px 0;
 }
 
 .navbar-brand:hover {
@@ -185,9 +187,9 @@ body {
 .nav-link {
     color: var(--github-text) !important;
     font-weight: 500;
-    font-size: 13px;
-    padding: 6px 12px;
-    border-radius: 6px;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
     transition: all 0.2s;
 }
 
@@ -202,8 +204,8 @@ body {
 
 .navbar-toggler {
     border: 1px solid var(--github-border);
-    padding: 4px 8px;
-    font-size: 12px;
+    padding: 2px 6px;
+    font-size: 10px;
 }
 
 .navbar-toggler:focus {
@@ -220,8 +222,8 @@ body {
 
 .dropdown-item {
     color: var(--github-text);
-    font-size: 12px;
-    padding: 6px 12px;
+    font-size: 11px;
+    padding: 4px 8px;
 }
 
 .dropdown-item:hover, .dropdown-item:focus {
@@ -416,11 +418,21 @@ small { font-size: 10px; }
 
 .card .card-body .row {
     margin: 0;
+    --bs-gutter-y: 8px;
 }
 
 .card .card-body .col-md-3,
 .card .card-body .col-md-4 {
-    padding: 4px 8px;
+    padding: 2px 6px;
+}
+
+/* Compact filter card */
+.card .card-body {
+    padding: 8px 12px;
+}
+
+.card .card-header {
+    padding: 6px 12px;
 }
 
 /* Override Bootstrap filter styling */
