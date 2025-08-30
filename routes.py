@@ -303,7 +303,8 @@ def employee_view(employee_id):
     return render_template('employees/view.html', 
                          employee=employee,
                          recent_payslips=recent_payslips,
-                         recent_attendance=recent_attendance)
+                         recent_attendance=recent_attendance,
+                         today=date.today())
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin'])
@@ -542,7 +543,7 @@ def attendance_mark():
             action = request.form.get('action')  # clock_in, clock_out, break_start, break_end
             current_time = datetime.now().time()
             
-            if not existing:
+            if not existing and action == 'clock_in':
                 # Create new attendance record
                 attendance = Attendance()
                 attendance.employee_id = employee_id
@@ -559,7 +560,7 @@ def attendance_mark():
                 
                 db.session.add(attendance)
                 flash('Clocked in successfully', 'success')
-            else:
+            elif existing:
                 # Update existing record
                 if action == 'clock_out':
                     existing.clock_out = current_time
