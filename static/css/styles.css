@@ -211,7 +211,7 @@ h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
 }
 
 .table th {
-    padding: 12px 15px;
+    padding: 8px 12px;
     font-size: 13px;
     font-weight: bold;
     background-color: var(--filter-bg);
@@ -221,7 +221,7 @@ h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
 }
 
 .table td {
-    padding: 12px 15px;
+    padding: 8px 12px;
     font-size: 13px;
     border-top: none;
     border-bottom: 1px solid var(--table-border);
