@@ -411,6 +411,11 @@ def employee_add():
     managers = Employee.query.filter_by(is_active=True).filter(
         Employee.position.ilike('%manager%')).all()
 
+    # Debug logging
+    print(f"Loading employee form - Roles: {len(roles)}, Departments: {len(departments)}")
+    for role in roles:
+        print(f"Role: {role.name}")
+
     return render_template('employees/form.html', 
                            managers=managers,
                            roles=roles,
