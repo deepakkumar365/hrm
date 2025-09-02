@@ -1,6 +1,6 @@
 from flask import session, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import current_user
-from sqlalchemy import func, extract, and_
+from sqlalchemy import func, extract, and_, text
 from datetime import datetime, date, time, timedelta
 import calendar
 
@@ -17,6 +17,17 @@ from utils import (export_to_csv, format_currency, format_date, parse_date,
 
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
+
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint for deployment monitoring"""
+    try:
+        # Simple database connectivity check
+        db.session.execute(text('SELECT 1'))
+        return {'status': 'healthy', 'database': 'connected'}, 200
+    except Exception as e:
+        return {'status': 'unhealthy', 'error': str(e)}, 503
 
 # Create default users and master data on first run
 def create_default_master_data():
