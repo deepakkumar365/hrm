@@ -1,0 +1,1447 @@
+[
+  {
+    "schema": "public",
+    "table": "hrm_flask_dance_oauth",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "VARCHAR",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "browser_session_key",
+        "type": "VARCHAR",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".flask_dance_oauth_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "provider",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "token",
+        "type": "JSON",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  {
+    "schema": "public",
+    "table": "hrm_employee",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".employee_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "employee_id",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "first_name",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "last_name",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "email",
+        "type": "VARCHAR(120)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "phone",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "nric",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "date_of_birth",
+        "type": "DATE",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "gender",
+        "type": "VARCHAR(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "nationality",
+        "type": "VARCHAR(50)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "address",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "postal_code",
+        "type": "VARCHAR(10)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "position",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "department",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "hire_date",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "employment_type",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "work_permit_type",
+        "type": "VARCHAR(30)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "work_permit_expiry",
+        "type": "DATE",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "basic_salary",
+        "type": "NUMERIC(10, 2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "allowances",
+        "type": "NUMERIC(10, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "hourly_rate",
+        "type": "NUMERIC(8, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "cpf_account",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "employee_cpf_rate",
+        "type": "NUMERIC(5, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "employer_cpf_rate",
+        "type": "NUMERIC(5, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "bank_name",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "bank_account",
+        "type": "VARCHAR(30)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "termination_date",
+        "type": "DATE",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "manager_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "working_hours_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "work_schedule_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constrained_columns": [
+          "manager_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_employee",
+        "referred_columns": [
+          "id"
+        ]
+      },
+      {
+        "constrained_columns": [
+          "work_schedule_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_work_schedules",
+        "referred_columns": [
+          "id"
+        ]
+      },
+      {
+        "constrained_columns": [
+          "working_hours_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_working_hours",
+        "referred_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "hrm_payroll",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".payroll_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "employee_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "pay_period_start",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "pay_period_end",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "basic_pay",
+        "type": "NUMERIC(10, 2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "overtime_pay",
+        "type": "NUMERIC(10, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "allowances",
+        "type": "NUMERIC(10, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "bonuses",
+        "type": "NUMERIC(10, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "gross_pay",
+        "type": "NUMERIC(10, 2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "employee_cpf",
+        "type": "NUMERIC(10, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "employer_cpf",
+        "type": "NUMERIC(10, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "income_tax",
+        "type": "NUMERIC(10, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "other_deductions",
+        "type": "NUMERIC(10, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "net_pay",
+        "type": "NUMERIC(10, 2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "days_worked",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "overtime_hours",
+        "type": "NUMERIC(5, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "leave_days",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "generated_by",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "generated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constrained_columns": [
+          "employee_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_employee",
+        "referred_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "hrm_attendance",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".attendance_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "employee_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "date",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "clock_in",
+        "type": "TIME",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "clock_out",
+        "type": "TIME",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "break_start",
+        "type": "TIME",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "break_end",
+        "type": "TIME",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "regular_hours",
+        "type": "NUMERIC(5, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "overtime_hours",
+        "type": "NUMERIC(5, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "total_hours",
+        "type": "NUMERIC(5, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "remarks",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "location_lat",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "location_lng",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constrained_columns": [
+          "employee_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_employee",
+        "referred_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "hrm_leave",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".leave_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "employee_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "leave_type",
+        "type": "VARCHAR(30)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "start_date",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "end_date",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "days_requested",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "reason",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "requested_by",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "approved_by",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "approved_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "rejection_reason",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constrained_columns": [
+          "employee_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_employee",
+        "referred_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "hrm_claim",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".claim_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "employee_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "claim_type",
+        "type": "VARCHAR(30)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "amount",
+        "type": "NUMERIC(10, 2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "claim_date",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "description",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "receipt_number",
+        "type": "VARCHAR(50)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "submitted_by",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "approved_by",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "approved_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "rejection_reason",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constrained_columns": [
+          "employee_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_employee",
+        "referred_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "hrm_compliance_report",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".compliance_report_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "report_type",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "period_month",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "period_year",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "file_path",
+        "type": "VARCHAR(255)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "file_name",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "total_employees",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "total_amount",
+        "type": "NUMERIC(12, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "generated_by",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "generated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "submitted_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  {
+    "schema": "public",
+    "table": "hrm_users",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".users_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "username",
+        "type": "VARCHAR(80)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "email",
+        "type": "VARCHAR(120)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "password_hash",
+        "type": "VARCHAR(256)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "first_name",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "last_name",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "role",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  {
+    "schema": "public",
+    "table": "hrm_appraisal",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".appraisal_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "employee_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "review_period_start",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "review_period_end",
+        "type": "DATE",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "performance_rating",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "goals_achievement",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "teamwork_rating",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "communication_rating",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "overall_rating",
+        "type": "NUMERIC(3, 2)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "self_review",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "manager_feedback",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "development_goals",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "training_recommendations",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "reviewed_by",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "completed_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constrained_columns": [
+          "employee_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_employee",
+        "referred_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "hrm_roles",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".roles_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "description",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  {
+    "schema": "public",
+    "table": "hrm_departments",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".departments_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "description",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "manager_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": [
+      {
+        "constrained_columns": [
+          "manager_id"
+        ],
+        "referred_schema": "public",
+        "referred_table": "hrm_employee",
+        "referred_columns": [
+          "id"
+        ]
+      }
+    ]
+  },
+  {
+    "schema": "public",
+    "table": "hrm_working_hours",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".working_hours_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "hours_per_day",
+        "type": "NUMERIC(4, 2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "hours_per_week",
+        "type": "NUMERIC(4, 2)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "description",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": []
+  },
+  {
+    "schema": "public",
+    "table": "hrm_work_schedules",
+    "primary_key": [
+      "id"
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": "nextval('\"public\".work_schedules_id_seq'::regclass)",
+        "primary_key": true
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "start_time",
+        "type": "TIME",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "end_time",
+        "type": "TIME",
+        "nullable": false,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "break_duration",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "description",
+        "type": "TEXT",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP",
+        "nullable": true,
+        "default": null,
+        "primary_key": false
+      }
+    ],
+    "foreign_keys": []
+  }
+]

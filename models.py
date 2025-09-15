@@ -6,7 +6,7 @@ from sqlalchemy import UniqueConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model, UserMixin):
-    __tablename__ = 'users'
+    __tablename__ = 'hrm_users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -28,6 +28,7 @@ class User(db.Model, UserMixin):
 # OAuth table removed - no longer using Replit Auth
 
 class Employee(db.Model):
+    __tablename__ = 'hrm_employee'
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.String(20), unique=True, nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
@@ -69,11 +70,11 @@ class Employee(db.Model):
     
     # Foreign key to User for system access
     user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
-    manager_id = db.Column(db.Integer, db.ForeignKey('employee.id'))
+    manager_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'))
     
     # Master data relationships
-    working_hours_id = db.Column(db.Integer, db.ForeignKey('working_hours.id'), nullable=True)
-    work_schedule_id = db.Column(db.Integer, db.ForeignKey('work_schedules.id'), nullable=True)
+    working_hours_id = db.Column(db.Integer, db.ForeignKey('hrm_working_hours.id'), nullable=True)
+    work_schedule_id = db.Column(db.Integer, db.ForeignKey('hrm_work_schedules.id'), nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -85,8 +86,9 @@ class Employee(db.Model):
     work_schedule = db.relationship('WorkSchedule', backref='employees')
 
 class Payroll(db.Model):
+    __tablename__ = 'hrm_payroll'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     pay_period_start = db.Column(db.Date, nullable=False)
     pay_period_end = db.Column(db.Date, nullable=False)
     
@@ -121,8 +123,9 @@ class Payroll(db.Model):
     generated_by_user = db.relationship('User')
 
 class Attendance(db.Model):
+    __tablename__ = 'hrm_attendance'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
     
     # Time tracking
@@ -153,8 +156,9 @@ class Attendance(db.Model):
     __table_args__ = (UniqueConstraint('employee_id', 'date'),)
 
 class Leave(db.Model):
+    __tablename__ = 'hrm_leave'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     leave_type = db.Column(db.String(30), nullable=False)  # Annual, Medical, Maternity, etc.
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
@@ -178,8 +182,9 @@ class Leave(db.Model):
     approved_by_user = db.relationship('User', foreign_keys=[approved_by])
 
 class Claim(db.Model):
+    __tablename__ = 'hrm_claim'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     claim_type = db.Column(db.String(30), nullable=False)  # Medical, Transport, etc.
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     claim_date = db.Column(db.Date, nullable=False)
@@ -203,8 +208,9 @@ class Claim(db.Model):
     approved_by_user = db.relationship('User', foreign_keys=[approved_by])
 
 class Appraisal(db.Model):
+    __tablename__ = 'hrm_appraisal'
     id = db.Column(db.Integer, primary_key=True)
-    employee_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=False)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     review_period_start = db.Column(db.Date, nullable=False)
     review_period_end = db.Column(db.Date, nullable=False)
     
@@ -236,6 +242,7 @@ class Appraisal(db.Model):
     reviewed_by_user = db.relationship('User')
 
 class ComplianceReport(db.Model):
+    __tablename__ = 'hrm_compliance_report'
     id = db.Column(db.Integer, primary_key=True)
     report_type = db.Column(db.String(20), nullable=False)  # CPF, AIS, OED, IRAS
     period_month = db.Column(db.Integer, nullable=False)
@@ -262,7 +269,7 @@ class ComplianceReport(db.Model):
 # Master Data Models
 class Role(db.Model):
     """Master data for employee roles/positions"""
-    __tablename__ = 'roles'
+    __tablename__ = 'hrm_roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.Text)
@@ -276,11 +283,11 @@ class Role(db.Model):
 
 class Department(db.Model):
     """Master data for departments"""
-    __tablename__ = 'departments'
+    __tablename__ = 'hrm_departments'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.Text)
-    manager_id = db.Column(db.Integer, db.ForeignKey('employee.id'), nullable=True)
+    manager_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -294,7 +301,7 @@ class Department(db.Model):
 
 class WorkingHours(db.Model):
     """Master data for working hours configuration"""
-    __tablename__ = 'working_hours'
+    __tablename__ = 'hrm_working_hours'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "Standard 9-6", "Shift A"
     hours_per_day = db.Column(db.Numeric(4, 2), nullable=False)  # e.g., 8.00, 8.50
@@ -310,7 +317,7 @@ class WorkingHours(db.Model):
 
 class WorkSchedule(db.Model):
     """Master data for work start/end times"""
-    __tablename__ = 'work_schedules'
+    __tablename__ = 'hrm_work_schedules'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "Standard Hours", "Early Shift"
     start_time = db.Column(db.Time, nullable=False)  # e.g., 09:00:00

@@ -1,0 +1,7 @@
+id,name,description,manager_id,is_active,created_at,updated_at
+1,Information Technology,Software development and IT services,,True,2025-08-30T16:42:25.072828,2025-08-30T16:42:25.072834
+2,Human Resources,Employee relations and HR operations,,True,2025-08-30T16:42:25.072835,2025-08-30T16:42:25.072836
+3,Sales & Marketing,Sales and marketing activities,,True,2025-08-30T16:42:25.072837,2025-08-30T16:42:25.072837
+4,Finance & Accounting,Financial planning and accounting,,True,2025-08-30T16:42:25.072838,2025-08-30T16:42:25.072839
+5,Operations,Business operations and logistics,,True,2025-08-30T16:42:25.072840,2025-08-30T16:42:25.072842
+6,Administration,General administration and support,,True,2025-08-30T16:42:25.072843,2025-08-30T16:42:25.072844

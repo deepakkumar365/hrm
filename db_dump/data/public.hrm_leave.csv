@@ -1,0 +1,6 @@
+id,employee_id,leave_type,start_date,end_date,days_requested,reason,status,requested_by,approved_by,approved_at,rejection_reason,created_at,updated_at
+2,3,Medical Leave,2025-09-03,2025-09-03,1,Head Pain,Pending,7,,,,2025-08-30T14:38:21.031268,2025-08-30T14:38:21.031273
+3,2,Compassionate Leave,2025-09-06,2025-09-07,2,,Pending,6,,,,2025-08-30T14:39:47.946276,2025-08-30T14:39:47.946281
+1,4,Medical Leave,2025-09-01,2025-09-01,1,Hospitalized Updated,Approved,8,7,2025-08-30T16:02:45.894743,,2025-08-30T13:54:48.657810,2025-08-30T16:02:45.896016
+4,4,Emergency Leave,2025-09-02,2025-09-02,1,,Approved,8,7,2025-08-30T16:03:06.697877,,2025-08-30T14:44:48.816500,2025-08-30T16:03:06.698506
+5,4,Medical Leave,2025-09-09,2025-09-10,2,,Pending,8,,,,2025-09-04T14:56:27.568465,2025-09-04T14:56:27.568470

@@ -5,6 +5,15 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
 from sqlalchemy.orm import DeclarativeBase
 
+# Load .env if available to populate env vars early
+try:
+    from pathlib import Path
+    from dotenv import load_dotenv
+    load_dotenv(dotenv_path=Path(__file__).with_name(".env"))
+except Exception:
+    # If python-dotenv is not installed, ignore; env must be set by shell
+    pass
+
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
@@ -18,6 +27,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for 
 
 # Database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+if not app.config["SQLALCHEMY_DATABASE_URI"]:
+    raise RuntimeError("DATABASE_URL is not set. Define it in .env or your environment before starting the app.")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'pool_pre_ping': True,

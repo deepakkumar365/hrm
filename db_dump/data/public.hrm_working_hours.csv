@@ -1,0 +1,5 @@
+id,name,hours_per_day,hours_per_week,description,is_active,created_at,updated_at
+1,Full-time Standard,8.00,40.00,Standard full-time working hours,True,2025-08-30T16:42:25.137827,2025-08-30T16:42:25.137833
+2,Part-time (Half Day),4.00,20.00,Half day part-time schedule,True,2025-08-30T16:42:25.137835,2025-08-30T16:42:25.137835
+3,Extended Hours,9.00,45.00,Extended working hours with overtime,True,2025-08-30T16:42:25.137836,2025-08-30T16:42:25.137837
+4,Flexible Hours,8.00,40.00,Flexible working arrangement,True,2025-08-30T16:42:25.137838,2025-08-30T16:42:25.137838

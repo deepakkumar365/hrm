@@ -1,0 +1,5 @@
+id,name,start_time,end_time,break_duration,description,is_active,created_at,updated_at
+1,Standard Hours,09:00:00,18:00:00,60,Standard 9-to-6 schedule,True,2025-08-30T16:42:25.195450,2025-08-30T16:42:25.195455
+2,Early Shift,07:00:00,16:00:00,60,Early morning shift,True,2025-08-30T16:42:25.195456,2025-08-30T16:42:25.195457
+3,Late Shift,14:00:00,23:00:00,60,Afternoon to evening shift,True,2025-08-30T16:42:25.195457,2025-08-30T16:42:25.195458
+4,Flexible Hours,08:00:00,17:00:00,60,Flexible timing schedule,True,2025-08-30T16:42:25.195459,2025-08-30T16:42:25.195459

@@ -1,0 +1,2 @@
+id,employee_id,claim_type,amount,claim_date,description,receipt_number,status,submitted_by,approved_by,approved_at,rejection_reason,created_at,updated_at
+1,4,Medical,10.00,2025-08-30,Medical,,Pending,8,,,,2025-08-30T14:00:26.589317,2025-08-30T14:00:26.589323

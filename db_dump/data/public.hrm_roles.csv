@@ -1,0 +1,9 @@
+id,name,description,is_active,created_at,updated_at
+1,Software Engineer,Develops and maintains software applications,True,2025-08-30T16:42:25.004228,2025-08-30T16:42:25.004236
+2,Senior Developer,Senior software development role with leadership responsibilities,True,2025-08-30T16:42:25.004237,2025-08-30T16:42:25.004238
+3,Team Lead,Leads development teams and manages projects,True,2025-08-30T16:42:25.004241,2025-08-30T16:42:25.004241
+4,HR Manager,Manages human resources operations,True,2025-08-30T16:42:25.004243,2025-08-30T16:42:25.004243
+5,Sales Executive,Responsible for sales activities and client relationships,True,2025-08-30T16:42:25.004244,2025-08-30T16:42:25.004244
+6,Marketing Specialist,Handles marketing campaigns and brand management,True,2025-08-30T16:42:25.004245,2025-08-30T16:42:25.004245
+7,Accountant,Manages financial records and accounting operations,True,2025-08-30T16:42:25.004246,2025-08-30T16:42:25.004246
+8,Operations Manager,Oversees daily business operations,True,2025-08-30T16:42:25.004246,2025-08-30T16:42:25.004247
