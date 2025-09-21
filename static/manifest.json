@@ -13,14 +13,14 @@
     "categories": ["business", "productivity", "finance"],
     "screenshots": [
         {
-            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='390' height='844' viewBox='0 0 390 844'%3e%3crect width='390' height='844' fill='%23212529'/%3e%3ctext x='195' y='422' fill='%23ffffff' text-anchor='middle' font-size='24' font-family='Arial'%3eTalaTalent Dashboard%3c/text%3e%3c/svg%3e",
+            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='390' height='844' viewBox='0 0 390 844'%3e%3crect width='390' height='844' fill='%23212529'/%3e%3ctext x='195' y='422' fill='%23ffffff' text-anchor='middle' font-size='24' font-family='Georgia'%3eTalaTalent Dashboard%3c/text%3e%3c/svg%3e",
             "sizes": "390x844",
             "type": "image/svg+xml",
             "form_factor": "narrow",
             "label": "Dashboard view on mobile device"
         },
         {
-            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='720' viewBox='0 0 1280 720'%3e%3crect width='1280' height='720' fill='%23212529'/%3e%3ctext x='640' y='360' fill='%23ffffff' text-anchor='middle' font-size='32' font-family='Arial'%3eTalaTalent Dashboard%3c/text%3e%3c/svg%3e",
+            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='720' viewBox='0 0 1280 720'%3e%3crect width='1280' height='720' fill='%23212529'/%3e%3ctext x='640' y='360' fill='%23ffffff' text-anchor='middle' font-size='32' font-family='Georgia'%3eTalaTalent Dashboard%3c/text%3e%3c/svg%3e",
             "sizes": "1280x720",
             "type": "image/svg+xml",
             "form_factor": "wide",

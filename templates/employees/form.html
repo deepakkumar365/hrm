@@ -17,13 +17,13 @@
                     <p class="text-muted mb-0">Employee ID: {{ employee.employee_id }}</p>
                     {% endif %}
                 </div>
-                <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary">
+                <a href="{{ url_for('employee_list') }}" class="btn btn-primary">
                     <i class="fas fa-arrow-left me-1"></i>Back to List
                 </a>
             </div>
 
             <!-- Form -->
-            <form method="POST" class="needs-validation" novalidate>
+            <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">
@@ -59,13 +59,16 @@
                                 <label for="nric" class="form-label">NRIC/Passport *</label>
                                 <input type="text" class="form-control" id="nric" name="nric" 
                                        value="{{ form_data.get('nric') if form_data else (employee.nric if employee else '') }}" 
+                                       placeholder="e.g., S1234567D or E12345678"
                                        {% if employee %}readonly{% else %}required{% endif %}>
-                                <div class="invalid-feedback">Please provide a valid NRIC/Passport.</div>
+                                <div class="invalid-feedback">Please provide a valid NRIC/Passport. Sample: NRIC S1234567D; Passport E12345678.</div>
+                                <small class="form-text text-muted">Sample formats: NRIC S1234567D; Passport E12345678.</small>
                             </div>
                             <div class="col-md-6">
                                 <label for="date_of_birth" class="form-label">Date of Birth</label>
                                 <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" 
-                                       value="{{ form_data.get('date_of_birth') if form_data else (employee.date_of_birth.strftime('%Y-%m-%d') if employee and employee.date_of_birth else '') }}">
+                                       value="{{ form_data.get('date_of_birth') if form_data else (employee.date_of_birth.strftime('%Y-%m-%d') if employee and employee.date_of_birth else '') }}"
+                                       placeholder="Select from calendar" inputmode="none">
                             </div>
                             <div class="col-md-6">
                                 <label for="gender" class="form-label">Gender</label>
@@ -96,6 +99,18 @@
                                 <label for="postal_code" class="form-label">Postal Code</label>
                                 <input type="text" class="form-control" id="postal_code" name="postal_code" 
                                        value="{{ form_data.get('postal_code') if form_data else (employee.postal_code if employee else '') }}">
+                            </div>
+
+                            <!-- Profile Image Upload -->
+                            <div class="col-12">
+                                <label for="profile_image" class="form-label">Profile Image {% if not employee %}*{% endif %}</label>
+                                <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*" {% if not employee %}required{% endif %}>
+                                <small class="form-text text-muted">Allowed types: png, jpg, jpeg, gif, webp. Max size: 2MB (configurable).</small>
+                                {% if employee and employee.profile_image_path %}
+                                <div class="mt-2">
+                                    <img src="{{ url_for('static', filename=employee.profile_image_path) }}" alt="Current profile image" class="img-thumbnail" style="max-height: 120px;">
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -209,7 +224,7 @@
                 <div class="card mt-4">
                     <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-dollar-sign me-2"></i>Salary & Benefits
+                            <i class="fas fa-dollar-sign me-2"></i>Payroll Configuration
                         </h5>
                     </div>
                     <div class="card-body">
@@ -248,7 +263,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="bank_name" class="form-label">Bank Name</label>
                                 <select class="form-select" id="bank_name" name="bank_name">
                                     <option value="">Select Bank</option>
@@ -262,10 +277,32 @@
                                     <option value="Other" {% if employee and employee.bank_name == 'Other' %}selected{% endif %}>Other</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label for="bank_account" class="form-label">Bank Account Number</label>
                                 <input type="text" class="form-control" id="bank_account" name="bank_account" 
-                                       value="{{ employee.bank_account if employee else '' }}">
+                                       inputmode="numeric" pattern="^\d{6,20}$" title="6–20 digits only"
+                                       oninput="this.value=this.value.replace(/[^0-9]/g,'');"
+                                       value="{{ form_data.get('bank_account') if form_data else (employee.bank_account if employee else '') }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="account_holder_name" class="form-label">Account Holder Name *</label>
+                                <input type="text" class="form-control" id="account_holder_name" name="account_holder_name"
+                                       value="{{ form_data.get('account_holder_name') if form_data else (employee.account_holder_name if employee and employee.account_holder_name else '') }}" required>
+                                <div class="invalid-feedback">Please provide the account holder's name.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="swift_code" class="form-label">SWIFT Code</label>
+                                <input type="text" class="form-control" id="swift_code" name="swift_code"
+                                       value="{{ form_data.get('swift_code') if form_data else (employee.swift_code if employee and employee.swift_code else '') }}"
+                                       placeholder="e.g., DBSSSGSG or HDFCINBBXXX" pattern="^[A-Za-z0-9]{8}(?:[A-Za-z0-9]{3})?$">
+                                <small class="form-text text-muted">8 or 11 characters, letters and numbers only.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="ifsc_code" class="form-label">IFSC Code</label>
+                                <input type="text" class="form-control" id="ifsc_code" name="ifsc_code"
+                                       value="{{ form_data.get('ifsc_code') if form_data else (employee.ifsc_code if employee and employee.ifsc_code else '') }}"
+                                       placeholder="e.g., HDFC0001234" pattern="^[A-Za-z]{4}0[A-Za-z0-9]{6}$">
+                                <small class="form-text text-muted">Format: 4 letters + 0 + 6 alphanumeric (India).</small>
                             </div>
                         </div>
                     </div>
@@ -275,7 +312,7 @@
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="d-flex gap-2 justify-content-end">
-                            <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('employee_list') }}" class="btn btn-primary">
                                 <i class="fas fa-times me-1"></i>Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">
@@ -332,5 +369,84 @@ document.getElementById('work_permit_type').addEventListener('change', function(
         expiryField.disabled = false;
     }
 });
+</script>
+<script>
+// NRIC/Passport blur validation with sample messages
+(function() {
+  const nricInput = document.getElementById('nric');
+  if (!nricInput) return;
+  if (nricInput.hasAttribute('readonly')) return;
+  const invalidFeedback = nricInput.parentElement.querySelector('.invalid-feedback');
+  const sample = 'Sample: NRIC S1234567D; Passport E12345678.';
+  function isValid(value) {
+    const v = value.trim().toUpperCase();
+    const nric = /^[STFG]\d{7}[A-Z]$/.test(v);
+    const passport = /^[A-Z]\d{8}$/.test(v);
+    return nric || passport;
+  }
+  function setInvalid(msg) {
+    if (invalidFeedback) invalidFeedback.textContent = msg;
+    nricInput.classList.add('is-invalid');
+    nricInput.classList.remove('is-valid');
+  }
+  function setValid() {
+    nricInput.classList.remove('is-invalid');
+    nricInput.classList.add('is-valid');
+  }
+  nricInput.addEventListener('blur', function() {
+    const val = this.value.trim();
+    if (!val) {
+      setInvalid('NRIC/Passport is required. ' + sample);
+      return;
+    }
+    if (!isValid(val)) {
+      setInvalid('Invalid NRIC/Passport format. ' + sample);
+      return;
+    }
+    setValid();
+  });
+  nricInput.addEventListener('input', function() {
+    const val = this.value.trim();
+    if (isValid(val)) setValid();
+  });
+})();
+</script>
+<script>
+// Date of Birth UX & restrictions
+(function() {
+  const dob = document.getElementById('date_of_birth');
+  if (!dob) return;
+
+  // Set allowed date range: 1900-01-01 to today
+  const today = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  dob.setAttribute('min', '1900-01-01');
+  dob.setAttribute('max', todayStr);
+
+  // Helper to clamp value within min/max
+  function clampDate() {
+    if (!dob.value) return;
+    const min = dob.getAttribute('min');
+    const max = dob.getAttribute('max');
+    if (min && dob.value < min) dob.value = min;
+    if (max && dob.value > max) dob.value = max;
+  }
+
+  // Open calendar when focusing/clicking the field
+  const openPicker = () => { if (typeof dob.showPicker === 'function') try { dob.showPicker(); } catch(_) {} };
+  dob.addEventListener('focus', openPicker);
+  dob.addEventListener('click', openPicker);
+
+  // Prevent manual typing (allow navigation/edit keys)
+  dob.addEventListener('keydown', (e) => {
+    const allowed = ['Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Backspace','Delete','Home','End'];
+    if (!allowed.includes(e.key)) e.preventDefault();
+  });
+
+  // Enforce range on change/blur
+  dob.addEventListener('change', clampDate);
+  dob.addEventListener('blur', clampDate);
+})();
 </script>
 {% endblock %}

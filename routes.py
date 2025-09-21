@@ -3,6 +3,9 @@ from flask_login import current_user
 from sqlalchemy import func, extract, and_, text
 from datetime import datetime, date, time, timedelta
 import calendar
+import os
+import time as pytime
+from werkzeug.utils import secure_filename
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
@@ -14,6 +17,13 @@ from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, check_permission,
                    mobile_optimized_pagination, get_current_month_dates)
+
+# Helper to validate image extension
+def _allowed_image(filename: str) -> bool:
+    if not filename or '.' not in filename:
+        return False
+    ext = filename.rsplit('.', 1)[1].lower()
+    return ext in app.config.get('ALLOWED_IMAGE_EXTENSIONS', set())
 
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
@@ -376,6 +386,9 @@ def employee_add():
             employee.cpf_account = request.form.get('cpf_account')
             employee.bank_name = request.form.get('bank_name')
             employee.bank_account = request.form.get('bank_account')
+            employee.account_holder_name = request.form.get('account_holder_name')
+            employee.swift_code = request.form.get('swift_code')
+            employee.ifsc_code = request.form.get('ifsc_code')
 
             # Handle master data relationships
             working_hours_id = request.form.get('working_hours_id')
@@ -389,6 +402,45 @@ def employee_add():
             manager_id = request.form.get('manager_id')
             if manager_id:
                 employee.manager_id = int(manager_id)
+
+            # Handle profile image upload (required on add)
+            file = request.files.get('profile_image')
+            if not file or not file.filename.strip():
+                flash('Profile image is required.', 'error')
+                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                return render_template('employees/form.html', 
+                                       form_data=request.form,
+                                       roles=roles,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers)
+            if not _allowed_image(file.filename):
+                flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
+                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                return render_template('employees/form.html', 
+                                       form_data=request.form,
+                                       roles=roles,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers)
+
+            # Save image with unique name based on employee_id and timestamp
+            original = secure_filename(file.filename)
+            ext = original.rsplit('.', 1)[1].lower()
+            unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
+            save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+            file.save(save_path)
+            employee.profile_image_path = f"uploads/employees/{unique_name}"
 
             db.session.add(employee)
             db.session.commit()
@@ -533,6 +585,53 @@ def profile():
                            today=date.today())
 
 
+@app.route('/profile/photo', methods=['POST'])
+@require_login
+def profile_photo_upload():
+    """Upload/replace current user's profile photo from the profile page"""
+    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+        flash('Profile not found. Please contact your administrator.', 'error')
+        return redirect(url_for('dashboard'))
+
+    employee = current_user.employee_profile
+
+    file = request.files.get('profile_image')
+    if not file or not file.filename.strip():
+        flash('Please choose an image to upload.', 'error')
+        return redirect(url_for('profile'))
+
+    if not _allowed_image(file.filename):
+        exts = ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', [])))
+        flash(f'Invalid image type. Allowed: {exts}', 'error')
+        return redirect(url_for('profile'))
+
+    try:
+        original = secure_filename(file.filename)
+        ext = original.rsplit('.', 1)[1].lower()
+        unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
+        save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+        file.save(save_path)
+
+        # Remove old file if exists
+        try:
+            if employee.profile_image_path:
+                old_abs = os.path.join(app.root_path, 'static', employee.profile_image_path)
+                if os.path.isfile(old_abs):
+                    os.remove(old_abs)
+        except Exception:
+            pass
+
+        employee.profile_image_path = f"uploads/employees/{unique_name}"
+        db.session.add(employee)
+        db.session.commit()
+        flash('Profile photo updated successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Failed to upload photo: {str(e)}', 'error')
+
+    return redirect(url_for('profile'))
+
+
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin'])
 def employee_edit(employee_id):
@@ -580,6 +679,59 @@ def employee_edit(employee_id):
             employee.cpf_account = request.form.get('cpf_account')
             employee.bank_name = request.form.get('bank_name')
             employee.bank_account = request.form.get('bank_account')
+            employee.account_holder_name = request.form.get('account_holder_name')
+            employee.swift_code = request.form.get('swift_code')
+            employee.ifsc_code = request.form.get('ifsc_code')
+
+            # Validate mandatory banking field
+            if not (employee.account_holder_name and employee.account_holder_name.strip()):
+                flash('Account Holder Name is required', 'error')
+                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                return render_template('employees/form.html', 
+                                       form_data=request.form,
+                                       roles=roles,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers)
+
+            # Optional profile image replace on edit
+            file = request.files.get('profile_image')
+            if file and file.filename.strip():
+                if not _allowed_image(file.filename):
+                    flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
+                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                    managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                    return render_template('employees/form.html', 
+                                           employee=employee,
+                                           form_data=request.form,
+                                           roles=roles,
+                                           departments=departments,
+                                           working_hours=working_hours,
+                                           work_schedules=work_schedules,
+                                           managers=managers)
+                # Save new image
+                original = secure_filename(file.filename)
+                ext = original.rsplit('.', 1)[1].lower()
+                unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                file.save(save_path)
+                # Optionally remove old file
+                try:
+                    if employee.profile_image_path:
+                        old_abs = os.path.join(app.root_path, 'static', employee.profile_image_path)
+                        if os.path.isfile(old_abs):
+                            os.remove(old_abs)
+                except Exception:
+                    pass
+                employee.profile_image_path = f"uploads/employees/{unique_name}"
 
             # Handle master data relationships  
             working_hours_id = request.form.get('working_hours_id')
@@ -758,6 +910,13 @@ def payroll_generate():
         Employee.first_name).all()
 
     return render_template('payroll/form.html', employees=employees)
+
+
+@app.route('/payroll/config')
+@require_role(['Super Admin', 'Admin', 'Manager'])
+def payroll_config():
+    """Payroll configuration page"""
+    return render_template('payroll/config.html')
 
 
 @app.route('/payroll/<int:payroll_id>/payslip')

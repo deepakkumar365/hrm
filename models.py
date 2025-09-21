@@ -41,6 +41,7 @@ class Employee(db.Model):
     nationality = db.Column(db.String(50))
     address = db.Column(db.Text)
     postal_code = db.Column(db.String(10))
+    profile_image_path = db.Column(db.String(255))  # Relative path under static/
     
     # Employment details
     position = db.Column(db.String(100), nullable=False)
@@ -63,6 +64,9 @@ class Employee(db.Model):
     # Bank details
     bank_name = db.Column(db.String(100))
     bank_account = db.Column(db.String(30))
+    account_holder_name = db.Column(db.String(100))
+    swift_code = db.Column(db.String(11))  # 8 or 11 characters
+    ifsc_code = db.Column(db.String(11))   # 11 characters
     
     # Status
     is_active = db.Column(db.Boolean, default=True)
