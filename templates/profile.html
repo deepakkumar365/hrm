@@ -150,9 +150,40 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-md-3 text-center">
-                <div class="profile-avatar mx-auto">
-                    <i class="fas fa-user"></i>
-                </div>
+                <form id="profileImageForm" action="{{ url_for('profile_photo_upload') }}" method="post" enctype="multipart/form-data" class="d-inline-block">
+                    <div class="profile-avatar mx-auto p-0 position-relative" style="overflow:hidden;">
+                        <img id="profileImagePreview" src="{{ url_for('static', filename=employee.profile_image_path) if employee.profile_image_path else 'data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 100 100&quot;><circle cx=&quot;50&quot; cy=&quot;50&quot; r=&quot;40&quot; fill=&quot;%23007bff&quot;/><text x=&quot;50&quot; y=&quot;60&quot; text-anchor=&quot;middle&quot; fill=&quot;white&quot; font-size=&quot;40&quot;>👤</text></svg>' }}" alt="Profile" width="120" height="120" style="object-fit: cover; border-radius: 50%;">
+                        <label class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                            <i class="fas fa-camera"></i>
+                            <input id="profileImageInput" type="file" name="profile_image" accept="image/*" class="d-none">
+                        </label>
+                    </div>
+                </form>
+                <script>
+                // Client-side preview and 1 MB size check
+                document.addEventListener('DOMContentLoaded', function() {
+                  const form = document.getElementById('profileImageForm');
+                  const input = document.getElementById('profileImageInput');
+                  const img = document.getElementById('profileImagePreview');
+                  const MAX_BYTES = 1024 * 1024; // 1 MB
+                  if (!form || !input || !img) return;
+                  input.addEventListener('change', function() {
+                    const file = this.files && this.files[0];
+                    if (!file) return;
+                    if (file.size > MAX_BYTES) {
+                      alert('Image too large. Maximum size is 1 MB.');
+                      this.value = '';
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                      img.src = e.target.result; // Show preview
+                      form.submit(); // Auto-submit after preview
+                    };
+                    reader.readAsDataURL(file);
+                  });
+                });
+                </script>
             </div>
             <div class="col-md-6">
                 <div class="mt-3 mt-md-0">

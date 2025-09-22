@@ -1,9 +1,14 @@
 /* TalaTalent - Light Theme with Custom Colors */
 
+/* Universal Font Family - Georgia */
+* {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
 /* Color Variables - Warm Light Red/Pink Theme */
 :root {
     --primary: #AF3E3E;      /* Deep red primary */
-    --secondary: #CD5656;    /* Medium red accent */
+    --secondary: #FFFFFF;    /* Medium red accent */
     --success: #5cb85c;      /* Success green */
     --info: #5bc0de;         /* Info blue */
     --warning: #f0ad4e;      /* Warning orange */
@@ -20,19 +25,20 @@
 
 /* Global medium sizing for all elements */
 body {
+    font-family: Georgia, 'Times New Roman', Times, serif;
     font-size: 14px;
     line-height: 1.4;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
 }
 
-/* Typography - medium sizing */
-h1 { font-size: 24px; font-weight: 600; color: var(--primary); }
-h2 { font-size: 20px; font-weight: 600; color: var(--primary); }
-h3 { font-size: 18px; font-weight: 600; color: var(--primary); }
-h4 { font-size: 16px; font-weight: 600; color: var(--secondary); }
-h5 { font-size: 14px; font-weight: 600; color: var(--secondary); }
-h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
+/* Typography - medium sizing with consistent red background and white text */
+h1 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 24px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
+h2 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 20px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
+h3 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 18px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
+h4 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 16px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
+h5 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 14px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
+h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
 
 /* Remove all rounded borders and ensure 1px borders */
 * {
@@ -165,16 +171,16 @@ h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
     font-size: 14px;
     font-weight: 600;
     padding: 8px 12px;
-    color: #AF3E3E !important;
-    background-color: var(--filter-bg);
+    color: white !important;
+    background-color: var(--primary);
     border-bottom: 1px solid var(--border);
 }
 
 /* Filter card specific styling */
 .filter-card {
     border: none;
-    border-top: 3px solid var(--filter-bg);
-    background-color: var(--filter-bg);
+    border-top: 3px solid var(--primary);
+    background-color: var(--primary);
     margin-bottom: 12px;
 }
 
@@ -210,8 +216,8 @@ h6 { font-size: 13px; font-weight: 600; color: var(--secondary); }
     padding: 8px 12px;
     font-size: 13px;
     font-weight: bold;
-    background-color: var(--filter-bg);
-    color: var(--text-primary);
+    background-color: var(--primary);
+    color: white;
     text-align: left;
 }
 
@@ -381,13 +387,13 @@ small,
 }
 
 .modal-header {
-    background-color: var(--light);
+    background-color: var(--primary);
     border-bottom: 1px solid var(--border);
 }
 
 .modal-title {
     font-size: 14px;
-    color: var(--primary);
+    color: white;
 }
 
 .modal-body {
