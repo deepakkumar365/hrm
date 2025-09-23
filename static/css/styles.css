@@ -5,27 +5,27 @@
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-/* Color Variables - Warm Light Red/Pink Theme */
+/* Color Variables - Green Theme */
 :root {
-    --primary: #AF3E3E;      /* Deep red primary */
-    --secondary: #FFFFFF;    /* Medium red accent */
-    --success: #5cb85c;      /* Success green */
+    --primary: #2C6705;      /* Primary green (dark) */
+    --secondary: #6E9A42;    /* Secondary green */
+    --success: #377C07;      /* Success aligned to brand */
     --info: #5bc0de;         /* Info blue */
     --warning: #f0ad4e;      /* Warning orange */
-    --light: #EAEBD0;        /* Light cream background */
+    --light: #E2DBAC;        /* Light cream background */
     --bg-primary: #ffffff;   /* White background */
-    --bg-secondary: #EAEBD0; /* Light cream background */
-    --filter-bg: #DA6C6C;    /* Light red filter background */
+    --bg-secondary: #E2DBAC; /* Light cream background */
+    --filter-bg: #AEC957;    /* Filter highlight */
     --text-primary: #333333; /* Dark text */
     --text-secondary: #666666; /* Gray text */
     --border: #ddd;          /* Light border */
     --table-border: #e0e0e0; /* Table border */
-    --filter-text: #AF3E3E;  /* Filter section text color */
+    --filter-text: #377C07;  /* Filter section text color */
 }
 
 /* Base styles */
 :root {
-    --primary: #AF3E3E;
+    --primary: #2C6705;
     --navbar-height: 56px;
 }
 
@@ -129,14 +129,15 @@ h6 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13p
     border-color: var(--secondary);
 }
 
-/* Fix for primary button hover/focus: background stays red, text stays white */
+/* Fix for primary button hover/focus: background stays green, text stays white */
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active {
     background-color: var(--primary) !important;
     color: #fff !important;
     border-color: var(--primary) !important;
-    box-shadow: 0 2px 8px rgba(175,62,62,0.08);
+    /* greenish subtle glow based on primary */
+    box-shadow: 0 2px 8px rgba(44,103,5,0.12);
 }
 
 .btn-success {
@@ -977,10 +978,10 @@ code {
             border: none !important;
         }
         
-        .navbar-collapse .navbar-nav .dropdown-item:hover,
+            .navbar-collapse .navbar-nav .dropdown-item:hover,
         .navbar-collapse .navbar-nav .dropdown-item:focus {
             background-color: #e9ecef !important;
-            color: #AF3E3E !important;
+            color: var(--primary) !important;
         }
         
         .navbar-collapse .navbar-nav .dropdown-toggle::after {
