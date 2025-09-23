@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Employees - TalaTalent{% endblock %}
+{% block title %}Employee List - TalaTalent{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container-fluid">
     <!-- Header with search and actions -->
-    <div class="row mb-4">
+    <div class="row mb-1">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
-                    <h3>
-                        <i class="fas fa-users me-2"></i>Employees
-                    </h3>
-                    <p class="text-muted mb-0">{{ employees.total }} active employees</p>
+                    <!-- Breadcrumb navigation -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item">Employees</li>
+                            <li class="breadcrumb-item active" aria-current="page">Employee List</li>
+                        </ol>
+                    </nav>
                 </div>
                 {% if current_user.role == 'Admin' %}
                 <div class="btn-group">
@@ -25,11 +28,16 @@
                 </div>
                 {% endif %}
             </div>
-            
-            <!-- Search and filters -->
-            <form method="GET" class="card">
+
+            <hr class="mt-0 mb-3">
+
+            <!-- Filters -->
+            <form method="GET" class="filter-card">
+                <div class="card-header">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </div>
                 <div class="card-body">
-                    <div class="row g-3">
+                    <div class="row g-2">
                         <div class="col-md-6">
                             <input type="text" name="search" class="form-control" 
                                    placeholder="Search employees..." value="{{ search }}">
@@ -59,7 +67,7 @@
     <div class="d-md-none">
         <!-- Mobile cards -->
         {% for employee in employees.items %}
-        <div class="card mb-3">
+        <div class="card mb-2">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
@@ -72,9 +80,9 @@
                         <p class="text-muted small mb-1">{{ employee.employee_id }}</p>
                         <p class="mb-1">{{ employee.position }}</p>
                         {% if employee.department %}
-                        <span class="badge bg-secondary">{{ employee.department }}</span>
+                        <span class="text-muted">{{ employee.department }}</span>
                         {% endif %}
-                        <span class="badge bg-info">{{ employee.employment_type }}</span>
+                        <span class="text-muted">{{ employee.employment_type }}</span>
                     </div>
                     <div class="text-end">
                         <div class="dropdown">
@@ -135,14 +143,14 @@
                             <td>{{ employee.position }}</td>
                             <td>
                                 {% if employee.department %}
-                                <span class="badge bg-secondary">{{ employee.department }}</span>
+                                {{ employee.department }}
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                             <td>{{ employee.email }}</td>
                             <td>
-                                <span class="badge bg-info">{{ employee.employment_type }}</span>
+                                {{ employee.employment_type }}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
@@ -181,7 +189,7 @@
 
     <!-- Pagination -->
     {% if employees.pages > 1 %}
-    <nav aria-label="Employee pagination" class="mt-4">
+    <nav aria-label="Employee pagination" class="mt-1">
         <ul class="pagination justify-content-center">
             {% if employees.has_prev %}
             <li class="page-item">

@@ -3,16 +3,19 @@
 {% block title %}Payroll Management - TalaTalent{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="row mb-4">
+<div class="container-fluid employee-list-container">
+    <!-- Header with search and actions -->
+    <div class="row mb-1">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
-                    <h3>
-                        <i class="fas fa-dollar-sign me-2"></i>Payroll Management
-                    </h3>
-                    <p class="text-muted mb-0">{{ payrolls.total }} payroll records</p>
+                    <!-- Breadcrumb navigation -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Payroll</li>
+                        </ol>
+                    </nav>
                 </div>
                 {% if current_user.role == 'Admin' %}
                 <div class="btn-group">
@@ -20,7 +23,7 @@
                         <i class="fas fa-plus me-1"></i>Generate Payroll
                     </a>
                     <div class="btn-group">
-                        <button type="button" class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fas fa-file-export me-1"></i>Export
                         </button>
                         <ul class="dropdown-menu">
@@ -36,10 +39,15 @@
                 {% endif %}
             </div>
             
+            <hr class="mt-0 mb-3">
+
             <!-- Filters -->
-            <form method="GET" class="card">
+            <form method="GET" class="filter-card">
+                <div class="card-header">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </div>
                 <div class="card-body">
-                    <div class="row g-3">
+                    <div class="row g-2">
                         <div class="col-md-3">
                             <select name="month" class="form-select">
                                 <option value="">All Months</option>
@@ -53,20 +61,27 @@
                         <div class="col-md-3">
                             <select name="year" class="form-select">
                                 <option value="">All Years</option>
-                                {% for y in range(2020, 2030) %}
+                                {% for y in years %}
                                 <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <button type="submit" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-filter me-1"></i>Filter
-                            </button>
+                        {% if current_user.role == 'Admin' %}
+                        <div class="col-md-4">
+                            <select name="employee" class="form-select">
+                                <option value="">All Employees</option>
+                                {% for emp in employees %}
+                                <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
+                                    {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="col-md-3">
-                            <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary w-100">
-                                <i class="fas fa-times me-1"></i>Clear
-                            </a>
+                        {% endif %}
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-search me-1"></i>Filter
+                            </button>
                         </div>
                     </div>
                 </div>

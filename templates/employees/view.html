@@ -16,7 +16,9 @@
                     <p class="text-muted mb-0">{{ employee.position }} • {{ employee.employee_id }}</p>
                     {% if employee.profile_image_path %}
                     <div class="mt-2">
-                        <img src="{{ url_for('static', filename=employee.profile_image_path) }}" alt="Profile image" class="img-thumbnail" style="max-height: 120px;">
+                        <div class="profile-image-container">
+                            <img src="{{ url_for('static', filename=employee.profile_image_path) }}" alt="Profile image">
+                        </div>
                     </div>
                     {% endif %}
                 </div>

@@ -1,8 +1,8 @@
 /* TalaTalent - Light Theme with Custom Colors */
 
-/* Universal Font Family - Georgia */
+/* Universal Font Family - Helvetica */
 * {
-    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 /* Color Variables - Warm Light Red/Pink Theme */
@@ -23,22 +23,52 @@
     --filter-text: #AF3E3E;  /* Filter section text color */
 }
 
+/* Base styles */
+:root {
+    --primary: #AF3E3E;
+    --navbar-height: 56px;
+}
+
+/* Ensure main content is properly spaced below fixed navbar */
+.page-container {
+    padding-top: var(--navbar-height) !important;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+}
+
 /* Global medium sizing for all elements */
 body {
-    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     font-size: 14px;
     line-height: 1.4;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
+    position: relative !important;
+    z-index: 1 !important;
 }
 
-/* Typography - medium sizing with consistent red background and white text */
-h1 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 24px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
-h2 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 20px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
-h3 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 18px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
-h4 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 16px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
-h5 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 14px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
-h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; font-weight: 600; color: white; background-color: var(--primary); padding: 8px 12px; margin-bottom: 12px; }
+/* Remove navbar top line */
+.navbar {
+    padding: 0 !important;
+    background-color: var(--primary) !important;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1030 !important;
+    height: var(--navbar-height);
+}
+
+/* Typography - Clean, compact headers without background colors */
+h1 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 24px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+h2 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+h3 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+h4 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+h5 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+h6 { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
 
 /* Remove all rounded borders and ensure 1px borders */
 * {
@@ -52,12 +82,32 @@ h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; fon
 .btn,
 .alert,
 .navbar,
-.dropdown-menu,
 .modal-content,
 .pagination .page-link,
 .input-group-text {
     border-width: 1px !important;
     border-style: solid !important;
+}
+
+/* Dropdown menu border override - no white lines and prevent red background */
+.dropdown-menu {
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-top: none !important;
+    background-color: white !important;
+    background-image: none !important;
+}
+
+/* Additional override for Bootstrap dropdown backgrounds */
+.dropdown-menu.show {
+    background-color: white !important;
+}
+
+/* Prevent any background inheritance from navbar */
+.navbar-nav .dropdown-menu,
+.navbar-nav .dropdown-menu.show {
+    background: white !important;
+    background-color: white !important;
 }
 
 /* Buttons - medium sizing with custom colors */
@@ -77,6 +127,16 @@ h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; fon
 .btn-primary:hover {
     background-color: var(--secondary);
     border-color: var(--secondary);
+}
+
+/* Fix for primary button hover/focus: background stays red, text stays white */
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--primary) !important;
+    color: #fff !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 2px 8px rgba(175,62,62,0.08);
 }
 
 .btn-success {
@@ -172,23 +232,46 @@ h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; fon
     font-weight: 600;
     padding: 8px 12px;
     color: white !important;
-    background-color: var(--primary);
+    background-color: var(--primary) !important;
     border-bottom: 1px solid var(--border);
 }
 
 /* Filter card specific styling */
 .filter-card {
     border: none;
-    border-top: 3px solid var(--primary);
+    margin-bottom: 1rem;
+    background-color: transparent;
+}
+
+.filter-card .card-header {
+    display: block !important;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 12px;
+    color: white !important;
     background-color: var(--primary);
-    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    margin: 0;
 }
 
 .filter-card .card-body {
-    padding: 10px 12px;
+    padding: 12px;
     background-color: var(--bg-primary);
     border: 1px solid var(--border);
     border-top: none;
+}
+
+/* Hide records count by default */
+.records-count {
+    display: none;
+}
+
+/* Only show records count where specifically enabled */
+.show-records-count .records-count {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
 }
 
 .card-body {
@@ -205,11 +288,13 @@ h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; fon
     font-size: 13px;
 }
 
-/* Tables - clean design matching reference */
+/* Tables - clean design with full width usage */
 .table {
     font-size: 13px;
     color: var(--text-primary);
     margin-bottom: 0;
+    width: 100%;
+    table-layout: auto;
 }
 
 .table th {
@@ -230,6 +315,15 @@ h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; fon
 .table-hover tbody tr:hover {
     background-color: #f8f9fa;
 }
+
+/* Table column width optimizations for full screen usage */
+.table th:nth-child(1) { width: 12%; } /* Employee ID */
+.table th:nth-child(2) { width: 20%; } /* Name */
+.table th:nth-child(3) { width: 18%; } /* Position */
+.table th:nth-child(4) { width: 15%; } /* Department */
+.table th:nth-child(5) { width: 20%; } /* Email */
+.table th:nth-child(6) { width: 10%; } /* Type */
+.table th:nth-child(7) { width: 5%; }  /* Actions */
 
 /* Table container styling */
 .table-container {
@@ -264,9 +358,16 @@ h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; fon
 
 /* Navbar - medium sizing with reference design colors */
 .navbar {
-    padding: 8px 0;
+    padding: 0 !important;
     background-color: var(--primary) !important;
-    border-bottom: 1px solid var(--border);
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1030 !important;
+    height: var(--navbar-height);
 }
 
 .navbar-brand {
@@ -288,8 +389,13 @@ h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; fon
 }
 
 .dropdown-menu {
-    background-color: var(--bg-primary);
+    background-color: var(--bg-primary) !important;
     border: 1px solid var(--border);
+    border-top: none !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    position: absolute !important;
+    z-index: 1000 !important;
 }
 
 .dropdown-item {
@@ -303,9 +409,132 @@ h6 { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; fon
     color: var(--primary);
 }
 
+/* Complete dropdown isolation from navbar red background */
+.navbar-nav .dropdown-menu {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+    border: 1px solid var(--border) !important;
+    border-top: none !important;
+    position: absolute !important;
+    z-index: 9999 !important;
+    top: 100% !important;
+    left: 0 !important;
+    min-width: 160px !important;
+    padding: 5px 0 !important;
+    margin: 0 !important;
+}
+
+.navbar-nav .dropdown-toggle::after {
+    margin-left: 6px;
+}
+
+/* Force dropdown isolation - multiple selectors for maximum specificity */
+.navbar .dropdown-menu,
+.navbar-expand-lg .navbar-nav .dropdown-menu,
+.navbar-nav .show > .dropdown-menu {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    border-top: none !important;
+    margin-top: 0 !important;
+    position: absolute !important;
+    z-index: 9999 !important;
+}
+
+/* Dropdown item styling with maximum specificity */
+.navbar .dropdown-item,
+.navbar-nav .dropdown-item,
+.navbar-expand-lg .navbar-nav .dropdown-item {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    color: var(--text-primary) !important;
+    display: block !important;
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+}
+
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus,
+.navbar-nav .dropdown-item:hover,
+.navbar-nav .dropdown-item:focus {
+    background: var(--light) !important;
+    background-color: var(--light) !important;
+    background-image: none !important;
+    color: var(--primary) !important;
+}
+
+/* Prevent any red background expansion */
+.navbar-nav .dropdown,
+.navbar-nav .dropdown.show {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Ensure dropdown container doesn't inherit navbar styling */
+.dropdown,
+.dropdown.show {
+    position: relative !important;
+    background: transparent !important;
+}
+
+/* Bootstrap dropdown state overrides */
+.nav-item.dropdown.show,
+.navbar-nav .nav-item.dropdown.show {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Comprehensive dropdown menu isolation */
+.dropdown-menu[data-bs-popper],
+.dropdown-menu.show,
+.dropdown-menu[style*="position: absolute"] {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    z-index: 9999 !important;
+}
+
+/* Prevent red background from affecting page content */
+main.container-fluid {
+    position: relative !important;
+    z-index: 1 !important;
+    background-color: var(--bg-secondary) !important;
+}
+
+/* Ultimate dropdown isolation - handle all possible states */
+.navbar .dropdown-menu,
+.navbar .dropdown-menu.show,
+.navbar-nav .dropdown-menu,
+.navbar-nav .dropdown-menu.show,
+.dropdown-menu[x-placement],
+.dropdown-menu[data-popper-placement] {
+    background: white !important;
+    background-color: white !important;
+    background-image: none !important;
+    border: 1px solid var(--border) !important;
+    border-top: none !important;
+    position: absolute !important;
+    z-index: 9999 !important;
+}
+
+/* Ensure filters and page content remain visible */
+.filter-card,
+.card,
+.table-container {
+    position: relative !important;
+    z-index: 2 !important;
+    background-color: var(--bg-primary) !important;
+}
+
 /* Badges and small elements */
 .badge {
-    font-size: 9px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11px;
+    font-weight: normal;
+    color: white;
 }
 
 .bg-primary {
@@ -375,10 +604,25 @@ small,
 
 /* Breadcrumbs */
 .breadcrumb {
-    font-size: 11px;
-    padding: 4px 0;
-    margin-bottom: 8px;
-    background-color: var(--light);
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.breadcrumb-item {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.breadcrumb-item a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
 }
 
 /* Modal adjustments */
@@ -411,21 +655,189 @@ small,
     background-color: var(--success);
 }
 
+/* Code elements - consistent styling */
+code {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    color: var(--text-primary);
+    background-color: transparent;
+    padding: 0;
+    border: none;
+    font-weight: normal;
+}
+
+/* Badge color consistency */
+.badge.bg-secondary {
+    background-color: var(--primary) !important;
+    color: white !important;
+}
+
+.badge.bg-info {
+    background-color: var(--primary) !important;
+    color: white !important;
+}
+
+/* Table link consistency */
+.table a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+.table a:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+/* Layout Optimization - Full Width Usage */
+.container {
+    padding-left: 10px;
+    padding-right: 10px;
+    max-width: none !important;
+    width: 100% !important;
+}
+
+.container-fluid {
+    padding-left: 10px;
+    padding-right: 10px;
+    max-width: none;
+}
+
+/* Responsive container optimizations for maximum width usage */
+@media (min-width: 1200px) {
+    .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container-fluid {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
+
+/* Reduced row and column spacing */
+.row {
+    margin-left: -8px;
+    margin-right: -8px;
+}
+
+.row > * {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+/* Card optimization */
+.card {
+    margin-bottom: 15px;
+}
+
+.card-body {
+    padding: 12px;
+}
+
+/* Form spacing optimization */
+.form-group {
+    margin-bottom: 10px;
+}
+
+/* Button group optimization */
+.btn-group {
+    margin-bottom: 0;
+}
+
+/* Compact alert spacing */
+.alert {
+    margin-bottom: 10px;
+}
+
+/* Optimized page header spacing */
+.page-header {
+    margin-bottom: 12px;
+}
+
+/* Navigation margin fixes */
+.navbar {
+    margin-bottom: 0;
+}
+
+/* Text utility optimizations */
+.text-muted {
+    color: var(--text-secondary) !important;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
 /* Compact spacing utilities */
-.mb-1 { margin-bottom: 4px !important; }
-.mb-2 { margin-bottom: 6px !important; }
-.mb-3 { margin-bottom: 8px !important; }
-.mb-4 { margin-bottom: 12px !important; }
+.mb-1 { margin-bottom: 2px !important; }
+.mb-2 { margin-bottom: 4px !important; }
+.mb-3 { margin-bottom: 6px !important; }
+.mb-4 { margin-bottom: 8px !important; }
 
-.mt-1 { margin-top: 4px !important; }
-.mt-2 { margin-top: 6px !important; }
-.mt-3 { margin-top: 8px !important; }
-.mt-4 { margin-top: 12px !important; }
+.mt-1 { margin-top: 2px !important; }
+.mt-2 { margin-top: 4px !important; }
+.mt-3 { margin-top: 6px !important; }
+.mt-4 { margin-top: 8px !important; }
 
-.p-1 { padding: 4px !important; }
-.p-2 { padding: 6px !important; }
-.p-3 { padding: 8px !important; }
-.p-4 { padding: 12px !important; }
+.p-1 { padding: 2px !important; }
+.p-2 { padding: 4px !important; }
+.p-3 { padding: 6px !important; }
+.p-4 { padding: 8px !important; }
+
+/* Ultra-compact list page optimizations */
+.employee-list-container {
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.employee-list-container .row {
+    margin-bottom: 2px;
+}
+
+.employee-list-container .card {
+    margin-bottom: 4px;
+}
+
+.employee-list-container .card-body {
+    padding: 8px;
+}
+
+.employee-list-container h3 {
+    margin-bottom: 2px;
+}
+
+.employee-list-container .btn-group {
+    margin-bottom: 0;
+}
+
+.employee-list-container .breadcrumb {
+    margin-top: 0;
+    padding-top: 2px;
+}
+
+/* Apply compact spacing globally via base layout container */
+.page-container {
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.page-container .row {
+    margin-bottom: 2px;
+}
+
+.page-container .card {
+    margin-bottom: 4px;
+}
+
+.page-container .card-body {
+    padding: 8px;
+}
+
+.page-container .breadcrumb {
+    margin-top: 0;
+    padding-top: 2px;
+}
 
 /* Mobile responsiveness - larger on mobile for touch */
 @media (max-width: 768px) {
@@ -445,7 +857,24 @@ small,
         min-height: 40px;
     }
     
-    .form-label {
+    /* Edge-to-edge mobile layout */
+    .container-fluid {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    
+    /* Reduce spacing on mobile even further */
+    .employee-list-container .breadcrumb {
+        font-size: 12px;
+        padding: 4px 0;
+    }
+    
+    .employee-list-container .mb-1 {
+        margin-bottom: 1px !important;
+    }
+}
+
+.form-label {
         font-size: 13px;
         margin-bottom: 4px;
     }
@@ -467,7 +896,7 @@ small,
     /* Enhanced mobile dropdown visibility */
     .navbar-collapse {
         padding: 8px 0;
-        border-top: 1px solid #dee2e6;
+
         margin-top: 8px;
     }
     
@@ -566,3 +995,108 @@ small,
     }
 }
 
+/* Profile image frame and container: always a perfect circle */
+.profile-image-frame {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--primary);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.profile-image-container {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.profile-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+/* Strong override to force circular profile images (fixes global reset) */
+.profile-image-frame,
+.profile-image-frame .profile-image-container,
+.profile-image-container,
+.navbar .profile-image-container,
+.profile-image-container img,
+.navbar .profile-image-container img {
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    border-radius: 50% !important;
+    -webkit-border-radius: 50% !important;
+    -moz-border-radius: 50% !important;
+    overflow: hidden !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Enforce fixed square sizing where used (apply only if parent frame specifies size) */
+.profile-image-frame {
+    width: 120px !important;
+    height: 120px !important;
+}
+
+/* Small avatar sizes (navbar, lists) */
+.navbar .profile-image-container,
+.profile-image-container.small {
+    width: 24px !important;
+    height: 24px !important;
+}
+
+/* Ensure the img fills the circular container without stretching */
+.profile-image-container img,
+.navbar .profile-image-container img,
+.profile-image-container.small img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    border-radius: 50% !important;
+}
+
+/* Remove any accidental square outlines */
+.profile-image-frame, .profile-image-container { box-shadow: none !important; }
+
+/* Tab styling for all pages */
+.nav-tabs .nav-link {
+    color: var(--primary) !important;
+    background: #fff !important;
+    border: none !important;
+    font-weight: 500;
+    transition: background 0.2s, color 0.2s;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-link:active,
+.nav-tabs .nav-link:hover {
+    background: #fff !important;
+    color: var(--primary) !important;
+    border-bottom: 2px solid var(--primary) !important;
+    z-index: 2;
+}
+
+/* Remove default Bootstrap tab border for cleaner look */
+.nav-tabs {
+    border-bottom: 1px solid #eee !important;
+}
+
+/* For accessibility, ensure focus state is also visible */
+.nav-tabs .nav-link:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}

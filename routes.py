@@ -562,27 +562,78 @@ def profile():
     
     employee = current_user.employee_profile
     
-    # Get recent payslips
-    recent_payslips = Payroll.query.filter_by(
-        employee_id=employee.id).order_by(
-            Payroll.pay_period_end.desc()).limit(3).all()
+    # Get attendance stats
+    today = date.today()
+    first_day = today.replace(day=1)
+    last_day = today.replace(day=calendar.monthrange(today.year, today.month)[1])
 
-    # Get recent attendance
-    recent_attendance = Attendance.query.filter_by(
-        employee_id=employee.id).order_by(
-            Attendance.date.desc()).limit(10).all()
-            
-    # Get recent leaves
-    recent_leaves = Leave.query.filter_by(
-        employee_id=employee.id).order_by(
-            Leave.created_at.desc()).limit(5).all()
+    total_days = Attendance.query.filter(
+        Attendance.employee_id == employee.id,
+        Attendance.date.between(first_day, last_day)
+    ).count()
+
+    present_days = Attendance.query.filter(
+        Attendance.employee_id == employee.id,
+        Attendance.date.between(first_day, last_day),
+        Attendance.status == 'Present'
+    ).count()
+
+    attendance_rate = round((present_days / total_days * 100) if total_days > 0 else 0)
+
+    # Get pending claims
+    pending_claims = Claim.query.filter_by(
+        employee_id=employee.id,
+        status='Pending'
+    ).count()
+
+    # Get leave balance
+    leave_balance = employee.leave_balance if hasattr(employee, 'leave_balance') else 0
+
+    # Compile stats
+    stats = {
+        'attendance_rate': attendance_rate,
+        'leave_balance': leave_balance,
+        'pending_claims': pending_claims,
+        'completed_tasks': 0  # Placeholder for future task tracking feature
+    }
+
+    # Get recent activities
+    activities = []
+
+    # Add recent attendance
+    attendance_records = Attendance.query.filter_by(
+        employee_id=employee.id
+    ).order_by(Attendance.date.desc()).limit(5).all()
+
+    for record in attendance_records:
+        activities.append({
+            'icon': 'fa-clock',
+            'color': 'success' if record.status == 'Present' else 'warning',
+            'message': f"Marked {record.status} at {record.clock_in.strftime('%I:%M %p') if record.clock_in else 'N/A'}",
+            'time': record.date.strftime('%d %b %Y')
+        })
+
+    # Add recent leaves
+    leaves = Leave.query.filter_by(
+        employee_id=employee.id
+    ).order_by(Leave.created_at.desc()).limit(5).all()
+
+    for leave in leaves:
+        activities.append({
+            'icon': 'fa-plane-departure',
+            'color': 'success' if leave.status == 'Approved' else 'warning' if leave.status == 'Pending' else 'danger',
+            'message': f"{leave.leave_type} leave {leave.status.lower()}",
+            'time': leave.created_at.strftime('%d %b %Y')
+        })
+
+    # Sort activities by date
+    activities.sort(key=lambda x: datetime.strptime(x['time'], '%d %b %Y'), reverse=True)
 
     return render_template('profile.html',
-                           employee=employee,
-                           recent_payslips=recent_payslips,
-                           recent_attendance=recent_attendance,
-                           recent_leaves=recent_leaves,
-                           today=date.today())
+                         stats=stats,
+                         activities=activities,
+                         attendance=attendance_records,
+                         leaves=leaves)
 
 
 @app.route('/profile/photo', methods=['POST'])
@@ -1198,10 +1249,8 @@ def attendance_correct(attendance_id):
                 if attendance.clock_in:
                     clock_in_dt = datetime.combine(attendance.date,
                                                    attendance.clock_in)
-                    clock_out_dt = datetime.combine(attendance.date,
-                                                    attendance.clock_out)
-                    total_seconds = (clock_out_dt -
-                                     clock_in_dt).total_seconds()
+                    clock_out_dt = datetime.combine(attendance.date, attendance.clock_out)
+                    total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
 
                     # Subtract break time if applicable
                     if attendance.break_start and attendance.break_end:
@@ -1209,8 +1258,7 @@ def attendance_correct(attendance_id):
                             attendance.date, attendance.break_start)
                         break_end_dt = datetime.combine(
                             attendance.date, attendance.break_end)
-                        break_seconds = (break_end_dt -
-                                         break_start_dt).total_seconds()
+                        break_seconds = (break_end_dt - break_start_dt).total_seconds()
                         total_seconds -= break_seconds
 
                     total_hours = total_seconds / 3600
@@ -2247,3 +2295,40 @@ def currency_filter(amount):
 @app.template_filter('date')
 def date_filter(date_obj):
     return format_date(date_obj)
+
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@require_login
+def profile_edit():
+    """Edit user profile"""
+    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+        flash('Profile not found. Please contact your administrator.', 'error')
+        return redirect(url_for('dashboard'))
+
+    employee = current_user.employee_profile
+
+    if request.method == 'POST':
+        try:
+            # Update basic info
+            employee.phone = request.form.get('phone')
+            employee.address = request.form.get('address')
+            employee.postal_code = request.form.get('postal_code')
+
+            # Update bank details
+            employee.bank_name = request.form.get('bank_name')
+            employee.bank_account = request.form.get('bank_account')
+            employee.account_holder_name = request.form.get('account_holder_name')
+            employee.swift_code = request.form.get('swift_code')
+            employee.ifsc_code = request.form.get('ifsc_code')
+
+            db.session.commit()
+            flash('Profile updated successfully', 'success')
+            return redirect(url_for('profile'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating profile: {str(e)}', 'error')
+            return render_template('profile_edit.html', employee=employee)
+
+    return render_template('profile_edit.html', employee=employee)
+

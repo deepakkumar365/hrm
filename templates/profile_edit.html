@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile - TalaTalent{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-edit me-2"></i>Edit Profile
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" class="needs-validation" novalidate>
+                        <!-- Personal Information -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3">Personal Information</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-control" value="{{ current_user.first_name }}" disabled>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" value="{{ current_user.last_name }}" disabled>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone</label>
+                                    <input type="tel" class="form-control" name="phone" value="{{ employee.phone or '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Address Information -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3">Address Information</h6>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control" name="address" rows="2" required>{{ employee.address or '' }}</textarea>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Postal Code</label>
+                                    <input type="text" class="form-control" name="postal_code" value="{{ employee.postal_code or '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank Details -->
+                        <div class="mb-4">
+                            <h6 class="text-primary mb-3">Bank Details</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Bank Name</label>
+                                    <input type="text" class="form-control" name="bank_name" value="{{ employee.bank_name or '' }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Account Number</label>
+                                    <input type="text" class="form-control" name="bank_account" value="{{ employee.bank_account or '' }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Account Holder Name</label>
+                                    <input type="text" class="form-control" name="account_holder_name" value="{{ employee.account_holder_name or '' }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">SWIFT Code</label>
+                                    <input type="text" class="form-control" name="swift_code" value="{{ employee.swift_code or '' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">IFSC Code</label>
+                                    <input type="text" class="form-control" name="ifsc_code" value="{{ employee.ifsc_code or '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Profile
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+</script>
+{% endblock %}
