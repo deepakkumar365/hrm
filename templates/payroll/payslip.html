@@ -2,308 +2,592 @@
 
 {% block title %}Payslip - {{ payroll.employee.first_name }} {{ payroll.employee.last_name }}{% endblock %}
 
+{% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Corporate Payslip Styles */
+.payslip-container {
+    font-family: 'Roboto', 'Segoe UI', sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #333;
+    max-width: 210mm;
+    margin: 0 auto;
+    background: white;
+}
+
+.payslip-header {
+    background: linear-gradient(135deg, #2D6A4F 0%, #40916C 100%);
+    color: white;
+    padding: 20px;
+    margin-bottom: 0;
+}
+
+.company-logo {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.company-subtitle {
+    font-size: 12px;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.payslip-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    text-align: right;
+}
+
+.payslip-period {
+    font-size: 12px;
+    opacity: 0.9;
+    margin: 0;
+    text-align: right;
+}
+
+.payslip-body {
+    padding: 25px;
+}
+
+.section-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2D6A4F;
+    margin-bottom: 12px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #E8F5E8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-table {
+    width: 100%;
+    margin-bottom: 20px;
+    border-collapse: collapse;
+}
+
+.info-table td {
+    padding: 6px 0;
+    vertical-align: top;
+    border: none;
+}
+
+.info-table .label {
+    font-weight: 500;
+    color: #555;
+    width: 40%;
+}
+
+.info-table .value {
+    color: #333;
+    font-weight: 400;
+}
+
+.earnings-deductions-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 25px;
+}
+
+.earnings-section, .deductions-section {
+    background: #FAFAFA;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.earnings-section {
+    border-left: 4px solid #52B788;
+}
+
+.deductions-section {
+    border-left: 4px solid #DC3545;
+}
+
+.calculation-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.calculation-table tr {
+    border-bottom: 1px solid #E8E8E8;
+}
+
+.calculation-table tr:last-child {
+    border-bottom: none;
+}
+
+.calculation-table tr.total-row {
+    background: #F8F9FA;
+    font-weight: 600;
+    border-top: 2px solid #DEE2E6;
+}
+
+.calculation-table td {
+    padding: 8px 0;
+    vertical-align: middle;
+}
+
+.calculation-table .item-name {
+    color: #555;
+}
+
+.calculation-table .amount {
+    text-align: right;
+    font-weight: 500;
+    color: #333;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.net-pay-summary {
+    background: linear-gradient(135deg, #2D6A4F 0%, #40916C 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.net-pay-amount {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 8px 0;
+    font-family: 'Roboto', sans-serif;
+}
+
+.net-pay-label {
+    font-size: 14px;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.summary-card {
+    background: #F8F9FA;
+    border: 1px solid #E0E0E0;
+    border-radius: 6px;
+    padding: 15px;
+    text-align: center;
+}
+
+.summary-card .label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.summary-card .amount {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.payslip-footer {
+    border-top: 1px solid #E0E0E0;
+    padding-top: 20px;
+    text-align: center;
+    color: #666;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* Print Styles */
+@media print {
+    body {
+        font-family: 'Roboto', 'Segoe UI', sans-serif !important;
+        font-size: 12px !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+    }
+
+    .d-print-none {
+        display: none !important;
+    }
+
+    .payslip-container {
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    .payslip-header {
+        background: #2D6A4F !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        padding: 15px !important;
+    }
+
+    .payslip-body {
+        padding: 20px !important;
+    }
+
+    .earnings-section, .deductions-section {
+        background: #FAFAFA !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .net-pay-summary {
+        background: #2D6A4F !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .calculation-table tr.total-row {
+        background: #F8F9FA !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .summary-card {
+        background: #F8F9FA !important;
+        -webkit-print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Ensure single page */
+    .payslip-container {
+        page-break-inside: avoid;
+    }
+
+    .earnings-deductions-container {
+        page-break-inside: avoid;
+    }
+
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .earnings-deductions-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .payslip-header {
+        padding: 15px;
+    }
+
+    .payslip-body {
+        padding: 15px;
+    }
+
+    .payslip-title {
+        text-align: left;
+        margin-top: 10px;
+    }
+
+    .payslip-period {
+        text-align: left;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container">
+<!-- Screen Actions (Hidden in Print) -->
+<div class="container-fluid d-print-none mb-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <!-- Header with actions -->
-            <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+            <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h3>
+                    <h4 class="mb-1">
                         <i class="fas fa-file-invoice-dollar me-2"></i>Payslip
-                    </h3>
-                    <p class="text-muted mb-0">{{ payroll.pay_period_start | date }} - {{ payroll.pay_period_end | date }}</p>
+                    </h4>
+                    <p class="text-muted mb-0">{{ payroll.pay_period_start.strftime('%d %b %Y') }} - {{ payroll.pay_period_end.strftime('%d %b %Y') }}</p>
                 </div>
                 <div class="btn-group">
                     <button onclick="window.print()" class="btn btn-primary">
-                        <i class="fas fa-print me-1"></i>Print
+                        <i class="fas fa-print me-1"></i>Print PDF
                     </button>
                     <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back
                     </a>
                 </div>
             </div>
-
-            <!-- Payslip Content -->
-            <div class="card shadow-sm" id="payslip">
-                <!-- Company Header -->
-                <div class="card-header bg-primary text-white">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h4 class="mb-1">
-                                <i class="fas fa-building me-2"></i>Company Name
-                            </h4>
-                            <p class="mb-0 opacity-75">Singapore Human Resource Management System</p>
-                        </div>
-                        <div class="col-md-4 text-md-end">
-                            <h5 class="mb-0">PAYSLIP</h5>
-                            <p class="mb-0 opacity-75">{{ payroll.pay_period_end.strftime('%B %Y') }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card-body">
-                    <!-- Employee Information -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h6 class="border-bottom pb-2 mb-3">Employee Information</h6>
-                            <table class="table table-sm table-borderless">
-                                <tr>
-                                    <td class="fw-semibold">Name:</td>
-                                    <td>{{ payroll.employee.first_name }} {{ payroll.employee.last_name }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-semibold">Employee ID:</td>
-                                    <td>{{ payroll.employee.employee_id }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-semibold">NRIC:</td>
-                                    <td>{{ payroll.employee.nric }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-semibold">Position:</td>
-                                    <td>{{ payroll.employee.position }}</td>
-                                </tr>
-                                {% if payroll.employee.department %}
-                                <tr>
-                                    <td class="fw-semibold">Department:</td>
-                                    <td>{{ payroll.employee.department }}</td>
-                                </tr>
-                                {% endif %}
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="border-bottom pb-2 mb-3">Pay Period Details</h6>
-                            <table class="table table-sm table-borderless">
-                                <tr>
-                                    <td class="fw-semibold">Pay Period:</td>
-                                    <td>{{ payroll.pay_period_start | date }} - {{ payroll.pay_period_end | date }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-semibold">Days Worked:</td>
-                                    <td>{{ payroll.days_worked or 0 }} days</td>
-                                </tr>
-                                {% if payroll.overtime_hours %}
-                                <tr>
-                                    <td class="fw-semibold">Overtime Hours:</td>
-                                    <td>{{ payroll.overtime_hours }} hours</td>
-                                </tr>
-                                {% endif %}
-                                <tr>
-                                    <td class="fw-semibold">Payment Date:</td>
-                                    <td>{{ payroll.generated_at.strftime('%d/%m/%Y') }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-semibold">Status:</td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if payroll.status == 'Paid' else 'warning' if payroll.status == 'Approved' else 'secondary' }}">
-                                            {{ payroll.status }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Earnings and Deductions -->
-                    <div class="row">
-                        <!-- Earnings -->
-                        <div class="col-md-6">
-                            <h6 class="border-bottom pb-2 mb-3 text-success">
-                                <i class="fas fa-plus-circle me-1"></i>Earnings
-                            </h6>
-                            <table class="table table-sm">
-                                <tr>
-                                    <td>Basic Salary</td>
-                                    <td class="text-end">{{ payroll.basic_pay | currency }}</td>
-                                </tr>
-                                {% if payroll.allowances > 0 %}
-                                <tr>
-                                    <td>Allowances</td>
-                                    <td class="text-end">{{ payroll.allowances | currency }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if payroll.overtime_pay > 0 %}
-                                <tr>
-                                    <td>Overtime Pay (2x rate)</td>
-                                    <td class="text-end">{{ payroll.overtime_pay | currency }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if payroll.bonuses > 0 %}
-                                <tr>
-                                    <td>Bonuses</td>
-                                    <td class="text-end">{{ payroll.bonuses | currency }}</td>
-                                </tr>
-                                {% endif %}
-                                <tr class="table-success fw-semibold">
-                                    <td>Gross Pay</td>
-                                    <td class="text-end">{{ payroll.gross_pay | currency }}</td>
-                                </tr>
-                            </table>
-                        </div>
-
-                        <!-- Deductions -->
-                        <div class="col-md-6">
-                            <h6 class="border-bottom pb-2 mb-3 text-danger">
-                                <i class="fas fa-minus-circle me-1"></i>Deductions
-                            </h6>
-                            <table class="table table-sm">
-                                {% if payroll.employee_cpf > 0 %}
-                                <tr>
-                                    <td>CPF (Employee Contribution)</td>
-                                    <td class="text-end">{{ payroll.employee_cpf | currency }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if payroll.income_tax > 0 %}
-                                <tr>
-                                    <td>Income Tax</td>
-                                    <td class="text-end">{{ payroll.income_tax | currency }}</td>
-                                </tr>
-                                {% endif %}
-                                {% if payroll.other_deductions > 0 %}
-                                <tr>
-                                    <td>Other Deductions</td>
-                                    <td class="text-end">{{ payroll.other_deductions | currency }}</td>
-                                </tr>
-                                {% endif %}
-                                <tr class="table-danger fw-semibold">
-                                    <td>Total Deductions</td>
-                                    <td class="text-end">
-                                        {{ (payroll.employee_cpf + payroll.income_tax + payroll.other_deductions) | currency }}
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Net Pay -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body text-center">
-                                    <h4 class="mb-1">
-                                        <i class="fas fa-hand-holding-usd me-2"></i>Net Pay
-                                    </h4>
-                                    <h2 class="mb-0">{{ payroll.net_pay | currency }}</h2>
-                                    <p class="mb-0 opacity-75">Amount to be credited to your account</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- CPF Contribution Summary -->
-                    {% if payroll.employee_cpf > 0 or payroll.employer_cpf > 0 %}
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <h6 class="border-bottom pb-2 mb-3">
-                                <i class="fas fa-piggy-bank me-1"></i>CPF Contribution Summary
-                            </h6>
-                            <div class="row text-center">
-                                <div class="col-md-4">
-                                    <div class="card border-primary">
-                                        <div class="card-body">
-                                            <h6 class="text-primary">Employee CPF</h6>
-                                            <h5 class="mb-0">{{ payroll.employee_cpf | currency }}</h5>
-                                            <small class="text-muted">Your contribution</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="card border-success">
-                                        <div class="card-body">
-                                            <h6 class="text-success">Employer CPF</h6>
-                                            <h5 class="mb-0">{{ payroll.employer_cpf | currency }}</h5>
-                                            <small class="text-muted">Company contribution</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="card border-info">
-                                        <div class="card-body">
-                                            <h6 class="text-info">Total CPF</h6>
-                                            <h5 class="mb-0">{{ (payroll.employee_cpf + payroll.employer_cpf) | currency }}</h5>
-                                            <small class="text-muted">Combined contribution</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Bank Details -->
-                    {% if payroll.employee.bank_name and payroll.employee.bank_account %}
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <h6 class="border-bottom pb-2 mb-3">
-                                <i class="fas fa-university me-1"></i>Payment Details
-                            </h6>
-                            <div class="alert alert-info">
-                                <div class="d-flex justify-content-between">
-                                    <span>Bank: <strong>{{ payroll.employee.bank_name }}</strong></span>
-                                    <span>Account: <strong>{{ payroll.employee.bank_account }}</strong></span>
-                                </div>
-                                <small class="text-muted">
-                                    Payment will be credited to the above account within 1-2 business days.
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Footer -->
-                    <div class="row mt-4 pt-4 border-top">
-                        <div class="col-12 text-center">
-                            <p class="small text-muted mb-1">
-                                This is a computer-generated payslip and does not require a signature.
-                            </p>
-                            <p class="small text-muted mb-0">
-                                Generated on {{ payroll.generated_at.strftime('%d/%m/%Y at %I:%M %p') }} 
-                                by {{ payroll.generated_by_user.first_name if payroll.generated_by_user else 'System' }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
 
-<style>
-@media print {
-    .d-print-none {
-        display: none !important;
-    }
-    
-    .card {
-        border: none !important;
-        box-shadow: none !important;
-    }
-    
-    .card-header {
-        -webkit-print-color-adjust: exact;
-        color-adjust: exact;
-    }
-    
-    body {
-        font-size: 12px;
-    }
-    
-    .container {
-        max-width: 100% !important;
-        padding: 0 !important;
-    }
-}
-</style>
+<!-- Payslip Document -->
+<div class="payslip-container">
+    <!-- Company Header -->
+    <div class="payslip-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="company-logo">
+                    <i class="fas fa-building me-2"></i>Noltrion
+                </div>
+                <p class="company-subtitle">Human Resource Management System</p>
+            </div>
+            <div class="col-md-4">
+                <h2 class="payslip-title">PAYSLIP</h2>
+                <p class="payslip-period">{{ payroll.pay_period_end.strftime('%B %Y') }}</p>
+            </div>
+        </div>
+    </div>
 
-<script>
-// Prevent accidental navigation when printing
-window.addEventListener('beforeprint', function() {
-    document.body.style.visibility = 'visible';
-});
+    <!-- Payslip Body -->
+    <div class="payslip-body">
+        <!-- Employee Information Section -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h3 class="section-header">Employee Details</h3>
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Employee Name:</td>
+                        <td class="value">{{ payroll.employee.first_name }} {{ payroll.employee.last_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Employee Code:</td>
+                        <td class="value">{{ payroll.employee.employee_id }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">NRIC:</td>
+                        <td class="value">{{ payroll.employee.nric or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Designation:</td>
+                        <td class="value">{{ payroll.employee.position or 'N/A' }}</td>
+                    </tr>
+                    {% if payroll.employee.department %}
+                    <tr>
+                        <td class="label">Department:</td>
+                        <td class="value">{{ payroll.employee.department }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h3 class="section-header">Pay Period Information</h3>
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Pay Period:</td>
+                        <td class="value">{{ payroll.pay_period_start.strftime('%d %b %Y') }} - {{ payroll.pay_period_end.strftime('%d %b %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Days Worked:</td>
+                        <td class="value">{{ payroll.days_worked or 0 }} days</td>
+                    </tr>
+                    {% if payroll.overtime_hours and payroll.overtime_hours > 0 %}
+                    <tr>
+                        <td class="label">Overtime Hours:</td>
+                        <td class="value">{{ payroll.overtime_hours }} hours</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td class="label">Payment Date:</td>
+                        <td class="value">{{ payroll.generated_at.strftime('%d %b %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Status:</td>
+                        <td class="value">{{ payroll.status }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
 
-window.addEventListener('afterprint', function() {
-    document.body.style.visibility = 'visible';
-});
-</script>
+        <!-- Earnings and Deductions Two-Column Layout -->
+        <div class="earnings-deductions-container">
+            <!-- LEFT COLUMN: Earnings -->
+            <div class="earnings-section">
+                <h3 class="section-header">
+                    <i class="fas fa-plus-circle me-2"></i>Earnings
+                </h3>
+                <table class="calculation-table">
+                    <tr>
+                        <td class="item-name">Basic Salary</td>
+                        <td class="amount">{{ payroll.basic_pay | currency }}</td>
+                    </tr>
+                    {% if payroll.allowances and payroll.allowances > 0 %}
+                    <tr>
+                        <td class="item-name">House Rent Allowance (HRA)</td>
+                        <td class="amount">{{ (payroll.allowances * 0.4) | round(2) | currency }}</td>
+                    </tr>
+                    <tr>
+                        <td class="item-name">Conveyance Allowance</td>
+                        <td class="amount">{{ (payroll.allowances * 0.3) | round(2) | currency }}</td>
+                    </tr>
+                    <tr>
+                        <td class="item-name">Other Allowances</td>
+                        <td class="amount">{{ (payroll.allowances * 0.3) | round(2) | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if payroll.overtime_pay and payroll.overtime_pay > 0 %}
+                    <tr>
+                        <td class="item-name">Overtime Pay</td>
+                        <td class="amount">{{ payroll.overtime_pay | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if payroll.bonuses and payroll.bonuses > 0 %}
+                    <tr>
+                        <td class="item-name">Performance Bonus</td>
+                        <td class="amount">{{ payroll.bonuses | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="total-row">
+                        <td class="item-name">Gross Earnings</td>
+                        <td class="amount">{{ payroll.gross_pay | currency }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- RIGHT COLUMN: Deductions -->
+            <div class="deductions-section">
+                <h3 class="section-header">
+                    <i class="fas fa-minus-circle me-2"></i>Deductions
+                </h3>
+                <table class="calculation-table">
+                    {% if payroll.employee_cpf and payroll.employee_cpf > 0 %}
+                    <tr>
+                        <td class="item-name">Provident Fund (PF)</td>
+                        <td class="amount">{{ payroll.employee_cpf | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if payroll.income_tax and payroll.income_tax > 0 %}
+                    <tr>
+                        <td class="item-name">Income Tax (TDS)</td>
+                        <td class="amount">{{ payroll.income_tax | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if payroll.other_deductions and payroll.other_deductions > 0 %}
+                    <tr>
+                        <td class="item-name">Professional Tax</td>
+                        <td class="amount">{{ (payroll.other_deductions * 0.5) | round(2) | currency }}</td>
+                    </tr>
+                    <tr>
+                        <td class="item-name">ESI Contribution</td>
+                        <td class="amount">{{ (payroll.other_deductions * 0.3) | round(2) | currency }}</td>
+                    </tr>
+                    <tr>
+                        <td class="item-name">Other Deductions</td>
+                        <td class="amount">{{ (payroll.other_deductions * 0.2) | round(2) | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if not (payroll.employee_cpf > 0 or payroll.income_tax > 0 or payroll.other_deductions > 0) %}
+                    <tr>
+                        <td class="item-name">No Deductions</td>
+                        <td class="amount">{{ 0 | currency }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr class="total-row">
+                        <td class="item-name">Total Deductions</td>
+                        <td class="amount">{{ (payroll.employee_cpf + payroll.income_tax + payroll.other_deductions) | currency }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Summary Grid -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="label">Gross Earnings</div>
+                <div class="amount">{{ payroll.gross_pay | currency }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Total Deductions</div>
+                <div class="amount">{{ (payroll.employee_cpf + payroll.income_tax + payroll.other_deductions) | currency }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">Net Salary</div>
+                <div class="amount">{{ payroll.net_pay | currency }}</div>
+            </div>
+        </div>
+
+        <!-- Net Pay Highlight -->
+        <div class="net-pay-summary">
+            <p class="net-pay-label">
+                <i class="fas fa-hand-holding-usd me-2"></i>Net Pay Amount
+            </p>
+            <h1 class="net-pay-amount">{{ payroll.net_pay | currency }}</h1>
+            <p class="net-pay-label">Amount to be credited to your account</p>
+        </div>
+
+        <!-- Additional Information -->
+        {% if payroll.employee.bank_name and payroll.employee.bank_account %}
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h3 class="section-header">Payment Details</h3>
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Bank Name:</td>
+                        <td class="value">{{ payroll.employee.bank_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Account Number:</td>
+                        <td class="value">{{ payroll.employee.bank_account }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Payment Mode:</td>
+                        <td class="value">Bank Transfer</td>
+                    </tr>
+                </table>
+            </div>
+            {% if payroll.employee_cpf > 0 or payroll.employer_cpf > 0 %}
+            <div class="col-md-6">
+                <h3 class="section-header">CPF Contribution</h3>
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Employee CPF:</td>
+                        <td class="value">{{ payroll.employee_cpf | currency }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Employer CPF:</td>
+                        <td class="value">{{ payroll.employer_cpf | currency }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Total CPF:</td>
+                        <td class="value">{{ (payroll.employee_cpf + payroll.employer_cpf) | currency }}</td>
+                    </tr>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="payslip-footer">
+            <p><strong>This is a system-generated payslip and does not require a signature.</strong></p>
+            <p>Generated on {{ payroll.generated_at.strftime('%d %B %Y at %I:%M %p') }} 
+               by {{ payroll.generated_by_user.first_name if payroll.generated_by_user else 'System' }}</p>
+            <p>For any queries regarding this payslip, please contact the HR Department.</p>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -131,9 +131,7 @@
                     <tbody>
                         {% for employee in employees.items %}
                         <tr>
-                            <td>
-                                <code>{{ employee.employee_id }}</code>
-                            </td>
+                            <td>{{ employee.employee_id }}</td>
                             <td>
                                 <a href="{{ url_for('employee_view', employee_id=employee.id) }}" 
                                    class="text-decoration-none">

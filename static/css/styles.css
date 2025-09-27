@@ -317,6 +317,81 @@ a:hover {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
+/* --- Mobile Navbar Fixes for iOS and Cross-Device Consistency --- */
+
+/* Solid background for navbar (all views) */
+.navbar {
+    background-color: #0A7A39 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-bottom: 1px solid #07582a;
+}
+
+/* Ensure collapsed mobile menu has solid background and shadow */
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        background-color: #0A7A39 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        border-radius: 0 0 12px 12px;
+    }
+    .navbar-nav .nav-link,
+    .navbar-nav .dropdown-item {
+        color: #fff !important;
+    }
+    .navbar-nav .dropdown-menu {
+        background: #0A7A39 !important;
+        color: #fff !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        border: 1px solid #07582a !important;
+    }
+}
+
+/* Hamburger icon contrast */
+.navbar-toggler {
+    border-color: #fff !important;
+}
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,1)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+/* Responsive: keep desktop menu unchanged */
+@media (min-width: 992px) {
+    .navbar {
+        background-color: #0A7A39 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .navbar-nav .dropdown-menu {
+        background: #fff !important;
+        color: #222 !important;
+        box-shadow: var(--shadow-xl);
+        border: 1px solid var(--grey-200);
+    }
+}
+
+/* iOS Safari dark mode fix */
+@media (prefers-color-scheme: dark) {
+    .navbar,
+    .navbar-collapse,
+    .navbar-nav .dropdown-menu {
+        background-color: #0A7A39 !important;
+        color: #fff !important;
+    }
+    .navbar-nav .nav-link,
+    .navbar-nav .dropdown-item {
+        color: #fff !important;
+    }
+    .navbar-toggler {
+        border-color: #fff !important;
+    }
+    .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,1)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+}
+
+/* Slight shadow for mobile menu for better visibility */
+.navbar-collapse {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
 /* ===== MAIN CONTENT AREA ===== */
 .page-container {
     margin-top: var(--header-height);
