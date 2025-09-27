@@ -2,371 +2,799 @@
 
 {% block title %}Singapore Compliance Dashboard - TalaTalent{% endblock %}
 
+{% block head %}
+<style>
+.compliance-dashboard {
+    padding: 1.5rem 0 3rem;
+    background: linear-gradient(145deg, rgba(44, 103, 5, 0.06), rgba(110, 154, 66, 0.04));
+}
+
+.dashboard-hero {
+    background: linear-gradient(135deg, rgba(44, 103, 5, 0.95), rgba(110, 154, 66, 0.85));
+    border-radius: 18px !important;
+    padding: 2.75rem 3rem;
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 26px 48px -30px rgba(22, 68, 3, 0.6);
+}
+
+.dashboard-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 55%),
+                radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.18), transparent 60%);
+    pointer-events: none;
+}
+
+.dashboard-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.16);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.hero-title {
+    margin-top: 0.9rem;
+    margin-bottom: 0.6rem;
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.hero-description {
+    max-width: 38rem;
+    line-height: 1.6;
+    font-size: 1.05rem;
+    opacity: 0.92;
+}
+
+.hero-metrics {
+    margin-top: 2.2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+}
+
+.metric-card {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 14px !important;
+    padding: 1.1rem 1.2rem;
+    backdrop-filter: blur(6px);
+}
+
+.metric-label {
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.78;
+    margin-bottom: 0.45rem;
+}
+
+.metric-value {
+    font-size: 1.65rem;
+    font-weight: 700;
+}
+
+.metric-subtext {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+.progress-track {
+    margin-top: 1.8rem;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px !important;
+    height: 12px;
+    overflow: hidden;
+}
+
+.progress-track span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #D0F4AA, #72C152);
+    border-radius: 999px !important;
+}
+
+.progress-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.6rem;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.section-heading h5 {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0;
+    letter-spacing: 0.01em;
+    color: var(--primary);
+}
+
+.section-heading .descriptor {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1.25rem;
+}
+
+.status-card {
+    background: var(--bg-primary);
+    border: 1px solid rgba(44, 103, 5, 0.14);
+    border-radius: 14px !important;
+    padding: 1.35rem 1.25rem;
+    box-shadow: 0 18px 32px -28px rgba(22, 68, 3, 0.3);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.status-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(240, 250, 235, 0.8), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 26px 36px -28px rgba(22, 68, 3, 0.32);
+}
+
+.status-card:hover::after {
+    opacity: 1;
+}
+
+.status-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.85rem;
+}
+
+.status-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.45rem;
+    font-size: 1rem;
+}
+
+.status-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.86rem;
+}
+
+.status-meta i {
+    color: var(--primary);
+}
+
+.status-footnote {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+}
+
+.action-panel {
+    background: var(--bg-primary);
+    border-radius: 16px !important;
+    border: 1px solid rgba(44, 103, 5, 0.18);
+    padding: 1.75rem;
+    box-shadow: 0 20px 38px -32px rgba(44, 103, 5, 0.32);
+}
+
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1.1rem;
+}
+
+.action-card {
+    border: none;
+    border-radius: 14px !important;
+    background: rgba(44, 103, 5, 0.05);
+    padding: 1.2rem 1.1rem;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.action-card:hover {
+    transform: translateY(-4px);
+    background: rgba(44, 103, 5, 0.12);
+    box-shadow: 0 18px 28px -26px rgba(44, 103, 5, 0.28);
+}
+
+.action-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(44, 103, 5, 0.16);
+    color: var(--primary);
+    font-size: 1.05rem;
+}
+
+.action-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.action-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.dashboard-main {
+    margin-top: 2.5rem;
+}
+
+.calendar-card,
+.alert-card,
+.reports-card,
+.guidelines-card {
+    border-radius: 16px !important;
+    border: 1px solid rgba(44, 103, 5, 0.14);
+    background: var(--bg-primary);
+    box-shadow: 0 24px 42px -30px rgba(22, 68, 3, 0.28);
+}
+
+.calendar-timeline {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.calendar-timeline::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 0.4rem;
+    bottom: 0.4rem;
+    width: 2px;
+    background: rgba(44, 103, 5, 0.18);
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 2.4rem;
+    padding-bottom: 1.2rem;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 0.35rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid var(--primary);
+}
+
+.timeline-item .timeline-title {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.timeline-item .timeline-meta {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.timeline-item .timeline-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px !important;
+    background: rgba(44, 103, 5, 0.12);
+    color: var(--primary);
+}
+
+.alert-card .alert-item {
+    display: flex;
+    gap: 0.75rem;
+    border: 1px solid rgba(44, 103, 5, 0.12);
+    border-radius: 12px !important;
+    padding: 1rem 1.1rem;
+    margin-bottom: 0.9rem;
+    background: rgba(44, 103, 5, 0.03);
+}
+
+.alert-card .alert-item:last-child {
+    margin-bottom: 0;
+}
+
+.alert-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.alert-icon.warning { background: rgba(240, 173, 78, 0.18); color: #c77a00; }
+.alert-icon.info { background: rgba(91, 192, 222, 0.2); color: #1f6e82; }
+.alert-icon.success { background: rgba(55, 124, 7, 0.18); color: var(--primary); }
+
+.alert-item strong {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+
+.reports-table thead {
+    background: rgba(44, 103, 5, 0.08);
+}
+
+.reports-table th {
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--primary);
+}
+
+.report-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    background: rgba(44, 103, 5, 0.12);
+    border-radius: 999px !important;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    display: block;
+    margin-bottom: 1rem;
+    color: rgba(44, 103, 5, 0.38);
+}
+
+.guidelines-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.4rem;
+}
+
+.guideline-card {
+    border-radius: 14px !important;
+    border: 1px solid rgba(44, 103, 5, 0.12);
+    padding: 1.35rem 1.3rem;
+    background: rgba(44, 103, 5, 0.04);
+}
+
+.guideline-card h6 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.guideline-card ul {
+    padding-left: 1.1rem;
+    margin-bottom: 0;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    font-size: 0.88rem;
+}
+
+.modal-content {
+    border-radius: 16px !important;
+    border: 1px solid rgba(44, 103, 5, 0.12);
+}
+
+.modal-header {
+    background: rgba(44, 103, 5, 0.08);
+    border-bottom: none;
+}
+
+.modal-footer {
+    border-top: none;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--secondary) !important;
+    border-color: var(--secondary) !important;
+    color: #ffffff !important;
+}
+
+@media (max-width: 991.98px) {
+    .dashboard-hero {
+        padding: 2.4rem 2rem;
+    }
+
+    .hero-metrics {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .action-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .dashboard-hero {
+        padding: 2.1rem 1.6rem;
+    }
+
+    .hero-title {
+        font-size: 1.75rem;
+    }
+
+    .metric-card {
+        padding: 0.9rem 1rem;
+    }
+
+    .section-heading {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-                <div>
-                    <h3>
-                        <i class="fas fa-file-alt me-2"></i>Singapore Compliance Dashboard
-                    </h3>
-                    <p class="text-muted mb-0">Automated compliance reporting and submissions for Singapore regulations</p>
-                </div>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
-                        <i class="fas fa-plus me-1"></i>Generate Report
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ url_for('compliance_generate', report_type='cpf') }}">
-                            <i class="fas fa-piggy-bank me-1"></i>CPF Submission
-                        </a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('compliance_generate', report_type='ais') }}">
-                            <i class="fas fa-chart-line me-1"></i>AIS Report
-                        </a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('compliance_generate', report_type='oed') }}">
-                            <i class="fas fa-globe me-1"></i>MOM OED Filing
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{{ url_for('compliance_generate', report_type='bank') }}">
-                            <i class="fas fa-university me-1"></i>Bank Transfer File
-                        </a></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
+<section class="compliance-dashboard">
+    <div class="container">
+        <div class="dashboard-hero mb-4">
+            <span class="hero-badge"><i class="fas fa-shield-alt"></i> Singapore Compliance</span>
+            <h1 class="hero-title">Compliance Control Center</h1>
+            <p class="hero-description">Monitor statutory filings, automate submissions, and stay ahead of regulatory changes for CPF, AIS, MOM, and banking requirements — all in one command hub.</p>
 
-    <!-- Compliance Status Overview -->
-    <div class="row mb-4">
-        <div class="col-md-3 col-6 mb-3">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <i class="fas fa-piggy-bank fa-2x text-primary mb-2"></i>
-                    <h6 class="mb-1">CPF Submission</h6>
-                    <p class="mb-0 small text-success">
-                        <i class="fas fa-check-circle me-1"></i>Up to date
-                    </p>
-                    <small class="text-muted">Due: 14th monthly</small>
+            <div class="hero-metrics">
+                <div class="metric-card">
+                    <div class="metric-label">Current Filing Window</div>
+                    <div class="metric-value">{{ current_month }}/{{ current_year }}</div>
+                    <div class="metric-subtext">CPF & MOM submissions this cycle</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Pending Actions</div>
+                    <div class="metric-value">{{ pending_count if pending_count is defined else 2 }}</div>
+                    <div class="metric-subtext">Validation tasks awaiting review</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Completed Reports</div>
+                    <div class="metric-value">{{ completed_reports if completed_reports is defined else 12 }}</div>
+                    <div class="metric-subtext">Submitted in the last 90 days</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Accuracy Score</div>
+                    <div class="metric-value">{{ compliance_score if compliance_score is defined else '98%' }}</div>
+                    <div class="metric-subtext">Data checks passing on first run</div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3 col-6 mb-3">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
-                    <h6 class="mb-1">AIS Filing</h6>
-                    <p class="mb-0 small text-warning">
-                        <i class="fas fa-clock me-1"></i>Pending
-                    </p>
-                    <small class="text-muted">Due: 31 Mar annually</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6 mb-3">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <i class="fas fa-globe fa-2x text-success mb-2"></i>
-                    <h6 class="mb-1">MOM OED</h6>
-                    <p class="mb-0 small text-success">
-                        <i class="fas fa-check-circle me-1"></i>Submitted
-                    </p>
-                    <small class="text-muted">Due: 15th monthly</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6 mb-3">
-            <div class="card text-center h-100">
-                <div class="card-body">
-                    <i class="fas fa-university fa-2x text-warning mb-2"></i>
-                    <h6 class="mb-1">Bank Files</h6>
-                    <p class="mb-0 small text-info">
-                        <i class="fas fa-sync me-1"></i>Generated
-                    </p>
-                    <small class="text-muted">Last: {{ current_month }}/{{ current_year }}</small>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Quick Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-bolt me-2"></i>Quick Actions
-                    </h5>
+            <div class="progress-track mt-4">
+                <span style="width: {{ progress_percent if progress_percent is defined else 82 }}%"></span>
+            </div>
+            <div class="progress-meta">
+                <span>Monthly submission readiness</span>
+                <span>{{ progress_percent if progress_percent is defined else 82 }}% complete</span>
+            </div>
+        </div>
+
+        <div class="section-heading">
+            <h5><i class="fas fa-clipboard-check"></i>Status Snapshot</h5>
+            <span class="descriptor">Live view of statutory obligations and their current state</span>
+        </div>
+        <div class="status-grid mb-5">
+            <article class="status-card">
+                <div class="status-icon text-primary"><i class="fas fa-piggy-bank"></i></div>
+                <div class="status-title">CPF Submission</div>
+                <div class="status-meta text-success">
+                    <i class="fas fa-check-circle"></i><span>Up to date</span>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 col-lg-3 mb-3">
-                            <div class="d-grid">
-                                <button class="btn btn-outline-primary" onclick="generateMonthlyReports()">
-                                    <i class="fas fa-calendar-alt me-2"></i>
-                                    <div>Monthly Reports</div>
-                                    <small class="text-muted">CPF + OED</small>
-                                </button>
+                <div class="status-footnote">Due on the 14th of each month</div>
+            </article>
+            <article class="status-card">
+                <div class="status-icon" style="color: #1f6e82;"><i class="fas fa-chart-line"></i></div>
+                <div class="status-title">AIS Filing</div>
+                <div class="status-meta text-warning">
+                    <i class="fas fa-clock"></i><span>Pending review</span>
+                </div>
+                <div class="status-footnote">Annual submission closes 31 March</div>
+            </article>
+            <article class="status-card">
+                <div class="status-icon text-success"><i class="fas fa-globe"></i></div>
+                <div class="status-title">MOM OED Declaration</div>
+                <div class="status-meta text-success">
+                    <i class="fas fa-check-circle"></i><span>Submitted</span>
+                </div>
+                <div class="status-footnote">Completed for {{ current_month }}/{{ current_year }}</div>
+            </article>
+            <article class="status-card">
+                <div class="status-icon" style="color: #c77a00;"><i class="fas fa-university"></i></div>
+                <div class="status-title">Bank Transfer Files</div>
+                <div class="status-meta" style="color: #1f6e82;">
+                    <i class="fas fa-sync"></i><span>Generated</span>
+                </div>
+                <div class="status-footnote">Last run {{ current_month }}/{{ current_year }}</div>
+            </article>
+        </div>
+
+        <div class="section-heading">
+            <h5><i class="fas fa-bolt"></i>Quick Automations</h5>
+            <span class="descriptor">Kick off the most common workflows with one click</span>
+        </div>
+        <div class="action-panel mb-5">
+            <div class="action-grid">
+                <button class="action-card" onclick="generateMonthlyReports()">
+                    <span class="action-icon"><i class="fas fa-calendar-alt"></i></span>
+                    <span class="action-title">Monthly CPF & MOM Pack</span>
+                    <span class="action-subtitle">Compile CPF and OED filings for {{ current_month }}/{{ current_year }}</span>
+                </button>
+                <button class="action-card" onclick="generateBankFile()">
+                    <span class="action-icon"><i class="fas fa-money-check-alt"></i></span>
+                    <span class="action-title">Payroll Banking File</span>
+                    <span class="action-subtitle">Create GIRO-ready bank file for the current cycle</span>
+                </button>
+                <button class="action-card" onclick="validateData()">
+                    <span class="action-icon"><i class="fas fa-check-double"></i></span>
+                    <span class="action-title">Data Integrity Scan</span>
+                    <span class="action-subtitle">Run full validation across employee compliance data</span>
+                </button>
+                <button class="action-card" onclick="showDeadlines()">
+                    <span class="action-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                    <span class="action-title">Upcoming Deadlines</span>
+                    <span class="action-subtitle">Visualize key statutory dates and reminders</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="dashboard-main">
+            <div class="row g-4 align-items-stretch">
+                <div class="col-lg-7">
+                    <div class="calendar-card card h-100 p-4">
+                        <div class="section-heading mb-3">
+                            <h5 class="mb-0"><i class="fas fa-calendar-check"></i>Compliance Timeline</h5>
+                            <span class="descriptor">Never miss a filing with contextual scheduling cues</span>
+                        </div>
+                        <ul class="calendar-timeline compliance-calendar">
+                            {% for deadline in deadlines %}
+                            <li class="timeline-item">
+                                <div class="timeline-title">{{ deadline.type }}</div>
+                                <div class="timeline-meta">Next deadline: {{ deadline.date }}</div>
+                                {% if deadline.type == 'CPF Submission' %}
+                                <span class="timeline-badge"><i class="fas fa-sync"></i>Monthly</span>
+                                {% elif deadline.type == 'AIS Filing' %}
+                                <span class="timeline-badge" style="background: rgba(240, 173, 78, 0.22); color: #c77a00;">
+                                    <i class="fas fa-flag"></i>Annual
+                                </span>
+                                {% else %}
+                                <span class="timeline-badge" style="background: rgba(31, 110, 130, 0.18); color: #1f6e82;">
+                                    <i class="fas fa-sync"></i>Monthly
+                                </span>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="alert-card card h-100 p-4">
+                        <div class="section-heading mb-3">
+                            <h5 class="mb-0"><i class="fas fa-bullhorn"></i>Live Alerts</h5>
+                            <span class="descriptor">Real-time notifications from the compliance engine</span>
+                        </div>
+                        <div class="alert-item">
+                            <span class="alert-icon warning"><i class="fas fa-clock"></i></span>
+                            <div>
+                                <strong>CPF Submission Due Soon</strong>
+                                <p class="mb-0 small">Monthly CPF submission is due in 5 days. Review totalling and finalize payment reference.</p>
                             </div>
                         </div>
-                        <div class="col-md-6 col-lg-3 mb-3">
-                            <div class="d-grid">
-                                <button class="btn btn-outline-success" onclick="generateBankFile()">
-                                    <i class="fas fa-money-check-alt me-2"></i>
-                                    <div>Payroll Banking</div>
-                                    <small class="text-muted">GIRO file</small>
-                                </button>
+                        <div class="alert-item">
+                            <span class="alert-icon info"><i class="fas fa-info-circle"></i></span>
+                            <div>
+                                <strong>Work Permit Expiry</strong>
+                                <p class="mb-0 small">Three foreign employee permits expire next month. Track renewal paperwork in MOM portal.</p>
                             </div>
                         </div>
-                        <div class="col-md-6 col-lg-3 mb-3">
-                            <div class="d-grid">
-                                <button class="btn btn-outline-info" onclick="validateData()">
-                                    <i class="fas fa-check-double me-2"></i>
-                                    <div>Data Validation</div>
-                                    <small class="text-muted">Check errors</small>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-lg-3 mb-3">
-                            <div class="d-grid">
-                                <button class="btn btn-outline-warning" onclick="showDeadlines()">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <div>Upcoming Deadlines</div>
-                                    <small class="text-muted">View calendar</small>
-                                </button>
+                        <div class="alert-item mb-0">
+                            <span class="alert-icon success"><i class="fas fa-check-circle"></i></span>
+                            <div>
+                                <strong>All Systems Operational</strong>
+                                <p class="mb-0 small">No blocking compliance issues detected across active entities.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Compliance Calendar -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-calendar-check me-2"></i>Compliance Calendar
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% for deadline in deadlines %}
-                    <div class="d-flex justify-content-between align-items-center py-2 {{ 'border-bottom' if not loop.last }}">
-                        <div>
-                            <h6 class="mb-1">{{ deadline.type }}</h6>
-                            <small class="text-muted">Next deadline: {{ deadline.date }}</small>
-                        </div>
-                        <div>
-                            {% if deadline.type == 'CPF Submission' %}
-                            <span class="badge bg-primary">Monthly</span>
-                            {% elif deadline.type == 'AIS Filing' %}
-                            <span class="badge bg-warning">Annual</span>
-                            {% else %}
-                            <span class="badge bg-info">Monthly</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-exclamation-circle me-2"></i>Compliance Alerts
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-warning d-flex align-items-start mb-3" role="alert">
-                        <i class="fas fa-clock me-2 mt-1"></i>
-                        <div>
-                            <strong>CPF Due Soon</strong>
-                            <p class="mb-0 small">Monthly submission due in 5 days</p>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info d-flex align-items-start mb-3" role="alert">
-                        <i class="fas fa-info-circle me-2 mt-1"></i>
-                        <div>
-                            <strong>Work Permit Expiry</strong>
-                            <p class="mb-0 small">3 employees' permits expiring next month</p>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-success d-flex align-items-start mb-0" role="alert">
-                        <i class="fas fa-check-circle me-2 mt-1"></i>
-                        <div>
-                            <strong>All Systems Normal</strong>
-                            <p class="mb-0 small">No critical compliance issues</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Reports -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history me-2"></i>Recent Compliance Reports
-                    </h5>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="refreshReports()">
-                        <i class="fas fa-sync me-1"></i>Refresh
-                    </button>
-                </div>
-                <div class="card-body">
-                    {% if recent_reports %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Report Type</th>
-                                    <th>Period</th>
-                                    <th>Generated</th>
-                                    <th>Status</th>
-                                    <th>Records</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for report in recent_reports %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {% if report.report_type == 'CPF' %}
-                                            <i class="fas fa-piggy-bank text-primary me-2"></i>
-                                            {% elif report.report_type == 'AIS' %}
-                                            <i class="fas fa-chart-line text-info me-2"></i>
-                                            {% elif report.report_type == 'OED' %}
-                                            <i class="fas fa-globe text-success me-2"></i>
-                                            {% else %}
-                                            <i class="fas fa-university text-warning me-2"></i>
-                                            {% endif %}
-                                            <strong>{{ report.report_type }}</strong>
-                                        </div>
-                                    </td>
-                                    <td>{{ report.period_month }}/{{ report.period_year }}</td>
-                                    <td>
-                                        <small class="text-muted">{{ report.generated_at.strftime('%d/%m/%Y %H:%M') }}</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if report.status == 'Submitted' else 'secondary' }}">
-                                            {{ report.status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="text-muted">{{ report.total_employees or 0 }} employees</span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            {% if report.file_path %}
-                                            <button class="btn btn-outline-primary" onclick="downloadReport('{{ report.file_name }}')">
-                                                <i class="fas fa-download"></i>
-                                            </button>
-                                            {% endif %}
-                                            <button class="btn btn-outline-info" onclick="viewReportDetails({{ report.id }})">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
-                        <h6 class="text-muted">No reports generated yet</h6>
-                        <p class="text-muted mb-3">Generate your first compliance report to see it here</p>
-                        <button class="btn btn-primary" onclick="generateMonthlyReports()">
-                            <i class="fas fa-plus me-1"></i>Generate Reports
+            <div class="reports-card card mt-4 p-4">
+                <div class="section-heading mb-3">
+                    <h5 class="mb-0"><i class="fas fa-history"></i>Recent Compliance Reports</h5>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshReports()">
+                            <i class="fas fa-sync me-1"></i>Refresh
                         </button>
                     </div>
-                    {% endif %}
                 </div>
+                {% if recent_reports %}
+                <div class="table-responsive">
+                    <table class="table reports-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Report Type</th>
+                                <th>Period</th>
+                                <th>Generated</th>
+                                <th>Status</th>
+                                <th>Records</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in recent_reports %}
+                            <tr>
+                                <td>
+                                    <span class="report-chip">
+                                        {% if report.report_type == 'CPF' %}
+                                        <i class="fas fa-piggy-bank"></i>
+                                        {% elif report.report_type == 'AIS' %}
+                                        <i class="fas fa-chart-line"></i>
+                                        {% elif report.report_type == 'OED' %}
+                                        <i class="fas fa-globe"></i>
+                                        {% else %}
+                                        <i class="fas fa-university"></i>
+                                        {% endif %}
+                                        {{ report.report_type }}
+                                    </span>
+                                </td>
+                                <td>{{ report.period_month }}/{{ report.period_year }}</td>
+                                <td><small class="text-muted">{{ report.generated_at.strftime('%d/%m/%Y %H:%M') }}</small></td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if report.status == 'Submitted' else 'secondary' }}">
+                                        {{ report.status }}
+                                    </span>
+                                </td>
+                                <td><span class="text-muted">{{ report.total_employees or 0 }} employees</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        {% if report.file_path %}
+                                        <button class="btn btn-outline-primary" onclick="downloadReport('{{ report.file_name }}')" title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline-info" onclick="viewReportDetails({{ report.id }})" title="View details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-file-alt fa-3x"></i>
+                    <h6 class="text-muted">No reports generated yet</h6>
+                    <p class="mb-3">Kickstart automated reporting to populate this list.</p>
+                    <button class="btn btn-primary" onclick="generateMonthlyReports()">
+                        <i class="fas fa-plus me-1"></i>Generate Reports
+                    </button>
+                </div>
+                {% endif %}
             </div>
-        </div>
-    </div>
 
-    <!-- Singapore Compliance Guidelines -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle me-2"></i>Singapore HR Compliance Guidelines
-                    </h5>
+            <div class="guidelines-card card mt-4 p-4">
+                <div class="section-heading mb-3">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i>Singapore HR Compliance Playbook</h5>
+                    <span class="descriptor">Reference essentials for payroll, tax, and work pass adherence</span>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-primary">
-                                <i class="fas fa-piggy-bank me-1"></i>CPF Contributions
-                            </h6>
-                            <ul class="small mb-3">
-                                <li>Submit monthly by 14th of following month</li>
-                                <li>Employee contribution: 20% (varies by age)</li>
-                                <li>Employer contribution: 17% (varies by age)</li>
-                                <li>Salary ceiling: S$6,000 per month</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-info">
-                                <i class="fas fa-chart-line me-1"></i>AIS (Auto Inclusion Scheme)
-                            </h6>
-                            <ul class="small mb-3">
-                                <li>Annual filing by 31 March</li>
-                                <li>Applies to residents earning ≥ S$2,200/month</li>
-                                <li>Automatic tax clearance for qualifying employees</li>
-                                <li>Electronic submission required</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-success">
-                                <i class="fas fa-globe me-1"></i>MOM OED Filing
-                            </h6>
-                            <ul class="small mb-3">
-                                <li>Monthly declaration by 15th of following month</li>
-                                <li>Required for all foreign employees</li>
-                                <li>Include work permit details and salary</li>
-                                <li>Late filing penalties apply</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-warning">
-                                <i class="fas fa-exclamation-triangle me-1"></i>Important Reminders
-                            </h6>
-                            <ul class="small mb-3">
-                                <li>Maintain accurate employee records</li>
-                                <li>Monitor work permit expiry dates</li>
-                                <li>Ensure proper documentation for all submissions</li>
-                                <li>Keep backup copies of all filed reports</li>
-                            </ul>
-                        </div>
+                <div class="guidelines-grid">
+                    <div class="guideline-card">
+                        <h6><i class="fas fa-piggy-bank"></i>CPF Contributions</h6>
+                        <ul>
+                            <li>Submit monthly contributions by the 14th of the following month.</li>
+                            <li>Employee contribution: typically 20% (age-based tiers apply).</li>
+                            <li>Employer contribution: typically 17% (age-based tiers apply).</li>
+                            <li>Monthly ordinary wage ceiling currently capped at S$6,000.</li>
+                        </ul>
+                    </div>
+                    <div class="guideline-card">
+                        <h6><i class="fas fa-chart-line"></i>AIS (Auto Inclusion Scheme)</h6>
+                        <ul>
+                            <li>Annual filing deadline on 31 March for IRAS submission.</li>
+                            <li>Mandatory for employers with ≥ 5 staff or S$2,200/month salaries.</li>
+                            <li>Ensure complete income records and allowances are captured.</li>
+                            <li>Electronic transmission via IRAS portal is required.</li>
+                        </ul>
+                    </div>
+                    <div class="guideline-card">
+                        <h6><i class="fas fa-globe"></i>MOM OED Declaration</h6>
+                        <ul>
+                            <li>File monthly by the 15th for all foreign employees.</li>
+                            <li>Include salary, occupation, and work permit particulars.</li>
+                            <li>Track pass expiry dates to avoid non-compliance.</li>
+                            <li>Late filing risks fines or suspension from MOM.</li>
+                        </ul>
+                    </div>
+                    <div class="guideline-card">
+                        <h6><i class="fas fa-exclamation-triangle"></i>Operational Safeguards</h6>
+                        <ul>
+                            <li>Maintain auditable employee records for 5 years.</li>
+                            <li>Sync HR and payroll data sources weekly.</li>
+                            <li>Retain proof of submissions and payment receipts.</li>
+                            <li>Schedule quarterly internal compliance reviews.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 
 <!-- Report Generation Modal -->
 <div class="modal fade" id="reportModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-cog me-2"></i>Generate Reports
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title"><i class="fas fa-cog me-2"></i>Generate Reports</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="reportForm">
@@ -392,21 +820,15 @@
                         <label class="form-label">Reports to Generate</label>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="cpfCheck" checked>
-                            <label class="form-check-label" for="cpfCheck">
-                                CPF Submission File
-                            </label>
+                            <label class="form-check-label" for="cpfCheck">CPF Submission File</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="oedCheck" checked>
-                            <label class="form-check-label" for="oedCheck">
-                                MOM OED Declaration
-                            </label>
+                            <label class="form-check-label" for="oedCheck">MOM OED Declaration</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="bankCheck">
-                            <label class="form-check-label" for="bankCheck">
-                                Bank Transfer File
-                            </label>
+                            <label class="form-check-label" for="bankCheck">Bank Transfer File</label>
                         </div>
                     </div>
                 </form>
@@ -422,7 +844,6 @@
 </div>
 
 <script>
-// Quick action functions
 function generateMonthlyReports() {
     const modal = new bootstrap.Modal(document.getElementById('reportModal'));
     modal.show();
@@ -435,12 +856,10 @@ function generateBankFile() {
 }
 
 function validateData() {
-    // Show validation results
     alert('Data validation completed. No errors found.');
 }
 
 function showDeadlines() {
-    // Scroll to deadlines section
     document.querySelector('.compliance-calendar')?.scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -449,8 +868,7 @@ function processReports() {
     const formData = new FormData(form);
     const month = formData.get('month');
     const year = formData.get('year');
-    
-    // Generate selected reports
+
     if (document.getElementById('cpfCheck').checked) {
         window.open(`/compliance/generate/cpf?month=${month}&year=${year}`, '_blank');
     }
@@ -460,41 +878,18 @@ function processReports() {
     if (document.getElementById('bankCheck').checked) {
         window.open(`/compliance/generate/bank?month=${month}&year=${year}`, '_blank');
     }
-    
-    // Close modal
-    bootstrap.Modal.getInstance(document.getElementById('reportModal')).hide();
-    
-    // Show success message
-    setTimeout(() => {
-        alert('Reports generated successfully. Check your downloads folder.');
-    }, 1000);
 }
 
-function downloadReport(filename) {
-    // In a real implementation, this would download the file
-    alert(`Downloading ${filename}...`);
+function downloadReport(fileName) {
+    window.open(`/compliance/reports/download/${fileName}`, '_blank');
 }
 
 function viewReportDetails(reportId) {
-    // Show report details
-    alert(`Viewing details for report ID: ${reportId}`);
+    window.location.href = `/compliance/reports/${reportId}`;
 }
 
 function refreshReports() {
-    location.reload();
+    window.location.reload();
 }
-
-// Initialize tooltips
-document.addEventListener('DOMContentLoaded', function() {
-    // Add month names for template
-    if (typeof calendar === 'undefined') {
-        window.calendar = {
-            month_name: [
-                '', 'January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'
-            ]
-        };
-    }
-});
 </script>
 {% endblock %}

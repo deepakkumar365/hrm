@@ -1,93 +1,250 @@
 {% extends "base.html" %}
 
-{% block title %}Login - TalaTalent{% endblock %}
+{% block title %}Login - Noltrion{% endblock %}
+
+{% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --auth-primary: #2C6705;
+    --auth-accent: #6E9A42;
+    --auth-bg: #F5F9F1;
+    --auth-muted: #4F6A2C;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background-color: var(--auth-bg);
+}
+
+.auth-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.auth-shell {
+    width: min(1040px, 100%);
+    border-radius: 20px;
+    background: var(--auth-bg);
+    box-shadow: 0 28px 48px -36px rgba(44, 103, 5, 0.45);
+    border: 1px solid rgba(44, 103, 5, 0.12);
+    overflow: hidden;
+}
+
+.auth-layout {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.auth-visual {
+    background: linear-gradient(135deg, rgba(44, 103, 5, 0.88), rgba(110, 154, 66, 0.72));
+    padding: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.95);
+    position: relative;
+}
+
+.auth-visual::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.22), transparent 60%),
+                radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.16), transparent 60%);
+    pointer-events: none;
+}
+
+.auth-visual > * {
+    position: relative;
+    z-index: 1;
+}
+
+.auth-photo {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 18px 34px -26px rgba(14, 62, 5, 0.72);
+    margin-top: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.auth-photo img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.auth-form-panel {
+    padding: clamp(2.5rem, 4vw, 3.5rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #ffffff;
+}
+
+.auth-title {
+    font-weight: 700;
+    color: var(--auth-primary);
+    margin-bottom: 0.35rem;
+}
+
+.auth-subtitle {
+    color: var(--auth-muted);
+    margin-bottom: 1.75rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--auth-primary);
+    margin-bottom: 0.45rem;
+}
+
+.form-control {
+    border-radius: 12px;
+    border: 1px solid rgba(44, 103, 5, 0.22);
+    padding: 0.8rem 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.form-control::placeholder {
+    color: rgba(79, 106, 44, 0.58);
+}
+
+.form-control:focus {
+    border-color: rgba(44, 103, 5, 0.55);
+    box-shadow: 0 0 0 0.2rem rgba(110, 154, 66, 0.22);
+}
+
+.btn-auth-submit {
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--auth-primary), var(--auth-accent));
+    border: none;
+    padding: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 16px 28px -22px rgba(44, 103, 5, 0.7);
+}
+
+.btn-auth-submit:hover {
+    background: linear-gradient(135deg, #245704, #5C8A35);
+}
+
+.form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+    color: rgba(79, 106, 44, 0.75);
+}
+
+.form-footer a {
+    color: var(--auth-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.form-footer a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 991.98px) {
+    .auth-shell {
+        border-radius: 20px;
+    }
+
+    .auth-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-visual {
+        display: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .auth-wrapper {
+        padding: 0.5rem;
+        min-height: 100vh;
+    }
+
+    .auth-form-panel {
+        padding: 1.5rem 1rem;
+    }
+    
+    .auth-shell {
+        max-height: 100vh;
+        overflow-y: auto;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow">
-                <div class="card-body p-4">
-                    <div class="text-center mb-4">
-                        <h1 class="display-6 text-primary mb-2">TalaTalent</h1>
-                        <h2><i class="fas fa-sign-in-alt me-2"></i>Login</h2>
-                        <p class="text-muted">Access your HRM account</p>
+<section class="auth-wrapper">
+    <div class="auth-shell">
+        <div class="auth-layout">
+            <aside class="auth-visual">
+                <div>
+                    <h2 class="h4 fw-semibold mb-2">Noltrion HR Portal</h2>
+                    <p class="mb-0">Securely manage attendance, leave, payroll, and employee records in one place.</p>
+                </div>
+                <div class="auth-photo">
+                    <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=900&q=80" alt="HR team collaborating" loading="lazy">
+                </div>
+            </aside>
+
+            <div class="auth-form-panel">
+                <header class="mb-4">
+                    <h1 class="auth-title h3">Sign in to Noltrion</h1>
+                    <p class="auth-subtitle">Use your corporate credentials to access the HR command center.</p>
+                </header>
+
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control", placeholder="Username") }}
+                        {% if form.username.errors %}
+                            <div class="text-danger small mt-2">
+                                {% for error in form.username.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
 
-                    <form method="POST">
-                        {{ form.hidden_tag() }}
-                        
-                        <div class="mb-3">
-                            {{ form.username.label(class="form-label") }}
-                            {{ form.username(class="form-control") }}
-                            {% if form.username.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.username.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.password.label(class="form-label") }}
-                            {{ form.password(class="form-control") }}
-                            {% if form.password.errors %}
-                                <div class="text-danger small">
-                                    {% for error in form.password.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-grid mb-3">
-                            {{ form.submit(class="btn btn-primary") }}
-                        </div>
-                    </form>
-
-                    <hr>
-                    
-                    <div class="card bg-light">
-                        <div class="card-body p-3">
-                            <h6 class="card-title">Default Login Credentials:</h6>
-                            <div class="row">
-                                <div class="col-6">
-                                    <strong>Super Admin:</strong><br>
-                                    <small>
-                                        <strong>User:</strong> superadmin<br>
-                                        <strong>Pass:</strong> superadmin123
-                                    </small>
-                                </div>
-                                <div class="col-6">
-                                    <strong>Admin:</strong><br>
-                                    <small>
-                                        <strong>User:</strong> admin<br>
-                                        <strong>Pass:</strong> admin123
-                                    </small>
-                                </div>
+                    <div class="mb-4">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control", placeholder="Password") }}
+                        {% if form.password.errors %}
+                            <div class="text-danger small mt-2">
+                                {% for error in form.password.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
                             </div>
-                            <div class="row mt-2">
-                                <div class="col-6">
-                                    <strong>Manager:</strong><br>
-                                    <small>
-                                        <strong>User:</strong> manager<br>
-                                        <strong>Pass:</strong> manager123
-                                    </small>
-                                </div>
-                                <div class="col-6">
-                                    <strong>User:</strong><br>
-                                    <small>
-                                        <strong>User:</strong> user<br>
-                                        <strong>Pass:</strong> user123
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
+                        {% endif %}
                     </div>
+
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary btn-auth-submit") }}
+                    </div>
+                </form>
+
+                <div class="form-footer">
+                    <span>Need assistance?</span>
+                    <a href="#">Contact support</a>
                 </div>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}

@@ -141,7 +141,6 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data) and user.is_active:
             login_user(user)
-            flash(f'Welcome back, {user.first_name}!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(
                 url_for('dashboard'))
@@ -179,7 +178,6 @@ def register():
 def logout():
     """User logout"""
     logout_user()
-    flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
 
@@ -262,10 +260,14 @@ def dashboard():
                     'date': leave.created_at
                 })
 
+    default_calendar_endpoint = 'leave_calendar' if 'leave_calendar' in app.view_functions else 'leave_request'
+    leave_calendar_url = url_for(default_calendar_endpoint)
+
     return render_template('dashboard.html',
                            stats=stats,
                            recent_activities=recent_activities,
-                           moment=datetime.now)
+                           moment=datetime.now,
+                           leave_calendar_url=leave_calendar_url)
 
 
 # Employee Management Routes

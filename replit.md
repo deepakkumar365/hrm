@@ -1,4 +1,4 @@
-# TalaTalent - Singapore Human Resource Management
+# Noltrion - Singapore Human Resource Management
 
 ## Overview
 

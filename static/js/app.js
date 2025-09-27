@@ -1,5 +1,5 @@
 /**
- * TalaTalent - Mobile-First JavaScript
+ * Noltrion - Mobile-First JavaScript
  * Progressive Web App functionality and mobile optimizations
  */
 
@@ -17,7 +17,7 @@ class HRMApp {
         this.initializeMobileOptimizations();
         this.setupAttendanceFeatures();
         this.initializeNotifications();
-        console.log('TalaTalent initialized');
+        console.log('Noltrion initialized');
     }
 
     setupEventListeners() {

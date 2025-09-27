@@ -1,8 +1,8 @@
-# TalaTalent Render Deployment Guide
+# Noltrion Render Deployment Guide
 
 ## Required Files for Render Deployment
 
-The following files are required to deploy TalaTalent HRM system on Render:
+The following files are required to deploy Noltrion HRM system on Render:
 
 ### 1. `render.yaml` - Main deployment configuration
 Configures the web service and PostgreSQL database with automatic environment variables.
@@ -33,7 +33,7 @@ Shows the required environment variables (don't deploy this file).
 1. **Create PostgreSQL Database:**
    - Go to Render Dashboard
    - Create new PostgreSQL database
-   - Name: `talatalent-db`
+   - Name: `noltrion-db`
    - Save the connection string
 
 2. **Create Web Service:**

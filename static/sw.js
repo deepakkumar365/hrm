@@ -1,5 +1,5 @@
-// Simple Service Worker for TalaTalent
-const CACHE_NAME = 'talatalent-v1';
+// Simple Service Worker for Noltrion
+const CACHE_NAME = 'noltrion-v1';
 const urlsToCache = [
     '/',
     '/static/css/styles.css',

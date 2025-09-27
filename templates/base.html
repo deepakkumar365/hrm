@@ -6,13 +6,18 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>{% block title %}20Cube{% endblock %}</title>
+    <title>{% block title %}Noltrion{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <!-- Font Awesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Main CSS - includes responsive design -->
     <link href="{{ url_for('static', filename='css/styles.css') }}?v=20250922" rel="stylesheet">
@@ -26,15 +31,16 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <!-- Professional Corporate Header -->
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('index') }}">
-                <i class="fas fa-building me-2"></i>TalaTalent
+                <i class="fas fa-building"></i>
+                Noltrion
             </a>
             
             {% if current_user.is_authenticated %}
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             
@@ -42,131 +48,140 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i class="fas fa-home me-1"></i>Home
+                            <i class="fas fa-home"></i>
+                            Dashboard
                         </a>
                     </li>
                     
                     {% if current_user.role in ['Super Admin', 'Admin', 'Manager'] %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-users me-1"></i>Employees
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-users"></i>
+                            Employees
                         </a>
                         <ul class="dropdown-menu">
-
                             {% if current_user.role in ['Super Admin', 'Admin'] %}
                             <li><a class="dropdown-item" href="{{ url_for('employee_add') }}">
-                                <i class="fas fa-plus me-1"></i>Add Employee
+                                <i class="fas fa-plus"></i>
+                                Add Employee
                             </a></li>
                             {% endif %}
-                               <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
-                                <i class="fas fa-list me-1"></i>Employee List
+                            <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
+                                <i class="fas fa-list"></i>
+                                Employee List
                             </a></li>
                         </ul>
                     </li>
                     {% endif %}
                     
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-calendar-check me-1"></i>Attendance
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-calendar-check"></i>
+                            Attendance
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
-                                <i class="fas fa-clock me-1"></i>Mark Attendance
+                                <i class="fas fa-clock"></i>
+                                Mark Attendance
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('attendance_list') }}">
-                                <i class="fas fa-list me-1"></i>View Records
+                                <i class="fas fa-list"></i>
+                                View Records
                             </a></li>
                         </ul>
                     </li>
                     
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-plane-departure me-1"></i>Leave
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-plane-departure"></i>
+                            Leave
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
-                                <i class="fas fa-plus me-1"></i>Request Leave
+                                <i class="fas fa-plus"></i>
+                                Request Leave
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('leave_list') }}">
-                                <i class="fas fa-list me-1"></i>View Requests
+                                <i class="fas fa-list"></i>
+                                View Requests
                             </a></li>
                         </ul>
                     </li>
                     
                     {% if current_user.role in ['Super Admin', 'Admin', 'Manager'] %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-dollar-sign me-1"></i>Payroll
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-dollar-sign"></i>
+                            Payroll
                         </a>
                         <ul class="dropdown-menu">
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('payroll_list') }}">
-                                    <i class="fas fa-list me-1"></i>Payroll List
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('payroll_generate') }}">
-                                    <i class="fas fa-calculator me-1"></i>Generate Payroll
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('payroll_config') }}">
-                                    <i class="fas fa-sliders-h me-1"></i>Payroll Configuration
-                                </a>
-                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('payroll_list') }}">
+                                <i class="fas fa-list"></i>
+                                Payroll List
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('payroll_generate') }}">
+                                <i class="fas fa-calculator"></i>
+                                Generate Payroll
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('payroll_config') }}">
+                                <i class="fas fa-sliders-h"></i>
+                                Payroll Configuration
+                            </a></li>
                         </ul>
                     </li>
                     {% endif %}
                     
                     {% if current_user.role in ['Super Admin', 'Admin'] %}
-
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <i class="fas fa-cogs me-1"></i>Masters
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cogs"></i>
+                            Masters
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('role_list') }}">
-                                <i class="fas fa-user-tag me-1"></i>Roles
+                                <i class="fas fa-user-tag"></i>
+                                Roles
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('department_list') }}">
-                                <i class="fas fa-building me-1"></i>Departments
+                                <i class="fas fa-building"></i>
+                                Departments
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('working_hours_list') }}">
-                                <i class="fas fa-clock me-1"></i>Working Hours
+                                <i class="fas fa-clock"></i>
+                                Working Hours
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('work_schedule_list') }}">
-                                <i class="fas fa-calendar-alt me-1"></i>Work Schedules
+                                <i class="fas fa-calendar-alt"></i>
+                                Work Schedules
                             </a></li>
                         </ul>
                     </li>
-<!--                    <li class="nav-item">-->
-<!--                        <a class="nav-link" href="{{ url_for('user_management') }}">-->
-<!--                            <i class="fas fa-user-cog me-1"></i>Users-->
-<!--                        </a>-->
-<!--                    </li>-->
                     {% endif %}
                 </ul>
                 
+                <!-- Profile Dropdown -->
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            <span class="profile-image-container me-1" style="width:24px;height:24px;">
-                                <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.profile_image_path else 'data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 100 100&quot;><circle cx=&quot;50&quot; cy=&quot;50&quot; r=&quot;40&quot; fill=&quot;%23007bff&quot;/><text x=&quot;50&quot; y=&quot;60&quot; text-anchor=&quot;middle&quot; fill=&quot;white&quot; font-size=&quot;40&quot;>👤</text></svg>' }}" alt="Profile">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="profile-image-container">
+                                <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.profile_image_path else 'data:image/svg+xml,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; viewBox=&quot;0 0 100 100&quot;><circle cx=&quot;50&quot; cy=&quot;50&quot; r=&quot;40&quot; fill=&quot;%23ffffff&quot;/><text x=&quot;50&quot; y=&quot;60&quot; text-anchor=&quot;middle&quot; fill=&quot;%232D6A4F&quot; font-size=&quot;40&quot;>👤</text></svg>' }}" alt="Profile">
                             </span>
                             {{ current_user.first_name or 'User' }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><span class="dropdown-item-text">
-                                <small class="text-muted">{{ current_user.role }}</small>
+                                <small style="color: var(--grey-500);">{{ current_user.role }}</small>
                             </span></li>
                             <li><hr class="dropdown-divider"></li>
                             {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile %}
                             <li><a class="dropdown-item" href="{{ url_for('profile') }}">
-                                <i class="fas fa-user me-1"></i>My Profile
+                                <i class="fas fa-user"></i>
+                                My Profile
                             </a></li>
                             {% endif %}
                             <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
                             </a></li>
                         </ul>
                     </li>
@@ -194,26 +209,23 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Mobile quick actions floating button -->
+    <!-- Mobile Floating Action Button -->
     {% if current_user.is_authenticated and current_user.role == 'User' %}
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
-        <div class="dropdown dropup">
-            <button class="btn btn-primary rounded-circle shadow" style="width: 56px; height: 56px;" 
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-plus"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end mb-2">
-                <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
-                    <i class="fas fa-clock me-2"></i>Mark Attendance
-                </a></li>
-                <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
-                    <i class="fas fa-plane-departure me-2"></i>Request Leave
-                </a></li>
-                <li><a class="dropdown-item" href="{{ url_for('claims_submit') }}">
-                    <i class="fas fa-receipt me-2"></i>Submit Claim
-                </a></li>
-            </ul>
-        </div>
+    <div class="dropdown dropup position-fixed" style="bottom: 1.5rem; right: 1.5rem; z-index: 1050;">
+        <button class="fab" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-plus"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end mb-2">
+            <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
+                <i class="fas fa-clock"></i>Mark Attendance
+            </a></li>
+            <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
+                <i class="fas fa-plane-departure"></i>Request Leave
+            </a></li>
+            <li><a class="dropdown-item" href="{{ url_for('claims_submit') }}">
+                <i class="fas fa-receipt"></i>Submit Claim
+            </a></li>
+        </ul>
     </div>
     {% endif %}
 
