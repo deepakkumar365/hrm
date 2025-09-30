@@ -23,7 +23,7 @@
                     {% endif %}
                 </div>
                 <div class="btn-group">
-                    {% if current_user.role == 'Admin' %}
+                    {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
                     <a href="{{ url_for('employee_edit', employee_id=employee.id) }}" class="btn btn-primary">
                         <i class="fas fa-edit me-1"></i>Edit
                     </a>
@@ -248,7 +248,7 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        {% if current_user.role in ['Admin', 'Manager'] %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                         <a href="{{ url_for('payroll_list', employee=employee.id) }}" class="btn btn-outline-primary">
                             <i class="fas fa-dollar-sign me-1"></i>View Payroll
                         </a>
@@ -259,7 +259,7 @@
                             <i class="fas fa-calendar-check me-1"></i>Attendance
                         </a>
                         {% endif %}
-                        {% if current_user.role == 'Admin' %}
+                        {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
                         <hr>
                         <a href="{{ url_for('appraisal_create') }}?employee_id={{ employee.id }}" class="btn btn-outline-success">
                             <i class="fas fa-star me-1"></i>Create Appraisal

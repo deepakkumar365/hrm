@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 import os
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
@@ -47,12 +48,14 @@ except Exception:
     pass
 
 db = SQLAlchemy(app, model_class=Base)
+migrate = Migrate(app, db)
+
+# Import models so they're registered with SQLAlchemy metadata
+import models  # noqa: E402,F401
 
 # Add hasattr to Jinja2 global functions
 app.jinja_env.globals['hasattr'] = hasattr
 
-# Create tables
-with app.app_context():
-    import models  # noqa: F401
-    db.create_all()
-    logging.info("Database tables created")
+# Import seed after models to avoid circular import
+from seed import seed
+app.cli.add_command(seed)

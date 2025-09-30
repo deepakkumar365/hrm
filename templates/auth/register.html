@@ -90,7 +90,7 @@
                             </div>
                         </div>
 
-                        {% if current_user.is_authenticated and current_user.role in ['Super Admin', 'Admin'] %}
+                        {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin'] %}
                         <div class="mb-3">
                             {{ form.role.label(class="form-label") }}
                             {{ form.role(class="form-select") }}
