@@ -29,7 +29,9 @@ def require_role(allowed_roles):
         @wraps(f)
         @require_login
         def decorated_function(*args, **kwargs):
-            if current_user.role not in allowed_roles:
+            # Use role.name to compare with allowed roles (role is a relationship object)
+            user_role = current_user.role.name if current_user.role else None
+            if user_role not in allowed_roles:
                 return render_template("403.html"), 403
             return f(*args, **kwargs)
         return decorated_function

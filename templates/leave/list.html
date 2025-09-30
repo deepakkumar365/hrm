@@ -41,7 +41,7 @@
                                 <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
                             </select>
                         </div>
-                        {% if current_user.role in ['Admin', 'Manager'] and employees %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and employees %}
                         <div class="col-md-4">
                             <select name="employee" class="form-select">
                                 <option value="">All Employees</option>
@@ -71,7 +71,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                        {% if current_user.role in ['Admin', 'Manager'] %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                         <h6 class="mb-1">{{ leave.employee.first_name }} {{ leave.employee.last_name }}</h6>
                         <p class="text-muted small mb-0">{{ leave.employee.employee_id }}</p>
                         {% endif %}
@@ -113,9 +113,9 @@
                     <!-- Check if user can edit this leave request -->
                     {% if current_user.employee_profile and leave.employee_id == current_user.employee_profile.id %}
                         {% set can_edit = true %}
-                    {% elif current_user.role == 'Manager' and current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
+                    {% elif (current_user.role.name if current_user.role else None) == 'Manager' and current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
                         {% set can_edit = true %}
-                    {% elif current_user.role in ['Admin', 'Super Admin'] %}
+                    {% elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin'] %}
                         {% set can_edit = true %}
                     {% endif %}
                     
@@ -126,7 +126,7 @@
                         </a>
                         {% endif %}
                         
-                        {% if current_user.role in ['Admin', 'Manager', 'Super Admin'] %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'Super Admin'] %}
                         <button class="btn btn-sm btn-success" onclick="approveLeave({{ leave.id }}, 'approve')">
                             <i class="fas fa-check me-1"></i>Approve
                         </button>
@@ -149,7 +149,7 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                             <th>Employee</th>
                             {% endif %}
                             <th>Leave Type</th>
@@ -165,7 +165,7 @@
                     <tbody>
                         {% for leave in leave_requests.items %}
                         <tr>
-                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                             <td>
                                 <div>
                                     <strong>{{ leave.employee.first_name }} {{ leave.employee.last_name }}</strong>
@@ -204,9 +204,9 @@
                                         <!-- Check if user can edit this leave request -->
                                         {% if current_user.employee_profile and leave.employee_id == current_user.employee_profile.id %}
                                             {% set can_edit = true %}
-                                        {% elif current_user.role == 'Manager' and current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
+                                        {% elif (current_user.role.name if current_user.role else None) == 'Manager' and current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
                                             {% set can_edit = true %}
-                                        {% elif current_user.role in ['Admin', 'Super Admin'] %}
+                                        {% elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin'] %}
                                             {% set can_edit = true %}
                                         {% endif %}
                                         
@@ -216,7 +216,7 @@
                                         </a>
                                         {% endif %}
                                         
-                                        {% if current_user.role in ['Admin', 'Manager', 'Super Admin'] %}
+                                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'Super Admin'] %}
                                         <button class="btn btn-outline-success" onclick="approveLeave({{ leave.id }}, 'approve')" title="Approve">
                                             <i class="fas fa-check"></i>
                                         </button>
@@ -241,8 +241,8 @@
     <div class="text-center py-5">
         <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
         <h5 class="text-muted">No leave requests found</h5>
-        <p class="text-muted">{% if current_user.role == 'Employee' %}Submit your first leave request to see it here{% else %}No leave requests match your criteria{% endif %}</p>
-        {% if current_user.role == 'Employee' %}
+        <p class="text-muted">{% if (current_user.role.name if current_user.role else None) == 'Employee' %}Submit your first leave request to see it here{% else %}No leave requests match your criteria{% endif %}</p>
+        {% if (current_user.role.name if current_user.role else None) == 'Employee' %}
         <a href="{{ url_for('leave_request') }}" class="btn btn-primary">
             <i class="fas fa-plus me-1"></i>Request Leave
         </a>

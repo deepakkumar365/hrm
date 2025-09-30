@@ -21,7 +21,7 @@
                     <a href="{{ url_for('claim_add') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>Submit Claim
                     </a>
-                    {% if current_user.role in ['Admin', 'Manager'] %}
+                    {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                     <a href="#" class="btn btn-outline-secondary">
                         <i class="fas fa-download me-1"></i>Export
                     </a>
@@ -46,7 +46,7 @@
                                 <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
                             </select>
                         </div>
-                        {% if current_user.role in ['Admin', 'Manager'] and employees %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and employees %}
                         <div class="col-md-4">
                             <select name="employee" class="form-select">
                                 <option value="">All Employees</option>
@@ -70,7 +70,7 @@
     </div>
 
     <!-- Summary Cards -->
-    {% if current_user.role == 'Employee' %}
+    {% if (current_user.role.name if current_user.role else None) == 'Employee' %}
     <div class="row mb-4">
         <div class="col-6 col-md-3">
             <div class="card text-center">
@@ -118,7 +118,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                        {% if current_user.role in ['Admin', 'Manager'] %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                         <h6 class="mb-1">{{ claim.employee.first_name }} {{ claim.employee.last_name }}</h6>
                         <p class="text-muted small mb-0">{{ claim.employee.employee_id }}</p>
                         {% endif %}
@@ -147,7 +147,7 @@
                 </div>
                 {% endif %}
                 
-                {% if current_user.role in ['Admin', 'Manager'] and claim.status == 'Pending' %}
+                {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and claim.status == 'Pending' %}
                 <div class="mt-3 pt-2 border-top">
                     <div class="btn-group w-100">
                         <button class="btn btn-sm btn-success" onclick="approveClaim({{ claim.id }}, 'approve')">
@@ -171,7 +171,7 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                             <th>Employee</th>
                             {% endif %}
                             <th>Claim Type</th>
@@ -181,7 +181,7 @@
                             <th>Description</th>
                             <th>Status</th>
                             <th>Submitted On</th>
-                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                             <th>Actions</th>
                             {% endif %}
                         </tr>
@@ -189,7 +189,7 @@
                     <tbody>
                         {% for claim in claims.items %}
                         <tr>
-                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                             <td>
                                 <div>
                                     <strong>{{ claim.employee.first_name }} {{ claim.employee.last_name }}</strong>
@@ -227,7 +227,7 @@
                                 {% endif %}
                             </td>
                             <td>{{ claim.created_at.strftime('%d/%m/%Y') }}</td>
-                            {% if current_user.role in ['Admin', 'Manager'] %}
+                            {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
                             <td>
                                 {% if claim.status == 'Pending' %}
                                 <div class="btn-group btn-group-sm">
@@ -256,13 +256,13 @@
         <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
         <h5 class="text-muted">No claims found</h5>
         <p class="text-muted">
-            {% if current_user.role == 'Employee' %}
+            {% if (current_user.role.name if current_user.role else None) == 'Employee' %}
             Submit your first claim to see it here
             {% else %}
             No claims match your current filters
             {% endif %}
         </p>
-        {% if current_user.role == 'Employee' %}
+        {% if (current_user.role.name if current_user.role else None) == 'Employee' %}
         <a href="{{ url_for('claims_submit') }}" class="btn btn-primary">
             <i class="fas fa-plus me-1"></i>Submit First Claim
         </a>
@@ -346,7 +346,7 @@
 // Load summary statistics for employee view
 function loadSummaryStats() {
     // Mock data - in real app, fetch from API
-    {% if current_user.role == 'Employee' %}
+    {% if (current_user.role.name if current_user.role else None) == 'Employee' %}
     document.getElementById('pendingCount').textContent = '{{ claims.items | selectattr("status", "equalto", "Pending") | list | length }}';
     document.getElementById('approvedCount').textContent = '{{ claims.items | selectattr("status", "equalto", "Approved") | list | length }}';
     document.getElementById('totalAmount').textContent = 'S$ {{ "{:,.2f}".format(claims.items | sum(attribute="amount") | float) }}';

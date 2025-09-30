@@ -17,7 +17,7 @@
                         </ol>
                     </nav>
                 </div>
-                {% if current_user.role == 'Admin' %}
+                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin'] %}
                 <div class="btn-group">
                     <a href="{{ url_for('payroll_generate') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>Generate Payroll
@@ -66,7 +66,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        {% if current_user.role == 'Admin' %}
+                        {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
                         <div class="col-md-4">
                             <select name="employee" class="form-select">
                                 <option value="">All Employees</option>
@@ -130,7 +130,7 @@
                            class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-file-invoice me-1"></i>Payslip
                         </a>
-                        {% if current_user.role == 'Admin' and payroll.status == 'Draft' %}
+                        {% if (current_user.role.name if current_user.role else None) == 'Admin' and payroll.status == 'Draft' %}
                         <button class="btn btn-sm btn-outline-success" onclick="approvePayroll({{ payroll.id }})">
                             <i class="fas fa-check me-1"></i>Approve
                         </button>
@@ -187,7 +187,7 @@
                                        class="btn btn-outline-primary">
                                         <i class="fas fa-file-invoice"></i>
                                     </a>
-                                    {% if current_user.role == 'Admin' and payroll.status == 'Draft' %}
+                                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin'] and payroll.status == 'Draft' %}
                                     <button class="btn btn-outline-success" onclick="approvePayroll({{ payroll.id }})">
                                         <i class="fas fa-check"></i>
                                     </button>
@@ -207,7 +207,7 @@
         <i class="fas fa-file-invoice-dollar fa-3x text-muted mb-3"></i>
         <h5 class="text-muted">No payroll records found</h5>
         <p class="text-muted">Generate payroll for your employees to see records here</p>
-        {% if current_user.role == 'Admin' %}
+        {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
         <a href="{{ url_for('payroll_generate') }}" class="btn btn-primary">
             <i class="fas fa-plus me-1"></i>Generate First Payroll
         </a>

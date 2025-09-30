@@ -53,26 +53,22 @@
                         </a>
                     </li>
                     
-                    {% if current_user.role in ['Super Admin', 'Admin', 'Manager'] %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-users"></i>
                             Employees
                         </a>
                         <ul class="dropdown-menu">
-                            {% if current_user.role in ['Super Admin', 'Admin'] %}
                             <li><a class="dropdown-item" href="{{ url_for('employee_add') }}">
                                 <i class="fas fa-plus"></i>
                                 Add Employee
                             </a></li>
-                            {% endif %}
                             <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
                                 <i class="fas fa-list"></i>
                                 Employee List
                             </a></li>
                         </ul>
                     </li>
-                    {% endif %}
                     
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -108,7 +104,6 @@
                         </ul>
                     </li>
                     
-                    {% if current_user.role in ['Super Admin', 'Admin', 'Manager'] %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-dollar-sign"></i>
@@ -129,9 +124,7 @@
                             </a></li>
                         </ul>
                     </li>
-                    {% endif %}
                     
-                    {% if current_user.role in ['Super Admin', 'Admin'] %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-cogs"></i>
@@ -156,7 +149,6 @@
                             </a></li>
                         </ul>
                     </li>
-                    {% endif %}
                 </ul>
                 
                 <!-- Profile Dropdown -->
@@ -170,7 +162,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><span class="dropdown-item-text">
-                                <small style="color: var(--grey-500);">{{ current_user.role }}</small>
+                                <small style="color: var(--grey-500);">{{ current_user.role.name if current_user.role else 'None' }}</small>
                             </span></li>
                             <li><hr class="dropdown-divider"></li>
                             {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile %}
@@ -210,7 +202,7 @@
     </main>
 
     <!-- Mobile Floating Action Button -->
-    {% if current_user.is_authenticated and current_user.role == 'User' %}
+    {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) == 'User' %}
     <div class="dropdown dropup position-fixed" style="bottom: 1.5rem; right: 1.5rem; z-index: 1050;">
         <button class="fab" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="fas fa-plus"></i>
