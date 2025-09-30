@@ -1196,114 +1196,47 @@ a:hover {
     color: white;
 }
 
-/* ===== PROFILE EDIT LAYOUT ===== */
-.profile-edit-layout {
-    padding: var(--spacing-4);
-    max-width: 100%;
-    margin: 0 auto;
-}
-
-.profile-edit-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--spacing-4);
-    margin-bottom: var(--spacing-4);
-}
-
-.profile-edit-layout .section-card {
-    background: white;
-    border: 1px solid var(--grey-200);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-4);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    height: fit-content;
-}
-
-.profile-edit-layout .section-card h3 {
-    color: var(--primary-green);
-    font-size: var(--font-size-lg);
+.filter-card .card-header, .filter-card .filter-header {
+    background: #0A7A39;
+    color: #fff;
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
-    margin-bottom: var(--spacing-3);
-    padding-bottom: var(--spacing-2);
-    border-bottom: 2px solid var(--grey-100);
+    padding: var(--spacing-2) var(--spacing-4); /* Reduced vertical padding */
+    min-height: 2.5rem; /* Ensures compact height */
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    border-bottom: 1px solid var(--primary-green-dark);
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
 }
 
-.profile-edit-layout .section-card h3 i {
-    color: var(--primary-green);
-    font-size: var(--font-size-base);
-}
-
-.profile-edit-layout .form-label {
-    color: var(--grey-700);
-    font-weight: var(--font-weight-medium);
-    margin-bottom: var(--spacing-2);
-    font-size: var(--font-size-sm);
-}
-
-.profile-edit-layout .form-control,
-.profile-edit-layout .form-select {
-    border: 1px solid var(--grey-300);
-    border-radius: var(--radius-sm);
-    padding: var(--spacing-3);
-    font-size: var(--font-size-sm);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.profile-edit-layout .form-control:focus,
-.profile-edit-layout .form-select:focus {
-    border-color: var(--primary-green);
-    box-shadow: 0 0 0 0.2rem rgba(45, 106, 79, 0.25);
-    outline: none;
-}
-
-.profile-edit-layout .btn-primary {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
-    color: white;
-    font-weight: var(--font-weight-medium);
-    padding: var(--spacing-3) var(--spacing-4);
-    border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
-}
-
-.profile-edit-layout .btn-primary:hover {
-    background-color: var(--success-green);
-    border-color: var(--success-green);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(45, 106, 79, 0.3);
-}
-
-.profile-edit-layout .btn-secondary {
-    background-color: var(--grey-100);
-    border-color: var(--grey-300);
-    color: var(--grey-700);
-    font-weight: var(--font-weight-medium);
-    padding: var(--spacing-3) var(--spacing-4);
-    border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
-}
-
-.profile-edit-layout .btn-secondary:hover {
-    background-color: var(--grey-200);
-    border-color: var(--grey-400);
-    color: var(--grey-800);
-}
-
-/* Responsive adjustments for profile edit */
 @media (max-width: 768px) {
-    .profile-edit-layout {
-        padding: var(--spacing-3);
+    .filter-card .card-header, .filter-card .filter-header {
+        font-size: var(--font-size-sm);
+        padding: var(--spacing-2) var(--spacing-3);
+        min-height: 2.2rem;
     }
-    
-    .profile-edit-grid {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-3);
-    }
-    
-    .profile-edit-layout .section-card {
-        padding: var(--spacing-3);
-    }
+}
+
+/* Filter header buttons and dropdowns */
+.filter-card .card-header .btn,
+.filter-card .filter-header .btn {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid #fff;
+    font-weight: var(--font-weight-medium);
+    margin-left: var(--spacing-2);
+    transition: background 0.2s, color 0.2s;
+}
+.filter-card .card-header .btn:hover,
+.filter-card .filter-header .btn:hover {
+    background: #fff;
+    color: #0A7A39;
+    border-color: #fff;
+}
+.filter-card .card-header .dropdown-menu,
+.filter-card .filter-header .dropdown-menu {
+    background: #fff;
+    color: #222;
 }
