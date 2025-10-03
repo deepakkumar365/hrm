@@ -1157,6 +1157,16 @@ a:hover {
     align-items: center;
 }
 
+.card-header-green h5,
+.card-header-green h1,
+.card-header-green h2,
+.card-header-green h3,
+.card-header-green h4,
+.card-header-green h6,
+.card-header-green i {
+    color: white !important;
+}
+
 .filter-card .card-body {
     padding: var(--spacing-4);
     background: white;

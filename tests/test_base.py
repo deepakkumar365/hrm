@@ -156,8 +156,8 @@ class TestBaseIntegration:
                     test_field = Column(String(50))
                 
                 # Try to create the table
-                db.create_all()
-                
+                # db.create_all()  # Removed. Use Alembic/Flask-Migrate for schema management.
+
                 # Verify table exists in metadata
                 assert 'db_test_model_temp' in Base.metadata.tables
                 

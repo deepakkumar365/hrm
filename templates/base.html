@@ -84,6 +84,13 @@
                                 <i class="fas fa-list"></i>
                                 View Records
                             </a></li>
+                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('attendance_bulk_manage') }}">
+                                <i class="fas fa-users"></i>
+                                Bulk Management
+                            </a></li>
+                            {% endif %}
                         </ul>
                     </li>
                     

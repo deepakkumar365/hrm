@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Attendance Management - Noltrion{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-1">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <!-- Breadcrumb navigation -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ url_for('attendance_list') }}">Attendance</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Bulk Management</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="btn-group">
+                    <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-1"></i>View Records
+                    </a>
+                </div>
+            </div>
+
+            <hr class="mt-0 mb-3">
+        </div>
+    </div>
+
+            <!-- Date Selection and Actions -->
+            <form method="GET" class="filter-card">
+                <div class="card-header">
+                    <i class="fas fa-calendar-alt me-2"></i>Date Selection & Actions
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="date" class="form-label">Select Date</label>
+                            <input type="date" id="date" name="date" class="form-control" 
+                                   value="{{ selected_date }}" max="{{ date.today() }}" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-search me-1"></i>Load Date
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-calendar-day text-success fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">{{ filter_date.strftime('%B %d, %Y') }}</h6>
+                                    <small class="text-muted">{{ employees|length }} employee{{ 's' if employees|length != 1 else '' }} • {{ filter_date.strftime('%A') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex gap-1 justify-content-end">
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAll(false)"
+                                        title="Mark all employees as present">
+                                    <i class="fas fa-check-circle me-1"></i>All Present
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="selectAll(true)"
+                                        title="Mark all employees as absent">
+                                    <i class="fas fa-times-circle me-1"></i>All Absent
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Auto Create Button Row -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Check employees to mark as <strong>Absent</strong>. Unchecked employees will be marked as <strong>Present</strong>.
+                                </small>
+                                <form method="POST" action="{{ url_for('attendance_auto_create') }}" class="d-inline">
+                                    <input type="hidden" name="date" value="{{ selected_date }}">
+                                    <button type="submit" class="btn btn-success" 
+                                            onclick="return confirm('Create attendance records for all employees on {{ filter_date.strftime('%B %d, %Y') }}?')"
+                                            title="Auto-create attendance for all employees">
+                                        <i class="fas fa-plus me-1"></i>Auto Create All Records
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+    <!-- Bulk Attendance Management Form -->
+    <div class="row">
+        <div class="col-12">
+            <form method="POST">
+                <input type="hidden" name="date" value="{{ selected_date }}">
+                
+                <div class="table-container">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>Employee Attendance - {{ filter_date.strftime('%B %d, %Y') }}
+                        </h5>
+                    </div>
+                    
+                    <div class="card-body p-0">
+                        {% if employees %}
+                        <!-- Desktop Table -->
+                        <div class="d-none d-md-block">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="50">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="selectAllCheckbox" 
+                                                           onchange="toggleSelectAll()">
+                                                    <label class="form-check-label" for="selectAllCheckbox">
+                                                        <small>Absent</small>
+                                                    </label>
+                                                </div>
+                                            </th>
+                                            <th>Employee</th>
+                                            <th>Department</th>
+                                            <th>Position</th>
+                                            <th>Current Status</th>
+                                            <th>Hours</th>
+                                            <th>Last Updated</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for employee in employees %}
+                                        {% set attendance = attendance_records[employee.id] %}
+                                        <tr class="attendance-row" data-employee-id="{{ employee.id }}">
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input employee-checkbox" 
+                                                           type="checkbox" 
+                                                           name="absent_employees" 
+                                                           value="{{ employee.id }}"
+                                                           id="emp_{{ employee.id }}"
+                                                           {% if attendance and attendance.status == 'Absent' %}checked{% endif %}>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if employee.profile_image_path %}
+                                                    <img src="{{ url_for('static', filename=employee.profile_image_path) }}" 
+                                                         class="rounded-circle me-2" width="32" height="32" alt="Profile">
+                                                    {% else %}
+                                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                                                         style="width: 32px; height: 32px; font-size: 14px;">
+                                                        {{ employee.first_name[0] }}{{ employee.last_name[0] }}
+                                                    </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong>{{ employee.first_name }} {{ employee.last_name }}</strong>
+                                                        <br><small class="text-muted">{{ employee.employee_id }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>{{ employee.department or '-' }}</td>
+                                            <td>{{ employee.position }}</td>
+                                            <td>
+                                                <span class="status-badge badge bg-{{ 'success' if attendance and attendance.status == 'Present' else 'danger' if attendance and attendance.status == 'Absent' else 'warning' }}">
+                                                    {{ attendance.status if attendance else 'Present' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if attendance %}
+                                                    {% if attendance.status == 'Present' %}
+                                                        <span class="text-success">{{ attendance.total_hours or 8 }}h</span>
+                                                        {% if attendance.overtime_hours > 0 %}
+                                                        <br><small class="text-warning">+{{ attendance.overtime_hours }}h OT</small>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">0h</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-success">8h</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if attendance %}
+                                                <small class="text-muted">
+                                                    {{ attendance.updated_at.strftime('%H:%M') if attendance.updated_at else '-' }}
+                                                </small>
+                                                {% else %}
+                                                <small class="text-muted">-</small>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Cards -->
+                        <div class="d-md-none p-3">
+                            {% for employee in employees %}
+                            {% set attendance = attendance_records[employee.id] %}
+                            <div class="card mb-3 attendance-card" data-employee-id="{{ employee.id }}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="d-flex align-items-center">
+                                            {% if employee.profile_image_path %}
+                                            <img src="{{ url_for('static', filename=employee.profile_image_path) }}" 
+                                                 class="rounded-circle me-2" width="40" height="40" alt="Profile">
+                                            {% else %}
+                                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                                                 style="width: 40px; height: 40px;">
+                                                {{ employee.first_name[0] }}{{ employee.last_name[0] }}
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-0">{{ employee.first_name }} {{ employee.last_name }}</h6>
+                                                <small class="text-muted">{{ employee.employee_id }}</small>
+                                            </div>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input employee-checkbox" 
+                                                   type="checkbox" 
+                                                   name="absent_employees" 
+                                                   value="{{ employee.id }}"
+                                                   id="emp_mobile_{{ employee.id }}"
+                                                   {% if attendance and attendance.status == 'Absent' %}checked{% endif %}>
+                                            <label class="form-check-label" for="emp_mobile_{{ employee.id }}">
+                                                <small>Absent</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row text-center border-top pt-2">
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">Department</small>
+                                            <strong>{{ employee.department or '-' }}</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">Status</small>
+                                            <span class="status-badge badge bg-{{ 'success' if attendance and attendance.status == 'Present' else 'danger' if attendance and attendance.status == 'Absent' else 'warning' }}">
+                                                {{ attendance.status if attendance else 'Present' }}
+                                            </span>
+                                        </div>
+                                        <div class="col-4">
+                                            <small class="text-muted d-block">Hours</small>
+                                            {% if attendance %}
+                                                {% if attendance.status == 'Present' %}
+                                                    <strong class="text-success">{{ attendance.total_hours or 8 }}h</strong>
+                                                {% else %}
+                                                    <strong class="text-muted">0h</strong>
+                                                {% endif %}
+                                            {% else %}
+                                                <strong class="text-success">8h</strong>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No employees found</h5>
+                            <p class="text-muted">No active employees available for attendance management</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if employees %}
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Changes will be saved for {{ filter_date.strftime('%B %d, %Y') }}
+                                </small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Update Attendance
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// JavaScript for bulk selection functionality
+function selectAll(absent) {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = absent;
+        updateRowStatus(checkbox);
+    });
+    updateSelectAllCheckbox();
+}
+
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+        updateRowStatus(checkbox);
+    });
+}
+
+function updateSelectAllCheckbox() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    
+    if (selectAllCheckbox) {
+        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        selectAllCheckbox.checked = checkedCount === checkboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+    }
+}
+
+function updateRowStatus(checkbox) {
+    const employeeId = checkbox.value;
+    const row = document.querySelector(`[data-employee-id="${employeeId}"]`);
+    const statusBadge = row.querySelector('.status-badge');
+    
+    if (checkbox.checked) {
+        // Mark as Absent
+        statusBadge.textContent = 'Absent';
+        statusBadge.className = 'status-badge badge bg-danger';
+        row.classList.add('table-danger');
+    } else {
+        // Mark as Present
+        statusBadge.textContent = 'Present';
+        statusBadge.className = 'status-badge badge bg-success';
+        row.classList.remove('table-danger');
+    }
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Add change event listeners to all employee checkboxes
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateRowStatus(this);
+            updateSelectAllCheckbox();
+        });
+    });
+    
+    // Initialize the select all checkbox state
+    updateSelectAllCheckbox();
+    
+    // Initialize row statuses based on current checkbox states
+    checkboxes.forEach(checkbox => {
+        updateRowStatus(checkbox);
+    });
+});
+</script>
+
+<style>
+/* Attendance-specific styling */
+.attendance-row.table-danger {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.attendance-card[data-employee-id] {
+    transition: all 0.2s ease;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.form-check-input:checked {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.form-check-input:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+/* Mobile responsive improvements */
+@media (max-width: 768px) {
+    .d-flex.gap-1.justify-content-end {
+        justify-content: center !important;
+        gap: 0.25rem !important;
+    }
+    
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+</style>
+{% endblock %}

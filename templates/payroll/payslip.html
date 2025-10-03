@@ -1,593 +1,233 @@
-{% extends "base.html" %}
-
-{% block title %}Payslip - {{ payroll.employee.first_name }} {{ payroll.employee.last_name }}{% endblock %}
-
-{% block head %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-/* Corporate Payslip Styles */
-.payslip-container {
-    font-family: 'Roboto', 'Segoe UI', sans-serif;
-    font-size: 13px;
-    line-height: 1.4;
-    color: #333;
-    max-width: 210mm;
-    margin: 0 auto;
-    background: white;
-}
-
-.payslip-header {
-    background: linear-gradient(135deg, #2D6A4F 0%, #40916C 100%);
-    color: white;
-    padding: 20px;
-    margin-bottom: 0;
-}
-
-.company-logo {
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-
-.company-subtitle {
-    font-size: 12px;
-    opacity: 0.9;
-    margin: 0;
-}
-
-.payslip-title {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0;
-    text-align: right;
-}
-
-.payslip-period {
-    font-size: 12px;
-    opacity: 0.9;
-    margin: 0;
-    text-align: right;
-}
-
-.payslip-body {
-    padding: 25px;
-}
-
-.section-header {
-    font-size: 14px;
-    font-weight: 600;
-    color: #2D6A4F;
-    margin-bottom: 12px;
-    padding-bottom: 5px;
-    border-bottom: 2px solid #E8F5E8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.info-table {
-    width: 100%;
-    margin-bottom: 20px;
-    border-collapse: collapse;
-}
-
-.info-table td {
-    padding: 6px 0;
-    vertical-align: top;
-    border: none;
-}
-
-.info-table .label {
-    font-weight: 500;
-    color: #555;
-    width: 40%;
-}
-
-.info-table .value {
-    color: #333;
-    font-weight: 400;
-}
-
-.earnings-deductions-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    margin-bottom: 25px;
-}
-
-.earnings-section, .deductions-section {
-    background: #FAFAFA;
-    border: 1px solid #E0E0E0;
-    border-radius: 8px;
-    padding: 20px;
-}
-
-.earnings-section {
-    border-left: 4px solid #52B788;
-}
-
-.deductions-section {
-    border-left: 4px solid #DC3545;
-}
-
-.calculation-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-}
-
-.calculation-table tr {
-    border-bottom: 1px solid #E8E8E8;
-}
-
-.calculation-table tr:last-child {
-    border-bottom: none;
-}
-
-.calculation-table tr.total-row {
-    background: #F8F9FA;
-    font-weight: 600;
-    border-top: 2px solid #DEE2E6;
-}
-
-.calculation-table td {
-    padding: 8px 0;
-    vertical-align: middle;
-}
-
-.calculation-table .item-name {
-    color: #555;
-}
-
-.calculation-table .amount {
-    text-align: right;
-    font-weight: 500;
-    color: #333;
-    font-family: 'Roboto Mono', monospace;
-}
-
-.net-pay-summary {
-    background: linear-gradient(135deg, #2D6A4F 0%, #40916C 100%);
-    color: white;
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 25px;
-}
-
-.net-pay-amount {
-    font-size: 28px;
-    font-weight: 700;
-    margin: 8px 0;
-    font-family: 'Roboto', sans-serif;
-}
-
-.net-pay-label {
-    font-size: 14px;
-    opacity: 0.9;
-    margin: 0;
-}
-
-.summary-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 25px;
-}
-
-.summary-card {
-    background: #F8F9FA;
-    border: 1px solid #E0E0E0;
-    border-radius: 6px;
-    padding: 15px;
-    text-align: center;
-}
-
-.summary-card .label {
-    font-size: 11px;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 5px;
-}
-
-.summary-card .amount {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-    font-family: 'Roboto Mono', monospace;
-}
-
-.payslip-footer {
-    border-top: 1px solid #E0E0E0;
-    padding-top: 20px;
-    text-align: center;
-    color: #666;
-    font-size: 11px;
-    line-height: 1.5;
-}
-
-/* Print Styles */
-@media print {
-    body {
-        font-family: 'Roboto', 'Segoe UI', sans-serif !important;
-        font-size: 12px !important;
-        line-height: 1.3 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: white !important;
-    }
-
-    .d-print-none {
-        display: none !important;
-    }
-
-    .payslip-container {
-        max-width: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-shadow: none !important;
-        border: none !important;
-    }
-
-    .payslip-header {
-        background: #2D6A4F !important;
-        color: white !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        padding: 15px !important;
-    }
-
-    .payslip-body {
-        padding: 20px !important;
-    }
-
-    .earnings-section, .deductions-section {
-        background: #FAFAFA !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    .net-pay-summary {
-        background: #2D6A4F !important;
-        color: white !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    .calculation-table tr.total-row {
-        background: #F8F9FA !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    .summary-card {
-        background: #F8F9FA !important;
-        -webkit-print-color-adjust: exact !important;
-        color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    /* Ensure single page */
-    .payslip-container {
-        page-break-inside: avoid;
-    }
-
-    .earnings-deductions-container {
-        page-break-inside: avoid;
-    }
-
-    @page {
-        size: A4;
-        margin: 15mm;
-    }
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .earnings-deductions-container {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-
-    .summary-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-
-    .payslip-header {
-        padding: 15px;
-    }
-
-    .payslip-body {
-        padding: 15px;
-    }
-
-    .payslip-title {
-        text-align: left;
-        margin-top: 10px;
-    }
-
-    .payslip-period {
-        text-align: left;
-    }
-}
-</style>
-{% endblock %}
-
-{% block content %}
-<!-- Screen Actions (Hidden in Print) -->
-<div class="container-fluid d-print-none mb-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h4 class="mb-1">
-                        <i class="fas fa-file-invoice-dollar me-2"></i>Payslip
-                    </h4>
-                    <p class="text-muted mb-0">{{ payroll.pay_period_start.strftime('%d %b %Y') }} - {{ payroll.pay_period_end.strftime('%d %b %Y') }}</p>
-                </div>
-                <div class="btn-group">
-                    <button onclick="window.print()" class="btn btn-primary">
-                        <i class="fas fa-print me-1"></i>Print PDF
-                    </button>
-                    <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Payslip Document -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payslip - {{ employee.name }}</title>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            color: #000;
+        }
+        .payslip-container {
+            width: 750px;
+            margin: 20px auto;
+            padding: 25px 30px;
+            border: 1px solid #000;
+        }
+        .company-block {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .company-block .company-name {
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .company-block .company-address {
+            font-size: 13px;
+            margin: 4px 0;
+        }
+        .company-block .company-uen {
+            font-size: 13px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .info-table td {
+            font-size: 13px;
+            padding: 4px 6px;
+            vertical-align: top;
+        }
+        .info-table .label {
+            font-weight: bold;
+            width: 150px;
+        }
+        .pay-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        .pay-table th, .pay-table td {
+            border: 1px solid #000;
+            font-size: 13px;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        .pay-table th {
+            background: #f2f2f2;
+            font-weight: bold;
+        }
+        /* Right align amount columns (4th and 6th columns) */
+        .pay-table td:nth-child(4), 
+        .pay-table td:nth-child(6),
+        .pay-table th:nth-child(4), 
+        .pay-table th:nth-child(6) {
+            text-align: right !important;
+        }
+        /* Right align rate column (2nd column) for numbers */
+        .pay-table td:nth-child(2) {
+            text-align: right;
+        }
+        /* Right align hours column (3rd column) for numbers */
+        .pay-table td:nth-child(3) {
+            text-align: right;
+        }
+        .totals-row {
+            font-weight: bold;
+            background: #f9f9f9;
+        }
+        .totals-row td:nth-child(4), 
+        .totals-row td:nth-child(6) {
+            text-align: right !important;
+        }
+        .summary-table {
+            width: 50%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            margin-left: auto;
+        }
+        .summary-table td {
+            font-size: 14px;
+            padding: 6px;
+        }
+        .summary-table .label {
+            font-weight: bold;
+        }
+        .summary-table td:nth-child(2) {
+            text-align: right !important;
+        }
+        .netpay-row {
+            font-weight: bold;
+        }
+        .netpay-row td:nth-child(2) {
+            text-align: right !important;
+        }
+        .footer-note {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
 <div class="payslip-container">
-    <!-- Company Header -->
-    <div class="payslip-header">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <div class="company-logo">
-                    <i class="fas fa-building me-2"></i>Noltrion
-                </div>
-                <p class="company-subtitle">Human Resource Management System</p>
-            </div>
-            <div class="col-md-4">
-                <h2 class="payslip-title">PAYSLIP</h2>
-                <p class="payslip-period">{{ payroll.pay_period_end.strftime('%B %Y') }}</p>
-            </div>
-        </div>
+    <!-- Company Info -->
+    <div class="company-block">
+        <div class="company-name">{{ company.name }}</div>
+        <div class="company-address">{{ company.address }}</div>
+        <div class="company-uen">UEN NO: {{ company.uen }}</div>
     </div>
 
-    <!-- Payslip Body -->
-    <div class="payslip-body">
-        <!-- Employee Information Section -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <h3 class="section-header">Employee Details</h3>
-                <table class="info-table">
-                    <tr>
-                        <td class="label">Employee Name:</td>
-                        <td class="value">{{ payroll.employee.first_name }} {{ payroll.employee.last_name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Employee Code:</td>
-                        <td class="value">{{ payroll.employee.employee_id }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">NRIC:</td>
-                        <td class="value">{{ payroll.employee.nric or 'N/A' }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Designation:</td>
-                        <td class="value">{{ payroll.employee.position or 'N/A' }}</td>
-                    </tr>
-                    {% if payroll.employee.department %}
-                    <tr>
-                        <td class="label">Department:</td>
-                        <td class="value">{{ payroll.employee.department }}</td>
-                    </tr>
-                    {% endif %}
-                </table>
-            </div>
-            <div class="col-md-6">
-                <h3 class="section-header">Pay Period Information</h3>
-                <table class="info-table">
-                    <tr>
-                        <td class="label">Pay Period:</td>
-                        <td class="value">{{ payroll.pay_period_start.strftime('%d %b %Y') }} - {{ payroll.pay_period_end.strftime('%d %b %Y') }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Days Worked:</td>
-                        <td class="value">{{ payroll.days_worked or 0 }} days</td>
-                    </tr>
-                    {% if payroll.overtime_hours and payroll.overtime_hours > 0 %}
-                    <tr>
-                        <td class="label">Overtime Hours:</td>
-                        <td class="value">{{ payroll.overtime_hours }} hours</td>
-                    </tr>
-                    {% endif %}
-                    <tr>
-                        <td class="label">Payment Date:</td>
-                        <td class="value">{{ payroll.generated_at.strftime('%d %b %Y') }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Status:</td>
-                        <td class="value">{{ payroll.status }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
+    <!-- Employee Info -->
+    <table class="info-table">
+        <tr>
+            <td class="label">Employee Name:</td>
+            <td>{{ employee.name }}</td>
+            <td class="label">Pay Date:</td>
+            <td>{{ payroll.pay_date }}</td>
+        </tr>
+        <tr>
+            <td class="label">NRIC/FIN/WP/SP:</td>
+            <td>{{ employee.nric }}</td>
+            <td class="label">Designation:</td>
+            <td>{{ employee.designation }}</td>
+        </tr>
+        <tr>
+            <td class="label">Nationality:</td>
+            <td>{{ employee.nationality }}</td>
+            <td class="label"></td>
+            <td></td>
+        </tr>
+    </table>
 
-        <!-- Earnings and Deductions Two-Column Layout -->
-        <div class="earnings-deductions-container">
-            <!-- LEFT COLUMN: Earnings -->
-            <div class="earnings-section">
-                <h3 class="section-header">
-                    <i class="fas fa-plus-circle me-2"></i>Earnings
-                </h3>
-                <table class="calculation-table">
-                    <tr>
-                        <td class="item-name">Basic Salary</td>
-                        <td class="amount">{{ payroll.basic_pay | currency }}</td>
-                    </tr>
-                    {% if payroll.allowances and payroll.allowances > 0 %}
-                    <tr>
-                        <td class="item-name">House Rent Allowance (HRA)</td>
-                        <td class="amount">{{ (payroll.allowances * 0.4) | round(2) | currency }}</td>
-                    </tr>
-                    <tr>
-                        <td class="item-name">Conveyance Allowance</td>
-                        <td class="amount">{{ (payroll.allowances * 0.3) | round(2) | currency }}</td>
-                    </tr>
-                    <tr>
-                        <td class="item-name">Other Allowances</td>
-                        <td class="amount">{{ (payroll.allowances * 0.3) | round(2) | currency }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if payroll.overtime_pay and payroll.overtime_pay > 0 %}
-                    <tr>
-                        <td class="item-name">Overtime Pay</td>
-                        <td class="amount">{{ payroll.overtime_pay | currency }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if payroll.bonuses and payroll.bonuses > 0 %}
-                    <tr>
-                        <td class="item-name">Performance Bonus</td>
-                        <td class="amount">{{ payroll.bonuses | currency }}</td>
-                    </tr>
-                    {% endif %}
-                    <tr class="total-row">
-                        <td class="item-name">Gross Earnings</td>
-                        <td class="amount">{{ payroll.gross_pay | currency }}</td>
-                    </tr>
-                </table>
-            </div>
+    <!-- Pay Details Table -->
+    <table class="pay-table">
+        <thead>
+        <tr>
+            <th>Earnings</th>
+            <th>Rate (SGD)</th>
+            <th>Hours</th>
+            <th>Amount (SGD)</th>
+            <th>Deductions</th>
+            <th>Amount (SGD)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Regular Pay</td>
+            <td>{{ earnings.regular_pay_rate }}</td>
+            <td></td>
+            <td>{{ earnings.regular_pay_amount }}</td>
+            <td>Income Tax</td>
+            <td>{{ deductions.income_tax }}</td>
+        </tr>
+        <tr>
+            <td>Overtime Pay</td>
+            <td>{{ earnings.overtime_pay_rate }}</td>
+            <td>{{ earnings.overtime_hours }}</td>
+            <td>{{ earnings.overtime_amount }}</td>
+            <td>Medical</td>
+            <td>{{ deductions.medical }}</td>
+        </tr>
+        <tr>
+            <td>Holiday Pay</td>
+            <td></td>
+            <td></td>
+            <td>{{ earnings.holiday_pay }}</td>
+            <td>Life Insurance</td>
+            <td>{{ deductions.life_insurance }}</td>
+        </tr>
+        <tr>
+            <td>Vacation Pay</td>
+            <td></td>
+            <td></td>
+            <td>{{ earnings.vacation_pay }}</td>
+            <td>Provident Fund</td>
+            <td>{{ deductions.provident_fund }}</td>
+        </tr>
+        <tr>
+            <td>Others</td>
+            <td></td>
+            <td></td>
+            <td>{{ earnings.others }}</td>
+            <td>Others</td>
+            <td>{{ deductions.others }}</td>
+        </tr>
+        <tr class="totals-row">
+            <td colspan="3">Total (Gross)</td>
+            <td>{{ payroll.total_earnings }}</td>
+            <td>Total</td>
+            <td>{{ payroll.total_deductions }}</td>
+        </tr>
+        </tbody>
+    </table>
 
-            <!-- RIGHT COLUMN: Deductions -->
-            <div class="deductions-section">
-                <h3 class="section-header">
-                    <i class="fas fa-minus-circle me-2"></i>Deductions
-                </h3>
-                <table class="calculation-table">
-                    {% if payroll.employee_cpf and payroll.employee_cpf > 0 %}
-                    <tr>
-                        <td class="item-name">Provident Fund (PF)</td>
-                        <td class="amount">{{ payroll.employee_cpf | currency }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if payroll.income_tax and payroll.income_tax > 0 %}
-                    <tr>
-                        <td class="item-name">Income Tax (TDS)</td>
-                        <td class="amount">{{ payroll.income_tax | currency }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if payroll.other_deductions and payroll.other_deductions > 0 %}
-                    <tr>
-                        <td class="item-name">Professional Tax</td>
-                        <td class="amount">{{ (payroll.other_deductions * 0.5) | round(2) | currency }}</td>
-                    </tr>
-                    <tr>
-                        <td class="item-name">ESI Contribution</td>
-                        <td class="amount">{{ (payroll.other_deductions * 0.3) | round(2) | currency }}</td>
-                    </tr>
-                    <tr>
-                        <td class="item-name">Other Deductions</td>
-                        <td class="amount">{{ (payroll.other_deductions * 0.2) | round(2) | currency }}</td>
-                    </tr>
-                    {% endif %}
-                    {% if not (payroll.employee_cpf > 0 or payroll.income_tax > 0 or payroll.other_deductions > 0) %}
-                    <tr>
-                        <td class="item-name">No Deductions</td>
-                        <td class="amount">{{ 0 | currency }}</td>
-                    </tr>
-                    {% endif %}
-                    <tr class="total-row">
-                        <td class="item-name">Total Deductions</td>
-                        <td class="amount">{{ (payroll.employee_cpf + payroll.income_tax + payroll.other_deductions) | currency }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
+    <!-- Summary -->
+    <table class="summary-table">
+        <tr>
+            <td class="label">Total Earnings (SGD)</td>
+            <td>{{ payroll.total_earnings }}</td>
+        </tr>
+        <tr>
+            <td class="label">Total Deductions (SGD)</td>
+            <td>{{ payroll.total_deductions }}</td>
+        </tr>
+        <tr class="netpay-row">
+            <td class="label">Net Pay (SGD)</td>
+            <td>{{ payroll.net_pay }}</td>
+        </tr>
+    </table>
 
-        <!-- Summary Grid -->
-        <div class="summary-grid">
-            <div class="summary-card">
-                <div class="label">Gross Earnings</div>
-                <div class="amount">{{ payroll.gross_pay | currency }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">Total Deductions</div>
-                <div class="amount">{{ (payroll.employee_cpf + payroll.income_tax + payroll.other_deductions) | currency }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="label">Net Salary</div>
-                <div class="amount">{{ payroll.net_pay | currency }}</div>
-            </div>
-        </div>
-
-        <!-- Net Pay Highlight -->
-        <div class="net-pay-summary">
-            <p class="net-pay-label">
-                <i class="fas fa-hand-holding-usd me-2"></i>Net Pay Amount
-            </p>
-            <h1 class="net-pay-amount">{{ payroll.net_pay | currency }}</h1>
-            <p class="net-pay-label">Amount to be credited to your account</p>
-        </div>
-
-        <!-- Additional Information -->
-        {% if payroll.employee.bank_name and payroll.employee.bank_account %}
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <h3 class="section-header">Payment Details</h3>
-                <table class="info-table">
-                    <tr>
-                        <td class="label">Bank Name:</td>
-                        <td class="value">{{ payroll.employee.bank_name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Account Number:</td>
-                        <td class="value">{{ payroll.employee.bank_account }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Payment Mode:</td>
-                        <td class="value">Bank Transfer</td>
-                    </tr>
-                </table>
-            </div>
-            {% if payroll.employee_cpf > 0 or payroll.employer_cpf > 0 %}
-            <div class="col-md-6">
-                <h3 class="section-header">CPF Contribution</h3>
-                <table class="info-table">
-                    <tr>
-                        <td class="label">Employee CPF:</td>
-                        <td class="value">{{ payroll.employee_cpf | currency }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Employer CPF:</td>
-                        <td class="value">{{ payroll.employer_cpf | currency }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Total CPF:</td>
-                        <td class="value">{{ (payroll.employee_cpf + payroll.employer_cpf) | currency }}</td>
-                    </tr>
-                </table>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Footer -->
-        <div class="payslip-footer">
-            <p><strong>This is a system-generated payslip and does not require a signature.</strong></p>
-            <p>Generated on {{ payroll.generated_at.strftime('%d %B %Y at %I:%M %p') }} 
-               by {{ payroll.generated_by_user.first_name if payroll.generated_by_user else 'System' }}</p>
-            <p>For any queries regarding this payslip, please contact the HR Department.</p>
-        </div>
+    <!-- Footer -->
+    <div class="footer-note">
+        This is system generated document. Hence, signature is not needed!
     </div>
 </div>
-{% endblock %}
+</body>
+</html>

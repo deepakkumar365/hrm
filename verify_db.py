@@ -50,7 +50,7 @@ def main() -> int:
         if missing:
             print(f"[INFO] Missing tables detected: {', '.join(missing)}")
             print("[ACTION] Creating missing tables...")
-            db.create_all()
+            # db.create_all()  # Removed. Use Alembic/Flask-Migrate for schema management.
         else:
             print("[OK] All expected tables already exist.")
 

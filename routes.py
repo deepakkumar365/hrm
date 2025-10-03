@@ -161,7 +161,8 @@ def register():
         user.email = form.email.data
         user.first_name = form.first_name.data
         user.last_name = form.last_name.data
-        user.role = form.role.data if current_user.role in [
+        user_role_name = current_user.role.name if current_user.role else None
+        user.role = form.role.data if user_role_name in [
             'Super Admin', 'Admin'
         ] else 'User'
         user.set_password(form.password.data)
@@ -214,8 +215,9 @@ def dashboard():
 
     # Recent activities based on role
     recent_activities = []
+    user_role_name = current_user.role.name if current_user.role else None
 
-    if current_user.role in ['Super Admin', 'Admin']:
+    if user_role_name in ['Super Admin', 'Admin']:
         # Recent leaves for approval
         recent_leaves = Leave.query.filter_by(status='Pending').order_by(
             Leave.created_at.desc()).limit(5).all()
@@ -229,7 +231,7 @@ def dashboard():
                 'date': leave.created_at
             })
 
-    elif current_user.role == 'Manager':
+    elif user_role_name == 'Manager':
         # Team member activities
         team_leaves = Leave.query.join(Employee).filter(
             Employee.manager_id == current_user.employee_profile.id,
@@ -292,7 +294,7 @@ def employee_list():
         query = query.filter(Employee.department == department)
 
     # Role-based filtering
-    if current_user.role == 'Manager' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
                                                   'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -357,6 +359,7 @@ def employee_add():
             # Create new employee
             employee = Employee()
             employee.employee_id = generate_employee_id()
+            employee.organization_id = current_user.organization_id
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             employee.email = request.form.get('email')
@@ -465,7 +468,21 @@ def employee_add():
                 user.email = employee.email
                 user.first_name = employee.first_name
                 user.last_name = employee.last_name
-                user.role = 'User'  # Default role for new employees
+                user.organization_id = current_user.organization_id
+                
+                # Get default role for new employees (try to find 'User' or 'Employee' role)
+                default_role = Role.query.filter(
+                    (Role.name == 'User') | (Role.name == 'Employee')
+                ).filter_by(is_active=True).first()
+                
+                if not default_role:
+                    # If no default role found, get any active role
+                    default_role = Role.query.filter_by(is_active=True).first()
+                
+                if default_role:
+                    user.role_id = default_role.id
+                else:
+                    raise ValueError("No active roles found in the system. Please create roles first.")
                 
                 # Set temporary password (employee should change on first login)
                 temp_password = f"{employee.first_name}123"  # Simple temp password
@@ -527,11 +544,11 @@ def employee_view(employee_id):
     employee = Employee.query.get_or_404(employee_id)
 
     # Check permission
-    if current_user.role == 'Employee':
+    if (current_user.role.name if current_user.role else None) == 'Employee':
         if not (hasattr(current_user, 'employee_profile')
                 and current_user.employee_profile.id == employee_id):
             return render_template('403.html'), 403
-    elif current_user.role == 'Manager':
+    elif (current_user.role.name if current_user.role else None) == 'Manager':
         if not (hasattr(current_user, 'employee_profile') and
                 (current_user.employee_profile.id == employee_id
                  or employee.manager_id == current_user.employee_profile.id)):
@@ -862,7 +879,7 @@ def payroll_list():
             extract('year', Payroll.pay_period_end) == year)
 
     # Role-based filtering
-    if current_user.role == 'Manager' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
                                                   'employee_profile'):
         # Manager: Their own payroll + their team's payroll
         manager_id = current_user.employee_profile.id
@@ -871,9 +888,8 @@ def payroll_list():
                 Payroll.employee_id == manager_id,  # Manager's own payroll
                 Employee.manager_id == manager_id  # Team's payroll
             ))
-    elif current_user.role == 'Admin' and hasattr(current_user,
-                                                  'employee_profile'):
-        # Admin: Their own payroll + all employees' payroll (they see everything anyway)
+    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
+        # Admin and Super Admin: Can see all payroll records
         pass  # No filtering - they can see all
 
     payrolls = query.order_by(Payroll.pay_period_end.desc()).paginate(
@@ -979,17 +995,94 @@ def payroll_payslip(payroll_id):
     payroll = Payroll.query.get_or_404(payroll_id)
 
     # Check permission
-    if current_user.role == 'Employee':
+    if (current_user.role.name if current_user.role else None) == 'Employee':
         if not (hasattr(current_user, 'employee_profile')
                 and current_user.employee_profile.id == payroll.employee_id):
             return render_template('403.html'), 403
-    elif current_user.role == 'Manager':
+    elif (current_user.role.name if current_user.role else None) == 'Manager':
         if not (hasattr(current_user, 'employee_profile')
                 and payroll.employee.manager_id
                 == current_user.employee_profile.id):
             return render_template('403.html'), 403
+    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
+        # Admin and Super Admin: Can view all payslips
+        pass  # No restriction - they can see all
 
-    return render_template('payroll/payslip.html', payroll=payroll)
+    # Prepare data for template
+    employee = payroll.employee
+    company = employee.organization
+    
+    # Calculate pay date (end of pay period)
+    pay_date = payroll.pay_period_end.strftime('%d %b %Y')
+    
+    # Prepare earnings data
+    earnings = {
+        'regular_pay_rate': f"{float(employee.basic_salary):,.2f}",
+        'regular_pay_amount': f"{float(payroll.basic_pay):,.2f}",
+        'overtime_pay_rate': f"{float(employee.hourly_rate or 0):,.2f}" if employee.hourly_rate else "0.00",
+        'overtime_hours': f"{float(payroll.overtime_hours):,.2f}",
+        'overtime_amount': f"{float(payroll.overtime_pay):,.2f}",
+        'holiday_pay': "0.00",  # Not in current model
+        'vacation_pay': "0.00",  # Not in current model
+        'others': f"{float(payroll.allowances + payroll.bonuses):,.2f}"
+    }
+    
+    # Prepare deductions data
+    deductions = {
+        'income_tax': f"{float(payroll.income_tax):,.2f}",
+        'medical': "0.00",  # Not in current model
+        'life_insurance': "0.00",  # Not in current model
+        'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
+        'others': f"{float(payroll.other_deductions):,.2f}"
+    }
+    
+    # Prepare employee data
+    employee_data = {
+        'name': f"{employee.first_name} {employee.last_name}",
+        'nric': employee.nric,
+        'nationality': employee.nationality or 'N/A',
+        'designation': employee.position
+    }
+    
+    # Prepare company data
+    company_data = {
+        'name': company.name,
+        'address': company.address or 'N/A',
+        'uen': company.uen or 'N/A'
+    }
+    
+    # Prepare payroll summary
+    payroll_data = {
+        'pay_date': pay_date,
+        'total_earnings': f"{float(payroll.gross_pay):,.2f}",
+        'total_deductions': f"{float(payroll.employee_cpf + payroll.income_tax + payroll.other_deductions):,.2f}",
+        'net_pay': f"{float(payroll.net_pay):,.2f}"
+    }
+
+    return render_template('payroll/payslip.html', 
+                         payroll=payroll_data,
+                         employee=employee_data,
+                         company=company_data,
+                         earnings=earnings,
+                         deductions=deductions)
+
+
+@app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def payroll_approve(payroll_id):
+    """Approve payroll record"""
+    payroll = Payroll.query.get_or_404(payroll_id)
+    
+    try:
+        if payroll.status == 'Draft':
+            payroll.status = 'Approved'
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Payroll approved successfully'}), 200
+        else:
+            return jsonify({'success': False, 'message': f'Payroll is already {payroll.status}'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # Attendance Management Routes
@@ -1012,11 +1105,11 @@ def attendance_list():
         query = query.filter(Attendance.employee_id == employee_filter)
 
     # Role-based filtering
-    if current_user.role in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Employee: Only their own attendance
         employee_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == employee_id)
-    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager: Their own attendance + their team's attendance
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -1025,11 +1118,11 @@ def attendance_list():
                 Employee.manager_id == manager_id      # Team's attendance
             )
         )
-    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Admin: Only their own attendance (as per requirement)
         admin_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == admin_id)
-    elif current_user.role == 'Super Admin':
+    elif (current_user.role.name if current_user.role else None) == 'Super Admin':
         # Super Admin: Can see all attendance records
         pass
 
@@ -1038,11 +1131,11 @@ def attendance_list():
 
     # Get employees for filter dropdown based on role
     employees = []
-    if current_user.role == 'Super Admin':
+    if (current_user.role.name if current_user.role else None) == 'Super Admin':
         # Super Admin can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
-    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager can filter by themselves and their team
         manager_id = current_user.employee_profile.id
         employees = Employee.query.filter(
@@ -1233,7 +1326,7 @@ def attendance_correct(attendance_id):
     attendance = Attendance.query.get_or_404(attendance_id)
 
     # Check if manager can access this employee's record
-    if current_user.role == 'Manager':
+    if (current_user.role.name if current_user.role else None) == 'Manager':
         if not hasattr(current_user, 'employee_profile') or \
            attendance.employee.manager_id != current_user.employee_profile.id:
             flash('Access denied', 'error')
@@ -1350,7 +1443,7 @@ def attendance_incomplete():
         Attendance.clock_out.is_(None)).join(Employee)
 
     # Role-based filtering
-    if current_user.role == 'Manager' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
                                                   'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -1359,6 +1452,226 @@ def attendance_incomplete():
 
     return render_template('attendance/incomplete.html',
                            incomplete_records=incomplete_records)
+
+
+@app.route('/attendance/bulk', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
+def attendance_bulk_manage():
+    """Bulk attendance management - mark employees as absent for a specific date"""
+    selected_date = request.args.get('date') or request.form.get('date')
+    if not selected_date:
+        selected_date = date.today().strftime('%Y-%m-%d')
+    
+    try:
+        filter_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+    except ValueError:
+        flash('Invalid date format', 'error')
+        filter_date = date.today()
+        selected_date = filter_date.strftime('%Y-%m-%d')
+    
+    if request.method == 'POST':
+        try:
+            # Get list of employee IDs marked as absent
+            absent_employee_ids = request.form.getlist('absent_employees')
+            absent_employee_ids = [int(emp_id) for emp_id in absent_employee_ids if emp_id.isdigit()]
+            
+            # Get all employees based on role permissions
+            employees_query = Employee.query.filter_by(is_active=True)
+            
+            # Apply role-based filtering
+            if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+                # Manager: Can manage their team + themselves
+                manager_id = current_user.employee_profile.id
+                employees_query = employees_query.filter(
+                    db.or_(
+                        Employee.id == manager_id,
+                        Employee.manager_id == manager_id
+                    )
+                )
+            
+            all_employees = employees_query.all()
+            
+            # Ensure attendance records exist for all employees for this date
+            create_daily_attendance_records(filter_date, all_employees)
+            
+            # Update attendance status for all employees
+            for employee in all_employees:
+                attendance = Attendance.query.filter_by(
+                    employee_id=employee.id,
+                    date=filter_date
+                ).first()
+                
+                if attendance:
+                    if employee.id in absent_employee_ids:
+                        attendance.status = 'Absent'
+                        attendance.remarks = f'Marked absent by {current_user.first_name} {current_user.last_name}'
+                        # Clear time fields for absent employees
+                        attendance.clock_in = None
+                        attendance.clock_out = None
+                        attendance.break_start = None
+                        attendance.break_end = None
+                        attendance.regular_hours = 0
+                        attendance.overtime_hours = 0
+                        attendance.total_hours = 0
+                    else:
+                        attendance.status = 'Present'
+                        # For present employees, set default 8 hours if not manually clocked
+                        if not attendance.clock_in and not attendance.clock_out:
+                            attendance.regular_hours = 8
+                            attendance.total_hours = 8
+                            attendance.overtime_hours = 0
+            
+            db.session.commit()
+            
+            present_count = len(all_employees) - len(absent_employee_ids)
+            absent_count = len(absent_employee_ids)
+            
+            flash(f'Attendance updated for {filter_date.strftime("%B %d, %Y")}: {present_count} Present, {absent_count} Absent', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating attendance: {str(e)}', 'error')
+    
+    # Get employees and their attendance for the selected date
+    employees_query = Employee.query.filter_by(is_active=True)
+    
+    # Apply role-based filtering for display
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        manager_id = current_user.employee_profile.id
+        employees_query = employees_query.filter(
+            db.or_(
+                Employee.id == manager_id,
+                Employee.manager_id == manager_id
+            )
+        )
+    
+    employees = employees_query.order_by(Employee.first_name, Employee.last_name).all()
+    
+    # Ensure attendance records exist for all employees for this date
+    create_daily_attendance_records(filter_date, employees)
+    
+    # Get attendance records for the selected date
+    attendance_records = {}
+    for employee in employees:
+        attendance = Attendance.query.filter_by(
+            employee_id=employee.id,
+            date=filter_date
+        ).first()
+        attendance_records[employee.id] = attendance
+    
+    return render_template('attendance/bulk_manage.html',
+                         employees=employees,
+                         attendance_records=attendance_records,
+                         selected_date=selected_date,
+                         filter_date=filter_date,
+                         date=date)
+
+
+def create_daily_attendance_records(target_date, employees=None):
+    """Create attendance records for all active employees for a specific date"""
+    if employees is None:
+        employees = Employee.query.filter_by(is_active=True).all()
+    
+    created_count = 0
+    for employee in employees:
+        # Check if attendance record already exists
+        existing = Attendance.query.filter_by(
+            employee_id=employee.id,
+            date=target_date
+        ).first()
+        
+        if not existing:
+            # Create new attendance record with default Present status
+            attendance = Attendance()
+            attendance.employee_id = employee.id
+            attendance.date = target_date
+            attendance.status = 'Present'
+            attendance.regular_hours = 8  # Default 8 hours for present employees
+            attendance.total_hours = 8
+            attendance.overtime_hours = 0
+            attendance.remarks = 'Auto-generated attendance record'
+            
+            db.session.add(attendance)
+            created_count += 1
+    
+    if created_count > 0:
+        db.session.commit()
+        print(f"Created {created_count} attendance records for {target_date}")
+    
+    return created_count
+
+
+def auto_create_daily_attendance():
+    """Auto-create attendance records for all active employees for today"""
+    today = date.today()
+    employees = Employee.query.filter_by(is_active=True).all()
+    return create_daily_attendance_records(today, employees)
+
+
+@app.route('/attendance/auto-create', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def attendance_auto_create():
+    """Manual trigger for creating daily attendance records - useful for Render deployment"""
+    try:
+        target_date_str = request.form.get('date')
+        if target_date_str:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        else:
+            target_date = date.today()
+        
+        # Get all active employees
+        employees = Employee.query.filter_by(is_active=True).all()
+        
+        # Create attendance records
+        created_count = create_daily_attendance_records(target_date, employees)
+        
+        if created_count > 0:
+            flash(f'Successfully created attendance records for {created_count} employees on {target_date}', 'success')
+        else:
+            flash(f'Attendance records already exist for all employees on {target_date}', 'info')
+            
+    except ValueError:
+        flash('Invalid date format. Please use YYYY-MM-DD format.', 'error')
+    except Exception as e:
+        flash(f'Error creating attendance records: {str(e)}', 'error')
+        
+    return redirect(url_for('attendance_bulk_manage'))
+
+
+@app.route('/api/attendance/auto-create', methods=['POST'])
+def api_attendance_auto_create():
+    """API endpoint for creating daily attendance records - for external cron services"""
+    try:
+        # Simple API key authentication (you should set this in environment variables)
+        api_key = request.headers.get('X-API-Key') or request.form.get('api_key')
+        expected_api_key = os.environ.get('ATTENDANCE_API_KEY', 'your-secret-api-key-here')
+        
+        if api_key != expected_api_key:
+            return {'error': 'Invalid API key'}, 401
+        
+        target_date_str = request.form.get('date') or request.json.get('date') if request.is_json else None
+        if target_date_str:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        else:
+            target_date = date.today()
+        
+        # Get all active employees
+        employees = Employee.query.filter_by(is_active=True).all()
+        
+        # Create attendance records
+        created_count = create_daily_attendance_records(target_date, employees)
+        
+        return {
+            'success': True,
+            'message': f'Created attendance records for {created_count} employees on {target_date}',
+            'date': target_date.strftime('%Y-%m-%d'),
+            'created_count': created_count
+        }, 200
+            
+    except ValueError:
+        return {'error': 'Invalid date format. Please use YYYY-MM-DD format.'}, 400
+    except Exception as e:
+        return {'error': f'Error creating attendance records: {str(e)}'}, 500
 
 
 # Leave Management Routes
@@ -1379,11 +1692,11 @@ def leave_list():
         query = query.filter(Leave.employee_id == employee_filter)
 
     # Role-based filtering
-    if current_user.role in ['User', 'Employee'] and hasattr(current_user, 'employee_profile'):
+    if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user, 'employee_profile'):
         # Employee/User: Only their own leave requests
         query = query.filter(
             Leave.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile'):
         # Manager: Their own leave requests + their team's leave requests
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -1391,11 +1704,11 @@ def leave_list():
                 Leave.employee_id == manager_id,  # Manager's own leave requests
                 Employee.manager_id == manager_id  # Team's leave requests
             ))
-    elif current_user.role == 'Admin' and hasattr(current_user, 'employee_profile'):
+    elif (current_user.role.name if current_user.role else None) == 'Admin' and hasattr(current_user, 'employee_profile'):
         # Admin: Only their own leave requests (as per attendance requirement)
         admin_id = current_user.employee_profile.id
         query = query.filter(Leave.employee_id == admin_id)
-    elif current_user.role == 'Super Admin':
+    elif (current_user.role.name if current_user.role else None) == 'Super Admin':
         # Super Admin: Can see all leave requests
         pass  # No filtering - they can see all
 
@@ -1404,11 +1717,11 @@ def leave_list():
 
     # Get employees for filter dropdown based on role
     employees = []
-    if current_user.role == 'Super Admin':
+    if (current_user.role.name if current_user.role else None) == 'Super Admin':
         # Super Admin can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
-    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager can filter by themselves and their team
         manager_id = current_user.employee_profile.id
         employees = Employee.query.filter(
@@ -1482,10 +1795,10 @@ def leave_edit(leave_id):
         can_edit = True
     
     # Approvers (Manager/Admin/Super Admin) can edit pending requests for their scope
-    elif current_user.role == 'Manager' and hasattr(current_user, 'employee_profile'):
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile'):
         if leave.employee.manager_id == current_user.employee_profile.id and leave.status == 'Pending':
             can_edit = True
-    elif current_user.role in ['Admin', 'Super Admin']:
+    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
         if leave.status == 'Pending':
             can_edit = True
     
@@ -1526,7 +1839,7 @@ def leave_approve(leave_id):
     leave = Leave.query.get_or_404(leave_id)
 
     # Check if manager can approve this leave
-    if current_user.role == 'Manager':
+    if (current_user.role.name if current_user.role else None) == 'Manager':
         if not (hasattr(current_user, 'employee_profile') and
                 leave.employee.manager_id == current_user.employee_profile.id):
             return render_template('403.html'), 403
@@ -1570,11 +1883,11 @@ def claims_list():
         query = query.filter(Claim.status == status_filter)
 
     # Role-based filtering
-    if current_user.role == 'Employee' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
                                                    'employee_profile'):
         query = query.filter(
             Claim.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user,
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
                                                     'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -1665,11 +1978,11 @@ def appraisal_list():
     query = Appraisal.query.join(Employee)
 
     # Role-based filtering
-    if current_user.role == 'Employee' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
                                                    'employee_profile'):
         query = query.filter(
             Appraisal.employee_id == current_user.employee_profile.id)
-    elif current_user.role == 'Manager' and hasattr(current_user,
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
                                                     'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -1730,7 +2043,7 @@ def appraisal_create():
 
     # Get employees for appraisal
     employees = Employee.query.filter_by(is_active=True)
-    if current_user.role == 'Manager' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
                                                   'employee_profile'):
         employees = employees.filter(
             Employee.manager_id == current_user.employee_profile.id)

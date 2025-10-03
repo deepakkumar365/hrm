@@ -2,7 +2,7 @@ services:
   - type: web
     name: noltrion-hrm
     env: python
-    buildCommand: pip install -r requirements-render.txt
+    buildCommand: ./build.sh
     startCommand: gunicorn -c gunicorn.conf.py main:app
     envVars:
       - key: PYTHON_VERSION

@@ -1,29 +1,50 @@
 from datetime import datetime, date, time
+
 from app import db
-from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 from flask_login import UserMixin
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, Index
+from sqlalchemy.orm import validates
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model, UserMixin):
     __tablename__ = 'hrm_users'
+    __table_args__ = (
+        Index('ix_hrm_users_role_id', 'role_id'),
+        Index('ix_hrm_users_organization_id', 'organization_id'),
+        Index('ix_hrm_users_reporting_manager_id', 'reporting_manager_id'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    username = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    role = db.Column(db.String(20), default='User')  # Super Admin, Admin, Manager, User
     is_active = db.Column(db.Boolean, default=True)
-    
+    must_reset_password = db.Column(db.Boolean, default=True, nullable=False)
+
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
+    reporting_manager_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
+
+    organization = db.relationship('Organization', back_populates='users')
+    role = db.relationship('Role', back_populates='users')
+    reporting_manager = db.relationship('User', remote_side=[id], backref=db.backref('direct_reports', lazy='dynamic'))
+    employee_profile = db.relationship('Employee', back_populates='user', uselist=False)
+
     def set_password(self, password):
+        # Use Werkzeug's password hashing utilities for secure storage
         self.password_hash = generate_password_hash(password)
-    
+
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def role_name(self):
+        return self.role.name if self.role else None
 
 # OAuth table removed - no longer using Replit Auth
 
@@ -42,7 +63,7 @@ class Employee(db.Model):
     address = db.Column(db.Text)
     postal_code = db.Column(db.String(10))
     profile_image_path = db.Column(db.String(255))  # Relative path under static/
-    
+
     # Employment details
     position = db.Column(db.String(100), nullable=False)
     department = db.Column(db.String(100))
@@ -50,44 +71,67 @@ class Employee(db.Model):
     employment_type = db.Column(db.String(20))  # Full-time, Part-time, Contract
     work_permit_type = db.Column(db.String(30))  # Citizen, PR, Work Permit, S Pass, EP
     work_permit_expiry = db.Column(db.Date)
-    
+
     # Salary details
     basic_salary = db.Column(db.Numeric(10, 2), nullable=False)
     allowances = db.Column(db.Numeric(10, 2), default=0)
     hourly_rate = db.Column(db.Numeric(8, 2))
-    
+
     # CPF details
     cpf_account = db.Column(db.String(20))
     employee_cpf_rate = db.Column(db.Numeric(5, 2), default=20.00)
     employer_cpf_rate = db.Column(db.Numeric(5, 2), default=17.00)
-    
+
     # Bank details
     bank_name = db.Column(db.String(100))
     bank_account = db.Column(db.String(30))
     account_holder_name = db.Column(db.String(100))
     swift_code = db.Column(db.String(11))  # 8 or 11 characters
     ifsc_code = db.Column(db.String(11))   # 11 characters
-    
+
     # Status
     is_active = db.Column(db.Boolean, default=True)
     termination_date = db.Column(db.Date)
-    
+
     # Foreign key to User for system access
     user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
-    manager_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'))
-    
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    manager_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='SET NULL'), nullable=True)
+
     # Master data relationships
     working_hours_id = db.Column(db.Integer, db.ForeignKey('hrm_working_hours.id'), nullable=True)
     work_schedule_id = db.Column(db.Integer, db.ForeignKey('hrm_work_schedules.id'), nullable=True)
-    
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
+
     # Relationships
-    user = db.relationship('User', backref=db.backref('employee_profile', uselist=False))
-    manager = db.relationship('Employee', remote_side=[id], backref='team_members')
+    user = db.relationship('User', back_populates='employee_profile')
+    organization = db.relationship('Organization', back_populates='org_employees')
+    manager = db.relationship(
+        'Employee',
+        remote_side=[id],
+        backref=db.backref('direct_reports', lazy='dynamic'),
+        foreign_keys=[manager_id],
+        post_update=True,
+    )
     working_hours = db.relationship('WorkingHours', backref='employees')
     work_schedule = db.relationship('WorkSchedule', backref='employees')
+    leaves = db.relationship('Leave', back_populates='employee')
+    claims = db.relationship('Claim', back_populates='employee')
+    appraisals = db.relationship('Appraisal', back_populates='employee')
+
+    @validates('manager_id')
+    def validate_manager(self, key, manager_id):
+        if manager_id is None:
+            return manager_id
+
+        manager = Employee.query.get(manager_id)
+        if manager is None:
+            raise ValueError('Reporting manager must exist.')
+        if manager.organization_id != self.organization_id:
+            raise ValueError('Manager must belong to the same organization as the employee.')
+        return manager_id
 
 class Payroll(db.Model):
     __tablename__ = 'hrm_payroll'
@@ -181,7 +225,7 @@ class Leave(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     # Relationships
-    employee = db.relationship('Employee', backref='leaves')
+    employee = db.relationship('Employee', back_populates='leaves')
     requested_by_user = db.relationship('User', foreign_keys=[requested_by])
     approved_by_user = db.relationship('User', foreign_keys=[approved_by])
 
@@ -207,7 +251,7 @@ class Claim(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     # Relationships
-    employee = db.relationship('Employee', backref='claims')
+    employee = db.relationship('Employee', back_populates='claims')
     submitted_by_user = db.relationship('User', foreign_keys=[submitted_by])
     approved_by_user = db.relationship('User', foreign_keys=[approved_by])
 
@@ -242,7 +286,7 @@ class Appraisal(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     # Relationships
-    employee = db.relationship('Employee', backref='appraisals')
+    employee = db.relationship('Employee', back_populates='appraisals')
     reviewed_by_user = db.relationship('User')
 
 class ComplianceReport(db.Model):
@@ -271,15 +315,34 @@ class ComplianceReport(db.Model):
 
 
 # Master Data Models
-class Role(db.Model):
-    """Master data for employee roles/positions"""
-    __tablename__ = 'hrm_roles'
+class Organization(db.Model):
+    __tablename__ = 'organization'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    description = db.Column(db.Text)
+    name = db.Column(db.String(255), unique=True, nullable=False)
+    address = db.Column(db.Text, nullable=True)
+    uen = db.Column(db.String(50), nullable=True)  # Unique Entity Number
+    logo_path = db.Column(db.String(255), nullable=True)  # Relative path under static/
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    users = db.relationship('User', back_populates='organization', cascade='all, delete-orphan')
+    org_employees = db.relationship('Employee', back_populates='organization', cascade='all, delete-orphan')
+    # Renamed from 'employees' to 'org_employees' to avoid backref conflict
+
+    def __repr__(self):
+        return f'<Organization {self.name}>'
+
+
+class Role(db.Model):
+    __tablename__ = 'role'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    description = db.Column(db.String(255))
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    users = db.relationship('User', back_populates='role', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Role {self.name}>'
