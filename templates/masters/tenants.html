@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Management - Noltrion{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3><i class="fas fa-building me-2"></i>Tenant Management</h3>
+                    <p class="text-muted mb-0">Manage multi-tenant hierarchy</p>
+                </div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTenantModal">
+                    <i class="fas fa-plus me-1"></i>Add Tenant
+                </button>
+            </div>
+
+            <!-- Tenants Table -->
+            <div class="card">
+                <div class="card-header card-header-green">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>All Tenants</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tenantsTable">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Companies</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tenant, company_count in tenants_with_counts %}
+                                <tr>
+                                    <td><strong>{{ tenant.code }}</strong></td>
+                                    <td>{{ tenant.name }}</td>
+                                    <td>{{ tenant.description or '-' }}</td>
+                                    <td>
+                                        {% if tenant.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ company_count }}</td>
+                                    <td>{{ tenant.created_at.strftime('%Y-%m-%d') if tenant.created_at else '-' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewTenant('{{ tenant.id }}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-warning" onclick="editTenant('{{ tenant.id }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteTenant('{{ tenant.id }}', '{{ tenant.name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Tenant Modal -->
+<div class="modal fade" id="addTenantModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Tenant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTenantForm">
+                    <div class="mb-3">
+                        <label for="tenantName" class="form-label">Tenant Name *</label>
+                        <input type="text" class="form-control" id="tenantName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tenantCode" class="form-label">Tenant Code *</label>
+                        <input type="text" class="form-control" id="tenantCode" required>
+                        <small class="text-muted">Unique identifier (e.g., NOLTRION)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tenantDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="tenantDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="tenantActive" checked>
+                        <label class="form-check-label" for="tenantActive">Active</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTenant()">Save Tenant</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveTenant() {
+    const data = {
+        name: document.getElementById('tenantName').value,
+        code: document.getElementById('tenantCode').value,
+        description: document.getElementById('tenantDescription').value,
+        is_active: document.getElementById('tenantActive').checked
+    };
+
+    fetch('/api/tenants', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Tenant created successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function viewTenant(tenantId) {
+    window.location.href = `/companies?tenant_id=${tenantId}`;
+}
+
+function editTenant(tenantId) {
+    // Implement edit functionality
+    alert('Edit functionality - to be implemented');
+}
+
+function deleteTenant(tenantId, tenantName) {
+    if (confirm(`Are you sure you want to delete tenant "${tenantName}"? This will also delete all associated companies and employees.`)) {
+        fetch(`/api/tenants/${tenantId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Tenant deleted successfully!');
+                location.reload();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}

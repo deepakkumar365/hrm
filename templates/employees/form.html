@@ -45,9 +45,9 @@
                                 <div class="invalid-feedback">Please provide a last name.</div>
                             </div>
                             <div class="col-md-6">
-                                <label for="email" class="form-label">Email *</label>
+                                <label for="email" class="form-label">Email</label>
                                 <input type="email" class="form-control" id="email" name="email" 
-                                       value="{{ form_data.get('email') if form_data else (employee.email if employee else '') }}" required>
+                                       value="{{ form_data.get('email') if form_data else (employee.email if employee else '') }}">
                                 <div class="invalid-feedback">Please provide a valid email.</div>
                             </div>
                             <div class="col-md-6">
@@ -103,8 +103,8 @@
 
                             <!-- Profile Image Upload -->
                             <div class="col-12">
-                                <label for="profile_image" class="form-label">Profile Image {% if not employee %}*{% endif %}</label>
-                                <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*" {% if not employee %}required{% endif %}>
+                                <label for="profile_image" class="form-label">Profile Image</label>
+                                <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*">
                                 <small class="form-text text-muted">Allowed types: png, jpg, jpeg, gif, webp. Max size: 2MB (configurable).</small>
                                 {% if employee and employee.profile_image_path %}
                                 <div class="mb-3">
@@ -126,6 +126,19 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="company_id" class="form-label">Company *</label>
+                                <select class="form-select" id="company_id" name="company_id" required>
+                                    <option value="">Select Company</option>
+                                    {% for company in companies %}
+                                    <option value="{{ company.id }}" {% if (form_data and form_data.get('company_id') == company.id|string) or (employee and employee.company_id and employee.company_id|string == company.id|string and not form_data) %}selected{% endif %}>
+                                        {{ company.name }} ({{ company.code }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a company.</div>
+                                <small class="form-text text-muted">Select the company this employee belongs to.</small>
+                            </div>
                             <div class="col-md-6">
                                 <label for="position" class="form-label">Position *</label>
                                 <select class="form-select" id="position" name="position" required>

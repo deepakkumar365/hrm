@@ -1,2 +1,38 @@
 *.pyc
 /.env
+
+# Test files and directories
+test_*.py
+*_test.py
+tests/
+pytest.ini
+test_output.txt
+TESTING_GUIDE.md
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -25,7 +25,7 @@ def check_organization():
             print(f"UEN: {org.uen if org.uen else '❌ NOT SET (NULL)'}")
             print(f"Logo Path: {org.logo_path if org.logo_path else 'Not set'}")
             print(f"Created: {org.created_at}")
-            print(f"Updated: {org.updated_at}")
+            print(f"Modified: {org.modified_at}")
             print(f"{'-'*70}\n")
 
 if __name__ == '__main__':

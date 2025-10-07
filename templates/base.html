@@ -45,7 +45,13 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
+                {% set user_role = current_user.role.name if current_user.role else None %}
+                {% set is_admin = user_role in ['Super Admin', 'Admin', 'HR Manager'] %}
+                {% set is_manager = user_role == 'Manager' %}
+                {% set is_user = user_role == 'User' %}
+                
                 <ul class="navbar-nav me-auto">
+                    <!-- Dashboard - Visible to all -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('dashboard') }}">
                             <i class="fas fa-home"></i>
@@ -53,23 +59,27 @@
                         </a>
                     </li>
                     
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <!-- My Team - Visible only to User role -->
+                    {% if is_user %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('team_list') }}">
                             <i class="fas fa-users"></i>
-                            Employees
+                            My Team
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('employee_add') }}">
-                                <i class="fas fa-plus"></i>
-                                Add Employee
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
-                                <i class="fas fa-list"></i>
-                                Employee List
-                            </a></li>
-                        </ul>
                     </li>
+                    {% endif %}
                     
+                    <!-- Documents - Visible only to User role -->
+                    {% if is_user %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('documents_list') }}">
+                            <i class="fas fa-file-alt"></i>
+                            Documents
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Attendance - Visible to all -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-calendar-check"></i>
@@ -84,7 +94,7 @@
                                 <i class="fas fa-list"></i>
                                 View Records
                             </a></li>
-                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
+                            {% if is_admin or is_manager %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('attendance_bulk_manage') }}">
                                 <i class="fas fa-users"></i>
@@ -94,6 +104,7 @@
                         </ul>
                     </li>
                     
+                    <!-- Leave - Visible to all -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-plane-departure"></i>
@@ -111,6 +122,8 @@
                         </ul>
                     </li>
                     
+                    <!-- Payroll - Hidden from User role -->
+                    {% if not is_user %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-dollar-sign"></i>
@@ -131,19 +144,51 @@
                             </a></li>
                         </ul>
                     </li>
+                    {% endif %}
                     
+                    <!-- Employees - Hidden from User role -->
+                    {% if not is_user %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-users"></i>
+                            Employees
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('employee_add') }}">
+                                <i class="fas fa-user-plus"></i>
+                                Add Employee
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
+                                <i class="fas fa-users"></i>
+                                All Employees
+                            </a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Masters - Hidden from User role -->
+                    {% if not is_user %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-cogs"></i>
                             Masters
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('tenant_list') }}">
+                                <i class="fas fa-sitemap"></i>
+                                Tenants
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('company_list') }}">
+                                <i class="fas fa-building"></i>
+                                Companies
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('role_list') }}">
                                 <i class="fas fa-user-tag"></i>
                                 Roles
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('department_list') }}">
-                                <i class="fas fa-building"></i>
+                                <i class="fas fa-briefcase"></i>
                                 Departments
                             </a></li>
                             <li><a class="dropdown-item" href="{{ url_for('working_hours_list') }}">
@@ -156,6 +201,7 @@
                             </a></li>
                         </ul>
                     </li>
+                    {% endif %}
                 </ul>
                 
                 <!-- Profile Dropdown -->

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Employee Document - Noltrion{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <!-- Breadcrumb navigation -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ url_for('admin_documents_list') }}">Documents</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Upload Document</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{{ url_for('admin_documents_list') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to List
+                    </a>
+                </div>
+            </div>
+            <hr class="mt-0 mb-3">
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Upload Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-upload me-2"></i>Upload Employee Document
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <!-- Employee Selection -->
+                        <div class="mb-3">
+                            <label for="employee_id" class="form-label">Employee <span class="text-danger">*</span></label>
+                            <select class="form-select" id="employee_id" name="employee_id" required>
+                                <option value="">Select Employee</option>
+                                {% for employee in employees %}
+                                <option value="{{ employee.id }}">
+                                    {{ employee.employee_id }} - {{ employee.first_name }} {{ employee.last_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Document Type -->
+                        <div class="mb-3">
+                            <label for="document_type" class="form-label">Document Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="document_type" name="document_type" required>
+                                <option value="">Select Document Type</option>
+                                <option value="Offer Letter">Offer Letter</option>
+                                <option value="Appraisal Letter">Appraisal Letter</option>
+                                <option value="Salary Slip">Salary Slip</option>
+                                <option value="ID Card">ID Card</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Month (for Salary Slip) -->
+                        <div class="mb-3" id="month_field" style="display: none;">
+                            <label for="month" class="form-label">Month</label>
+                            <select class="form-select" id="month" name="month">
+                                <option value="">Select Month</option>
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+
+                        <!-- Year (for Salary Slip) -->
+                        <div class="mb-3" id="year_field" style="display: none;">
+                            <label for="year" class="form-label">Year</label>
+                            <input type="number" class="form-control" id="year" name="year" 
+                                   min="2000" max="2100" placeholder="e.g., 2024">
+                        </div>
+
+                        <!-- Issue Date -->
+                        <div class="mb-3">
+                            <label for="issue_date" class="form-label">Issue Date</label>
+                            <input type="date" class="form-control" id="issue_date" name="issue_date">
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3" placeholder="Optional description or notes"></textarea>
+                        </div>
+
+                        <!-- File Upload -->
+                        <div class="mb-3">
+                            <label for="document_file" class="form-label">Document File <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="document_file" name="document_file" 
+                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+                            <div class="form-text">
+                                Allowed formats: PDF, DOC, DOCX, JPG, PNG (Max size: 10MB)
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('admin_documents_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-1"></i>Upload Document
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide month and year fields based on document type
+    document.getElementById('document_type').addEventListener('change', function() {
+        const monthField = document.getElementById('month_field');
+        const yearField = document.getElementById('year_field');
+        const monthInput = document.getElementById('month');
+        const yearInput = document.getElementById('year');
+        
+        if (this.value === 'Salary Slip') {
+            monthField.style.display = 'block';
+            yearField.style.display = 'block';
+            monthInput.required = true;
+            yearInput.required = true;
+        } else {
+            monthField.style.display = 'none';
+            yearField.style.display = 'none';
+            monthInput.required = false;
+            yearInput.required = false;
+            monthInput.value = '';
+            yearInput.value = '';
+        }
+    });
+</script>
+{% endblock %}

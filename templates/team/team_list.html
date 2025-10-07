@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}My Team - Noltrion{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <!-- Breadcrumb navigation -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item active" aria-current="page">My Team</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+            <hr class="mt-0 mb-3">
+        </div>
+    </div>
+
+    {% if team_members %}
+    <!-- Team Members Cards -->
+    <div class="row">
+        {% for member in team_members %}
+        <div class="col-md-6 col-lg-4 col-xl-3 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <!-- Profile Photo -->
+                    <div class="mb-3">
+                        {% if member.photo %}
+                        <img src="{{ url_for('static', filename='uploads/photos/' + member.photo) }}" 
+                             alt="{{ member.first_name }}" 
+                             class="rounded-circle" 
+                             style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #e9ecef;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" 
+                             style="width: 100px; height: 100px; font-size: 2.5rem; border: 3px solid #e9ecef;">
+                            {{ member.first_name[0] }}{{ member.last_name[0] if member.last_name else '' }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Name -->
+                    <h5 class="card-title mb-1">{{ member.first_name }} {{ member.last_name }}</h5>
+                    
+                    <!-- Father's Name -->
+                    {% if member.father_name %}
+                    <p class="text-muted small mb-2">S/O {{ member.father_name }}</p>
+                    {% endif %}
+
+                    <!-- Position/Team -->
+                    <p class="text-primary mb-2">
+                        <i class="fas fa-briefcase me-1"></i>{{ member.position }}
+                    </p>
+
+                    <!-- Department -->
+                    {% if member.department %}
+                    <p class="text-muted small mb-2">
+                        <i class="fas fa-users me-1"></i>{{ member.department }}
+                    </p>
+                    {% endif %}
+
+                    <!-- Location -->
+                    {% if member.location %}
+                    <p class="text-muted small mb-2">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ member.location }}
+                    </p>
+                    {% endif %}
+
+                    <hr class="my-2">
+
+                    <!-- Contact Information -->
+                    <div class="text-start">
+                        <!-- Email -->
+                        {% if member.email %}
+                        <p class="mb-2 small">
+                            <i class="fas fa-envelope text-muted me-2"></i>
+                            <a href="mailto:{{ member.email }}" class="text-decoration-none">
+                                {{ member.email }}
+                            </a>
+                        </p>
+                        {% endif %}
+
+                        <!-- Phone -->
+                        {% if member.phone %}
+                        <p class="mb-0 small">
+                            <i class="fas fa-phone text-muted me-2"></i>
+                            <a href="tel:{{ member.phone }}" class="text-decoration-none">
+                                {{ member.phone }}
+                            </a>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No Team Members Found</h5>
+        <p class="text-muted">You don't have any colleagues reporting to the same manager yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
+{% endblock %}

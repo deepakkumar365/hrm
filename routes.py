@@ -10,7 +10,8 @@ from werkzeug.utils import secure_filename
 from app import app, db
 from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, Attendance, Leave, Claim, Appraisal, 
-                    ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule)
+                    ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
+                    Company, Tenant)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -331,13 +332,15 @@ def employee_add():
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
                 return render_template('employees/form.html', 
                                        form_data=request.form,
                                        roles=roles,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
-                                       managers=managers)
+                                       managers=managers,
+                                       companies=companies)
 
             # Check for duplicate NRIC
             if Employee.query.filter_by(nric=nric).first():
@@ -348,18 +351,26 @@ def employee_add():
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
                 return render_template('employees/form.html', 
                                        form_data=request.form,
                                        roles=roles,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
-                                       managers=managers)
+                                       managers=managers,
+                                       companies=companies)
 
             # Create new employee
             employee = Employee()
             employee.employee_id = generate_employee_id()
             employee.organization_id = current_user.organization_id
+            
+            # Set company_id from form
+            company_id = request.form.get('company_id')
+            if company_id:
+                employee.company_id = company_id
+            
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             employee.email = request.form.get('email')
@@ -512,13 +523,15 @@ def employee_add():
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
             managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+            companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
             return render_template('employees/form.html', 
                                    form_data=request.form,
                                    roles=roles,
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
-                                   managers=managers)
+                                   managers=managers,
+                                   companies=companies)
 
     # Get managers for dropdown
     # Load master data for dropdowns
@@ -528,13 +541,15 @@ def employee_add():
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
     managers = Employee.query.filter_by(is_active=True).filter(
         Employee.position.ilike('%manager%')).all()
+    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
     return render_template('employees/form.html', 
                            managers=managers,
                            roles=roles,
                            departments=departments,
                            working_hours=working_hours,
-                           work_schedules=work_schedules)
+                           work_schedules=work_schedules,
+                           companies=companies)
 
 
 @app.route('/employees/<int:employee_id>')
@@ -710,6 +725,13 @@ def employee_edit(employee_id):
 
     if request.method == 'POST':
         try:
+            # Update company_id from form
+            company_id = request.form.get('company_id')
+            if company_id:
+                employee.company_id = company_id
+            else:
+                employee.company_id = None
+            
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             employee.email = request.form.get('email')
@@ -761,13 +783,15 @@ def employee_edit(employee_id):
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
                 return render_template('employees/form.html', 
                                        form_data=request.form,
                                        roles=roles,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
-                                       managers=managers)
+                                       managers=managers,
+                                       companies=companies)
 
             # Optional profile image replace on edit
             file = request.files.get('profile_image')
@@ -779,6 +803,7 @@ def employee_edit(employee_id):
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                     managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
                     return render_template('employees/form.html', 
                                            employee=employee,
                                            form_data=request.form,
@@ -786,7 +811,8 @@ def employee_edit(employee_id):
                                            departments=departments,
                                            working_hours=working_hours,
                                            work_schedules=work_schedules,
-                                           managers=managers)
+                                           managers=managers,
+                                           companies=companies)
                 # Save new image
                 original = secure_filename(file.filename)
                 ext = original.rsplit('.', 1)[1].lower()
@@ -835,6 +861,7 @@ def employee_edit(employee_id):
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
             managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%'), Employee.id != employee_id).all()
+            companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
             return render_template('employees/form.html',
                                    employee=employee,
                                    form_data=request.form,
@@ -842,7 +869,8 @@ def employee_edit(employee_id):
                                    roles=roles,
                                    departments=departments,
                                    working_hours=working_hours,
-                                   work_schedules=work_schedules)
+                                   work_schedules=work_schedules,
+                                   companies=companies)
 
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
@@ -852,6 +880,7 @@ def employee_edit(employee_id):
     managers = Employee.query.filter_by(is_active=True).filter(
         Employee.position.ilike('%manager%'), Employee.id
         != employee_id).all()
+    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
     return render_template('employees/form.html',
                            employee=employee,
@@ -859,7 +888,8 @@ def employee_edit(employee_id):
                            roles=roles,
                            departments=departments,
                            working_hours=working_hours,
-                           work_schedules=work_schedules)
+                           work_schedules=work_schedules,
+                           companies=companies)
 
 
 # Payroll Management Routes
