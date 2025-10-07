@@ -110,11 +110,22 @@ def create_default_master_data():
         db.session.rollback()
         return False
 
-with app.app_context():
-    if create_default_users():
-        print("Default users created successfully!")
-    if create_default_master_data():
-        print("Default master data created successfully!")
+def initialize_default_data():
+    """Initialize default users and master data - call this after ensuring DB is ready"""
+    try:
+        with app.app_context():
+            if create_default_users():
+                print("Default users created successfully!")
+            if create_default_master_data():
+                print("Default master data created successfully!")
+    except Exception as e:
+        print(f"Warning: Could not initialize default data: {e}")
+        print("This is normal if the database is not yet set up or tables haven't been created.")
+        print("Run 'flask db upgrade' to create tables, then restart the application.")
+
+# Only initialize default data if we're running the app (not during imports for migrations, etc.)
+if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
+    initialize_default_data()
 
 
 @app.before_request
