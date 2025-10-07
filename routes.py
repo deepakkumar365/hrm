@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
-from models import (Employee, Payroll, Attendance, Leave, Claim, Appraisal, 
+from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal, 
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                     Company, Tenant)
 from forms import LoginForm, RegisterForm
@@ -944,16 +944,23 @@ def payroll_list():
 
 
 @app.route('/payroll/generate', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def payroll_generate():
     """Generate payroll for selected period"""
     if request.method == 'POST':
         try:
-            pay_period_start = parse_date(request.form.get('pay_period_start'))
-            pay_period_end = parse_date(request.form.get('pay_period_end'))
+            month = int(request.form.get('month'))
+            year = int(request.form.get('year'))
             selected_employees = request.form.getlist('employees')
 
+            # Calculate pay period
+            from calendar import monthrange
+            pay_period_start = date(year, month, 1)
+            last_day = monthrange(year, month)[1]
+            pay_period_end = date(year, month, last_day)
+
             generated_count = 0
+            skipped_count = 0
 
             for emp_id in selected_employees:
                 employee = Employee.query.get(int(emp_id))
@@ -967,7 +974,16 @@ def payroll_generate():
                     pay_period_end=pay_period_end).first()
 
                 if existing:
+                    skipped_count += 1
                     continue
+
+                # Get payroll config
+                config = employee.payroll_config
+                
+                # Calculate allowances
+                total_allowances = 0
+                if config:
+                    total_allowances = float(config.get_total_allowances())
 
                 # Get attendance data for overtime calculation
                 attendance_records = Attendance.query.filter_by(
@@ -975,58 +991,252 @@ def payroll_generate():
                         Attendance.date.between(pay_period_start,
                                                 pay_period_end)).all()
 
-                total_overtime = sum(record.overtime_hours or 0
+                total_overtime = sum(float(record.overtime_hours or 0)
                                      for record in attendance_records)
 
-                # Calculate payroll
-                payroll_data = payroll_calc.calculate_payroll(
-                    employee,
-                    pay_period_start,
-                    pay_period_end,
-                    overtime_hours=total_overtime)
+                # Calculate OT pay
+                ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
+                overtime_pay = total_overtime * ot_rate
+
+                # Calculate gross pay
+                basic_pay = float(employee.basic_salary)
+                gross_pay = basic_pay + total_allowances + overtime_pay
+
+                # Calculate CPF (simplified)
+                employee_cpf = gross_pay * (float(employee.employee_cpf_rate) / 100)
+                employer_cpf = gross_pay * (float(employee.employer_cpf_rate) / 100)
+
+                # Calculate net pay
+                net_pay = gross_pay - employee_cpf
 
                 # Create payroll record
                 payroll = Payroll()
                 payroll.employee_id = employee.id
                 payroll.pay_period_start = pay_period_start
                 payroll.pay_period_end = pay_period_end
-                payroll.basic_pay = payroll_data['basic_pay']
-                payroll.overtime_pay = payroll_data['overtime_pay']
-                payroll.allowances = payroll_data['allowances']
-                payroll.bonuses = payroll_data['bonuses']
-                payroll.gross_pay = payroll_data['gross_pay']
-                payroll.employee_cpf = payroll_data['employee_cpf']
-                payroll.employer_cpf = payroll_data['employer_cpf']
-                payroll.other_deductions = payroll_data['other_deductions']
-                payroll.net_pay = payroll_data['net_pay']
+                payroll.basic_pay = basic_pay
+                payroll.overtime_pay = overtime_pay
+                payroll.allowances = total_allowances
+                payroll.bonuses = 0
+                payroll.gross_pay = gross_pay
+                payroll.employee_cpf = employee_cpf
+                payroll.employer_cpf = employer_cpf
+                payroll.income_tax = 0
+                payroll.other_deductions = 0
+                payroll.net_pay = net_pay
                 payroll.overtime_hours = total_overtime
                 payroll.days_worked = len(attendance_records)
                 payroll.generated_by = current_user.id
+                payroll.status = 'Draft'
 
                 db.session.add(payroll)
                 generated_count += 1
 
             db.session.commit()
-            flash(f'Generated payroll for {generated_count} employees',
-                  'success')
+            
+            message = f'Generated payroll for {generated_count} employee(s)'
+            if skipped_count > 0:
+                message += f'. Skipped {skipped_count} employee(s) with existing payroll.'
+            
+            flash(message, 'success')
             return redirect(url_for('payroll_list'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error generating payroll: {str(e)}', 'error')
 
-    # Get active employees
-    employees = Employee.query.filter_by(is_active=True).order_by(
-        Employee.first_name).all()
-
-    return render_template('payroll/form.html', employees=employees)
+    # GET request - show form
+    from datetime import datetime as dt
+    current_month = dt.now().month
+    current_year = dt.now().year
+    
+    return render_template('payroll/generate.html', 
+                         current_month=current_month,
+                         current_year=current_year)
 
 
 @app.route('/payroll/config')
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def payroll_config():
-    """Payroll configuration page"""
-    return render_template('payroll/config.html')
+    """Payroll configuration page - manage employee salary allowances and OT rates"""
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '', type=str)
+    
+    # Query active employees
+    query = Employee.query.filter_by(is_active=True)
+    
+    if search:
+        query = query.filter(
+            db.or_(
+                Employee.first_name.ilike(f'%{search}%'),
+                Employee.last_name.ilike(f'%{search}%'),
+                Employee.employee_id.ilike(f'%{search}%')
+            )
+        )
+    
+    employees = query.order_by(Employee.employee_id).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    # Get or create payroll configurations for each employee
+    for employee in employees.items:
+        if not employee.payroll_config:
+            config = PayrollConfiguration(employee_id=employee.id)
+            db.session.add(config)
+    
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating payroll configs: {e}")
+    
+    return render_template('payroll/config.html', employees=employees, search=search)
+
+
+@app.route('/payroll/config/update', methods=['POST'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+def payroll_config_update():
+    """Update payroll configuration for an employee (AJAX endpoint)"""
+    try:
+        data = request.get_json()
+        employee_id = data.get('employee_id')
+        
+        employee = Employee.query.get_or_404(employee_id)
+        config = employee.payroll_config
+        
+        if not config:
+            config = PayrollConfiguration(employee_id=employee_id)
+            db.session.add(config)
+        
+        # Update base salary (on Employee model)
+        if 'basic_salary' in data:
+            employee.basic_salary = float(data['basic_salary'])
+        
+        # Update allowances
+        if 'allowance_1_amount' in data:
+            config.allowance_1_amount = float(data['allowance_1_amount']) if data['allowance_1_amount'] else 0
+        if 'allowance_2_amount' in data:
+            config.allowance_2_amount = float(data['allowance_2_amount']) if data['allowance_2_amount'] else 0
+        if 'allowance_3_amount' in data:
+            config.allowance_3_amount = float(data['allowance_3_amount']) if data['allowance_3_amount'] else 0
+        if 'allowance_4_amount' in data:
+            config.allowance_4_amount = float(data['allowance_4_amount']) if data['allowance_4_amount'] else 0
+        
+        # Update OT rate
+        if 'ot_rate_per_hour' in data:
+            config.ot_rate_per_hour = float(data['ot_rate_per_hour']) if data['ot_rate_per_hour'] else None
+        
+        config.updated_by = current_user.id
+        config.updated_at = datetime.now()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payroll configuration updated successfully',
+            'total_allowances': float(config.get_total_allowances())
+        })
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error updating configuration: {str(e)}'
+        }), 400
+
+
+@app.route('/api/payroll/preview')
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+def payroll_preview_api():
+    """API endpoint to preview payroll data for selected month"""
+    try:
+        month = request.args.get('month', type=int)
+        year = request.args.get('year', type=int)
+        
+        if not month or not year:
+            return jsonify({
+                'success': False,
+                'message': 'Month and year are required'
+            }), 400
+        
+        # Calculate pay period
+        from calendar import monthrange
+        pay_period_start = date(year, month, 1)
+        last_day = monthrange(year, month)[1]
+        pay_period_end = date(year, month, last_day)
+        
+        # Get all active employees
+        employees = Employee.query.filter_by(is_active=True).all()
+        
+        employee_data = []
+        for emp in employees:
+            # Get payroll config
+            config = emp.payroll_config
+            
+            # Calculate allowances
+            allowance_1 = float(config.allowance_1_amount) if config else 0
+            allowance_2 = float(config.allowance_2_amount) if config else 0
+            allowance_3 = float(config.allowance_3_amount) if config else 0
+            allowance_4 = float(config.allowance_4_amount) if config else 0
+            total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
+            
+            # Get attendance data for the month
+            attendance_records = Attendance.query.filter_by(
+                employee_id=emp.id
+            ).filter(
+                Attendance.date.between(pay_period_start, pay_period_end)
+            ).all()
+            
+            attendance_days = len(attendance_records)
+            total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
+            
+            # Calculate OT amount
+            ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(emp.hourly_rate or 0)
+            ot_amount = total_ot_hours * ot_rate
+            
+            # Calculate gross salary
+            basic_salary = float(emp.basic_salary)
+            gross_salary = basic_salary + total_allowances + ot_amount
+            
+            # Calculate CPF deductions (simplified - using employee rate)
+            cpf_deduction = gross_salary * (float(emp.employee_cpf_rate) / 100)
+            
+            # Calculate net salary
+            total_deductions = cpf_deduction
+            net_salary = gross_salary - total_deductions
+            
+            employee_data.append({
+                'id': emp.id,
+                'employee_id': emp.employee_id,
+                'name': f"{emp.first_name} {emp.last_name}",
+                'basic_salary': basic_salary,
+                'allowance_1': allowance_1,
+                'allowance_2': allowance_2,
+                'allowance_3': allowance_3,
+                'allowance_4': allowance_4,
+                'total_allowances': total_allowances,
+                'ot_hours': total_ot_hours,
+                'ot_rate': ot_rate,
+                'ot_amount': ot_amount,
+                'attendance_days': attendance_days,
+                'gross_salary': gross_salary,
+                'cpf_deduction': cpf_deduction,
+                'total_deductions': total_deductions,
+                'net_salary': net_salary
+            })
+        
+        return jsonify({
+            'success': True,
+            'employees': employee_data,
+            'month': month,
+            'year': year
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error loading payroll preview: {str(e)}'
+        }), 500
 
 
 @app.route('/payroll/<int:payroll_id>/payslip')

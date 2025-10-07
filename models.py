@@ -292,6 +292,51 @@ class EmployeeDocument(db.Model):
         return f'<EmployeeDocument {self.document_type} for Employee {self.employee_id}>'
 
 
+class PayrollConfiguration(db.Model):
+    """Employee-specific payroll configuration for allowances and OT rates"""
+    __tablename__ = 'hrm_payroll_configuration'
+    __table_args__ = (
+        Index('ix_hrm_payroll_config_employee_id', 'employee_id'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False, unique=True)
+    
+    # Allowances (can be customized per employee)
+    allowance_1_name = db.Column(db.String(100), default='Transport Allowance')
+    allowance_1_amount = db.Column(db.Numeric(10, 2), default=0)
+    
+    allowance_2_name = db.Column(db.String(100), default='Housing Allowance')
+    allowance_2_amount = db.Column(db.Numeric(10, 2), default=0)
+    
+    allowance_3_name = db.Column(db.String(100), default='Meal Allowance')
+    allowance_3_amount = db.Column(db.Numeric(10, 2), default=0)
+    
+    allowance_4_name = db.Column(db.String(100), default='Other Allowance')
+    allowance_4_amount = db.Column(db.Numeric(10, 2), default=0)
+    
+    # Overtime rate per hour (overrides employee.hourly_rate if set)
+    ot_rate_per_hour = db.Column(db.Numeric(8, 2), nullable=True)
+    
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    updated_by = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
+    
+    # Relationships
+    employee = db.relationship('Employee', backref=db.backref('payroll_config', uselist=False))
+    updated_by_user = db.relationship('User')
+    
+    def get_total_allowances(self):
+        """Calculate total allowances"""
+        return (self.allowance_1_amount or 0) + (self.allowance_2_amount or 0) + \
+               (self.allowance_3_amount or 0) + (self.allowance_4_amount or 0)
+    
+    def get_effective_ot_rate(self):
+        """Get effective OT rate (from config or employee hourly rate)"""
+        return self.ot_rate_per_hour or self.employee.hourly_rate or 0
+
+
 class Payroll(db.Model):
     __tablename__ = 'hrm_payroll'
     id = db.Column(db.Integer, primary_key=True)

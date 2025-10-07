@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Payroll - Noltrion{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('payroll_list') }}">Payroll</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Generate</li>
+                        </ol>
+                    </nav>
+                    <h4 class="mt-2 mb-0">
+                        <i class="fas fa-calculator me-2"></i>Generate Payroll
+                    </h4>
+                    <p class="text-muted small mb-0">Calculate and generate payroll for selected employees</p>
+                </div>
+                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Payroll
+                </a>
+            </div>
+            
+            <hr class="mt-2 mb-3">
+        </div>
+    </div>
+
+    <form method="POST" id="payrollForm">
+        <!-- Month Selection -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="month" class="form-label">Select Month *</label>
+                <select name="month" id="month" class="form-select" required>
+                    <option value="">-- Select Month --</option>
+                    {% for i in range(1, 13) %}
+                    <option value="{{ i }}" {% if i == current_month %}selected{% endif %}>
+                        {{ ['', 'January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'][i] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="year" class="form-label">Select Year *</label>
+                <select name="year" id="year" class="form-select" required>
+                    {% for y in range(current_year - 1, current_year + 2) %}
+                    <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label d-block">&nbsp;</label>
+                <button type="button" class="btn btn-primary" onclick="loadEmployeeData()">
+                    <i class="fas fa-sync me-1"></i>Load Employee Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Employee Payroll Table -->
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-table me-2"></i>Employee Payroll Preview</h6>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="selectAll">
+                    <label class="form-check-label" for="selectAll">
+                        Select All
+                    </label>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="payrollTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 50px;">
+                                <input type="checkbox" id="selectAllHeader" class="form-check-input">
+                            </th>
+                            <th style="min-width: 150px;">Employee</th>
+                            <th style="min-width: 110px;">Base Salary</th>
+                            <th style="min-width: 100px;">Transport</th>
+                            <th style="min-width: 100px;">Housing</th>
+                            <th style="min-width: 100px;">Meal</th>
+                            <th style="min-width: 100px;">Other</th>
+                            <th style="min-width: 90px;">OT Hours</th>
+                            <th style="min-width: 100px;">OT Amount</th>
+                            <th style="min-width: 90px;">Att. Days</th>
+                            <th style="min-width: 110px;">Deductions</th>
+                            <th style="min-width: 120px;" class="text-end">Net Salary</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeeTableBody">
+                        <tr>
+                            <td colspan="12" class="text-center py-5">
+                                <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">Select a month and click "Load Employee Data" to preview payroll</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-light">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-0">
+                            <strong>Selected Employees:</strong> <span id="selectedCount">0</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <p class="mb-0">
+                            <strong>Total Net Payroll:</strong> 
+                            <span id="totalPayroll" class="text-success fs-5">$0.00</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+            <div class="col-12 text-end">
+                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </a>
+                <button type="submit" class="btn btn-success" id="generateBtn" disabled>
+                    <i class="fas fa-check me-1"></i>Generate Payslips
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+let employeeData = [];
+
+// Select all functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    updateSummary();
+});
+
+document.getElementById('selectAllHeader').addEventListener('change', function() {
+    document.getElementById('selectAll').checked = this.checked;
+    document.getElementById('selectAll').dispatchEvent(new Event('change'));
+});
+
+function loadEmployeeData() {
+    const month = document.getElementById('month').value;
+    const year = document.getElementById('year').value;
+    
+    if (!month || !year) {
+        alert('Please select both month and year');
+        return;
+    }
+    
+    // Show loading
+    const tbody = document.getElementById('employeeTableBody');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="12" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted mt-2 mb-0">Loading employee data...</p>
+            </td>
+        </tr>
+    `;
+    
+    // Fetch employee payroll data
+    fetch(`/api/payroll/preview?month=${month}&year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                employeeData = data.employees;
+                renderEmployeeTable();
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="text-center py-5 text-danger">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <p class="mb-0">${data.message || 'Error loading data'}</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        })
+        .catch(error => {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="12" class="text-center py-5 text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <p class="mb-0">Error loading employee data. Please try again.</p>
+                    </td>
+                </tr>
+            `;
+        });
+}
+
+function renderEmployeeTable() {
+    const tbody = document.getElementById('employeeTableBody');
+    
+    if (employeeData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="12" class="text-center py-5">
+                    <i class="fas fa-users-slash fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">No active employees found</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = employeeData.map(emp => `
+        <tr>
+            <td>
+                <input type="checkbox" class="form-check-input employee-checkbox" 
+                       name="employees" value="${emp.id}" 
+                       onchange="updateSummary()">
+            </td>
+            <td>
+                <div>
+                    <strong>${emp.name}</strong>
+                    <br><small class="text-muted">${emp.employee_id}</small>
+                </div>
+            </td>
+            <td>$${parseFloat(emp.basic_salary).toFixed(2)}</td>
+            <td>$${parseFloat(emp.allowance_1 || 0).toFixed(2)}</td>
+            <td>$${parseFloat(emp.allowance_2 || 0).toFixed(2)}</td>
+            <td>$${parseFloat(emp.allowance_3 || 0).toFixed(2)}</td>
+            <td>$${parseFloat(emp.allowance_4 || 0).toFixed(2)}</td>
+            <td>${parseFloat(emp.ot_hours || 0).toFixed(2)}</td>
+            <td>$${parseFloat(emp.ot_amount || 0).toFixed(2)}</td>
+            <td>${emp.attendance_days || 0}</td>
+            <td>$${parseFloat(emp.total_deductions || 0).toFixed(2)}</td>
+            <td class="text-end">
+                <strong class="text-success">$${parseFloat(emp.net_salary).toFixed(2)}</strong>
+            </td>
+        </tr>
+    `).join('');
+    
+    updateSummary();
+}
+
+function updateSummary() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+    const count = checkboxes.length;
+    
+    let total = 0;
+    checkboxes.forEach(cb => {
+        const emp = employeeData.find(e => e.id == cb.value);
+        if (emp) {
+            total += parseFloat(emp.net_salary);
+        }
+    });
+    
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('totalPayroll').textContent = `$${total.toFixed(2)}`;
+    document.getElementById('generateBtn').disabled = count === 0;
+}
+
+// Form submission
+document.getElementById('payrollForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const selectedCount = document.querySelectorAll('.employee-checkbox:checked').length;
+    
+    if (selectedCount === 0) {
+        alert('Please select at least one employee');
+        return;
+    }
+    
+    if (confirm(`Generate payroll for ${selectedCount} employee(s)?`)) {
+        this.submit();
+    }
+});
+</script>
+
+<style>
+.table td {
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+.table th {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+#payrollTable {
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

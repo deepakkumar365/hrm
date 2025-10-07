@@ -3,23 +3,331 @@
 {% block title %}Payroll Configuration - Noltrion{% endblock %}
 
 {% block content %}
-<div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="mb-0">
-      <i class="fas fa-sliders-h me-2"></i>Payroll Configuration
-    </h3>
-    <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
-      <i class="fas fa-arrow-left me-1"></i>Back to Payroll
-    </a>
-  </div>
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('payroll_list') }}">Payroll</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Configuration</li>
+                        </ol>
+                    </nav>
+                    <h4 class="mt-2 mb-0">
+                        <i class="fas fa-sliders-h me-2"></i>Payroll Configuration
+                    </h4>
+                    <p class="text-muted small mb-0">Configure employee salary allowances and overtime rates</p>
+                </div>
+                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Payroll
+                </a>
+            </div>
+            
+            <hr class="mt-2 mb-3">
 
-  <div class="card">
-    <div class="card-header">
-      <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Settings</h5>
+            <!-- Search -->
+            <form method="GET" class="mb-3">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search by employee name or ID..." 
+                               value="{{ search }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                    </div>
+                    {% if search %}
+                    <div class="col-md-2">
+                        <a href="{{ url_for('payroll_config') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="card-body">
-      <p class="text-muted mb-0">This is a placeholder for Payroll Configuration. Add your settings here (CPF rates, overtime rules, bank file formats, etc.).</p>
+
+    <!-- Configuration Table -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-table me-2"></i>Employee Salary Configuration</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="min-width: 120px;">Employee ID</th>
+                        <th style="min-width: 150px;">Employee Name</th>
+                        <th style="min-width: 130px;">Base Salary</th>
+                        <th style="min-width: 130px;">Transport Allow.</th>
+                        <th style="min-width: 130px;">Housing Allow.</th>
+                        <th style="min-width: 130px;">Meal Allow.</th>
+                        <th style="min-width: 130px;">Other Allow.</th>
+                        <th style="min-width: 130px;">OT Rate/Hour</th>
+                        <th style="min-width: 100px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees.items %}
+                    <tr id="row-{{ employee.id }}" data-employee-id="{{ employee.id }}">
+                        <td>
+                            <strong>{{ employee.employee_id }}</strong>
+                        </td>
+                        <td>
+                            <div>
+                                {{ employee.first_name }} {{ employee.last_name }}
+                                <br><small class="text-muted">{{ employee.position }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" min="0" 
+                                   class="form-control form-control-sm editable-field" 
+                                   data-field="basic_salary"
+                                   value="{{ employee.basic_salary }}"
+                                   disabled>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" min="0" 
+                                   class="form-control form-control-sm editable-field" 
+                                   data-field="allowance_1_amount"
+                                   value="{{ employee.payroll_config.allowance_1_amount if employee.payroll_config else 0 }}"
+                                   disabled>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" min="0" 
+                                   class="form-control form-control-sm editable-field" 
+                                   data-field="allowance_2_amount"
+                                   value="{{ employee.payroll_config.allowance_2_amount if employee.payroll_config else 0 }}"
+                                   disabled>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" min="0" 
+                                   class="form-control form-control-sm editable-field" 
+                                   data-field="allowance_3_amount"
+                                   value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}"
+                                   disabled>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" min="0" 
+                                   class="form-control form-control-sm editable-field" 
+                                   data-field="allowance_4_amount"
+                                   value="{{ employee.payroll_config.allowance_4_amount if employee.payroll_config else 0 }}"
+                                   disabled>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" min="0" 
+                                   class="form-control form-control-sm editable-field" 
+                                   data-field="ot_rate_per_hour"
+                                   value="{{ employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else '' }}"
+                                   placeholder="Default"
+                                   disabled>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary btn-edit" 
+                                        onclick="enableEdit({{ employee.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-success btn-save" 
+                                        onclick="saveConfig({{ employee.id }})"
+                                        style="display: none;">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                                <button class="btn btn-secondary btn-cancel" 
+                                        onclick="cancelEdit({{ employee.id }})"
+                                        style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-  </div>
+
+    {% if not employees.items %}
+    <div class="text-center py-5">
+        <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No employees found</h5>
+        <p class="text-muted">Try adjusting your search criteria</p>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if employees.pages > 1 %}
+    <nav aria-label="Employee pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if employees.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('payroll_config', page=employees.prev_num, search=search) }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page_num in employees.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num != employees.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('payroll_config', page=page_num, search=search) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if employees.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('payroll_config', page=employees.next_num, search=search) }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
+
+<!-- Toast notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="fas fa-check-circle text-success me-2"></i>
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            Configuration saved successfully!
+        </div>
+    </div>
+</div>
+
+<script>
+// Store original values for cancel functionality
+const originalValues = {};
+
+function enableEdit(employeeId) {
+    const row = document.getElementById(`row-${employeeId}`);
+    const inputs = row.querySelectorAll('.editable-field');
+    
+    // Store original values
+    originalValues[employeeId] = {};
+    inputs.forEach(input => {
+        originalValues[employeeId][input.dataset.field] = input.value;
+        input.disabled = false;
+        input.classList.add('border-primary');
+    });
+    
+    // Toggle buttons
+    row.querySelector('.btn-edit').style.display = 'none';
+    row.querySelector('.btn-save').style.display = 'inline-block';
+    row.querySelector('.btn-cancel').style.display = 'inline-block';
+}
+
+function cancelEdit(employeeId) {
+    const row = document.getElementById(`row-${employeeId}`);
+    const inputs = row.querySelectorAll('.editable-field');
+    
+    // Restore original values
+    inputs.forEach(input => {
+        input.value = originalValues[employeeId][input.dataset.field];
+        input.disabled = true;
+        input.classList.remove('border-primary');
+    });
+    
+    // Toggle buttons
+    row.querySelector('.btn-edit').style.display = 'inline-block';
+    row.querySelector('.btn-save').style.display = 'none';
+    row.querySelector('.btn-cancel').style.display = 'none';
+    
+    delete originalValues[employeeId];
+}
+
+function saveConfig(employeeId) {
+    const row = document.getElementById(`row-${employeeId}`);
+    const inputs = row.querySelectorAll('.editable-field');
+    
+    // Collect data
+    const data = { employee_id: employeeId };
+    inputs.forEach(input => {
+        data[input.dataset.field] = input.value || null;
+    });
+    
+    // Disable save button and show loading
+    const saveBtn = row.querySelector('.btn-save');
+    const originalHtml = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    // Send AJAX request
+    fetch('{{ url_for("payroll_config_update") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Disable inputs
+            inputs.forEach(input => {
+                input.disabled = true;
+                input.classList.remove('border-primary');
+            });
+            
+            // Toggle buttons
+            row.querySelector('.btn-edit').style.display = 'inline-block';
+            row.querySelector('.btn-save').style.display = 'none';
+            row.querySelector('.btn-cancel').style.display = 'none';
+            
+            // Show success toast
+            const toast = new bootstrap.Toast(document.getElementById('saveToast'));
+            toast.show();
+            
+            delete originalValues[employeeId];
+        } else {
+            alert('Error: ' + result.message);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalHtml;
+        }
+    })
+    .catch(error => {
+        alert('Error saving configuration. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalHtml;
+    });
+}
+</script>
+
+<style>
+.editable-field:not(:disabled) {
+    background-color: #fffbf0;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.form-control-sm {
+    font-size: 0.875rem;
+}
+</style>
 {% endblock %}
