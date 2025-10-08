@@ -259,7 +259,7 @@ def render_super_admin_dashboard():
     
     # Calculate revenue from payment configurations
     payment_configs = TenantPaymentConfig.query.all()
-    monthly_revenue = sum(config.monthly_charges or 0 for config in payment_configs)
+    monthly_revenue = float(sum(config.monthly_charges or 0 for config in payment_configs))
     quarterly_revenue = monthly_revenue * 3
     yearly_revenue = monthly_revenue * 12
     
@@ -3002,9 +3002,9 @@ def working_hours_edit(working_hours_id):
 @app.route('/masters/working-hours/<int:working_hours_id>/delete', methods=['POST'])
 @require_role(['Super Admin', 'Admin'])
 def working_hours_delete(working_hours_id):
-    """Delete working hours configuration (soft delete)"""
-    working_hours = WorkingHours.query.get_or_404(working_hours_id)
+    """Delete working hours configuration"""
     try:
+        working_hours = WorkingHours.query.get_or_404(working_hours_id)
         working_hours.is_active = False
         db.session.commit()
         flash('Working hours configuration deleted successfully', 'success')
@@ -3014,7 +3014,8 @@ def working_hours_delete(working_hours_id):
     
     return redirect(url_for('working_hours_list'))
 
-# Work Schedule Management Routes
+
+# Work Schedule Routes
 @app.route('/masters/work-schedules')
 @require_role(['Super Admin', 'Admin'])
 def work_schedule_list():
@@ -3035,14 +3036,14 @@ def work_schedule_add():
             start_time_str = request.form.get('start_time')
             end_time_str = request.form.get('end_time')
             
-            start_time = datetime.strptime(start_time_str, '%H:%M').time()
-            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+            start_time = datetime.strptime(start_time_str, '%H:%M').time() if start_time_str else None
+            end_time = datetime.strptime(end_time_str, '%H:%M').time() if end_time_str else None
             
             work_schedule = WorkSchedule(
                 name=request.form.get('name'),
                 start_time=start_time,
                 end_time=end_time,
-                break_duration=int(request.form.get('break_duration', 60)),
+                break_duration=int(request.form.get('break_duration', 0)),
                 description=request.form.get('description')
             )
             db.session.add(work_schedule)
@@ -3068,14 +3069,12 @@ def work_schedule_edit(work_schedule_id):
             start_time_str = request.form.get('start_time')
             end_time_str = request.form.get('end_time')
             
-            start_time = datetime.strptime(start_time_str, '%H:%M').time()
-            end_time = datetime.strptime(end_time_str, '%H:%M').time()
-            
             work_schedule.name = request.form.get('name')
-            work_schedule.start_time = start_time
-            work_schedule.end_time = end_time
-            work_schedule.break_duration = int(request.form.get('break_duration', 60))
+            work_schedule.start_time = datetime.strptime(start_time_str, '%H:%M').time() if start_time_str else None
+            work_schedule.end_time = datetime.strptime(end_time_str, '%H:%M').time() if end_time_str else None
+            work_schedule.break_duration = int(request.form.get('break_duration', 0))
             work_schedule.description = request.form.get('description')
+            
             db.session.commit()
             flash('Work schedule updated successfully', 'success')
             return redirect(url_for('work_schedule_list'))
@@ -3089,9 +3088,9 @@ def work_schedule_edit(work_schedule_id):
 @app.route('/masters/work-schedules/<int:work_schedule_id>/delete', methods=['POST'])
 @require_role(['Super Admin', 'Admin'])
 def work_schedule_delete(work_schedule_id):
-    """Delete work schedule (soft delete)"""
-    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
+    """Delete work schedule"""
     try:
+        work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
         work_schedule.is_active = False
         db.session.commit()
         flash('Work schedule deleted successfully', 'success')
