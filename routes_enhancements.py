@@ -22,6 +22,7 @@ from auth import require_login, require_role
 from models import (Employee, User, Role, Department, WorkingHours, WorkSchedule,
                     Company, PayrollConfiguration, EmployeeBankInfo, Payroll, Attendance, Leave)
 from utils import (parse_date, validate_nric, format_currency, format_date, export_to_csv)
+from constants import DEFAULT_USER_PASSWORD
 
 
 # =====================================================
@@ -58,18 +59,17 @@ def employee_reset_password(employee_id):
         if not user:
             return jsonify({'success': False, 'message': 'User account not found'}), 404
         
-        # Generate new temporary password
-        temp_password = f"{employee.first_name}123"
-        user.set_password(temp_password)
+        # Reset to default password
+        user.set_password(DEFAULT_USER_PASSWORD)
         user.must_reset_password = True
         
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': f'Password reset successfully. New password: {temp_password}',
+            'message': f'Password reset successfully. New password: {DEFAULT_USER_PASSWORD}',
             'username': user.username,
-            'temp_password': temp_password
+            'temp_password': DEFAULT_USER_PASSWORD
         })
         
     except Exception as e:

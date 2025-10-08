@@ -4,6 +4,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash
 from app import app, db
 from models import User
+from constants import DEFAULT_USER_PASSWORD
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -71,7 +72,7 @@ def create_default_users():
             role_id=roles['SUPER_ADMIN'].id,
             must_reset_password=False
         )
-        super_admin.set_password('superadmin123')
+        super_admin.set_password(DEFAULT_USER_PASSWORD)
         
         # Create Regular Admin
         admin = User(
@@ -83,7 +84,7 @@ def create_default_users():
             role_id=roles['ADMIN'].id,
             must_reset_password=False
         )
-        admin.set_password('admin123')
+        admin.set_password(DEFAULT_USER_PASSWORD)
         
         # Create Manager
         manager = User(
@@ -95,7 +96,7 @@ def create_default_users():
             role_id=roles['HR_MANAGER'].id,
             must_reset_password=False
         )
-        manager.set_password('manager123')
+        manager.set_password(DEFAULT_USER_PASSWORD)
         
         # Create Regular User
         user = User(
@@ -107,7 +108,7 @@ def create_default_users():
             role_id=roles['EMPLOYEE'].id,
             must_reset_password=False
         )
-        user.set_password('user123')
+        user.set_password(DEFAULT_USER_PASSWORD)
         
         db.session.add_all([super_admin, admin, manager, user])
         db.session.commit()

@@ -18,6 +18,7 @@ from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, check_permission,
                    mobile_optimized_pagination, get_current_month_dates)
+from constants import DEFAULT_USER_PASSWORD
 
 # Helper to validate image extension
 def _allowed_image(filename: str) -> bool:
@@ -743,9 +744,9 @@ def employee_add():
                     else:
                         raise ValueError("No active roles found in the system. Please create roles first.")
                 
-                # Set temporary password (employee should change on first login)
-                temp_password = f"{employee.first_name}123"  # Simple temp password
-                user.set_password(temp_password)
+                # Set default password for all new users
+                user.set_password(DEFAULT_USER_PASSWORD)
+                user.must_reset_password = True  # Force password change on first login
                 
                 db.session.add(user)
                 db.session.commit()
@@ -754,7 +755,7 @@ def employee_add():
                 employee.user_id = user.id
                 db.session.commit()
                 
-                flash(f'Employee added successfully. Login credentials created - Username: {username}, Temporary Password: {temp_password}', 'success')
+                flash(f'Employee added successfully. Login credentials created - Username: {username}, Password: {DEFAULT_USER_PASSWORD}', 'success')
                 
             except Exception as user_error:
                 # Employee was created but user creation failed
@@ -2983,119 +2984,4 @@ def working_hours_edit(working_hours_id):
     """Edit working hours configuration"""
     working_hours = WorkingHours.query.get_or_404(working_hours_id)
     
-    if request.method == 'POST':
-        try:
-            working_hours.name = request.form.get('name')
-            working_hours.hours_per_day = float(request.form.get('hours_per_day'))
-            working_hours.hours_per_week = float(request.form.get('hours_per_week'))
-            working_hours.description = request.form.get('description')
-            db.session.commit()
-            flash('Working hours configuration updated successfully', 'success')
-            return redirect(url_for('working_hours_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating working hours: {str(e)}', 'error')
-    
-    return render_template('masters/working_hours/form.html', working_hours=working_hours)
-
-
-@app.route('/masters/working-hours/<int:working_hours_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def working_hours_delete(working_hours_id):
-    """Delete working hours configuration"""
-    try:
-        working_hours = WorkingHours.query.get_or_404(working_hours_id)
-        working_hours.is_active = False
-        db.session.commit()
-        flash('Working hours configuration deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting working hours: {str(e)}', 'error')
-    
-    return redirect(url_for('working_hours_list'))
-
-
-# Work Schedule Routes
-@app.route('/masters/work-schedules')
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_list():
-    """List all work schedules"""
-    page = request.args.get('page', 1, type=int)
-    work_schedules = WorkSchedule.query.filter_by(is_active=True).paginate(
-        page=page, per_page=20, error_out=False)
-    return render_template('masters/work_schedules/list.html', work_schedules=work_schedules)
-
-
-@app.route('/masters/work-schedules/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_add():
-    """Add new work schedule"""
-    if request.method == 'POST':
-        try:
-            # Parse time strings to time objects
-            start_time_str = request.form.get('start_time')
-            end_time_str = request.form.get('end_time')
-            
-            start_time = datetime.strptime(start_time_str, '%H:%M').time() if start_time_str else None
-            end_time = datetime.strptime(end_time_str, '%H:%M').time() if end_time_str else None
-            
-            work_schedule = WorkSchedule(
-                name=request.form.get('name'),
-                start_time=start_time,
-                end_time=end_time,
-                break_duration=int(request.form.get('break_duration', 0)),
-                description=request.form.get('description')
-            )
-            db.session.add(work_schedule)
-            db.session.commit()
-            flash('Work schedule created successfully', 'success')
-            return redirect(url_for('work_schedule_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating work schedule: {str(e)}', 'error')
-    
-    return render_template('masters/work_schedules/form.html')
-
-
-@app.route('/masters/work-schedules/<int:work_schedule_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_edit(work_schedule_id):
-    """Edit work schedule"""
-    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
-    
-    if request.method == 'POST':
-        try:
-            # Parse time strings to time objects
-            start_time_str = request.form.get('start_time')
-            end_time_str = request.form.get('end_time')
-            
-            work_schedule.name = request.form.get('name')
-            work_schedule.start_time = datetime.strptime(start_time_str, '%H:%M').time() if start_time_str else None
-            work_schedule.end_time = datetime.strptime(end_time_str, '%H:%M').time() if end_time_str else None
-            work_schedule.break_duration = int(request.form.get('break_duration', 0))
-            work_schedule.description = request.form.get('description')
-            
-            db.session.commit()
-            flash('Work schedule updated successfully', 'success')
-            return redirect(url_for('work_schedule_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating work schedule: {str(e)}', 'error')
-    
-    return render_template('masters/work_schedules/form.html', work_schedule=work_schedule)
-
-
-@app.route('/masters/work-schedules/<int:work_schedule_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_delete(work_schedule_id):
-    """Delete work schedule"""
-    try:
-        work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
-        work_schedule.is_active = False
-        db.session.commit()
-        flash('Work schedule deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting work schedule: {str(e)}', 'error')
-    
-    return redirect(url_for('work_schedule_list'))
+    if request.metho
