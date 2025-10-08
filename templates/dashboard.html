@@ -8,14 +8,15 @@
     <div class="dashboard-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
             <div>
-                <h1 class="dashboard-title">{{ current_user.first_name or 'Team Member' }}!</h1>
+                <h1 class="dashboard-title">Welcome back, {{ current_user.first_name or 'Team Member' }}!</h1>
+                <p class="dashboard-subtitle">Here's what's happening with your work today</p>
             </div>
-            <div class="d-flex gap-3">
-                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
+            <div class="d-flex gap-3 flex-wrap">
+                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-lg">
                     <i class="fas fa-clock"></i>
                     Mark Attendance
                 </a>
-                <a href="{{ url_for('leave_request') }}" class="btn btn-outline-primary">
+                <a href="{{ url_for('leave_request') }}" class="btn btn-outline-primary btn-lg">
                     <i class="fas fa-plane-departure"></i>
                     Request Leave
                 </a>
@@ -23,64 +24,140 @@
         </div>
     </div>
 
-    <!-- Key Metrics Grid -->
+    <!-- Key Metrics Grid - Enhanced Design -->
     <div class="dashboard-grid mb-8">
         <!-- Attendance Rate -->
         <div class="col-span-3">
-            <div class="stat-card">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-calendar-check"></i>
+            <div class="stat-card stat-card-enhanced">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon primary">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <span class="stat-card-badge badge bg-primary">This Month</span>
                 </div>
-                <div class="stat-card-value">{{ stats.attendance_rate if stats.attendance_rate is defined else stats.attendance_percentage if stats.attendance_percentage is defined else '95' }}%</div>
-                <div class="stat-card-label">Attendance Rate</div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    +2.5% from last month
+                <div class="stat-card-content">
+                    <div class="stat-card-value">{{ stats.attendance_rate if stats.attendance_rate is defined else stats.attendance_percentage if stats.attendance_percentage is defined else '95' }}%</div>
+                    <div class="stat-card-label">Attendance Rate</div>
+                    <div class="stat-card-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+2.5% from last month</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Leave Balance -->
         <div class="col-span-3">
-            <div class="stat-card">
-                <div class="stat-card-icon success">
-                    <i class="fas fa-leaf"></i>
+            <div class="stat-card stat-card-enhanced">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon success">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                    <span class="stat-card-badge badge bg-success">Available</span>
                 </div>
-                <div class="stat-card-value">{{ stats.leave_balance if stats.leave_balance is defined else '12' }}</div>
-                <div class="stat-card-label">Days Leave Balance</div>
-                <div class="stat-card-change">
-                    <i class="fas fa-info-circle"></i>
-                    {{ stats.leave_balance_text if stats.leave_balance_text is defined else 'Annual leave remaining' }}
+                <div class="stat-card-content">
+                    <div class="stat-card-value">{{ stats.leave_balance if stats.leave_balance is defined else '12' }}</div>
+                    <div class="stat-card-label">Days Leave Balance</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-info-circle"></i>
+                        <span>{{ stats.leave_balance_text if stats.leave_balance_text is defined else 'Annual leave remaining' }}</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- This Month Leaves -->
         <div class="col-span-3">
-            <div class="stat-card">
-                <div class="stat-card-icon warning">
-                    <i class="fas fa-calendar-times"></i>
+            <div class="stat-card stat-card-enhanced">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon warning">
+                        <i class="fas fa-calendar-times"></i>
+                    </div>
+                    <span class="stat-card-badge badge bg-warning">This Month</span>
                 </div>
-                <div class="stat-card-value">{{ stats.leaves_taken_month if stats.leaves_taken_month is defined else '2' }}</div>
-                <div class="stat-card-label">Leaves This Month</div>
-                <div class="stat-card-change">
-                    <i class="fas fa-calendar"></i>
-                    {{ stats.upcoming_leaves if stats.upcoming_leaves is defined else '1' }} upcoming
+                <div class="stat-card-content">
+                    <div class="stat-card-value">{{ stats.leaves_taken_month if stats.leaves_taken_month is defined else '2' }}</div>
+                    <div class="stat-card-label">Leaves Taken</div>
+                    <div class="stat-card-change">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ stats.upcoming_leaves if stats.upcoming_leaves is defined else '1' }} upcoming</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Working Hours -->
         <div class="col-span-3">
-            <div class="stat-card">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-clock"></i>
+            <div class="stat-card stat-card-enhanced">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon info">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <span class="stat-card-badge badge bg-info">Average</span>
                 </div>
-                <div class="stat-card-value">{{ stats.working_hours if stats.working_hours is defined else '8.5' }}h</div>
-                <div class="stat-card-label">Avg. Daily Hours</div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    On track this week
+                <div class="stat-card-content">
+                    <div class="stat-card-value">{{ stats.working_hours if stats.working_hours is defined else '8.5' }}h</div>
+                    <div class="stat-card-label">Daily Hours</div>
+                    <div class="stat-card-change positive">
+                        <i class="fas fa-check-circle"></i>
+                        <span>On track this week</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Summary -->
+    <div class="dashboard-grid mb-8">
+        <div class="col-span-12">
+            <div class="quick-stats-container">
+                <div class="quick-stat-item">
+                    <div class="quick-stat-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                    <div class="quick-stat-content">
+                        <span class="quick-stat-label">Recent Payslip</span>
+                        <span class="quick-stat-value">{{ stats.recent_payslip if stats.recent_payslip is defined else 'December 2024' }}</span>
+                    </div>
+                    <a href="#" class="quick-stat-action">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="quick-stat-item">
+                    <div class="quick-stat-icon">
+                        <i class="fas fa-umbrella-beach"></i>
+                    </div>
+                    <div class="quick-stat-content">
+                        <span class="quick-stat-label">Upcoming Holiday</span>
+                        <span class="quick-stat-value">{{ stats.next_holiday if stats.next_holiday is defined else 'Christmas - Dec 25' }}</span>
+                    </div>
+                    <a href="#" class="quick-stat-action">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="quick-stat-item">
+                    <div class="quick-stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="quick-stat-content">
+                        <span class="quick-stat-label">Today's Status</span>
+                        <span class="quick-stat-value">{{ stats.today_status if stats.today_status is defined else 'Present' }}</span>
+                    </div>
+                    <a href="{{ url_for('attendance_list') }}" class="quick-stat-action">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="quick-stat-item">
+                    <div class="quick-stat-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="quick-stat-content">
+                        <span class="quick-stat-label">Pending Requests</span>
+                        <span class="quick-stat-value">{{ stats.pending_requests if stats.pending_requests is defined else '0' }}</span>
+                    </div>
+                    <a href="{{ url_for('leave_list') }}" class="quick-stat-action">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
                 </div>
             </div>
         </div>

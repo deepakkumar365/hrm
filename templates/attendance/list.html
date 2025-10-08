@@ -3,125 +3,175 @@
 {% block title %}Attendance Records - Noltrion{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header with search and actions -->
-    <div class="row mb-1">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <!-- Breadcrumb navigation -->
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item">Attendance</li>
-                            <li class="breadcrumb-item active" aria-current="page">Records</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div class="btn-group">
-                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                    <a href="{{ url_for('attendance_bulk_manage') }}" class="btn btn-success">
-                        <i class="fas fa-users me-1"></i>Bulk Management
-                    </a>
-                    {% endif %}
-                    <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
-                        <i class="fas fa-clock me-1"></i>Mark Attendance
-                    </a>
-                </div>
+<div class="dashboard-wrapper">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
+            <div>
+                <h1 class="dashboard-title">Attendance Records</h1>
+                <p class="dashboard-subtitle">Track and manage your attendance history</p>
             </div>
-
-            <hr class="mt-0 mb-3">
-
-            <!-- Filters -->
-            <form method="GET" class="filter-card">
-                <div class="card-header">
-                    <i class="fas fa-filter me-2"></i>Filter
-                </div>
-                <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-3">
-                            <input type="date" name="date" class="form-control" value="{{ date_filter or '' }}" placeholder="Select Date">
-                        </div>
-                        {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] and employees %}
-                        <div class="col-md-4">
-                            <select name="employee" class="form-select">
-                                <option value="">All Employees</option>
-                                {% for emp in employees %}
-                                <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
-                                    {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        {% endif %}
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-search me-1"></i>Filter
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
+            <div class="d-flex gap-3 flex-wrap">
+                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
+                <a href="{{ url_for('attendance_bulk_manage') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-users"></i>
+                    Bulk Management
+                </a>
+                {% endif %}
+                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-clock"></i>
+                    Mark Attendance
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- Mobile Cards -->
-    <div class="d-md-none">
+    <!-- Filters Section - Single View -->
+    <div class="attendance-filter-section">
+        <form method="GET" class="attendance-filter-form">
+            <div class="filter-tabs">
+                <button type="button" class="filter-tab active" onclick="setDateFilter('today')">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>Today</span>
+                </button>
+                <button type="button" class="filter-tab" onclick="setDateFilter('week')">
+                    <i class="fas fa-calendar-week"></i>
+                    <span>This Week</span>
+                </button>
+                <button type="button" class="filter-tab" onclick="setDateFilter('month')">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>This Month</span>
+                </button>
+                <button type="button" class="filter-tab" onclick="setDateFilter('custom')">
+                    <i class="fas fa-calendar"></i>
+                    <span>Custom Range</span>
+                </button>
+            </div>
+
+            <div class="filter-inputs">
+                <div class="filter-input-group">
+                    <label for="date_filter">
+                        <i class="fas fa-calendar"></i>
+                        Date
+                    </label>
+                    <input type="date" id="date_filter" name="date" class="form-control" value="{{ date_filter or '' }}">
+                </div>
+
+                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] and employees %}
+                <div class="filter-input-group">
+                    <label for="employee_filter">
+                        <i class="fas fa-user"></i>
+                        Employee
+                    </label>
+                    <select id="employee_filter" name="employee" class="form-select">
+                        <option value="">All Employees</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
+                            {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Apply Filter
+                    </button>
+                    <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo"></i>
+                        Reset
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Attendance Records - Enhanced Cards View -->
+    <div class="attendance-records-container">
         {% for record in attendance_records.items %}
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                        <h6 class="mb-1">{{ record.employee.first_name }} {{ record.employee.last_name }}</h6>
-                        <p class="text-muted small mb-0">{{ record.employee.employee_id }}</p>
-                        {% endif %}
-                        <p class="mb-1 fw-semibold">{{ record.date | date }}</p>
-                    </div>
-                    <div class="text-end">
-                        <span class="badge bg-{{ 'success' if record.status == 'Present' else 'danger' if record.status == 'Absent' else 'warning' if record.status == 'Late' else 'secondary' }}">
-                            {{ record.status }}
-                        </span>
-                        {% if record.overtime_hours > 0 %}
-                        <br><span class="badge bg-info mt-1">{{ record.overtime_hours }}h OT</span>
-                        {% endif %}
+        <div class="attendance-record-card">
+            <div class="attendance-card-header">
+                <div class="attendance-date-info">
+                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
+                    <h4 class="employee-name">{{ record.employee.first_name }} {{ record.employee.last_name }}</h4>
+                    <span class="employee-id">{{ record.employee.employee_id }}</span>
+                    {% endif %}
+                    <div class="record-date">
+                        <i class="fas fa-calendar"></i>
+                        <span>{{ record.date.strftime('%A, %B %d, %Y') if record.date else '-' }}</span>
                     </div>
                 </div>
-                
-                <div class="row text-center border-top pt-2">
-                    <div class="col-6 col-md-3">
-                        <small class="text-muted d-block">Clock In</small>
-                        <strong>{{ record.clock_in.strftime('%H:%M') if record.clock_in else '-' }}</strong>
+                <div class="attendance-status-badge">
+                    <span class="status-badge status-{{ record.status|lower }}">
+                        <i class="fas fa-{{ 'check-circle' if record.status == 'Present' else 'times-circle' if record.status == 'Absent' else 'clock' if record.status == 'Late' else 'question-circle' }}"></i>
+                        {{ record.status }}
+                    </span>
+                    {% if record.overtime_hours > 0 %}
+                    <span class="overtime-badge">
+                        <i class="fas fa-plus-circle"></i>
+                        {{ record.overtime_hours }}h OT
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="attendance-card-body">
+                <div class="attendance-time-grid">
+                    <div class="time-item clock-in">
+                        <div class="time-icon">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </div>
+                        <div class="time-details">
+                            <span class="time-label">Clock In</span>
+                            <span class="time-value">{{ record.clock_in.strftime('%I:%M %p') if record.clock_in else '-' }}</span>
+                        </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <small class="text-muted d-block">Clock Out</small>
-                        <strong>{{ record.clock_out.strftime('%H:%M') if record.clock_out else '-' }}</strong>
+
+                    <div class="time-item clock-out">
+                        <div class="time-icon">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </div>
+                        <div class="time-details">
+                            <span class="time-label">Clock Out</span>
+                            <span class="time-value">{{ record.clock_out.strftime('%I:%M %p') if record.clock_out else '-' }}</span>
+                        </div>
                     </div>
-                    <div class="col-6 col-md-3 mt-2 mt-md-0">
-                        <small class="text-muted d-block">Break Time</small>
-                        <strong>
-                            {% if record.break_start and record.break_end %}
-                            {{ record.break_start.strftime('%H:%M') }} - {{ record.break_end.strftime('%H:%M') }}
-                            {% elif record.break_start %}
-                            <span class="text-warning">On Break</span>
-                            {% else %}
-                            -
-                            {% endif %}
-                        </strong>
+
+                    <div class="time-item break-time">
+                        <div class="time-icon">
+                            <i class="fas fa-coffee"></i>
+                        </div>
+                        <div class="time-details">
+                            <span class="time-label">Break Time</span>
+                            <span class="time-value">
+                                {% if record.break_start and record.break_end %}
+                                {{ record.break_start.strftime('%I:%M') }} - {{ record.break_end.strftime('%I:%M %p') }}
+                                {% elif record.break_start %}
+                                <span class="text-warning">On Break</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </span>
+                        </div>
                     </div>
-                    <div class="col-6 col-md-3 mt-2 mt-md-0">
-                        <small class="text-muted d-block">Total Hours</small>
-                        <strong class="text-primary">{{ record.total_hours or 0 }}h</strong>
-                        {% if record.overtime_hours > 0 %}
-                        <br><small class="text-warning">+{{ record.overtime_hours }}h OT</small>
-                        {% endif %}
+
+                    <div class="time-item total-hours">
+                        <div class="time-icon">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="time-details">
+                            <span class="time-label">Total Hours</span>
+                            <span class="time-value highlight">{{ record.total_hours or 0 }}h</span>
+                        </div>
                     </div>
                 </div>
-                
+
                 {% if record.remarks %}
-                <div class="mt-2 pt-2 border-top">
-                    <small class="text-muted">
-                        <i class="fas fa-comment me-1"></i>{{ record.remarks }}
-                    </small>
+                <div class="attendance-remarks">
+                    <i class="fas fa-comment-alt"></i>
+                    <span>{{ record.remarks }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -129,88 +179,17 @@
         {% endfor %}
     </div>
 
-    <!-- Desktop Table -->
-    <div class="d-none d-md-block">
-        <div class="table-container">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                            <th>Employee</th>
-                            {% endif %}
-                            <th>Date</th>
-                            <th>Clock In</th>
-                            <th>Clock Out</th>
-                            <th>Break</th>
-                            <th>Regular Hours</th>
-                            <th>Overtime Hours</th>
-                            <th>Total Hours</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in attendance_records.items %}
-                        <tr>
-                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                            <td>
-                                <div>
-                                    <strong>{{ record.employee.first_name }} {{ record.employee.last_name }}</strong>
-                                    <br><small class="text-muted">{{ record.employee.employee_id }}</small>
-                                </div>
-                            </td>
-                            {% endif %}
-                            <td>{{ record.date | date }}</td>
-                            <td>
-                                {% if record.clock_in %}
-                                <span class="text-success">{{ record.clock_in.strftime('%H:%M') }}</span>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if record.clock_out %}
-                                <span class="text-danger">{{ record.clock_out.strftime('%H:%M') }}</span>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if record.break_start and record.break_end %}
-                                <small>{{ record.break_start.strftime('%H:%M') }} - {{ record.break_end.strftime('%H:%M') }}</small>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ record.regular_hours or 0 }}h</td>
-                            <td>
-                                {% if record.overtime_hours > 0 %}
-                                <span class="text-warning fw-semibold">{{ record.overtime_hours }}h</span>
-                                {% else %}
-                                <span class="text-muted">0h</span>
-                                {% endif %}
-                            </td>
-                            <td class="fw-semibold">{{ record.total_hours or 0 }}h</td>
-                            <td>
-                                <span class="badge bg-{{ 'success' if record.status == 'Present' else 'danger' if record.status == 'Absent' else 'warning' if record.status == 'Late' else 'secondary' }}">
-                                    {{ record.status }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     {% if not attendance_records.items %}
-    <div class="text-center py-5">
-        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-        <h5 class="text-muted">No attendance records found</h5>
-        <p class="text-muted">Try adjusting your search criteria or mark your attendance</p>
-        <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
-            <i class="fas fa-clock me-1"></i>Mark Attendance Now
+    <!-- Empty State -->
+    <div class="empty-state-container">
+        <div class="empty-state-icon">
+            <i class="fas fa-calendar-times"></i>
+        </div>
+        <h3 class="empty-state-title">No Attendance Records Found</h3>
+        <p class="empty-state-text">Try adjusting your search criteria or mark your attendance for today</p>
+        <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-clock"></i>
+            Mark Attendance Now
         </a>
     </div>
     {% endif %}
@@ -258,4 +237,49 @@
     </nav>
     {% endif %}
 </div>
+
+<script>
+// Set default date filter to today on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('input[name="date"]');
+    
+    // Only set default if no date is already set
+    if (dateInput && !dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+});
+
+// Date filter functions
+function setDateFilter(type) {
+    const dateInput = document.getElementById('date_filter');
+    const today = new Date();
+    
+    // Remove active class from all tabs
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Add active class to clicked tab
+    event.target.closest('.filter-tab').classList.add('active');
+    
+    switch(type) {
+        case 'today':
+            dateInput.value = today.toISOString().split('T')[0];
+            break;
+        case 'week':
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            dateInput.value = weekStart.toISOString().split('T')[0];
+            break;
+        case 'month':
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            dateInput.value = monthStart.toISOString().split('T')[0];
+            break;
+        case 'custom':
+            dateInput.focus();
+            break;
+    }
+}
+</script>
 {% endblock %}

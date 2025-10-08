@@ -7,12 +7,16 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.4
-      - key: SESSION_SECRET
+      - key: ENVIRONMENT
+        value: production
+      - key: PROD_SESSION_SECRET
         generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: noltrion-db
-          property: connectionString
+      - key: PROD_DATABASE_URL
+        value: postgresql://noltrion_admin:1UzH1rVxlnimPf1qvyLEnuEeOnrybn7f@dpg-d3ii4fruibrs73cukdtg-a.oregon-postgres.render.com:5432/noltrion_hrm?sslmode=require
+      - key: DEV_SESSION_SECRET
+        sync: false
+      - key: DEV_DATABASE_URL
+        sync: false
     healthCheckPath: /health
 
 databases:

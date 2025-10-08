@@ -39,17 +39,37 @@ def require_role(allowed_roles):
 
 def create_default_users():
     """Create default users if none exist"""
-    from models import Employee
+    from models import Employee, Role, Organization
     from datetime import date
     
     if User.query.count() == 0:
+        # Get or create default organization
+        org = Organization.query.first()
+        if not org:
+            org = Organization(name='Default Organization')
+            db.session.add(org)
+            db.session.flush()  # Get the org.id
+        
+        # Get or create default roles
+        role_names = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'EMPLOYEE']
+        roles = {}
+        for role_name in role_names:
+            role = Role.query.filter_by(name=role_name).first()
+            if not role:
+                role = Role(name=role_name, description=f'{role_name} role')
+                db.session.add(role)
+                db.session.flush()  # Get the role.id
+            roles[role_name] = role
+        
         # Create Super Admin
         super_admin = User(
             username='superadmin',
             email='superadmin@hrm.com',
             first_name='Super',
             last_name='Admin',
-            role='Super Admin'
+            organization_id=org.id,
+            role_id=roles['SUPER_ADMIN'].id,
+            must_reset_password=False
         )
         super_admin.set_password('superadmin123')
         
@@ -59,7 +79,9 @@ def create_default_users():
             email='admin@hrm.com',
             first_name='System',
             last_name='Admin',
-            role='Admin'
+            organization_id=org.id,
+            role_id=roles['ADMIN'].id,
+            must_reset_password=False
         )
         admin.set_password('admin123')
         
@@ -69,7 +91,9 @@ def create_default_users():
             email='manager@hrm.com',
             first_name='HR',
             last_name='Manager',
-            role='Manager'
+            organization_id=org.id,
+            role_id=roles['HR_MANAGER'].id,
+            must_reset_password=False
         )
         manager.set_password('manager123')
         
@@ -79,7 +103,9 @@ def create_default_users():
             email='user@hrm.com',
             first_name='Regular',
             last_name='User',
-            role='User'
+            organization_id=org.id,
+            role_id=roles['EMPLOYEE'].id,
+            must_reset_password=False
         )
         user.set_password('user123')
         

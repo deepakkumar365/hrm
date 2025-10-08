@@ -9,10 +9,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from sqlalchemy import func
 from app import app, db
-from models import Tenant, Company, Employee
+from models import Tenant, Company, Employee, TenantPaymentConfig, TenantDocument, User
 from auth import require_role
 from datetime import datetime
+from werkzeug.utils import secure_filename
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +138,8 @@ def create_tenant():
             name=data['name'],
             code=data['code'].upper(),
             description=data.get('description'),
+            country_code=data.get('country_code'),
+            currency_code=data.get('currency_code'),
             is_active=data.get('is_active', True),
             created_by=get_current_user_email()
         )
@@ -179,6 +183,10 @@ def update_tenant(tenant_id):
             tenant.code = data['code'].upper()
         if 'description' in data:
             tenant.description = data['description']
+        if 'country_code' in data:
+            tenant.country_code = data['country_code']
+        if 'currency_code' in data:
+            tenant.currency_code = data['currency_code']
         if 'is_active' in data:
             tenant.is_active = data['is_active']
         
@@ -577,3 +585,259 @@ def companies_page():
     companies = Company.query.order_by(Company.created_at.desc()).all()
     tenants = Tenant.query.filter_by(is_active=True).all()
     return render_template('masters/companies.html', companies=companies, tenants=tenants)
+
+
+# =====================================================
+# TENANT PAYMENT CONFIGURATION ROUTES
+# =====================================================
+
+@app.route('/tenant-payment-config')
+@require_role(['Super Admin', 'Admin'])
+def tenant_payment_config_list():
+    """Display tenant payment configuration page"""
+    try:
+        # Get all tenants with their payment configs
+        tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+        
+        # Get all payment configs
+        payment_configs = TenantPaymentConfig.query.all()
+        
+        # Create a dictionary for quick lookup
+        config_dict = {str(config.tenant_id): config for config in payment_configs}
+        
+        return render_template('masters/tenant_payment_config.html', 
+                             tenants=tenants,
+                             config_dict=config_dict)
+    except Exception as e:
+        logger.error(f"Error displaying tenant payment config: {str(e)}")
+        flash(f'Error loading payment configurations: {str(e)}', 'error')
+        return redirect(url_for('dashboard'))
+
+
+@app.route('/api/tenant-payment-config/<uuid:tenant_id>', methods=['GET'])
+@require_role(['Super Admin', 'Admin'])
+def get_tenant_payment_config(tenant_id):
+    """Get payment configuration for a specific tenant"""
+    try:
+        config = TenantPaymentConfig.query.filter_by(tenant_id=tenant_id).first()
+        if config:
+            return jsonify({
+                'success': True,
+                'data': config.to_dict()
+            }), 200
+        else:
+            return jsonify({
+                'success': True,
+                'data': None
+            }), 200
+    except Exception as e:
+        logger.error(f"Error getting payment config: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/tenant-payment-config', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def create_tenant_payment_config():
+    """Create or update tenant payment configuration"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get('tenant_id'):
+            return jsonify({
+                'success': False,
+                'error': 'Tenant ID is required'
+            }), 400
+        
+        tenant_id = data['tenant_id']
+        
+        # Check if config already exists
+        config = TenantPaymentConfig.query.filter_by(tenant_id=tenant_id).first()
+        
+        if config:
+            # Update existing config
+            config.payment_type = data.get('payment_type', 'Fixed')
+            config.implementation_charges = data.get('implementation_charges', 0)
+            config.monthly_charges = data.get('monthly_charges', 0)
+            config.other_charges = data.get('other_charges', 0)
+            config.frequency = data.get('frequency', 'Monthly')
+            config.modified_by = get_current_user_email()
+            config.modified_at = datetime.now()
+            message = 'Payment configuration updated successfully'
+        else:
+            # Create new config
+            config = TenantPaymentConfig(
+                tenant_id=tenant_id,
+                payment_type=data.get('payment_type', 'Fixed'),
+                implementation_charges=data.get('implementation_charges', 0),
+                monthly_charges=data.get('monthly_charges', 0),
+                other_charges=data.get('other_charges', 0),
+                frequency=data.get('frequency', 'Monthly'),
+                created_by=get_current_user_email()
+            )
+            db.session.add(config)
+            message = 'Payment configuration created successfully'
+        
+        db.session.commit()
+        
+        logger.info(f"Payment config saved for tenant {tenant_id} by {get_current_user_email()}")
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'data': config.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving payment config: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/tenant-payment-config/<uuid:tenant_id>', methods=['DELETE'])
+@require_role(['Super Admin', 'Admin'])
+def delete_tenant_payment_config(tenant_id):
+    """Delete tenant payment configuration"""
+    try:
+        config = TenantPaymentConfig.query.filter_by(tenant_id=tenant_id).first()
+        if not config:
+            return jsonify({
+                'success': False,
+                'error': 'Payment configuration not found'
+            }), 404
+        
+        db.session.delete(config)
+        db.session.commit()
+        
+        logger.info(f"Payment config deleted for tenant {tenant_id} by {get_current_user_email()}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payment configuration deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting payment config: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# =====================================================
+# TENANT DOCUMENT ROUTES
+# =====================================================
+
+@app.route('/api/tenant-documents/<uuid:tenant_id>', methods=['GET'])
+@require_role(['Super Admin', 'Admin'])
+def get_tenant_documents(tenant_id):
+    """Get all documents for a specific tenant"""
+    try:
+        documents = TenantDocument.query.filter_by(tenant_id=tenant_id).order_by(TenantDocument.upload_date.desc()).all()
+        return jsonify({
+            'success': True,
+            'data': [doc.to_dict() for doc in documents],
+            'count': len(documents)
+        }), 200
+    except Exception as e:
+        logger.error(f"Error getting tenant documents: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/tenant-documents/<uuid:tenant_id>', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def upload_tenant_document(tenant_id):
+    """Upload a document for a tenant"""
+    try:
+        # Check if file is present
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No file provided'
+            }), 400
+        
+        file = request.files['file']
+        
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'No file selected'
+            }), 400
+        
+        # Verify tenant exists
+        tenant = Tenant.query.get(tenant_id)
+        if not tenant:
+            return jsonify({
+                'success': False,
+                'error': 'Tenant not found'
+            }), 404
+        
+        # Secure the filename
+        filename = secure_filename(file.filename)
+        
+        # Create upload directory if it doesn't exist
+        upload_dir = os.path.join(app.config.get('UPLOAD_FOLDER', 'static/uploads'), 'tenant_documents', str(tenant_id))
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_filename = f"{timestamp}_{filename}"
+        file_path = os.path.join(upload_dir, unique_filename)
+        
+        # Save file
+        file.save(file_path)
+        
+        # Get file size
+        file_size = os.path.getsize(file_path)
+        
+        # Create database record
+        document = TenantDocument(
+            tenant_id=tenant_id,
+            file_name=filename,
+            file_path=file_path.replace('\\', '/'),  # Normalize path
+            file_type=request.form.get('file_type', 'General'),
+            file_size=file_size,
+            uploaded_by=get_current_user_email()
+        )
+        
+        db.session.add(document)
+        db.session.commit()
+        
+        logger.info(f"Document uploaded for tenant {tenant_id}: {filename} by {get_current_user_email()}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Document uploaded successfully',
+            'data': document.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error uploading tenant document: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/tenant-documents/<int:document_id>', methods=['DELETE'])
+@require_role(['Super Admin', 'Admin'])
+def delete_tenant_document(document_id):
+    """Delete a tenant document"""
+    try:
+        document = TenantDocument.query.get_or_404(document_id)
+        
+        # Delete physical file
+        if os.path.exists(document.file_path):
+            os.remove(document.file_path)
+        
+        # Delete database record
+        db.session.delete(document)
+        db.session.commit()
+        
+        logger.info(f"Document deleted: {document.file_name} by {get_current_user_email()}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Document deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting tenant document: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500

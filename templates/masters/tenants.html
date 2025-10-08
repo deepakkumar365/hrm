@@ -96,6 +96,34 @@
                         <label for="tenantDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="tenantDescription" rows="3"></textarea>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="countryCode" class="form-label">Country *</label>
+                                <select class="form-select" id="countryCode" required onchange="updateCurrency()">
+                                    <option value="">Select Country</option>
+                                    <option value="SG">Singapore</option>
+                                    <option value="MY">Malaysia</option>
+                                    <option value="IN">India</option>
+                                    <option value="US">United States</option>
+                                    <option value="GB">United Kingdom</option>
+                                    <option value="AU">Australia</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="AE">United Arab Emirates</option>
+                                    <option value="JP">Japan</option>
+                                    <option value="CN">China</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="currencyCode" class="form-label">Currency</label>
+                                <input type="text" class="form-control" id="currencyCode" readonly 
+                                       placeholder="Auto-populated">
+                                <small class="text-muted">Auto-filled based on country</small>
+                            </div>
+                        </div>
+                    </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="tenantActive" checked>
                         <label class="form-check-label" for="tenantActive">Active</label>
@@ -111,11 +139,39 @@
 </div>
 
 <script>
+// Country to Currency mapping
+const countryCurrencyMap = {
+    'SG': 'SGD',
+    'MY': 'MYR',
+    'IN': 'INR',
+    'US': 'USD',
+    'GB': 'GBP',
+    'AU': 'AUD',
+    'CA': 'CAD',
+    'AE': 'AED',
+    'JP': 'JPY',
+    'CN': 'CNY'
+};
+
+function updateCurrency() {
+    const countryCode = document.getElementById('countryCode').value;
+    const currencyCode = countryCurrencyMap[countryCode] || '';
+    document.getElementById('currencyCode').value = currencyCode;
+}
+
 function saveTenant() {
+    const countryCode = document.getElementById('countryCode').value;
+    if (!countryCode) {
+        alert('Please select a country');
+        return;
+    }
+    
     const data = {
         name: document.getElementById('tenantName').value,
         code: document.getElementById('tenantCode').value,
         description: document.getElementById('tenantDescription').value,
+        country_code: countryCode,
+        currency_code: document.getElementById('currencyCode').value,
         is_active: document.getElementById('tenantActive').checked
     };
 

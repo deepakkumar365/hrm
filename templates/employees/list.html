@@ -78,6 +78,12 @@
                             </a>
                         </h6>
                         <p class="text-muted small mb-1">{{ employee.employee_id }}</p>
+                        {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
+                        <p class="mb-1">
+                            <small><strong>Tenant:</strong> {{ employee.tenant_name }}</small><br>
+                            <small><strong>Company:</strong> {{ employee.company_name }}</small>
+                        </p>
+                        {% endif %}
                         <p class="mb-1">{{ employee.position }}</p>
                         {% if employee.department %}
                         <span class="text-muted">{{ employee.department }}</span>
@@ -93,7 +99,7 @@
                                 <li><a class="dropdown-item" href="{{ url_for('employee_view', employee_id=employee.id) }}">
                                     <i class="fas fa-eye me-1"></i>View Details
                                 </a></li>
-                                {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
+                                {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin'] %}
                                 <li><a class="dropdown-item" href="{{ url_for('employee_edit', employee_id=employee.id) }}">
                                     <i class="fas fa-edit me-1"></i>Edit
                                 </a></li>
@@ -119,10 +125,62 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            <th>Employee ID</th>
-                            <th>Name</th>
-                            <th>Position</th>
-                            <th>Department</th>
+                            <th>
+                                <a href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                   class="text-decoration-none text-dark">
+                                    Employee ID
+                                    {% if sort_by == 'employee_id' %}
+                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                   class="text-decoration-none text-dark">
+                                    Name
+                                    {% if sort_by == 'first_name' %}
+                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
+                            <th>
+                                <a href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                   class="text-decoration-none text-dark">
+                                    Tenant Name
+                                    {% if sort_by == 'tenant_name' %}
+                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                   class="text-decoration-none text-dark">
+                                    Company Name
+                                    {% if sort_by == 'company_name' %}
+                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            {% endif %}
+                            <th>
+                                <a href="?sort_by=position&sort_order={{ 'desc' if sort_by == 'position' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                   class="text-decoration-none text-dark">
+                                    Position
+                                    {% if sort_by == 'position' %}
+                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                   class="text-decoration-none text-dark">
+                                    Department
+                                    {% if sort_by == 'department' %}
+                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                             <th>Email</th>
                             <th>Type</th>
                             <th>Actions</th>
@@ -138,6 +196,10 @@
                                     {{ employee.first_name }} {{ employee.last_name }}
                                 </a>
                             </td>
+                            {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
+                            <td>{{ employee.tenant_name }}</td>
+                            <td>{{ employee.company_name }}</td>
+                            {% endif %}
                             <td>{{ employee.position }}</td>
                             <td>
                                 {% if employee.department %}
@@ -153,14 +215,18 @@
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('employee_view', employee_id=employee.id) }}" 
-                                       class="btn btn-outline-primary">
+                                       class="btn btn-outline-primary" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
+                                    {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin'] %}
                                     <a href="{{ url_for('employee_edit', employee_id=employee.id) }}" 
-                                       class="btn btn-outline-secondary">
+                                       class="btn btn-outline-secondary" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
+                                    <button onclick="resetPassword({{ employee.id }}, '{{ employee.first_name }} {{ employee.last_name }}')" 
+                                            class="btn btn-outline-warning" title="Reset Password">
+                                        <i class="fas fa-key"></i>
+                                    </button>
                                     {% endif %}
                                 </div>
                             </td>
@@ -228,4 +294,125 @@
     </nav>
     {% endif %}
 </div>
+
+<!-- Password Reset Confirmation Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetPasswordModalLabel">
+                    <i class="fas fa-key text-warning me-2"></i>Reset Password
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to reset the password for:</p>
+                <p class="fw-bold text-primary" id="employeeNameDisplay"></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    A temporary password will be generated and the employee will be required to change it on next login.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmResetBtn">
+                    <i class="fas fa-key me-1"></i>Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentEmployeeId = null;
+let currentEmployeeName = null;
+
+function resetPassword(employeeId, employeeName) {
+    currentEmployeeId = employeeId;
+    currentEmployeeName = employeeName;
+    
+    document.getElementById('employeeNameDisplay').textContent = employeeName;
+    
+    const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    modal.show();
+}
+
+document.getElementById('confirmResetBtn').addEventListener('click', function() {
+    if (!currentEmployeeId) return;
+    
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Resetting...';
+    
+    fetch(`/employees/${currentEmployeeId}/reset-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
+        modal.hide();
+        
+        if (data.success) {
+            // Show success message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Password Reset Successful!</strong><br>
+                Temporary Password: <strong>${data.temp_password}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 10000);
+        } else {
+            // Show error message
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Error:</strong> ${data.message || 'Failed to reset password'}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
+        modal.hide();
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Error:</strong> Network error occurred
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    });
+});
+</script>
 {% endblock %}

@@ -70,6 +70,10 @@ class Tenant(db.Model):
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     
+    # Country and Currency fields (CR: Super Admin - Tenant Master)
+    country_code = db.Column(db.String(10), nullable=True)  # e.g., 'SG', 'US', 'IN'
+    currency_code = db.Column(db.String(10), nullable=True)  # e.g., 'SGD', 'USD', 'INR'
+    
     # Audit fields
     created_by = db.Column(db.String(100), nullable=False, default='system')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
@@ -79,6 +83,8 @@ class Tenant(db.Model):
     # Relationships
     companies = db.relationship('Company', back_populates='tenant', cascade='all, delete-orphan')
     organizations = db.relationship('Organization', back_populates='tenant')
+    payment_configs = db.relationship('TenantPaymentConfig', back_populates='tenant', cascade='all, delete-orphan')
+    documents = db.relationship('TenantDocument', back_populates='tenant', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Tenant {self.name} ({self.code})>'
@@ -90,6 +96,8 @@ class Tenant(db.Model):
             'code': self.code,
             'description': self.description,
             'is_active': self.is_active,
+            'country_code': self.country_code,
+            'currency_code': self.currency_code,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'modified_by': self.modified_by,
@@ -160,6 +168,92 @@ class Company(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'modified_by': self.modified_by,
             'modified_at': self.modified_at.isoformat() if self.modified_at else None,
+        }
+
+
+class TenantPaymentConfig(db.Model):
+    """Tenant Payment Configuration for billing management"""
+    __tablename__ = 'hrm_tenant_payment_config'
+    __table_args__ = (
+        Index('idx_hrm_tenant_payment_tenant_id', 'tenant_id'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
+    
+    # Payment Type: 'Fixed' or 'User-Based'
+    payment_type = db.Column(db.String(20), nullable=False, default='Fixed')
+    
+    # Fixed Payment Fields
+    implementation_charges = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    monthly_charges = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    other_charges = db.Column(db.Numeric(10, 2), nullable=True, default=0)
+    
+    # Payment Collection Frequency: 'Monthly', 'Quarterly', 'Half-Yearly', 'Yearly'
+    frequency = db.Column(db.String(20), nullable=False, default='Monthly')
+    
+    # Audit fields
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100))
+    modified_at = db.Column(db.DateTime)
+    
+    # Relationships
+    tenant = db.relationship('Tenant', back_populates='payment_configs')
+    
+    def __repr__(self):
+        return f'<TenantPaymentConfig {self.tenant_id} - {self.payment_type}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': str(self.tenant_id),
+            'payment_type': self.payment_type,
+            'implementation_charges': float(self.implementation_charges) if self.implementation_charges else 0,
+            'monthly_charges': float(self.monthly_charges) if self.monthly_charges else 0,
+            'other_charges': float(self.other_charges) if self.other_charges else 0,
+            'frequency': self.frequency,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'modified_by': self.modified_by,
+            'modified_at': self.modified_at.isoformat() if self.modified_at else None,
+        }
+
+
+class TenantDocument(db.Model):
+    """Tenant document attachments"""
+    __tablename__ = 'hrm_tenant_documents'
+    __table_args__ = (
+        Index('idx_hrm_tenant_documents_tenant_id', 'tenant_id'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)  # Relative path under static/uploads/
+    file_type = db.Column(db.String(50), nullable=True)  # e.g., 'Contract', 'Agreement', 'License'
+    file_size = db.Column(db.Integer, nullable=True)  # File size in bytes
+    
+    # Audit fields
+    uploaded_by = db.Column(db.String(100), nullable=False)
+    upload_date = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    
+    # Relationships
+    tenant = db.relationship('Tenant', back_populates='documents')
+    
+    def __repr__(self):
+        return f'<TenantDocument {self.file_name} for Tenant {self.tenant_id}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': str(self.tenant_id),
+            'file_name': self.file_name,
+            'file_path': self.file_path,
+            'file_type': self.file_type,
+            'file_size': self.file_size,
+            'uploaded_by': self.uploaded_by,
+            'upload_date': self.upload_date.isoformat() if self.upload_date else None,
         }
 
 
@@ -292,6 +386,31 @@ class EmployeeDocument(db.Model):
         return f'<EmployeeDocument {self.document_type} for Employee {self.employee_id}>'
 
 
+class EmployeeBankInfo(db.Model):
+    """Employee bank information for payroll processing"""
+    __tablename__ = 'hrm_employee_bank_info'
+    __table_args__ = (
+        Index('ix_hrm_employee_bank_info_employee_id', 'employee_id'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False, unique=True)
+    bank_account_name = db.Column(db.String(100), nullable=True)
+    bank_account_number = db.Column(db.String(30), nullable=True)
+    bank_code = db.Column(db.String(20), nullable=True)
+    paynow_no = db.Column(db.String(20), nullable=True)
+    
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    # Relationships
+    employee = db.relationship('Employee', backref=db.backref('bank_info', uselist=False))
+    
+    def __repr__(self):
+        return f'<EmployeeBankInfo for Employee {self.employee_id}>'
+
+
 class PayrollConfiguration(db.Model):
     """Employee-specific payroll configuration for allowances and OT rates"""
     __tablename__ = 'hrm_payroll_configuration'
@@ -317,6 +436,12 @@ class PayrollConfiguration(db.Model):
     
     # Overtime rate per hour (overrides employee.hourly_rate if set)
     ot_rate_per_hour = db.Column(db.Numeric(8, 2), nullable=True)
+    
+    # NEW: CPF and Net Salary fields
+    employer_cpf = db.Column(db.Numeric(10, 2), default=0)
+    employee_cpf = db.Column(db.Numeric(10, 2), default=0)
+    net_salary = db.Column(db.Numeric(10, 2), default=0)
+    remarks = db.Column(db.Text, nullable=True)
     
     # Audit fields
     created_at = db.Column(db.DateTime, default=datetime.now)

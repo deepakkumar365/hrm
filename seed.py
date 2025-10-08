@@ -5,10 +5,13 @@ from flask.cli import with_appcontext
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import SQLAlchemyError
 from app import db  # your app must export the SQLAlchemy instance named `db`
-from models import Organization, Role, User
+
+# Import models inside functions to avoid circular import issues
+# from models import Organization, Role, User
 
 
 def seed_roles():
+    from models import Role
     roles = [
         {"name": "SUPER_ADMIN", "description": "Super administrator with all permissions."},
         {"name": "ADMIN", "description": "Administrator with organization-wide permissions."},
@@ -36,6 +39,7 @@ def seed_roles():
 
 
 def seed_organization():
+    from models import Organization
     org_name = "AKS Logistics"
     try:
         with db.session.begin():
@@ -59,7 +63,8 @@ def seed_organization():
         raise
 
 
-def seed_super_admin(org: Organization):
+def seed_super_admin(org):
+    from models import User, Role
     email = "superadmin@akslogistics.com"
     try:
         existing = db.session.query(User).filter_by(email=email).first()
@@ -127,10 +132,5 @@ def register_seed(flask_app):
     flask_app.cli.add_command(seed)
 
 
-# Auto-register if an app exists in the import context named `app`
-try:
-    from app import app as _app  # noqa: F401
-    register_seed(_app)
-except Exception:
-    # If you use an app factory call `register_seed(app)` from your factory.
-    pass
+# Note: Auto-registration removed to avoid circular imports
+# The seed command is registered in app.py after models are imported

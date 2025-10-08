@@ -23,14 +23,31 @@ class Base(DeclarativeBase):
 
 # Initialize Flask app
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET")
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for to generate with https
 
-# Database configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-if not app.config["SQLALCHEMY_DATABASE_URI"]:
-    raise RuntimeError("DATABASE_URL is not set. Define it in .env or your environment before starting the app.")
+# Environment-based configuration
+environment = os.environ.get("ENVIRONMENT", "development").lower()
+
+# Set session secret based on environment
+if environment == "production":
+    session_secret = os.environ.get("PROD_SESSION_SECRET")
+    if not session_secret:
+        raise RuntimeError("PROD_SESSION_SECRET is not set. Define it in .env for production environment.")
+    database_url = os.environ.get("PROD_DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("PROD_DATABASE_URL is not set. Define it in .env for production environment.")
+else:
+    session_secret = os.environ.get("DEV_SESSION_SECRET")
+    if not session_secret:
+        raise RuntimeError("DEV_SESSION_SECRET is not set. Define it in .env for development environment.")
+    database_url = os.environ.get("DEV_DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DEV_DATABASE_URL is not set. Define it in .env for development environment.")
+
+app.secret_key = session_secret
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+logging.info(f"🌍 Running in {environment.upper()} mode")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'pool_pre_ping': True,
     "pool_recycle": 300,
@@ -55,6 +72,30 @@ import models  # noqa: E402,F401
 
 # Add hasattr to Jinja2 global functions
 app.jinja_env.globals['hasattr'] = hasattr
+
+# Add custom Jinja2 filters
+def date_filter(value, format='%d/%m/%Y'):
+    """Format a date object to a string."""
+    if value is None:
+        return ''
+    if isinstance(value, str):
+        return value
+    try:
+        return value.strftime(format)
+    except (AttributeError, ValueError):
+        return value
+
+def currency_filter(amount):
+    """Format amount as Singapore currency."""
+    if amount is None:
+        return "S$ 0.00"
+    try:
+        return f"S$ {float(amount):,.2f}"
+    except (ValueError, TypeError):
+        return "S$ 0.00"
+
+app.jinja_env.filters['date'] = date_filter
+app.jinja_env.filters['currency'] = currency_filter
 
 # Import seed after models to avoid circular import
 from seed import seed

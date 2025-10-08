@@ -33,6 +33,21 @@
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
+                                <label for="employee_id" class="form-label">Employee ID *</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="employee_id" name="employee_id" 
+                                           value="{{ form_data.get('employee_id') if form_data else (employee.employee_id if employee else '') }}" 
+                                           placeholder="e.g., EMP001" required>
+                                    {% if not employee %}
+                                    <button type="button" class="btn btn-outline-secondary" id="generateEmployeeIdBtn" title="Auto-generate Employee ID">
+                                        <i class="fas fa-magic me-1"></i>Generate
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                <div class="invalid-feedback">Please provide an employee ID.</div>
+                                <small class="form-text text-muted">Unique identifier for the employee.</small>
+                            </div>
+                            <div class="col-md-6">
                                 <label for="first_name" class="form-label">First Name *</label>
                                 <input type="text" class="form-control" id="first_name" name="first_name" 
                                        value="{{ form_data.get('first_name') if form_data else (employee.first_name if employee else '') }}" required>
@@ -150,6 +165,20 @@
                                     {% endfor %}
                                 </select>
                                 <div class="invalid-feedback">Please select a position.</div>
+                                <small class="form-text text-muted">Job title/designation for the employee.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="user_role_id" class="form-label">User Role (System Access) *</label>
+                                <select class="form-select" id="user_role_id" name="user_role_id" required>
+                                    <option value="">Select User Role</option>
+                                    {% for role in user_roles %}
+                                    <option value="{{ role.id }}" {% if (form_data and form_data.get('user_role_id') == role.id|string) or (employee and employee.user and employee.user.role_id == role.id and not form_data) %}selected{% endif %}>
+                                        {{ role.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a user role.</div>
+                                <small class="form-text text-muted">Determines menu access and permissions in the system.</small>
                             </div>
                             <div class="col-md-6">
                                 <label for="department" class="form-label">Department</label>
@@ -265,59 +294,6 @@
                                 <label for="cpf_account" class="form-label">CPF Account Number</label>
                                 <input type="text" class="form-control" id="cpf_account" name="cpf_account" 
                                        value="{{ employee.cpf_account if employee else '' }}">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card mt-4">
-                    <div class="card-header card-header-green">
-                        <h5 class="mb-0">
-                            <i class="fas fa-university me-2"></i>Banking Details
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label for="bank_name" class="form-label">Bank Name</label>
-                                <select class="form-select" id="bank_name" name="bank_name">
-                                    <option value="">Select Bank</option>
-                                    <option value="DBS" {% if employee and employee.bank_name == 'DBS' %}selected{% endif %}>DBS Bank</option>
-                                    <option value="OCBC" {% if employee and employee.bank_name == 'OCBC' %}selected{% endif %}>OCBC Bank</option>
-                                    <option value="UOB" {% if employee and employee.bank_name == 'UOB' %}selected{% endif %}>UOB Bank</option>
-                                    <option value="POSB" {% if employee and employee.bank_name == 'POSB' %}selected{% endif %}>POSB Bank</option>
-                                    <option value="Maybank" {% if employee and employee.bank_name == 'Maybank' %}selected{% endif %}>Maybank</option>
-                                    <option value="Standard Chartered" {% if employee and employee.bank_name == 'Standard Chartered' %}selected{% endif %}>Standard Chartered</option>
-                                    <option value="HSBC" {% if employee and employee.bank_name == 'HSBC' %}selected{% endif %}>HSBC</option>
-                                    <option value="Other" {% if employee and employee.bank_name == 'Other' %}selected{% endif %}>Other</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="bank_account" class="form-label">Bank Account Number</label>
-                                <input type="text" class="form-control" id="bank_account" name="bank_account" 
-                                       inputmode="numeric" pattern="^\d{6,20}$" title="6–20 digits only"
-                                       oninput="this.value=this.value.replace(/[^0-9]/g,'');"
-                                       value="{{ form_data.get('bank_account') if form_data else (employee.bank_account if employee else '') }}">
-                            </div>
-                            <div class="col-md-4">
-                                <label for="account_holder_name" class="form-label">Account Holder Name *</label>
-                                <input type="text" class="form-control" id="account_holder_name" name="account_holder_name"
-                                       value="{{ form_data.get('account_holder_name') if form_data else (employee.account_holder_name if employee and employee.account_holder_name else '') }}" required>
-                                <div class="invalid-feedback">Please provide the account holder's name.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="swift_code" class="form-label">SWIFT Code</label>
-                                <input type="text" class="form-control" id="swift_code" name="swift_code"
-                                       value="{{ form_data.get('swift_code') if form_data else (employee.swift_code if employee and employee.swift_code else '') }}"
-                                       placeholder="e.g., DBSSSGSG or HDFCINBBXXX" pattern="^[A-Za-z0-9]{8}(?:[A-Za-z0-9]{3})?$">
-                                <small class="form-text text-muted">8 or 11 characters, letters and numbers only.</small>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="ifsc_code" class="form-label">IFSC Code</label>
-                                <input type="text" class="form-control" id="ifsc_code" name="ifsc_code"
-                                       value="{{ form_data.get('ifsc_code') if form_data else (employee.ifsc_code if employee and employee.ifsc_code else '') }}"
-                                       placeholder="e.g., HDFC0001234" pattern="^[A-Za-z]{4}0[A-Za-z0-9]{6}$">
-                                <small class="form-text text-muted">Format: 4 letters + 0 + 6 alphanumeric (India).</small>
                             </div>
                         </div>
                     </div>
@@ -463,5 +439,45 @@ document.getElementById('work_permit_type').addEventListener('change', function(
   dob.addEventListener('change', clampDate);
   dob.addEventListener('blur', clampDate);
 })();
+</script>
+<script>
+// Generate Employee ID functionality
+{% if not employee %}
+document.getElementById('generateEmployeeIdBtn').addEventListener('click', function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
+    
+    fetch('/employees/generate-id')
+        .then(response => response.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            
+            if (data.success && data.employee_id) {
+                document.getElementById('employee_id').value = data.employee_id;
+                
+                // Show success feedback
+                const inputGroup = document.getElementById('employee_id').parentElement;
+                const feedback = document.createElement('div');
+                feedback.className = 'valid-feedback d-block';
+                feedback.innerHTML = '<i class="fas fa-check-circle me-1"></i>Employee ID generated successfully!';
+                inputGroup.appendChild(feedback);
+                
+                setTimeout(() => {
+                    feedback.remove();
+                }, 3000);
+            } else {
+                alert('Error: ' + (data.message || 'Failed to generate Employee ID'));
+            }
+        })
+        .catch(error => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            alert('Network error: Failed to generate Employee ID');
+        });
+});
+{% endif %}
 </script>
 {% endblock %}

@@ -1,555 +1,756 @@
-# Payslip Template Deployment Checklist
+# 🚀 HRMS Enhancement Deployment Checklist
 
-## 📋 Pre-Deployment Checklist
+## 📋 Project Status: READY FOR DEPLOYMENT
 
-Use this checklist to ensure everything is properly set up before deploying to production.
-
----
-
-## ✅ Phase 1: Database Setup
-
-### **1.1 Apply Migration**
-- [ ] Navigate to project directory: `E:/Gobi/Pro/HRMS/hrm`
-- [ ] Run migration: `python -m flask db upgrade`
-- [ ] Verify migration applied: `python -m flask db current`
-- [ ] Expected output: `add_organization_logo (head)`
-
-### **1.2 Verify Database Schema**
-- [ ] Check organization table has `logo_path` column
-- [ ] Run verification query:
-  ```sql
-  SELECT id, name, logo_path FROM organization;
-  ```
-- [ ] Confirm column exists (value can be NULL initially)
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+**Project:** HRMS Admin Module Enhancement  
+**Reported By:** Nagaraj (Business Analyst)  
+**Implementation Status:** ✅ **100% COMPLETE**
 
 ---
 
-## ✅ Phase 2: File System Setup
+## ✅ Pre-Deployment Verification
 
-### **2.1 Create Directories**
-- [ ] Create logos directory: `New-Item -ItemType Directory -Path "static/logos" -Force`
-- [ ] Verify directory exists: `Test-Path "static/logos"`
-- [ ] Expected output: `True`
+### 1. Backend Components ✅
 
-### **2.2 Prepare Company Logo**
-- [ ] Logo file prepared (PNG, JPG, or SVG)
-- [ ] Logo dimensions appropriate (recommended: 120px × 80px)
-- [ ] Logo file size reasonable (< 500KB recommended)
-- [ ] Logo filename decided (e.g., `company_logo.png`)
+- [x] **routes_enhancements.py** - All 11 API endpoints implemented
+  - Employee Edit (`/employees/<id>/edit`)
+  - Password Reset (`/employees/<id>/reset-password`)
+  - Generate Employee ID (`/employees/generate-id`)
+  - Reports Menu (`/reports`)
+  - Employee History Report (`/reports/employee-history`)
+  - Payroll Configuration Report (`/reports/payroll-configuration`)
+  - Attendance Report (`/reports/attendance`)
+  - Get Bank Info (`/employees/<id>/bank-info` GET)
+  - Save Bank Info (`/employees/<id>/bank-info` POST)
+  - Update Payroll Config (`/payroll/configuration/<id>/update`)
 
-### **2.3 Upload Logo**
-- [ ] Copy logo to `static/logos/` directory
-- [ ] Verify file exists: `Test-Path "static/logos/company_logo.png"`
-- [ ] Expected output: `True`
+- [x] **models.py** - Database models ready
+  - `EmployeeBankInfo` model with all fields
+  - `PayrollConfiguration` with CPF and Net Salary fields
+  - All relationships configured
 
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+- [x] **utils.py** - Helper functions
+  - `generate_employee_id()` function implemented
 
----
+- [x] **main.py** - Routes registered
+  - `import routes_enhancements` added
 
-## ✅ Phase 3: Database Configuration
+### 2. Frontend Components ✅
 
-### **3.1 Update Organization Record**
-- [ ] Identify organization ID to update
-- [ ] Update logo_path field
-- [ ] Method used:
-  - [ ] Python shell
-  - [ ] SQL query
-  - [ ] Admin interface
+- [x] **Reports Module** (4 files)
+  - `templates/reports/menu.html` - Reports landing page
+  - `templates/reports/employee_history.html` - Employee history report
+  - `templates/reports/payroll_configuration.html` - Payroll config report
+  - `templates/reports/attendance.html` - Attendance report with filters
 
-### **3.2 Verification**
-- [ ] Run verification query:
-  ```python
-  from app import app, db
-  from models import Organization
-  with app.app_context():
-      org = Organization.query.first()
-      print(f"Name: {org.name}")
-      print(f"Logo: {org.logo_path}")
-  ```
-- [ ] Confirm logo_path is set correctly
-- [ ] Path format: `logos/company_logo.png` (relative to static/)
+- [x] **Employee Management** (3 files modified)
+  - `templates/employees/list.html` - Password reset button and modal
+  - `templates/employees/view.html` - Salary section removed
+  - `templates/employees/form.html` - Banking removed, Employee ID added
 
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+- [x] **Attendance** (1 file modified)
+  - `templates/attendance/list.html` - Default date filter to today
 
----
+- [x] **Payroll** (2 files modified)
+  - `templates/payroll/list.html` - Color-coded status, Approve caption
+  - `templates/payroll/config.html` - 4 new columns, Bank Info modal
 
-## ✅ Phase 4: Template Verification
+- [x] **Navigation** (1 file modified)
+  - `templates/base.html` - Reports menu added
 
-### **4.1 File Integrity**
-- [ ] Verify `templates/payroll/payslip.html` exists
-- [ ] File size approximately 30-35 KB
-- [ ] File contains 708 lines
-- [ ] Check for syntax errors: `python -m py_compile templates/payroll/payslip.html`
+### 3. Database Migrations ✅
 
-### **4.2 Template Content**
-- [ ] Company logo section present
-- [ ] Dynamic company name: `{{ payroll.employee.organization.name }}`
-- [ ] Dynamic logo path: `{{ payroll.employee.organization.logo_path }}`
-- [ ] Allowances calculated from `employee.allowances`
-- [ ] Currency filter applied: `| currency`
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+- [x] **Migration Files Created**
+  - `add_enhancements_fields.py` - Employee documents, work permit fields
+  - `add_payroll_enhancements.py` - CPF fields, Bank Info table
+  - `2be68655c2bb_merge_payroll_and_enhancements.py` - Merge migration
 
 ---
 
-## ✅ Phase 5: Data Verification
+## 🔧 Deployment Steps
 
-### **5.1 Check Sample Employee Data**
-- [ ] At least one active employee exists
-- [ ] Employee has all required fields:
-  - [ ] employee_id
-  - [ ] first_name, last_name
-  - [ ] position
-  - [ ] department
-  - [ ] basic_salary
-  - [ ] allowances (> 0 for testing)
-  - [ ] bank_account
-  - [ ] nric
+### Step 1: Backup Database ⚠️ CRITICAL
 
-### **5.2 Check Sample Payroll Data**
-- [ ] At least one payroll record exists
-- [ ] Payroll has all required fields:
-  - [ ] employee_id (valid)
-  - [ ] pay_period_start, pay_period_end
-  - [ ] basic_pay
-  - [ ] gross_pay
-  - [ ] net_pay
-  - [ ] status (Approved or Paid)
+```bash
+# PostgreSQL backup
+pg_dump -U postgres -d hrms_db > backup_before_enhancement_$(date +%Y%m%d_%H%M%S).sql
 
-### **5.3 Run Verification Queries**
-- [ ] Run queries from `sample_data_setup.sql`
-- [ ] Check allowances breakdown preview
-- [ ] Check deductions breakdown preview
-- [ ] Verify calculations are correct
+# Or using Python script
+python backup_database.py
+```
 
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+### Step 2: Run Database Migrations
+
+```bash
+# Navigate to project directory
+cd E:/Gobi/Pro/HRMS/hrm
+
+# Check current migration status
+flask db current
+
+# Run migrations
+flask db upgrade
+
+# Verify migrations applied
+flask db current
+```
+
+**Expected Output:**
+```
+INFO  [alembic.runtime.migration] Running upgrade -> add_enhancements_001
+INFO  [alembic.runtime.migration] Running upgrade -> add_payroll_enhancements
+INFO  [alembic.runtime.migration] Running upgrade -> 2be68655c2bb
+```
+
+### Step 3: Verify Database Schema
+
+```bash
+# Connect to PostgreSQL
+psql -U postgres -d hrms_db
+
+# Check if new tables exist
+\dt hrm_employee_bank_info
+
+# Check if new columns exist in payroll_configuration
+\d hrm_payroll_configuration
+
+# Expected columns:
+# - employer_cpf
+# - employee_cpf
+# - net_salary
+# - remarks
+
+# Exit psql
+\q
+```
+
+### Step 4: Restart Application
+
+```bash
+# Stop current application (if running)
+# Press Ctrl+C in the terminal where Flask is running
+
+# Start application
+python main.py
+
+# Or using Flask command
+flask run
+```
+
+**Expected Output:**
+```
+ * Serving Flask app 'app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+```
+
+### Step 5: Clear Browser Cache
+
+```
+1. Open browser (Chrome/Firefox/Edge)
+2. Press Ctrl+Shift+Delete
+3. Select "Cached images and files"
+4. Click "Clear data"
+5. Close and reopen browser
+```
 
 ---
 
-## ✅ Phase 6: Functional Testing
+## 🧪 Testing Checklist
 
-### **6.1 Start Application**
-- [ ] Start Flask application: `python app.py`
-- [ ] Application starts without errors
-- [ ] No template syntax errors in console
-- [ ] Application accessible at `http://localhost:5000`
+### Module 1: Admin - Employees List
 
-### **6.2 Login and Navigation**
-- [ ] Login successful
-- [ ] Navigate to Payroll → Payroll List
-- [ ] Payroll list displays correctly
-- [ ] "View Payslip" button visible
+**Test Case 1.1: Password Reset Button Visibility**
+- [ ] Login as **Super Admin** (username: `superadmin`, password: `admin123`)
+- [ ] Navigate to **Admin → Employees**
+- [ ] Verify Password Reset button (key icon) appears for each employee
+- [ ] Login as **Employee** (username: `user`, password: `admin123`)
+- [ ] Verify Password Reset button is NOT visible
 
-### **6.3 View Payslip**
-- [ ] Click "View Payslip" on a record
-- [ ] Payslip page loads without errors
-- [ ] No JavaScript errors in console (F12)
+**Test Case 1.2: Password Reset Functionality**
+- [ ] Login as **Admin**
+- [ ] Click Password Reset button for any employee
+- [ ] Verify modal opens with employee name
+- [ ] Click "Reset Password" button
+- [ ] Verify success message appears with temporary password
+- [ ] Verify temporary password format: `{FirstName}123`
+- [ ] Logout and login with employee account using new password
+- [ ] Verify login successful
 
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+**Expected Result:**
+- ✅ Password reset button visible only to Admin/Super Admin
+- ✅ Modal displays correct employee name
+- ✅ Temporary password generated successfully
+- ✅ Employee can login with new password
 
 ---
 
-## ✅ Phase 7: Visual Verification
+### Module 2: Admin - Employee View
 
-### **7.1 Company Header**
-- [ ] Company logo displays correctly
-- [ ] Logo size is appropriate (not too large/small)
-- [ ] Company name displays correctly (not "NOLTRION" unless that's your company)
-- [ ] "Human Resource Management System" tagline present
-- [ ] "SALARY SLIP" title present
+**Test Case 2.1: Salary Section Removed**
+- [ ] Login as **Admin**
+- [ ] Navigate to **Admin → Employees**
+- [ ] Click "View" button for any employee
+- [ ] Verify "Salary & Benefits" section is NOT present
+- [ ] Verify following fields are NOT visible:
+  - [ ] Basic Salary
+  - [ ] Monthly Allowances
+  - [ ] Hourly Rate
+  - [ ] CPF Account
 
-### **7.2 Employee Details Section**
-- [ ] Two-column layout displays correctly
-- [ ] Left column: Employee Information
-  - [ ] Employee Name
-  - [ ] Employee Code
+**Expected Result:**
+- ✅ Salary & Benefits section completely removed
+- ✅ Page layout remains intact
+- ✅ Other sections display correctly
+
+---
+
+### Module 3: Admin - Employee Form
+
+**Test Case 3.1: Banking Details Removed**
+- [ ] Login as **Admin**
+- [ ] Navigate to **Admin → Employees → Add New**
+- [ ] Verify "Banking Details" section is NOT present
+- [ ] Verify following fields are NOT visible:
+  - [ ] Bank Name
+  - [ ] Bank Account Number
+  - [ ] Account Holder Name
+  - [ ] SWIFT Code
+  - [ ] IFSC Code
+
+**Test Case 3.2: Employee ID Field with Generate Button**
+- [ ] On new employee form, verify "Employee ID" field is first field
+- [ ] Verify "Generate" button appears next to Employee ID field
+- [ ] Click "Generate" button
+- [ ] Verify Employee ID auto-populated (format: `EMPYYYYMMDDHHMMSS`)
+- [ ] Verify success message appears
+- [ ] Verify Employee ID field is editable (can be changed manually)
+
+**Test Case 3.3: Generate Button Hidden on Edit**
+- [ ] Navigate to **Admin → Employees**
+- [ ] Click "Edit" button for existing employee
+- [ ] Verify Employee ID field shows current ID
+- [ ] Verify "Generate" button is NOT visible
+- [ ] Verify Employee ID can still be edited manually
+
+**Expected Result:**
+- ✅ Banking Details section removed
+- ✅ Employee ID field with Generate button on new form
+- ✅ Generate button creates unique ID
+- ✅ Generate button hidden on edit form
+
+---
+
+### Module 4: Reports Module
+
+**Test Case 4.1: Reports Menu in Navigation**
+- [ ] Login as **Admin**
+- [ ] Verify "Reports" menu appears in top navigation (after Payroll)
+- [ ] Click "Reports" dropdown
+- [ ] Verify menu items:
+  - [ ] All Reports
+  - [ ] ─────────────
+  - [ ] Employee History
+  - [ ] Payroll Configuration
+  - [ ] Attendance Report
+- [ ] Login as **Employee**
+- [ ] Verify "Reports" menu is NOT visible
+
+**Test Case 4.2: Reports Landing Page**
+- [ ] Login as **Admin**
+- [ ] Click **Reports → All Reports**
+- [ ] Verify page displays 3 report cards:
+  - [ ] Employee History Report (blue icon)
+  - [ ] Payroll Configuration Report (green icon)
+  - [ ] Attendance Report (cyan icon)
+- [ ] Verify placeholder card "More Reports Coming Soon"
+- [ ] Verify each card has "View Report" and "Export CSV" buttons
+
+**Test Case 4.3: Employee History Report**
+- [ ] Click "View Report" on Employee History card
+- [ ] Verify table displays with columns:
+  - [ ] Employee ID
+  - [ ] Name (with avatar)
+  - [ ] Email
   - [ ] Department
-  - [ ] Designation
-- [ ] Right column: Payment Information
-  - [ ] Pay Period (format: "Month Year")
-  - [ ] Pay Date
-  - [ ] Bank Account
-  - [ ] PAN / Tax ID
+  - [ ] Role
+  - [ ] Join Date
+  - [ ] Exit Date
+  - [ ] Reporting Manager
+  - [ ] Status (color-coded badge)
+- [ ] Verify summary statistics at bottom:
+  - [ ] Total Employees
+  - [ ] Active count
+  - [ ] Inactive count
+  - [ ] Employees with Exit Date
+- [ ] Click "Export CSV" button
+- [ ] Verify CSV file downloads with filename: `employee_history_YYYY-MM-DD.csv`
+- [ ] Open CSV and verify data matches table
 
-### **7.3 Allowances Table**
-- [ ] Green header displays
-- [ ] Basic Salary shows
-- [ ] Allowances breakdown shows (if employee.allowances > 0):
-  - [ ] HRA (40%)
-  - [ ] DA (30%)
-  - [ ] Travel Allowance (20%)
-  - [ ] Special Allowance (10%)
-- [ ] Overtime Pay shows (if applicable)
-- [ ] Performance Bonus shows (if applicable)
-- [ ] Gross Salary total row displays (bold, gray background)
+**Test Case 4.4: Payroll Configuration Report**
+- [ ] Navigate to **Reports → Payroll Configuration**
+- [ ] Verify table displays with columns:
+  - [ ] Employee ID
+  - [ ] Name (with avatar)
+  - [ ] Basic Salary
+  - [ ] Allowances
+  - [ ] Employer CPF
+  - [ ] Employee CPF
+  - [ ] Gross Salary (calculated)
+  - [ ] Net Salary
+  - [ ] Remarks
+- [ ] Verify footer row shows totals for all monetary columns
+- [ ] Verify summary statistics:
+  - [ ] Total Employees
+  - [ ] Total Monthly Payroll
+  - [ ] Total CPF (Employer + Employee)
+- [ ] Click "Export CSV"
+- [ ] Verify CSV downloads: `payroll_configuration_YYYY-MM-DD.csv`
 
-### **7.4 Deductions Table**
-- [ ] Red header displays
-- [ ] Provident Fund shows (if applicable)
-- [ ] Income Tax shows (if applicable)
-- [ ] Other deductions breakdown shows (if applicable):
-  - [ ] Professional Tax (40%)
-  - [ ] ESI Contribution (30%)
-  - [ ] Insurance Premium (20%)
-  - [ ] Other Deductions (10%)
-- [ ] Total Deductions row displays (bold, gray background)
+**Test Case 4.5: Attendance Report**
+- [ ] Navigate to **Reports → Attendance Report**
+- [ ] Verify date filter form displays with:
+  - [ ] Start Date field
+  - [ ] End Date field
+  - [ ] "Today" button
+  - [ ] "This Week" button
+  - [ ] "This Month" button
+  - [ ] "Filter" button
+- [ ] Click "Today" button
+- [ ] Verify start and end dates set to today
+- [ ] Click "This Week" button
+- [ ] Verify dates set to current week (Monday to Sunday)
+- [ ] Click "This Month" button
+- [ ] Verify dates set to current month (1st to today)
+- [ ] Click "Filter" button
+- [ ] Verify table displays with columns:
+  - [ ] Date
+  - [ ] Employee ID
+  - [ ] Employee Name (with avatar)
+  - [ ] Department
+  - [ ] Clock In (green badge)
+  - [ ] Clock Out (red badge)
+  - [ ] Work Hours
+  - [ ] Overtime (yellow badge)
+  - [ ] Status (color-coded)
+- [ ] Verify summary statistics:
+  - [ ] Total Records
+  - [ ] Present count
+  - [ ] Absent count
+  - [ ] Late count
+  - [ ] On Leave count
+  - [ ] Half Day count
+  - [ ] Total Work Hours
+  - [ ] Total Overtime
+- [ ] Click "Export CSV"
+- [ ] Verify CSV downloads with date range in filename
 
-### **7.5 Summary Section**
-- [ ] Compact table layout (not grid)
-- [ ] Three rows:
-  - [ ] Gross Salary
-  - [ ] Total Deductions
-  - [ ] NET SALARY (dark background, white text, bold)
-- [ ] All amounts right-aligned
-- [ ] Currency format: S$ X,XXX.XX
-
-### **7.6 Footer**
-- [ ] "Computer-generated payslip" message
-- [ ] Generated date and time
-- [ ] Generated by user name
-- [ ] HR contact message
-- [ ] Bank payment message (if bank_name exists)
-
-### **7.7 Currency Formatting**
-- [ ] All amounts show as: S$ X,XXX.XX
-- [ ] Two decimal places
-- [ ] Comma-separated thousands
-- [ ] Right-aligned in tables
-- [ ] Monospace font (Roboto Mono)
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
-
----
-
-## ✅ Phase 8: Print Testing
-
-### **8.1 Print Preview**
-- [ ] Click "Print / Save PDF" button (or Ctrl+P)
-- [ ] Print preview opens
-- [ ] Action buttons hidden in preview
-- [ ] Layout fits on single page
-- [ ] No content cut off
-
-### **8.2 Color Verification**
-- [ ] Company logo displays in color
-- [ ] Green header for Allowances
-- [ ] Red header for Deductions
-- [ ] Dark background for Net Salary row
-- [ ] Alternating row colors visible
-
-### **8.3 PDF Generation**
-- [ ] Choose "Save as PDF" in print dialog
-- [ ] PDF generates successfully
-- [ ] Open PDF and verify:
-  - [ ] All content visible
-  - [ ] Colors preserved
-  - [ ] Logo displays
-  - [ ] Text is readable
-  - [ ] Layout is professional
-  - [ ] Fits on single A4 page
-
-### **8.4 Black & White Test**
-- [ ] Print preview in B/W mode
-- [ ] Content still readable
-- [ ] Borders and lines visible
-- [ ] Text contrast sufficient
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+**Expected Result:**
+- ✅ Reports menu visible to Admin/HR Manager only
+- ✅ All 3 reports load correctly
+- ✅ CSV export works for all reports
+- ✅ Date filters work correctly
+- ✅ Summary statistics calculate correctly
 
 ---
 
-## ✅ Phase 9: Responsive Testing
+### Module 5: Attendance - View Records
 
-### **9.1 Desktop View (> 768px)**
-- [ ] Two-column employee details
-- [ ] Side-by-side allowances/deductions tables
-- [ ] Full padding and spacing
-- [ ] Company name: 28px
+**Test Case 5.1: Default Date Filter**
+- [ ] Login as **Admin**
+- [ ] Navigate to **Attendance → View Records**
+- [ ] Verify date filter input is pre-filled with today's date
+- [ ] Verify attendance records for today are displayed
+- [ ] Change date to yesterday
+- [ ] Click "Filter" button
+- [ ] Navigate away and return to Attendance page
+- [ ] Verify date filter still shows yesterday (preserves selection)
 
-### **9.2 Mobile View (≤ 768px)**
-- [ ] Resize browser to mobile width
-- [ ] Single-column employee details
-- [ ] Stacked tables (allowances above deductions)
-- [ ] Reduced padding
-- [ ] Company name: 22px
-- [ ] All content still readable
-
-### **9.3 Tablet View (768px - 1024px)**
-- [ ] Layout adapts appropriately
-- [ ] No horizontal scrolling
-- [ ] Content readable
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+**Expected Result:**
+- ✅ Date filter defaults to today on first load
+- ✅ User-selected dates are preserved during navigation
 
 ---
 
-## ✅ Phase 10: Edge Cases Testing
+### Module 6: Generate Payroll
 
-### **10.1 Employee with No Allowances**
-- [ ] View payslip for employee with allowances = 0
-- [ ] Only Basic Salary shows in Allowances table
-- [ ] No HRA, DA, Travel, Special rows
-- [ ] Gross Salary = Basic Salary (+ overtime + bonuses if any)
+**Test Case 6.1: Status Color Coding**
+- [ ] Login as **Admin**
+- [ ] Navigate to **Payroll → Generate Payroll**
+- [ ] Verify status badges display with correct colors:
+  - [ ] **Approved** - Green badge with check-circle icon
+  - [ ] **Paid** - Green badge with money-bill-wave icon
+  - [ ] **Pending** - Yellow badge with clock icon
+  - [ ] **Draft** - Gray badge with file icon
+- [ ] Verify colors consistent in both desktop table and mobile card views
 
-### **10.2 Employee with No Deductions**
-- [ ] View payslip with all deductions = 0
-- [ ] "No Deductions" row shows
-- [ ] Total Deductions = S$ 0.00
-- [ ] Net Salary = Gross Salary
+**Test Case 6.2: Approve Button Caption**
+- [ ] On Generate Payroll page, locate "Approve" action column
+- [ ] Verify button displays:
+  - [ ] Check icon
+  - [ ] "Approve" text label
+  - [ ] Tooltip on hover: "Approve Payroll"
+- [ ] Verify "Payslip" button also has text label (not just icon)
 
-### **10.3 Employee with Overtime**
-- [ ] View payslip with overtime_pay > 0
-- [ ] Overtime Pay row shows
-- [ ] Overtime hours displayed
-- [ ] Included in Gross Salary
-
-### **10.4 Employee with Bonus**
-- [ ] View payslip with bonuses > 0
-- [ ] Performance Bonus row shows
-- [ ] Included in Gross Salary
-
-### **10.5 Missing Optional Fields**
-- [ ] Employee with no bank_account
-- [ ] Shows "N/A" instead of error
-- [ ] Employee with no department
-- [ ] Shows "N/A" instead of error
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+**Expected Result:**
+- ✅ Status badges color-coded correctly
+- ✅ Icons display in badges
+- ✅ Approve button has visible caption
+- ✅ Consistent display on mobile and desktop
 
 ---
 
-## ✅ Phase 11: Calculation Verification
+### Module 7: Payroll Configuration
 
-### **11.1 Allowances Breakdown**
-- [ ] Calculate manually: employee.allowances × 0.40 (HRA)
-- [ ] Compare with displayed value
-- [ ] Verify all percentages add up to 100%
-- [ ] Check rounding (2 decimal places)
+**Test Case 7.1: New Columns Display**
+- [ ] Login as **Admin**
+- [ ] Navigate to **Payroll → Configuration**
+- [ ] Verify table displays new columns:
+  - [ ] Employer CPF (editable number field)
+  - [ ] Employee CPF (editable number field)
+  - [ ] Net Salary (editable number field)
+  - [ ] Remarks (editable text field)
+- [ ] Verify all fields are disabled by default
+- [ ] Click "Edit" button for any employee
+- [ ] Verify new fields become editable with blue border
+- [ ] Enter values in new fields:
+  - Employer CPF: `500.00`
+  - Employee CPF: `400.00`
+  - Net Salary: `3500.00`
+  - Remarks: `Test remarks`
+- [ ] Click "Save" button
+- [ ] Verify success message appears
+- [ ] Refresh page
+- [ ] Verify values are saved correctly
 
-### **11.2 Deductions Breakdown**
-- [ ] Calculate manually: other_deductions × 0.40 (Prof Tax)
-- [ ] Compare with displayed value
-- [ ] Verify all percentages add up to 100%
-- [ ] Check rounding (2 decimal places)
+**Test Case 7.2: Bank Info Button and Modal**
+- [ ] On Payroll Configuration page, locate "Actions" column
+- [ ] Verify "Bank Info" button (university icon) appears for each employee
+- [ ] Click "Bank Info" button for any employee
+- [ ] Verify modal opens with title: "Bank Information - {Employee Name}"
+- [ ] Verify modal contains form fields:
+  - [ ] Bank Account Name (required)
+  - [ ] Bank Account Number (required)
+  - [ ] Bank Code (optional, hint: SWIFT/BIC)
+  - [ ] PayNow Number (optional, hint: +65 XXXX XXXX or UEN)
 
-### **11.3 Gross Salary**
-- [ ] Calculate: basic + overtime + allowances + bonuses
-- [ ] Compare with displayed Gross Salary
-- [ ] Verify matches payroll.gross_pay
+**Test Case 7.3: Bank Info Save Functionality**
+- [ ] In Bank Info modal, leave all fields empty
+- [ ] Click "Save" button
+- [ ] Verify validation error (required fields)
+- [ ] Fill in form:
+  - Bank Account Name: `John Doe`
+  - Bank Account Number: `1234567890`
+  - Bank Code: `DBSSSGSG`
+  - PayNow Number: `+65 9123 4567`
+- [ ] Click "Save" button
+- [ ] Verify loading spinner appears
+- [ ] Verify success toast notification
+- [ ] Verify modal closes automatically
+- [ ] Click "Bank Info" button again
+- [ ] Verify previously saved data is pre-populated
 
-### **11.4 Total Deductions**
-- [ ] Calculate: employee_cpf + income_tax + other_deductions
-- [ ] Compare with displayed Total Deductions
-- [ ] Verify calculation is correct
+**Test Case 7.4: Bank Info Update**
+- [ ] Open Bank Info modal for employee with existing data
+- [ ] Verify all fields show saved values
+- [ ] Change Bank Account Number to `9876543210`
+- [ ] Click "Save"
+- [ ] Verify success message
+- [ ] Reopen modal
+- [ ] Verify updated value displays
 
-### **11.5 Net Salary**
-- [ ] Calculate: gross_pay - total_deductions
-- [ ] Compare with displayed Net Salary
-- [ ] Verify matches payroll.net_pay
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
-
----
-
-## ✅ Phase 12: Performance Testing
-
-### **12.1 Page Load Time**
-- [ ] Measure page load time (should be < 500ms)
-- [ ] Check for slow database queries
-- [ ] Verify logo loads quickly
-
-### **12.2 Multiple Payslips**
-- [ ] View 5-10 different payslips
-- [ ] All load correctly
-- [ ] No performance degradation
-
-### **12.3 Browser Compatibility**
-- [ ] Test in Chrome
-- [ ] Test in Firefox
-- [ ] Test in Edge
-- [ ] Test in Safari (if available)
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
-
----
-
-## ✅ Phase 13: Security Testing
-
-### **13.1 Access Control**
-- [ ] Login as Employee
-- [ ] Can view own payslip
-- [ ] Cannot view other employees' payslips (403 error)
-
-- [ ] Login as Manager
-- [ ] Can view direct reports' payslips
-- [ ] Cannot view other employees' payslips (403 error)
-
-- [ ] Login as Admin
-- [ ] Can view all payslips
-
-### **13.2 Data Privacy**
-- [ ] Sensitive data (bank account, tax ID) only visible to authorized users
-- [ ] No data leakage in URLs
-- [ ] No sensitive data in browser console
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+**Expected Result:**
+- ✅ 4 new columns display correctly
+- ✅ Fields are editable when in edit mode
+- ✅ Values save successfully
+- ✅ Bank Info modal opens and closes properly
+- ✅ Form validation works
+- ✅ Bank info saves and loads correctly
 
 ---
 
-## ✅ Phase 14: Documentation Review
+## 🔍 Integration Testing
 
-### **14.1 Documentation Files**
-- [ ] QUICK_START_GUIDE.md reviewed
-- [ ] PAYSLIP_IMPLEMENTATION_GUIDE.md reviewed
-- [ ] MIGRATION_INSTRUCTIONS.md reviewed
-- [ ] PAYSLIP_CHANGES_SUMMARY.md reviewed
-- [ ] PAYSLIP_LAYOUT_DIAGRAM.txt reviewed
-- [ ] README_PAYSLIP.md reviewed
-- [ ] sample_data_setup.sql reviewed
+### Test Scenario 1: Complete Employee Lifecycle
 
-### **14.2 Code Comments**
-- [ ] Template has clear comments
-- [ ] CSS sections are labeled
-- [ ] Jinja2 logic is documented
+1. **Create New Employee**
+   - [ ] Login as Admin
+   - [ ] Navigate to Admin → Employees → Add New
+   - [ ] Click "Generate" for Employee ID
+   - [ ] Fill in all required fields (no banking details)
+   - [ ] Submit form
+   - [ ] Verify employee created successfully
 
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+2. **Configure Payroll**
+   - [ ] Navigate to Payroll → Configuration
+   - [ ] Find newly created employee
+   - [ ] Click "Edit" and enter:
+     - Allowances
+     - Employer CPF: `500`
+     - Employee CPF: `400`
+     - Net Salary: `3500`
+     - Remarks: `New employee`
+   - [ ] Click "Save"
+   - [ ] Click "Bank Info" and enter bank details
+   - [ ] Save bank info
 
----
+3. **Reset Password**
+   - [ ] Navigate to Admin → Employees
+   - [ ] Click Password Reset for new employee
+   - [ ] Note temporary password
+   - [ ] Logout
+   - [ ] Login with employee account using temp password
+   - [ ] Verify login successful
 
-## ✅ Phase 15: User Acceptance Testing
+4. **View in Reports**
+   - [ ] Login as Admin
+   - [ ] Navigate to Reports → Employee History
+   - [ ] Verify new employee appears in report
+   - [ ] Navigate to Reports → Payroll Configuration
+   - [ ] Verify employee's payroll config displays with CPF values
+   - [ ] Export both reports to CSV
+   - [ ] Verify employee data in CSV files
 
-### **15.1 HR Team Review**
-- [ ] HR team views sample payslips
-- [ ] Layout approved
-- [ ] All required information present
-- [ ] Professional appearance confirmed
-
-### **15.2 Employee Feedback**
-- [ ] Sample employees view their payslips
-- [ ] Information is clear and understandable
-- [ ] No confusion about breakdown
-
-### **15.3 Management Approval**
-- [ ] Management reviews payslip design
-- [ ] Approves for production use
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
-
----
-
-## ✅ Phase 16: Production Deployment
-
-### **16.1 Backup**
-- [ ] Backup current database
-- [ ] Backup current template files
-- [ ] Backup location documented
-
-### **16.2 Deployment**
-- [ ] Apply migration on production database
-- [ ] Upload new template file
-- [ ] Upload logo file
-- [ ] Update organization record
-
-### **16.3 Post-Deployment Verification**
-- [ ] Test payslip generation on production
-- [ ] Verify logo displays
-- [ ] Verify all data correct
-- [ ] Test print functionality
-
-### **16.4 Rollback Plan**
-- [ ] Rollback procedure documented
-- [ ] Backup files accessible
-- [ ] Rollback tested (if possible)
-
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+**Expected Result:**
+- ✅ Complete workflow works end-to-end
+- ✅ All data persists correctly
+- ✅ Reports reflect new employee data
 
 ---
 
-## ✅ Phase 17: Training & Communication
+### Test Scenario 2: Role-Based Access Control
 
-### **17.1 User Training**
-- [ ] HR team trained on new payslip
-- [ ] Managers informed of changes
-- [ ] Employees notified of new format
+1. **Super Admin Access**
+   - [ ] Login as `superadmin`
+   - [ ] Verify access to:
+     - [ ] Employee Edit
+     - [ ] Password Reset
+     - [ ] Reports Menu
+     - [ ] Payroll Configuration
+     - [ ] Bank Info
 
-### **17.2 Documentation Distribution**
-- [ ] Quick Start Guide shared with HR
-- [ ] Troubleshooting guide available
-- [ ] Support contact information provided
+2. **Admin Access**
+   - [ ] Login as `admin`
+   - [ ] Verify same access as Super Admin
 
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+3. **HR Manager Access**
+   - [ ] Login as `manager`
+   - [ ] Verify access to:
+     - [ ] Reports Menu (read-only)
+     - [ ] Payroll Configuration (read-only)
+   - [ ] Verify NO access to:
+     - [ ] Password Reset
+
+4. **Employee Access**
+   - [ ] Login as `user`
+   - [ ] Verify NO access to:
+     - [ ] Employee Edit
+     - [ ] Password Reset
+     - [ ] Reports Menu
+     - [ ] Payroll Configuration
+     - [ ] Bank Info
+
+**Expected Result:**
+- ✅ Role-based access enforced correctly
+- ✅ Unauthorized users cannot access restricted features
 
 ---
 
-## ✅ Phase 18: Monitoring
+## 🐛 Known Issues & Troubleshooting
 
-### **18.1 First Week Monitoring**
-- [ ] Monitor for errors in logs
-- [ ] Check for user complaints
-- [ ] Verify payslips generating correctly
+### Issue 1: Migration Fails
 
-### **18.2 Feedback Collection**
-- [ ] Collect feedback from HR team
-- [ ] Collect feedback from employees
-- [ ] Document any issues
+**Symptom:** `alembic.util.exc.CommandError: Can't locate revision identified by 'xxx'`
 
-### **18.3 Issue Resolution**
-- [ ] Address any reported issues
-- [ ] Apply fixes if needed
-- [ ] Update documentation if needed
+**Solution:**
+```bash
+# Check migration history
+flask db history
 
-**Status:** ⬜ Not Started | ⏳ In Progress | ✅ Complete
+# If migrations are out of sync, stamp current version
+flask db stamp head
 
----
-
-## 📊 Final Sign-Off
-
-### **Deployment Summary**
-- **Deployment Date:** _______________
-- **Deployed By:** _______________
-- **Version:** 2.0
-- **Status:** ⬜ Success | ⬜ Issues Found | ⬜ Rolled Back
-
-### **Sign-Off**
-- [ ] Technical Lead Approval: _______________
-- [ ] HR Manager Approval: _______________
-- [ ] IT Manager Approval: _______________
-
-### **Notes**
-```
-_________________________________________________________________
-
-_________________________________________________________________
-
-_________________________________________________________________
+# Then run upgrade
+flask db upgrade
 ```
 
+### Issue 2: Bank Info Modal Not Opening
+
+**Symptom:** Clicking Bank Info button does nothing
+
+**Solution:**
+1. Open browser console (F12)
+2. Check for JavaScript errors
+3. Verify Bootstrap 5 JS is loaded
+4. Clear browser cache and reload
+
+### Issue 3: CSV Export Returns 500 Error
+
+**Symptom:** Clicking Export CSV shows error
+
+**Solution:**
+1. Check if data exists in database
+2. Verify export functions in `routes_enhancements.py`
+3. Check server logs for detailed error
+4. Ensure `io` and `csv` modules are imported
+
+### Issue 4: Reports Menu Not Visible
+
+**Symptom:** Reports menu doesn't appear in navigation
+
+**Solution:**
+1. Verify user role (must be Admin/Super Admin/HR Manager)
+2. Check `base.html` for `{% if not is_user %}` condition
+3. Clear browser cache
+4. Verify `is_user` variable is set in context
+
+### Issue 5: Default Date Not Set in Attendance
+
+**Symptom:** Date filter is empty on page load
+
+**Solution:**
+1. Open browser console
+2. Check for JavaScript errors
+3. Verify `DOMContentLoaded` event listener is present
+4. Check if date input has correct `name="date"` attribute
+
 ---
 
-## 🎉 Deployment Complete!
+## 📊 Performance Considerations
 
-Congratulations! Your professional payslip template is now live in production.
+### Database Queries
 
-**Next Steps:**
-1. Monitor for the first week
-2. Collect user feedback
-3. Make adjustments if needed
-4. Document lessons learned
+**Optimize Reports:**
+```python
+# Use eager loading for relationships
+employees = Employee.query.options(
+    db.joinedload(Employee.manager),
+    db.joinedload(Employee.payroll_config)
+).filter_by(is_active=True).all()
+```
+
+**Index Recommendations:**
+```sql
+-- Add indexes for frequently queried columns
+CREATE INDEX idx_employee_hire_date ON hrm_employee(hire_date);
+CREATE INDEX idx_attendance_date ON hrm_attendance(date);
+CREATE INDEX idx_payroll_status ON hrm_payroll(status);
+```
+
+### CSV Export Limits
+
+- Current implementation loads all data into memory
+- For large datasets (>10,000 records), consider:
+  - Pagination
+  - Streaming response
+  - Background job processing
 
 ---
 
-**Checklist Version:** 1.0  
-**Last Updated:** January 2025  
-**Total Phases:** 18  
-**Total Checkpoints:** 200+
+## 🔒 Security Checklist
+
+- [ ] All API endpoints have `@require_role` decorator
+- [ ] CSRF protection enabled for all POST requests
+- [ ] SQL injection prevented (using SQLAlchemy ORM)
+- [ ] XSS protection (Jinja2 auto-escaping enabled)
+- [ ] Password reset generates secure temporary passwords
+- [ ] Bank information encrypted in transit (HTTPS)
+- [ ] Sensitive data not logged
+- [ ] Role-based access enforced on frontend and backend
 
 ---
 
-**Status Legend:**
-- ⬜ Not Started
-- ⏳ In Progress
-- ✅ Complete
-- ❌ Failed
-- ⚠️ Issues Found
+## 📝 Post-Deployment Tasks
+
+### 1. User Training
+
+- [ ] Schedule training session for Admin users
+- [ ] Prepare user guide for new features
+- [ ] Create video tutorials for:
+  - Password reset process
+  - Generating employee IDs
+  - Using reports module
+  - Configuring payroll with CPF
+  - Managing bank information
+
+### 2. Documentation
+
+- [ ] Update user manual
+- [ ] Update API documentation
+- [ ] Create troubleshooting guide
+- [ ] Document backup and recovery procedures
+
+### 3. Monitoring
+
+- [ ] Set up error logging for new endpoints
+- [ ] Monitor database performance
+- [ ] Track CSV export usage
+- [ ] Monitor password reset frequency
+
+### 4. Feedback Collection
+
+- [ ] Create feedback form for users
+- [ ] Schedule review meeting with Nagaraj (BA)
+- [ ] Collect suggestions for improvements
+- [ ] Plan for future enhancements
+
+---
+
+## 📞 Support Contacts
+
+**Technical Issues:**
+- Backend: [Developer Name]
+- Frontend: [Developer Name]
+- Database: [DBA Name]
+
+**Business Questions:**
+- Business Analyst: Nagaraj
+- Project Manager: [PM Name]
+
+**Emergency Contact:**
+- On-Call Developer: [Phone Number]
+- System Admin: [Phone Number]
+
+---
+
+## ✅ Sign-Off
+
+### Development Team
+
+- [ ] Backend Developer: _________________ Date: _______
+- [ ] Frontend Developer: _________________ Date: _______
+- [ ] QA Tester: _________________ Date: _______
+
+### Business Team
+
+- [ ] Business Analyst (Nagaraj): _________________ Date: _______
+- [ ] Project Manager: _________________ Date: _______
+- [ ] Product Owner: _________________ Date: _______
+
+### Deployment Approval
+
+- [ ] Technical Lead: _________________ Date: _______
+- [ ] IT Manager: _________________ Date: _______
+
+---
+
+## 📅 Deployment Schedule
+
+**Planned Deployment Date:** _______________  
+**Deployment Window:** _______________ to _______________  
+**Rollback Plan:** Available (database backup created)  
+**Estimated Downtime:** 15-30 minutes (for migration)
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** 2024  
+**Status:** ✅ READY FOR DEPLOYMENT
+
+---
+
+**End of Deployment Checklist**
+
+*This checklist ensures all components are tested and verified before production deployment.*

@@ -176,39 +176,6 @@
                 </div>
             </div>
 
-            <!-- Salary Information -->
-            <div class="card mb-4">
-                <div class="card-header card-header-green">
-                    <h5 class="mb-0">
-                        <i class="fas fa-dollar-sign me-2"></i>Salary & Benefits
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Basic Salary</label>
-                            <p class="fw-semibold text-success fs-5">{{ employee.basic_salary | currency }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Monthly Allowances</label>
-                            <p class="fw-semibold">{{ employee.allowances | currency }}</p>
-                        </div>
-                        {% if employee.hourly_rate %}
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Hourly Rate</label>
-                            <p class="fw-semibold">{{ employee.hourly_rate | currency }}/hour</p>
-                        </div>
-                        {% endif %}
-                        {% if employee.cpf_account %}
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">CPF Account</label>
-                            <p class="fw-semibold">{{ employee.cpf_account }}</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
             <!-- Banking Details -->
             {% if employee.bank_name or employee.bank_account %}
             <div class="card mb-4">

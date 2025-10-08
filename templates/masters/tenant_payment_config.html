@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Payment Configuration - Noltrion{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3><i class="fas fa-dollar-sign me-2"></i>Tenant Payment Configuration</h3>
+                    <p class="text-muted mb-0">Manage billing and payment settings for tenants</p>
+                </div>
+            </div>
+
+            <!-- Tenants with Payment Config -->
+            <div class="card">
+                <div class="card-header card-header-green">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Tenant Payment Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="paymentConfigTable">
+                            <thead>
+                                <tr>
+                                    <th>Tenant Code</th>
+                                    <th>Tenant Name</th>
+                                    <th>Payment Type</th>
+                                    <th>Implementation Charges</th>
+                                    <th>Monthly Charges</th>
+                                    <th>Frequency</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tenant in tenants %}
+                                <tr>
+                                    <td><strong>{{ tenant.code }}</strong></td>
+                                    <td>{{ tenant.name }}</td>
+                                    <td>
+                                        {% if tenant.payment_configs and tenant.payment_configs|length > 0 %}
+                                            {% set config = tenant.payment_configs[0] %}
+                                            <span class="badge bg-{{ 'primary' if config.payment_type == 'Fixed' else 'info' }}">
+                                                {{ config.payment_type }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Not Configured</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if tenant.payment_configs and tenant.payment_configs|length > 0 %}
+                                            ${{ "{:,.2f}".format(tenant.payment_configs[0].implementation_charges or 0) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if tenant.payment_configs and tenant.payment_configs|length > 0 %}
+                                            ${{ "{:,.2f}".format(tenant.payment_configs[0].monthly_charges or 0) }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if tenant.payment_configs and tenant.payment_configs|length > 0 %}
+                                            <span class="badge bg-success">{{ tenant.payment_configs[0].frequency }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if tenant.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="configurePayment('{{ tenant.id }}', '{{ tenant.name }}')">
+                                            <i class="fas fa-cog"></i> Configure
+                                        </button>
+                                        {% if tenant.payment_configs and tenant.payment_configs|length > 0 %}
+                                        <button class="btn btn-sm btn-info" onclick="viewPaymentConfig('{{ tenant.id }}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Configuration Modal -->
+<div class="modal fade" id="paymentConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configure Payment Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentConfigForm">
+                    <input type="hidden" id="tenantId">
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Tenant:</strong> <span id="tenantNameDisplay"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="paymentType" class="form-label">Payment Type *</label>
+                        <select class="form-select" id="paymentType" required onchange="togglePaymentFields()">
+                            <option value="">Select Payment Type</option>
+                            <option value="Fixed">Fixed</option>
+                            <option value="User-Based">User-Based</option>
+                        </select>
+                        <small class="text-muted">Choose how billing is calculated for this tenant</small>
+                    </div>
+
+                    <div id="paymentFieldsContainer" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="implementationCharges" class="form-label">Implementation Charges</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="implementationCharges" 
+                                               step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                    <small class="text-muted">One-time setup fee</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="monthlyCharges" class="form-label">Monthly Charges</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="monthlyCharges" 
+                                               step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                    <small class="text-muted">Recurring monthly fee</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="otherCharges" class="form-label">Other Charges</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="otherCharges" 
+                                               step="0.01" min="0" placeholder="0.00">
+                                    </div>
+                                    <small class="text-muted">Additional fees</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="frequency" class="form-label">Payment Collection Frequency *</label>
+                            <select class="form-select" id="frequency" required>
+                                <option value="">Select Frequency</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Half-Yearly">Half-Yearly</option>
+                                <option value="Yearly">Yearly</option>
+                            </select>
+                            <small class="text-muted">How often payments will be collected</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="remarks" class="form-label">Remarks</label>
+                            <textarea class="form-control" id="remarks" rows="3" 
+                                      placeholder="Additional notes or special terms..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePaymentConfig()">
+                    <i class="fas fa-save me-1"></i>Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Payment Config Modal -->
+<div class="modal fade" id="viewPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Payment Configuration Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="viewPaymentContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePaymentFields() {
+    const paymentType = document.getElementById('paymentType').value;
+    const container = document.getElementById('paymentFieldsContainer');
+    
+    if (paymentType) {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+function configurePayment(tenantId, tenantName) {
+    document.getElementById('tenantId').value = tenantId;
+    document.getElementById('tenantNameDisplay').textContent = tenantName;
+    
+    // Load existing configuration if available
+    fetch(`/api/tenant-payment-config/${tenantId}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success && result.data) {
+                const config = result.data;
+                document.getElementById('paymentType').value = config.payment_type || '';
+                document.getElementById('implementationCharges').value = config.implementation_charges || '';
+                document.getElementById('monthlyCharges').value = config.monthly_charges || '';
+                document.getElementById('otherCharges').value = config.other_charges || '';
+                document.getElementById('frequency').value = config.frequency || '';
+                document.getElementById('remarks').value = config.remarks || '';
+                togglePaymentFields();
+            } else {
+                // Reset form for new configuration
+                document.getElementById('paymentConfigForm').reset();
+                document.getElementById('tenantId').value = tenantId;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading configuration:', error);
+        });
+    
+    const modal = new bootstrap.Modal(document.getElementById('paymentConfigModal'));
+    modal.show();
+}
+
+function savePaymentConfig() {
+    const tenantId = document.getElementById('tenantId').value;
+    const paymentType = document.getElementById('paymentType').value;
+    
+    if (!paymentType) {
+        alert('Please select a payment type');
+        return;
+    }
+    
+    const frequency = document.getElementById('frequency').value;
+    if (!frequency) {
+        alert('Please select a payment frequency');
+        return;
+    }
+    
+    const data = {
+        tenant_id: tenantId,
+        payment_type: paymentType,
+        implementation_charges: parseFloat(document.getElementById('implementationCharges').value) || 0,
+        monthly_charges: parseFloat(document.getElementById('monthlyCharges').value) || 0,
+        other_charges: parseFloat(document.getElementById('otherCharges').value) || 0,
+        frequency: frequency,
+        remarks: document.getElementById('remarks').value
+    };
+    
+    fetch('/api/tenant-payment-config', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Payment configuration saved successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function viewPaymentConfig(tenantId) {
+    fetch(`/api/tenant-payment-config/${tenantId}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success && result.data) {
+                const config = result.data;
+                const content = `
+                    <div class="mb-3">
+                        <strong>Payment Type:</strong>
+                        <span class="badge bg-primary ms-2">${config.payment_type}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Implementation Charges:</strong> $${(config.implementation_charges || 0).toFixed(2)}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Monthly Charges:</strong> $${(config.monthly_charges || 0).toFixed(2)}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Other Charges:</strong> $${(config.other_charges || 0).toFixed(2)}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Frequency:</strong>
+                        <span class="badge bg-success ms-2">${config.frequency}</span>
+                    </div>
+                    ${config.remarks ? `<div class="mb-3"><strong>Remarks:</strong><br>${config.remarks}</div>` : ''}
+                    <div class="text-muted small">
+                        <div>Created: ${new Date(config.created_at).toLocaleString()}</div>
+                        ${config.modified_at ? `<div>Modified: ${new Date(config.modified_at).toLocaleString()}</div>` : ''}
+                    </div>
+                `;
+                document.getElementById('viewPaymentContent').innerHTML = content;
+                
+                const modal = new bootstrap.Modal(document.getElementById('viewPaymentModal'));
+                modal.show();
+            } else {
+                alert('No configuration found');
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+        });
+}
+</script>
+{% endblock %}

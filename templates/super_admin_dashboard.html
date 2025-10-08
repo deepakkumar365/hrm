@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}Super Admin Dashboard - Noltrion{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
+            <div>
+                <h1 class="dashboard-title">Welcome, {{ current_user.first_name or 'Super Admin' }}!</h1>
+                <p class="text-muted">Tenant Management & Financial Overview</p>
+            </div>
+            <div class="d-flex gap-3">
+                <a href="{{ url_for('tenant_list') }}" class="btn btn-primary">
+                    <i class="fas fa-sitemap"></i>
+                    Manage Tenants
+                </a>
+                <a href="{{ url_for('tenant_payment_config_list') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-dollar-sign"></i>
+                    Payment Config
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics Grid -->
+    <div class="dashboard-grid mb-8">
+        <!-- Total Tenants -->
+        <div class="col-span-3">
+            <div class="stat-card">
+                <div class="stat-card-icon primary">
+                    <i class="fas fa-sitemap"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.total_tenants }}</div>
+                <div class="stat-card-label">Total Tenants</div>
+                <div class="stat-card-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    {{ stats.active_tenants }} Active
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Companies -->
+        <div class="col-span-3">
+            <div class="stat-card">
+                <div class="stat-card-icon success">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.total_companies }}</div>
+                <div class="stat-card-label">Total Companies</div>
+                <div class="stat-card-change">
+                    <i class="fas fa-info-circle"></i>
+                    Across all tenants
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Users -->
+        <div class="col-span-3">
+            <div class="stat-card">
+                <div class="stat-card-icon warning">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-card-value">{{ stats.total_users }}</div>
+                <div class="stat-card-label">Total Users</div>
+                <div class="stat-card-change">
+                    <i class="fas fa-user-check"></i>
+                    {{ stats.active_users }} Active
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Revenue -->
+        <div class="col-span-3">
+            <div class="stat-card">
+                <div class="stat-card-icon primary">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="stat-card-value">${{ "{:,.0f}".format(stats.monthly_revenue) }}</div>
+                <div class="stat-card-label">Monthly Revenue</div>
+                <div class="stat-card-change positive">
+                    <i class="fas fa-arrow-up"></i>
+                    To be collected
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Analytics -->
+    <div class="dashboard-grid">
+        <!-- Users by Company Chart -->
+        <div class="col-span-6">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h3 class="chart-card-title">Users by Company</h3>
+                        <p class="text-muted mb-0">Distribution of users across companies</p>
+                    </div>
+                    <div class="badge bg-primary">{{ stats.total_companies }} Companies</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="usersByCompanyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payslips by Month Chart -->
+        <div class="col-span-6">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h3 class="chart-card-title">Payslips Generated</h3>
+                        <p class="text-muted mb-0">Monthly payslip generation trend</p>
+                    </div>
+                    <div class="badge bg-success">{{ stats.payslips_this_month }} This Month</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="payslipsTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tenant Overview and Financial Summary -->
+    <div class="dashboard-grid">
+        <!-- Tenant Overview -->
+        <div class="col-span-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title">Tenant Overview</h3>
+                        <a href="{{ url_for('tenant_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tenant</th>
+                                    <th>Companies</th>
+                                    <th>Users</th>
+                                    <th>Payment Type</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tenant in recent_tenants %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ tenant.name }}</div>
+                                        <div class="text-muted small">{{ tenant.code }}</div>
+                                    </td>
+                                    <td>{{ tenant.company_count }}</td>
+                                    <td>{{ tenant.user_count }}</td>
+                                    <td>
+                                        {% if tenant.payment_type %}
+                                        <span class="badge bg-{{ 'primary' if tenant.payment_type == 'Fixed' else 'info' }}">
+                                            {{ tenant.payment_type }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Not Set</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if tenant.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="col-span-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Financial Summary</h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">This Month</span>
+                            <span class="fw-bold text-success">${{ "{:,.2f}".format(stats.monthly_revenue) }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ (stats.collected_revenue / stats.monthly_revenue * 100) if stats.monthly_revenue > 0 else 0 }}%"></div>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            ${{ "{:,.2f}".format(stats.collected_revenue) }} collected
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Quarterly</span>
+                            <span class="fw-bold">${{ "{:,.2f}".format(stats.quarterly_revenue) }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 65%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Yearly</span>
+                            <span class="fw-bold">${{ "{:,.2f}".format(stats.yearly_revenue) }}</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 45%"></div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Pending Payments</span>
+                        <span class="fw-bold text-warning">${{ "{:,.2f}".format(stats.pending_payments) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Overdue</span>
+                        <span class="fw-bold text-danger">${{ "{:,.2f}".format(stats.overdue_payments) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="dashboard-grid">
+        <div class="col-span-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Activity</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        {% for activity in recent_activities %}
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="stat-card-icon {{ activity.icon_class }}" style="width: 40px; height: 40px; font-size: 1rem;">
+                                    <i class="fas fa-{{ activity.icon }}"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">{{ activity.title }}</div>
+                                    <div class="text-muted small">{{ activity.description }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Users by Company Chart
+    const usersByCompanyCtx = document.getElementById('usersByCompanyChart');
+    if (usersByCompanyCtx) {
+        const companyLabels = {{ stats.company_labels|tojson(indent=0) if stats.company_labels else []|tojson(indent=0) }};
+        const companyData = {{ stats.company_user_counts|tojson(indent=0) if stats.company_user_counts else []|tojson(indent=0) }};
+
+        new Chart(usersByCompanyCtx, {
+            type: 'bar',
+            data: {
+                labels: companyLabels,
+                datasets: [{
+                    label: 'Users',
+                    data: companyData,
+                    backgroundColor: 'rgba(45, 106, 79, 0.8)',
+                    borderColor: 'var(--primary-green)',
+                    borderWidth: 1,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Payslips Trend Chart
+    const payslipsTrendCtx = document.getElementById('payslipsTrendChart');
+    if (payslipsTrendCtx) {
+        const monthLabels = {{ stats.payslip_months|tojson(indent=0) if stats.payslip_months else []|tojson(indent=0) }};
+        const payslipData = {{ stats.payslip_counts|tojson(indent=0) if stats.payslip_counts else []|tojson(indent=0) }};
+
+        new Chart(payslipsTrendCtx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Payslips Generated',
+                    data: payslipData,
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(82, 183, 136, 0.1)',
+                    borderColor: 'var(--accent-green)',
+                    borderWidth: 3,
+                    pointBackgroundColor: 'var(--accent-green)',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

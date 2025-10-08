@@ -103,9 +103,23 @@
                     </div>
                     <div class="text-end">
                         <h6 class="text-success mb-1">{{ payroll.net_pay | currency }}</h6>
-                        <span class="badge bg-{{ 'success' if payroll.status == 'Paid' else 'warning' if payroll.status == 'Approved' else 'secondary' }}">
-                            {{ payroll.status }}
-                        </span>
+                        {% if payroll.status == 'Approved' %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Approved
+                            </span>
+                        {% elif payroll.status == 'Paid' %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-money-bill-wave me-1"></i>Paid
+                            </span>
+                        {% elif payroll.status == 'Pending' %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-clock me-1"></i>Pending
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-file me-1"></i>{{ payroll.status }}
+                            </span>
+                        {% endif %}
                     </div>
                 </div>
                 
@@ -177,19 +191,33 @@
                             <td>{{ payroll.employee_cpf | currency }}</td>
                             <td class="text-success fw-bold">{{ payroll.net_pay | currency }}</td>
                             <td>
-                                <span class="badge bg-{{ 'success' if payroll.status == 'Paid' else 'warning' if payroll.status == 'Approved' else 'secondary' }}">
-                                    {{ payroll.status }}
-                                </span>
+                                {% if payroll.status == 'Approved' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Approved
+                                    </span>
+                                {% elif payroll.status == 'Paid' %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Paid
+                                    </span>
+                                {% elif payroll.status == 'Pending' %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-clock me-1"></i>Pending
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-file me-1"></i>{{ payroll.status }}
+                                    </span>
+                                {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('payroll_payslip', payroll_id=payroll.id) }}" 
-                                       class="btn btn-outline-primary">
-                                        <i class="fas fa-file-invoice"></i>
+                                       class="btn btn-outline-primary" title="View Payslip">
+                                        <i class="fas fa-file-invoice me-1"></i>Payslip
                                     </a>
                                     {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin'] and payroll.status == 'Draft' %}
-                                    <button class="btn btn-outline-success" onclick="approvePayroll({{ payroll.id }})">
-                                        <i class="fas fa-check"></i>
+                                    <button class="btn btn-outline-success" onclick="approvePayroll({{ payroll.id }})" title="Approve Payroll">
+                                        <i class="fas fa-check me-1"></i>Approve
                                     </button>
                                     {% endif %}
                                 </div>
