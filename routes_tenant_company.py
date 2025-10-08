@@ -52,13 +52,28 @@ def tenant_list():
             .subquery()
         )
         
+        # Subquery to count employees per tenant (via companies)
+        employee_count_subquery = (
+            db.session.query(
+                Company.tenant_id,
+                func.count(Employee.id).label('employee_count')
+            )
+            .join(Employee, Company.id == Employee.company_id)
+            .group_by(Company.tenant_id)
+            .subquery()
+        )
+        
         # Main query with eager loading
         query = db.session.query(
             Tenant,
-            func.coalesce(company_count_subquery.c.company_count, 0).label('company_count')
+            func.coalesce(company_count_subquery.c.company_count, 0).label('company_count'),
+            func.coalesce(employee_count_subquery.c.employee_count, 0).label('employee_count')
         ).outerjoin(
             company_count_subquery,
             Tenant.id == company_count_subquery.c.tenant_id
+        ).outerjoin(
+            employee_count_subquery,
+            Tenant.id == employee_count_subquery.c.tenant_id
         )
         
         if search:
@@ -72,8 +87,8 @@ def tenant_list():
         # Execute query and get results
         results = query.order_by(Tenant.created_at.desc()).all()
         
-        # Create list of tuples (tenant, company_count)
-        tenants_with_counts = [(tenant, count) for tenant, count in results]
+        # Create list of tuples (tenant, company_count, employee_count)
+        tenants_with_counts = [(tenant, company_count, employee_count) for tenant, company_count, employee_count in results]
         
         return render_template('masters/tenants.html', 
                              tenants_with_counts=tenants_with_counts,
@@ -82,6 +97,46 @@ def tenant_list():
         logger.error(f"Error displaying tenant list: {str(e)}")
         flash(f'Error loading tenants: {str(e)}', 'error')
         return redirect(url_for('dashboard'))
+
+
+@app.route('/tenants/<uuid:tenant_id>/view')
+@require_role(['Super Admin', 'Admin', 'Manager'])
+def tenant_view(tenant_id):
+    """Display tenant details with company list"""
+    try:
+        # Get tenant
+        tenant = Tenant.query.get_or_404(tenant_id)
+        
+        # Subquery to count employees per company
+        employee_count_subquery = (
+            db.session.query(
+                Employee.company_id,
+                func.count(Employee.id).label('employee_count')
+            )
+            .group_by(Employee.company_id)
+            .subquery()
+        )
+        
+        # Get companies for this tenant with employee counts
+        companies_query = db.session.query(
+            Company,
+            func.coalesce(employee_count_subquery.c.employee_count, 0).label('employee_count')
+        ).outerjoin(
+            employee_count_subquery,
+            Company.id == employee_count_subquery.c.company_id
+        ).filter(
+            Company.tenant_id == tenant_id
+        ).order_by(Company.created_at.desc())
+        
+        companies_with_counts = [(company, count) for company, count in companies_query.all()]
+        
+        return render_template('masters/tenant_view.html',
+                             tenant=tenant,
+                             companies_with_counts=companies_with_counts)
+    except Exception as e:
+        logger.error(f"Error displaying tenant view: {str(e)}")
+        flash(f'Error loading tenant: {str(e)}', 'error')
+        return redirect(url_for('tenant_list'))
 
 
 # =====================================================
@@ -307,6 +362,26 @@ def company_list():
         logger.error(f"Error displaying company list: {str(e)}")
         flash(f'Error loading companies: {str(e)}', 'error')
         return redirect(url_for('dashboard'))
+
+
+@app.route('/companies/<uuid:company_id>/view')
+@require_role(['Super Admin', 'Admin', 'Manager'])
+def company_view(company_id):
+    """Display company details with employee list"""
+    try:
+        # Get company with tenant relationship
+        company = Company.query.options(selectinload(Company.tenant)).get_or_404(company_id)
+        
+        # Get employees for this company
+        employees = Employee.query.filter_by(company_id=company_id).order_by(Employee.created_at.desc()).all()
+        
+        return render_template('masters/company_view.html',
+                             company=company,
+                             employees=employees)
+    except Exception as e:
+        logger.error(f"Error displaying company view: {str(e)}")
+        flash(f'Error loading company: {str(e)}', 'error')
+        return redirect(url_for('company_list'))
 
 
 # =====================================================

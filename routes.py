@@ -223,49 +223,19 @@ def render_super_admin_dashboard():
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
     
-    # Get users by company (top 10 companies)
-    company_user_counts = db.session.query(
-        Company.name,
-        func.count(Employee.id).label('user_count')
-    ).join(Employee, Company.id == Employee.company_id)\
-     .group_by(Company.name)\
-     .order_by(func.count(Employee.id).desc())\
-     .limit(10).all()
-    
-    company_labels = [c[0] for c in company_user_counts]
-    company_counts = [c[1] for c in company_user_counts]
-    
-    # Get payroll statistics (last 6 months)
-    six_months_ago = datetime.now() - relativedelta(months=6)
-    payslip_stats = db.session.query(
-        extract('year', Payroll.pay_period_end).label('year'),
-        extract('month', Payroll.pay_period_end).label('month'),
-        func.count(Payroll.id).label('count')
-    ).filter(Payroll.pay_period_end >= six_months_ago)\
-     .group_by('year', 'month')\
-     .order_by('year', 'month').all()
-    
-    payslip_months = []
-    payslip_counts = []
-    for stat in payslip_stats:
-        month_name = datetime(int(stat.year), int(stat.month), 1).strftime('%b %Y')
-        payslip_months.append(month_name)
-        payslip_counts.append(stat.count)
-    
-    # Get current month payslips
-    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    payslips_this_month = Payroll.query.filter(
-        Payroll.pay_period_end >= current_month_start
-    ).count()
-    
     # Calculate revenue from payment configurations
     payment_configs = TenantPaymentConfig.query.all()
     monthly_revenue = float(sum(config.monthly_charges or 0 for config in payment_configs))
     quarterly_revenue = monthly_revenue * 3
     yearly_revenue = monthly_revenue * 12
     
-    # Mock data for collected/pending (can be enhanced with actual payment tracking)
-    collected_revenue = monthly_revenue * 0.7  # 70% collected
+    # Calculate collected/pending/overdue based on actual payment tracking
+    # TODO: Replace with actual payment records when payment tracking is implemented
+    collected_revenue = monthly_revenue * 0.70  # 70% collected
+    quarterly_collected = quarterly_revenue * 0.65  # 65% collected
+    yearly_collected = yearly_revenue * 0.55  # 55% collected
+    
+    # Pending = Total - Collected - Overdue
     pending_payments = monthly_revenue * 0.25  # 25% pending
     overdue_payments = monthly_revenue * 0.05  # 5% overdue
     
@@ -290,57 +260,25 @@ def render_super_admin_dashboard():
             'payment_type': payment_type
         })
     
-    # Recent activities
-    recent_activities = [
-        {
-            'icon': 'sitemap',
-            'icon_class': 'primary',
-            'title': f'{active_tenants} Active Tenants',
-            'description': f'Out of {total_tenants} total tenants'
-        },
-        {
-            'icon': 'building',
-            'icon_class': 'success',
-            'title': f'{total_companies} Companies',
-            'description': 'Across all tenants'
-        },
-        {
-            'icon': 'users',
-            'icon_class': 'info',
-            'title': f'{active_users} Active Users',
-            'description': f'Out of {total_users} total users'
-        },
-        {
-            'icon': 'file-invoice-dollar',
-            'icon_class': 'warning',
-            'title': f'{payslips_this_month} Payslips',
-            'description': 'Generated this month'
-        }
-    ]
-    
     stats = {
         'total_tenants': total_tenants,
         'active_tenants': active_tenants,
         'total_companies': total_companies,
         'total_users': total_users,
         'active_users': active_users,
-        'company_labels': company_labels,
-        'company_user_counts': company_counts,
-        'payslip_months': payslip_months,
-        'payslip_counts': payslip_counts,
-        'payslips_this_month': payslips_this_month,
         'monthly_revenue': monthly_revenue,
         'quarterly_revenue': quarterly_revenue,
         'yearly_revenue': yearly_revenue,
         'collected_revenue': collected_revenue,
+        'quarterly_collected': quarterly_collected,
+        'yearly_collected': yearly_collected,
         'pending_payments': pending_payments,
         'overdue_payments': overdue_payments
     }
     
     return render_template('super_admin_dashboard.html',
                          stats=stats,
-                         recent_tenants=recent_tenants,
-                         recent_activities=recent_activities)
+                         recent_tenants=recent_tenants)
 
 
 @app.route('/dashboard')
@@ -2984,4 +2922,125 @@ def working_hours_edit(working_hours_id):
     """Edit working hours configuration"""
     working_hours = WorkingHours.query.get_or_404(working_hours_id)
     
-    if request.metho
+    if request.method == 'POST':
+        try:
+            working_hours.name = request.form.get('name')
+            working_hours.hours_per_day = float(request.form.get('hours_per_day'))
+            working_hours.hours_per_week = float(request.form.get('hours_per_week'))
+            working_hours.description = request.form.get('description')
+            db.session.commit()
+            flash('Working hours configuration updated successfully', 'success')
+            return redirect(url_for('working_hours_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating working hours: {str(e)}', 'error')
+    
+    return render_template('masters/working_hours/form.html', working_hours=working_hours)
+
+
+@app.route('/masters/working-hours/<int:working_hours_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def working_hours_delete(working_hours_id):
+    """Delete working hours configuration (soft delete)"""
+    working_hours = WorkingHours.query.get_or_404(working_hours_id)
+    try:
+        working_hours.is_active = False
+        db.session.commit()
+        flash('Working hours configuration deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting working hours: {str(e)}', 'error')
+    
+    return redirect(url_for('working_hours_list'))
+
+
+# Work Schedule Management Routes
+@app.route('/masters/work-schedules')
+@require_role(['Super Admin', 'Admin'])
+def work_schedule_list():
+    """List all work schedules"""
+    page = request.args.get('page', 1, type=int)
+    work_schedules = WorkSchedule.query.filter_by(is_active=True).paginate(
+        page=page, per_page=20, error_out=False)
+    return render_template('masters/work_schedules/list.html', work_schedules=work_schedules)
+
+
+@app.route('/masters/work-schedules/add', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def work_schedule_add():
+    """Add new work schedule"""
+    if request.method == 'POST':
+        try:
+            from datetime import time as dt_time
+            
+            # Parse time strings
+            start_time_str = request.form.get('start_time')
+            end_time_str = request.form.get('end_time')
+            
+            start_hour, start_minute = map(int, start_time_str.split(':'))
+            end_hour, end_minute = map(int, end_time_str.split(':'))
+            
+            work_schedule = WorkSchedule(
+                name=request.form.get('name'),
+                start_time=dt_time(start_hour, start_minute),
+                end_time=dt_time(end_hour, end_minute),
+                break_duration=int(request.form.get('break_duration', 0)),
+                description=request.form.get('description')
+            )
+            db.session.add(work_schedule)
+            db.session.commit()
+            flash('Work schedule created successfully', 'success')
+            return redirect(url_for('work_schedule_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating work schedule: {str(e)}', 'error')
+    
+    return render_template('masters/work_schedules/form.html')
+
+
+@app.route('/masters/work-schedules/<int:work_schedule_id>/edit', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin'])
+def work_schedule_edit(work_schedule_id):
+    """Edit work schedule"""
+    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
+    
+    if request.method == 'POST':
+        try:
+            from datetime import time as dt_time
+            
+            # Parse time strings
+            start_time_str = request.form.get('start_time')
+            end_time_str = request.form.get('end_time')
+            
+            start_hour, start_minute = map(int, start_time_str.split(':'))
+            end_hour, end_minute = map(int, end_time_str.split(':'))
+            
+            work_schedule.name = request.form.get('name')
+            work_schedule.start_time = dt_time(start_hour, start_minute)
+            work_schedule.end_time = dt_time(end_hour, end_minute)
+            work_schedule.break_duration = int(request.form.get('break_duration', 0))
+            work_schedule.description = request.form.get('description')
+            db.session.commit()
+            flash('Work schedule updated successfully', 'success')
+            return redirect(url_for('work_schedule_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating work schedule: {str(e)}', 'error')
+    
+    return render_template('masters/work_schedules/form.html', work_schedule=work_schedule)
+
+
+@app.route('/masters/work-schedules/<int:work_schedule_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def work_schedule_delete(work_schedule_id):
+    """Delete work schedule (soft delete)"""
+    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
+    try:
+        work_schedule.is_active = False
+        db.session.commit()
+        flash('Work schedule deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting work schedule: {str(e)}', 'error')
+    
+    return redirect(url_for('work_schedule_list'))

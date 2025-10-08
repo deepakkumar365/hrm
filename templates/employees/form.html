@@ -193,6 +193,18 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
+                                <label for="manager_id" class="form-label">Reporting Manager</label>
+                                <select class="form-select" id="manager_id" name="manager_id">
+                                    <option value="">Select Reporting Manager</option>
+                                    {% for manager in managers %}
+                                    <option value="{{ manager.id }}" {% if (form_data and form_data.get('manager_id') == manager.id|string) or (employee and employee.manager_id and employee.manager_id|string == manager.id|string and not form_data) %}selected{% endif %}>
+                                        {{ manager.first_name }} {{ manager.last_name }} - {{ manager.position }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Select the direct supervisor/manager for this employee.</small>
+                            </div>
+                            <div class="col-md-6">
                                 <label for="hire_date" class="form-label">Hire Date *</label>
                                 <input type="date" class="form-control" id="hire_date" name="hire_date" 
                                        value="{{ form_data.get('hire_date') if form_data else (employee.hire_date.strftime('%Y-%m-%d') if employee and employee.hire_date else '') }}" 

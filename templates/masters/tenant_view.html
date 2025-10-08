@@ -1,40 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}Company Management - Noltrion{% endblock %}
+{% block title %}Tenant Details - {{ tenant.name }} - Noltrion{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h3><i class="fas fa-building me-2"></i>Company Management</h3>
-                    <p class="text-muted mb-0">Manage companies under tenants</p>
+            <!-- Back Button -->
+            <div class="mb-3">
+                <a href="{{ url_for('tenant_list') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Tenants
+                </a>
+            </div>
+
+            <!-- Tenant Information Header -->
+            <div class="card mb-4">
+                <div class="card-header card-header-green">
+                    <h4 class="mb-0"><i class="fas fa-building me-2"></i>Tenant Information</h4>
                 </div>
-                <div>
-                    <a href="{{ url_for('tenant_list') }}" class="btn btn-secondary me-2">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Tenants
-                    </a>
-                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
-                        <i class="fas fa-plus me-1"></i>Add Company
-                    </button>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th style="width: 180px;">Tenant Name:</th>
+                                    <td><strong>{{ tenant.name }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Tenant Code:</th>
+                                    <td><span class="badge bg-primary">{{ tenant.code }}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Description:</th>
+                                    <td>{{ tenant.description or '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        {% if tenant.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th style="width: 180px;">Country:</th>
+                                    <td>{{ tenant.country_code or '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Currency:</th>
+                                    <td>{{ tenant.currency_code or '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Created Date:</th>
+                                    <td>{{ tenant.created_at.strftime('%Y-%m-%d %H:%M') if tenant.created_at else '-' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Created By:</th>
+                                    <td>{{ tenant.created_by or '-' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Companies Table -->
+            <!-- Companies List -->
             <div class="card">
-                <div class="card-header card-header-green">
-                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>All Companies</h5>
+                <div class="card-header card-header-green d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-building me-2"></i>Companies under {{ tenant.name }}</h5>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
+                        <i class="fas fa-plus me-1"></i>Add Company
+                    </button>
                 </div>
                 <div class="card-body">
+                    {% if companies_with_counts %}
                     <div class="table-responsive">
-                        <table class="table table-hover" id="companiesTable">
+                        <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>Code</th>
                                     <th>Name</th>
-                                    <th>Tenant</th>
                                     <th>UEN</th>
                                     <th>Location</th>
                                     <th>Status</th>
@@ -47,7 +98,6 @@
                                 <tr>
                                     <td><strong>{{ company.code }}</strong></td>
                                     <td>{{ company.name }}</td>
-                                    <td>{{ company.tenant.name if company.tenant else '-' }}</td>
                                     <td>{{ company.uen or '-' }}</td>
                                     <td>{{ company.address[:50] + '...' if company.address and company.address|length > 50 else (company.address or '-') }}</td>
                                     <td>
@@ -57,7 +107,7 @@
                                         <span class="badge bg-secondary">Inactive</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ employee_count }}</td>
+                                    <td><strong>{{ employee_count }}</strong></td>
                                     <td>
                                         <button class="btn btn-sm btn-info" onclick="viewCompany('{{ company.id }}')">
                                             <i class="fas fa-eye"></i>
@@ -74,6 +124,11 @@
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No companies found for this tenant. Click "Add Company" to create one.
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -85,30 +140,22 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add New Company</h5>
+                <h5 class="modal-title">Add New Company to {{ tenant.name }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="addCompanyForm">
+                    <input type="hidden" id="companyTenant" value="{{ tenant.id }}">
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="companyTenant" class="form-label">Tenant *</label>
-                            <select class="form-select" id="companyTenant" required>
-                                <option value="">Select Tenant</option>
-                                {% for tenant in tenants %}
-                                <option value="{{ tenant.id }}">{{ tenant.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
                         <div class="col-md-6 mb-3">
                             <label for="companyCode" class="form-label">Company Code *</label>
                             <input type="text" class="form-control" id="companyCode" required>
-                            <small class="text-muted">e.g., NOLTRION-SG</small>
+                            <small class="text-muted">e.g., {{ tenant.code }}-SG</small>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="companyName" class="form-label">Company Name *</label>
-                        <input type="text" class="form-control" id="companyName" required>
+                        <div class="col-md-6 mb-3">
+                            <label for="companyName" class="form-label">Company Name *</label>
+                            <input type="text" class="form-control" id="companyName" required>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="companyDescription" class="form-label">Description</label>
@@ -165,22 +212,13 @@
                     <input type="hidden" id="editCompanyId">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="editCompanyTenant" class="form-label">Tenant *</label>
-                            <select class="form-select" id="editCompanyTenant" required>
-                                <option value="">Select Tenant</option>
-                                {% for tenant in tenants %}
-                                <option value="{{ tenant.id }}">{{ tenant.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
                             <label for="editCompanyCode" class="form-label">Company Code *</label>
                             <input type="text" class="form-control" id="editCompanyCode" required>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editCompanyName" class="form-label">Company Name *</label>
-                        <input type="text" class="form-control" id="editCompanyName" required>
+                        <div class="col-md-6 mb-3">
+                            <label for="editCompanyName" class="form-label">Company Name *</label>
+                            <input type="text" class="form-control" id="editCompanyName" required>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="editCompanyDescription" class="form-label">Description</label>
@@ -274,7 +312,6 @@ function editCompany(companyId) {
                 
                 // Populate edit modal
                 document.getElementById('editCompanyId').value = company.id;
-                document.getElementById('editCompanyTenant').value = company.tenant_id;
                 document.getElementById('editCompanyName').value = company.name;
                 document.getElementById('editCompanyCode').value = company.code;
                 document.getElementById('editCompanyDescription').value = company.description || '';
@@ -301,7 +338,6 @@ function updateCompany() {
     const companyId = document.getElementById('editCompanyId').value;
     
     const data = {
-        tenant_id: document.getElementById('editCompanyTenant').value,
         name: document.getElementById('editCompanyName').value,
         code: document.getElementById('editCompanyCode').value,
         description: document.getElementById('editCompanyDescription').value,
