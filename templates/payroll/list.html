@@ -124,15 +124,19 @@
                 </div>
                 
                 <div class="row text-center border-top pt-2">
-                    <div class="col-4">
+                    <div class="col-3">
                         <small class="text-muted d-block">Gross Pay</small>
                         <strong>{{ payroll.gross_pay | currency }}</strong>
                     </div>
-                    <div class="col-4">
-                        <small class="text-muted d-block">CPF</small>
+                    <div class="col-3">
+                        <small class="text-muted d-block">CPF (Emp)</small>
                         <strong>{{ payroll.employee_cpf | currency }}</strong>
                     </div>
-                    <div class="col-4">
+                    <div class="col-3">
+                        <small class="text-muted d-block">CPF (Empr)</small>
+                        <strong>{{ payroll.employer_cpf | currency }}</strong>
+                    </div>
+                    <div class="col-3">
                         <small class="text-muted d-block">Period</small>
                         <strong>{{ payroll.pay_period_end.strftime('%m/%Y') }}</strong>
                     </div>
@@ -167,6 +171,7 @@
                             <th>Pay Period</th>
                             <th>Gross Pay</th>
                             <th>CPF (Employee)</th>
+                            <th>CPF (Employer)</th>
                             <th>Net Pay</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -189,6 +194,7 @@
                             </td>
                             <td class="text-success fw-semibold">{{ payroll.gross_pay | currency }}</td>
                             <td>{{ payroll.employee_cpf | currency }}</td>
+                            <td class="text-warning fw-semibold">{{ payroll.employer_cpf | currency }}</td>
                             <td class="text-success fw-bold">{{ payroll.net_pay | currency }}</td>
                             <td>
                                 {% if payroll.status == 'Approved' %}

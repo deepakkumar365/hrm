@@ -194,6 +194,58 @@
     </div>
     {% endif %}
 
+    <!-- Attendance Summary Section -->
+    {% if attendance_records.items and summary %}
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-chart-bar me-2"></i>
+                Attendance Summary
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="text-muted small mb-1">Total Records</div>
+                        <div class="fw-bold fs-4">{{ summary.total_records }}</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Present Days</div>
+                        <div class="fw-bold fs-4 text-success">{{ summary.present_days }}</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3 bg-danger bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Absent Days</div>
+                        <div class="fw-bold fs-4 text-danger">{{ summary.absent_days }}</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Late Days</div>
+                        <div class="fw-bold fs-4 text-warning">{{ summary.late_days }}</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3 bg-info bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Total Hours</div>
+                        <div class="fw-bold fs-4 text-info">{{ "%.1f"|format(summary.total_hours) }}h</div>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Overtime Hours</div>
+                        <div class="fw-bold fs-4 text-primary">{{ "%.1f"|format(summary.total_overtime) }}h</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Pagination -->
     {% if attendance_records.pages > 1 %}
     <nav aria-label="Attendance pagination" class="mt-4">

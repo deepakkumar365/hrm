@@ -206,6 +206,102 @@ def logout():
     return redirect(url_for('login'))
 
 
+def render_tenant_admin_dashboard():
+    """Render Tenant Admin specific dashboard with tenant-specific metrics"""
+    from sqlalchemy import func, extract
+    from datetime import datetime, timedelta
+    
+    # Get current user's organization and related company
+    user_org = current_user.organization
+    if not user_org:
+        # Fallback to regular dashboard if no organization
+        return render_template('dashboard.html', stats={}, recent_activities=[])
+    
+    # Get company associated with this organization
+    company = Company.query.filter_by(organization_id=user_org.id).first()
+    
+    # Get current month dates
+    start_date, end_date = get_current_month_dates()
+    
+    # Total Employees in Tenant (company)
+    if company:
+        total_employees = Employee.query.filter_by(
+            company_id=company.id,
+            is_active=True
+        ).count()
+        
+        # Active Payrolls this Month
+        active_payrolls = Payroll.query.join(Employee).filter(
+            Employee.company_id == company.id,
+            extract('month', Payroll.pay_period_start) == start_date.month,
+            extract('year', Payroll.pay_period_start) == start_date.year
+        ).count()
+        
+        # Attendance Summary (Monthly)
+        total_attendance = Attendance.query.join(Employee).filter(
+            Employee.company_id == company.id,
+            Attendance.date.between(start_date, end_date)
+        ).count()
+        
+        # Calculate attendance rate
+        working_days = sum(1 for d in range((end_date - start_date).days + 1)
+                          if (start_date + timedelta(d)).weekday() < 5)
+        expected_records = total_employees * working_days if working_days > 0 else 0
+        attendance_rate = round((total_attendance / expected_records) * 100) if expected_records > 0 else 0
+        
+        # Leave Requests Overview
+        pending_leaves = Leave.query.join(Employee).filter(
+            Employee.company_id == company.id,
+            Leave.status == 'Pending'
+        ).count()
+        
+        approved_leaves_month = Leave.query.join(Employee).filter(
+            Employee.company_id == company.id,
+            Leave.status == 'Approved',
+            Leave.start_date.between(start_date, end_date)
+        ).count()
+        
+        # Financial Summary (Tenant specific)
+        total_payroll_month = db.session.query(func.sum(Payroll.net_pay)).join(Employee).filter(
+            Employee.company_id == company.id,
+            extract('month', Payroll.pay_period_start) == start_date.month,
+            extract('year', Payroll.pay_period_start) == start_date.year
+        ).scalar() or 0
+        
+    else:
+        # No company found, use default values
+        total_employees = 0
+        active_payrolls = 0
+        total_attendance = 0
+        attendance_rate = 0
+        pending_leaves = 0
+        approved_leaves_month = 0
+        total_payroll_month = 0
+    
+    stats = {
+        'total_employees': total_employees,
+        'active_payrolls': active_payrolls,
+        'attendance_rate': attendance_rate,
+        'total_attendance': total_attendance,
+        'pending_leaves': pending_leaves,
+        'approved_leaves_month': approved_leaves_month,
+        'total_payroll_month': float(total_payroll_month),
+        'company_name': company.name if company else 'No Company'
+    }
+    
+    # Get recent activities
+    recent_leaves = []
+    if company:
+        recent_leaves = Leave.query.join(Employee).filter(
+            Employee.company_id == company.id,
+            Leave.status == 'Pending'
+        ).order_by(Leave.created_at.desc()).limit(5).all()
+    
+    return render_template('tenant_admin_dashboard.html',
+                         stats=stats,
+                         recent_leaves=recent_leaves)
+
+
 def render_super_admin_dashboard():
     """Render Super Admin specific dashboard with tenant metrics"""
     from sqlalchemy import func, extract
@@ -286,14 +382,18 @@ def render_super_admin_dashboard():
 def dashboard():
     """Main dashboard with HR metrics"""
     
-    # Check if user is Super Admin
+    # Check user role and render appropriate dashboard
     user_role_name = current_user.role.name if current_user.role else None
     
     if user_role_name == 'Super Admin':
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
+    
+    if user_role_name == 'Admin':
+        # Render Tenant Admin Dashboard
+        return render_tenant_admin_dashboard()
 
-    # Get basic statistics
+    # Get basic statistics for Manager/User dashboard
     stats = {
         'total_employees': Employee.query.filter_by(is_active=True).count(),
         'pending_leaves': Leave.query.filter_by(status='Pending').count(),
@@ -1580,6 +1680,17 @@ def attendance_list():
     attendance_records = query.order_by(Attendance.date.desc()).paginate(
         page=page, per_page=20, error_out=False)
 
+    # Calculate summary statistics for all records matching the filter (not just current page)
+    all_records = query.all()
+    summary = {
+        'total_records': len(all_records),
+        'present_days': sum(1 for r in all_records if r.status == 'Present'),
+        'absent_days': sum(1 for r in all_records if r.status == 'Absent'),
+        'late_days': sum(1 for r in all_records if r.status == 'Late'),
+        'total_hours': sum(float(r.total_hours or 0) for r in all_records),
+        'total_overtime': sum(float(r.overtime_hours or 0) for r in all_records)
+    }
+
     # Get employees for filter dropdown based on role
     employees = []
     if (current_user.role.name if current_user.role else None) == 'Super Admin':
@@ -1600,7 +1711,8 @@ def attendance_list():
                            attendance_records=attendance_records,
                            employees=employees,
                            date_filter=date_filter,
-                           employee_filter=employee_filter)
+                           employee_filter=employee_filter,
+                           summary=summary)
 
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])
@@ -2878,169 +2990,4 @@ def department_delete(department_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Error deleting department: {str(e)}', 'error')
-    
     return redirect(url_for('department_list'))
-
-
-# Working Hours Management Routes
-@app.route('/masters/working-hours')
-@require_role(['Super Admin', 'Admin'])
-def working_hours_list():
-    """List all working hours configurations"""
-    page = request.args.get('page', 1, type=int)
-    working_hours = WorkingHours.query.filter_by(is_active=True).paginate(
-        page=page, per_page=20, error_out=False)
-    return render_template('masters/working_hours/list.html', working_hours=working_hours)
-
-
-@app.route('/masters/working-hours/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def working_hours_add():
-    """Add new working hours configuration"""
-    if request.method == 'POST':
-        try:
-            working_hours = WorkingHours(
-                name=request.form.get('name'),
-                hours_per_day=float(request.form.get('hours_per_day')),
-                hours_per_week=float(request.form.get('hours_per_week')),
-                description=request.form.get('description')
-            )
-            db.session.add(working_hours)
-            db.session.commit()
-            flash('Working hours configuration created successfully', 'success')
-            return redirect(url_for('working_hours_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating working hours: {str(e)}', 'error')
-    
-    return render_template('masters/working_hours/form.html')
-
-
-@app.route('/masters/working-hours/<int:working_hours_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def working_hours_edit(working_hours_id):
-    """Edit working hours configuration"""
-    working_hours = WorkingHours.query.get_or_404(working_hours_id)
-    
-    if request.method == 'POST':
-        try:
-            working_hours.name = request.form.get('name')
-            working_hours.hours_per_day = float(request.form.get('hours_per_day'))
-            working_hours.hours_per_week = float(request.form.get('hours_per_week'))
-            working_hours.description = request.form.get('description')
-            db.session.commit()
-            flash('Working hours configuration updated successfully', 'success')
-            return redirect(url_for('working_hours_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating working hours: {str(e)}', 'error')
-    
-    return render_template('masters/working_hours/form.html', working_hours=working_hours)
-
-
-@app.route('/masters/working-hours/<int:working_hours_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def working_hours_delete(working_hours_id):
-    """Delete working hours configuration (soft delete)"""
-    working_hours = WorkingHours.query.get_or_404(working_hours_id)
-    try:
-        working_hours.is_active = False
-        db.session.commit()
-        flash('Working hours configuration deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting working hours: {str(e)}', 'error')
-    
-    return redirect(url_for('working_hours_list'))
-
-
-# Work Schedule Management Routes
-@app.route('/masters/work-schedules')
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_list():
-    """List all work schedules"""
-    page = request.args.get('page', 1, type=int)
-    work_schedules = WorkSchedule.query.filter_by(is_active=True).paginate(
-        page=page, per_page=20, error_out=False)
-    return render_template('masters/work_schedules/list.html', work_schedules=work_schedules)
-
-
-@app.route('/masters/work-schedules/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_add():
-    """Add new work schedule"""
-    if request.method == 'POST':
-        try:
-            from datetime import time as dt_time
-            
-            # Parse time strings
-            start_time_str = request.form.get('start_time')
-            end_time_str = request.form.get('end_time')
-            
-            start_hour, start_minute = map(int, start_time_str.split(':'))
-            end_hour, end_minute = map(int, end_time_str.split(':'))
-            
-            work_schedule = WorkSchedule(
-                name=request.form.get('name'),
-                start_time=dt_time(start_hour, start_minute),
-                end_time=dt_time(end_hour, end_minute),
-                break_duration=int(request.form.get('break_duration', 0)),
-                description=request.form.get('description')
-            )
-            db.session.add(work_schedule)
-            db.session.commit()
-            flash('Work schedule created successfully', 'success')
-            return redirect(url_for('work_schedule_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating work schedule: {str(e)}', 'error')
-    
-    return render_template('masters/work_schedules/form.html')
-
-
-@app.route('/masters/work-schedules/<int:work_schedule_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_edit(work_schedule_id):
-    """Edit work schedule"""
-    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
-    
-    if request.method == 'POST':
-        try:
-            from datetime import time as dt_time
-            
-            # Parse time strings
-            start_time_str = request.form.get('start_time')
-            end_time_str = request.form.get('end_time')
-            
-            start_hour, start_minute = map(int, start_time_str.split(':'))
-            end_hour, end_minute = map(int, end_time_str.split(':'))
-            
-            work_schedule.name = request.form.get('name')
-            work_schedule.start_time = dt_time(start_hour, start_minute)
-            work_schedule.end_time = dt_time(end_hour, end_minute)
-            work_schedule.break_duration = int(request.form.get('break_duration', 0))
-            work_schedule.description = request.form.get('description')
-            db.session.commit()
-            flash('Work schedule updated successfully', 'success')
-            return redirect(url_for('work_schedule_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating work schedule: {str(e)}', 'error')
-    
-    return render_template('masters/work_schedules/form.html', work_schedule=work_schedule)
-
-
-@app.route('/masters/work-schedules/<int:work_schedule_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_delete(work_schedule_id):
-    """Delete work schedule (soft delete)"""
-    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
-    try:
-        work_schedule.is_active = False
-        db.session.commit()
-        flash('Work schedule deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting work schedule: {str(e)}', 'error')
-    
-    return redirect(url_for('work_schedule_list'))

@@ -174,7 +174,7 @@ a:hover {
 
 .navbar-brand {
     font-family: var(--font-family);
-    font-size: var(--font-size-xl);
+    font-size: 1.1rem; /* Increased by 10% from 1rem */
     font-weight: var(--font-weight-bold);
     color: var(--white) !important;
     text-decoration: none;
@@ -190,7 +190,7 @@ a:hover {
 }
 
 .navbar-brand i {
-    font-size: var(--font-size-lg);
+    font-size: 1rem; /* Increased by 10% */
     color: var(--white);
 }
 
@@ -210,7 +210,7 @@ a:hover {
 
 .navbar-nav .nav-link {
     font-family: var(--font-family);
-    font-size: var(--font-size-sm);
+    font-size: 0.77rem; /* Increased by 10% from 0.7rem */
     font-weight: var(--font-weight-medium);
     color: var(--white) !important;
     padding: var(--spacing-2) var(--spacing-4);
@@ -295,6 +295,11 @@ a:hover {
     height: 100%;
     object-fit: cover;
     border-radius: var(--radius-full);
+}
+
+/* Profile name display - increased font size */
+.navbar-nav .nav-link.dropdown-toggle {
+    font-size: 0.88rem; /* Increased from 0.77rem for better visibility */
 }
 
 /* Mobile Navigation Toggle */
@@ -434,7 +439,9 @@ a:hover {
 .dashboard-grid .col-span-2 { grid-column: span 2; }
 .dashboard-grid .col-span-3 { grid-column: span 3; }
 .dashboard-grid .col-span-4 { grid-column: span 4; }
+.dashboard-grid .col-span-5 { grid-column: span 5; }
 .dashboard-grid .col-span-6 { grid-column: span 6; }
+.dashboard-grid .col-span-7 { grid-column: span 7; }
 .dashboard-grid .col-span-8 { grid-column: span 8; }
 .dashboard-grid .col-span-12 { grid-column: span 12; }
 
@@ -589,6 +596,11 @@ a:hover {
     justify-content: center;
     gap: var(--spacing-2);
     white-space: nowrap;
+}
+
+/* Dashboard action buttons - increased by 15% */
+.dashboard-header .btn {
+    font-size: 0.92rem; /* 15% increase from 0.8rem (var(--font-size-sm)) */
 }
 
 .btn:focus {

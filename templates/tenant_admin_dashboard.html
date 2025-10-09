@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Admin Dashboard - Noltrion{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
+            <div>
+                <h1 class="dashboard-title">Welcome, {{ current_user.first_name or 'Tenant Admin' }}!</h1>
+                <p class="text-muted">{{ stats.company_name }} - HR Management Overview</p>
+            </div>
+            <div class="d-flex gap-3">
+                <a href="{{ url_for('employee_list') }}" class="btn btn-primary">
+                    <i class="fas fa-users"></i>
+                    Manage Employees
+                </a>
+                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Payroll
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics Grid -->
+    <div class="dashboard-grid mb-4">
+        <!-- Total Employees -->
+        <div class="col-span-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon primary">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="stat-card-value">{{ stats.total_employees }}</div>
+                        <div class="stat-card-label">Total Employees</div>
+                        <div class="stat-card-change">
+                            Active in {{ stats.company_name }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Payrolls -->
+        <div class="col-span-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon success">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div>
+                        <div class="stat-card-value">{{ stats.active_payrolls }}</div>
+                        <div class="stat-card-label">Active Payrolls</div>
+                        <div class="stat-card-change">
+                            This Month
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Rate -->
+        <div class="col-span-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon warning">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div>
+                        <div class="stat-card-value">{{ stats.attendance_rate }}%</div>
+                        <div class="stat-card-label">Attendance Rate</div>
+                        <div class="stat-card-change">
+                            {{ stats.total_attendance }} records this month
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Leave Requests -->
+        <div class="col-span-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon danger">
+                        <i class="fas fa-calendar-times"></i>
+                    </div>
+                    <div>
+                        <div class="stat-card-value">{{ stats.pending_leaves }}</div>
+                        <div class="stat-card-label">Pending Leaves</div>
+                        <div class="stat-card-change">
+                            {{ stats.approved_leaves_month }} approved this month
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary and Leave Requests -->
+    <div class="dashboard-grid">
+        <!-- Financial Summary -->
+        <div class="col-span-6">
+            <div class="card" style="height: 100%;">
+                <div class="card-header">
+                    <h3 class="card-title">💰 Financial Summary</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Monthly Payroll -->
+                    <div class="mb-4 p-4 bg-light rounded">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted" style="font-size: 1.1rem;">
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                                Total Payroll (This Month)
+                            </span>
+                            <span class="fw-bold text-success" style="font-size: 1.8rem;">
+                                ${{ "{:,.2f}".format(stats.total_payroll_month) }}
+                            </span>
+                        </div>
+                        <div class="text-muted small">
+                            Based on {{ stats.active_payrolls }} payroll records
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-primary bg-opacity-10 rounded text-center">
+                                <div class="text-muted small mb-1">Average per Employee</div>
+                                <div class="fw-bold text-primary" style="font-size: 1.2rem;">
+                                    {% if stats.active_payrolls > 0 %}
+                                    ${{ "{:,.2f}".format(stats.total_payroll_month / stats.active_payrolls) }}
+                                    {% else %}
+                                    $0.00
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-info bg-opacity-10 rounded text-center">
+                                <div class="text-muted small mb-1">Payroll Coverage</div>
+                                <div class="fw-bold text-info" style="font-size: 1.2rem;">
+                                    {% if stats.total_employees > 0 %}
+                                    {{ "%.0f"|format((stats.active_payrolls / stats.total_employees * 100)) }}%
+                                    {% else %}
+                                    0%
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Quick Actions -->
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="{{ url_for('payroll_list') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-list me-1"></i> View All Payrolls
+                        </a>
+                        <a href="{{ url_for('payroll_config_list') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-cog me-1"></i> Payroll Config
+                        </a>
+                        <a href="{{ url_for('reports') }}" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-chart-bar me-1"></i> Financial Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Leave Requests -->
+        <div class="col-span-6">
+            <div class="card" style="height: 100%;">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title">📋 Pending Leave Requests</h3>
+                        <a href="{{ url_for('leave_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if recent_leaves %}
+                    <div class="list-group list-group-flush">
+                        {% for leave in recent_leaves %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">
+                                        {{ leave.employee.first_name }} {{ leave.employee.last_name }}
+                                    </div>
+                                    <div class="text-muted small">
+                                        {{ leave.employee.department.name if leave.employee.department else 'No Department' }}
+                                    </div>
+                                    <div class="mt-2">
+                                        <span class="badge bg-info">{{ leave.leave_type }}</span>
+                                        <span class="text-muted small ms-2">
+                                            {{ leave.start_date.strftime('%d %b') }} - {{ leave.end_date.strftime('%d %b %Y') }}
+                                        </span>
+                                    </div>
+                                    {% if leave.reason %}
+                                    <div class="text-muted small mt-1">
+                                        {{ leave.reason[:80] }}{% if leave.reason|length > 80 %}...{% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-end ms-3">
+                                    <div class="fw-bold text-primary">{{ leave.total_days }} days</div>
+                                    <a href="{{ url_for('leave_list') }}" class="btn btn-sm btn-outline-primary mt-2">
+                                        Review
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-3">No pending leave requests</p>
+                        <p class="text-muted small">All leave requests have been processed</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Summary -->
+    <div class="dashboard-grid mt-4">
+        <div class="col-span-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title">📊 Attendance Summary (This Month)</h3>
+                        <a href="{{ url_for('attendance_list') }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                                <div class="text-muted small mb-2">Total Attendance Records</div>
+                                <div class="fw-bold text-success" style="font-size: 2rem;">{{ stats.total_attendance }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                                <div class="text-muted small mb-2">Attendance Rate</div>
+                                <div class="fw-bold text-primary" style="font-size: 2rem;">{{ stats.attendance_rate }}%</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
+                                <div class="text-muted small mb-2">Approved Leaves</div>
+                                <div class="fw-bold text-warning" style="font-size: 2rem;">{{ stats.approved_leaves_month }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-info bg-opacity-10 rounded">
+                                <div class="text-muted small mb-2">Active Employees</div>
+                                <div class="fw-bold text-info" style="font-size: 2rem;">{{ stats.total_employees }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- No additional scripts needed -->
+{% endblock %}

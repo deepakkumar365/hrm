@@ -130,17 +130,20 @@
                     </li>
                     {% endif %}
                     
-                    <!-- Attendance - Visible to all except Super Admin -->
+                    <!-- Attendance - Visible to all except Super Admin and Tenant Admin -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-calendar-check"></i>
                             Attendance
                         </a>
                         <ul class="dropdown-menu">
+                            <!-- Mark Attendance - Hidden from Tenant Admin -->
+                            {% if not is_admin %}
                             <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
                                 <i class="fas fa-clock"></i>
                                 Mark Attendance
                             </a></li>
+                            {% endif %}
                             <li><a class="dropdown-item" href="{{ url_for('attendance_list') }}">
                                 <i class="fas fa-list"></i>
                                 View Records
@@ -155,7 +158,8 @@
                         </ul>
                     </li>
                     
-                    <!-- Leave - Visible to all except Super Admin -->
+                    <!-- Leave - Hidden from Tenant Admin, Visible to Manager and User -->
+                    {% if not is_admin %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-plane-departure"></i>
@@ -172,6 +176,7 @@
                             </a></li>
                         </ul>
                     </li>
+                    {% endif %}
                     
                     <!-- Payroll - Hidden from User role -->
                     {% if not is_user %}

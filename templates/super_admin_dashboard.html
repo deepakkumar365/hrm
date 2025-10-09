@@ -101,8 +101,8 @@
 
     <!-- Financial Summary and Tenant Overview -->
     <div class="dashboard-grid">
-        <!-- Financial Summary - Now Larger and Central -->
-        <div class="col-span-5">
+        <!-- Financial Summary - Equal Width with Recent Tenants -->
+        <div class="col-span-6">
             <div class="card" style="height: 100%;">
                 <div class="card-header">
                     <h3 class="card-title" style="font-size: 1.4rem;">💰 Financial Summary</h3>
@@ -173,12 +173,12 @@
             </div>
         </div>
 
-        <!-- Tenant Overview -->
-        <div class="col-span-7">
+        <!-- Tenant Overview - Equal Width with Financial Summary -->
+        <div class="col-span-6">
             <div class="card" style="height: 100%;">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="card-title">Recent Tenants</h3>
+                        <h3 class="card-title" style="font-size: 1.4rem;">Recent Tenants</h3>
                         <a href="{{ url_for('tenant_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
                     </div>
                 </div>
