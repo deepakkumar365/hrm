@@ -28,16 +28,16 @@
     --warning: #F59E0B;
     --info: #3B82F6;
     
-    /* Typography - Reduced by 20% for better data visibility */
+    /* Typography - Industry standard sizes (Workday, BambooHR, SAP SuccessFactors) */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-    --font-size-xs: 0.6rem;     /* 9.6px - was 12px */
-    --font-size-sm: 0.7rem;     /* 11.2px - was 14px */
-    --font-size-base: 0.8rem;   /* 12.8px - was 16px */
-    --font-size-lg: 0.9rem;     /* 14.4px - was 18px */
-    --font-size-xl: 1rem;       /* 16px - was 20px */
-    --font-size-2xl: 1.2rem;    /* 19.2px - was 24px */
-    --font-size-3xl: 1.5rem;    /* 24px - was 30px */
-    --font-size-4xl: 1.8rem;    /* 28.8px - was 36px */
+    --font-size-xs: 0.75rem;    /* 12px - Small labels, captions */
+    --font-size-sm: 0.875rem;   /* 14px - Secondary text, table data */
+    --font-size-base: 1rem;     /* 16px - Body text (industry standard) */
+    --font-size-lg: 1.125rem;   /* 18px - Emphasized text */
+    --font-size-xl: 1.25rem;    /* 20px - Small headings */
+    --font-size-2xl: 1.5rem;    /* 24px - Section headings */
+    --font-size-3xl: 1.875rem;  /* 30px - Page headings */
+    --font-size-4xl: 2.25rem;   /* 36px - Main titles */
     
     --font-weight-normal: 400;
     --font-weight-medium: 500;
@@ -88,7 +88,7 @@
 }
 
 html {
-    font-size: 12.8px; /* Reduced by 20% from 16px for compact layout */
+    font-size: 16px; /* Industry standard base size (Workday, BambooHR, SAP) */
     line-height: 1.5;
     -webkit-text-size-adjust: 100%;
     -moz-tab-size: 4;
@@ -174,7 +174,7 @@ a:hover {
 
 .navbar-brand {
     font-family: var(--font-family);
-    font-size: 1.1rem; /* Increased by 10% from 1rem */
+    font-size: 1.25rem; /* 20px - Standard brand size */
     font-weight: var(--font-weight-bold);
     color: var(--white) !important;
     text-decoration: none;
@@ -190,7 +190,7 @@ a:hover {
 }
 
 .navbar-brand i {
-    font-size: 1rem; /* Increased by 10% */
+    font-size: 1.25rem; /* 20px - Match brand text */
     color: var(--white);
 }
 
@@ -210,7 +210,7 @@ a:hover {
 
 .navbar-nav .nav-link {
     font-family: var(--font-family);
-    font-size: 0.77rem; /* Increased by 10% from 0.7rem */
+    font-size: 0.875rem; /* 14px - Standard navigation size */
     font-weight: var(--font-weight-medium);
     color: var(--white) !important;
     padding: var(--spacing-2) var(--spacing-4);
@@ -299,7 +299,7 @@ a:hover {
 
 /* Profile name display - increased font size */
 .navbar-nav .nav-link.dropdown-toggle {
-    font-size: 0.88rem; /* Increased from 0.77rem for better visibility */
+    font-size: 0.875rem; /* 14px - Standard navigation size */
 }
 
 /* Mobile Navigation Toggle */
