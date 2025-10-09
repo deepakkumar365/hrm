@@ -217,8 +217,10 @@ def render_tenant_admin_dashboard():
         # Fallback to regular dashboard if no organization
         return render_template('dashboard.html', stats={}, recent_activities=[])
     
-    # Get company associated with this organization
-    company = Company.query.filter_by(organization_id=user_org.id).first()
+    # Get company associated with this organization's tenant
+    company = None
+    if user_org.tenant_id:
+        company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
     
     # Get current month dates
     start_date, end_date = get_current_month_dates()
