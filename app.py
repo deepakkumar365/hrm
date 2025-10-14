@@ -53,6 +53,14 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
 }
 
+# Session configuration for security
+from datetime import timedelta
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=2)  # Session expires after 2 hours
+app.config["SESSION_COOKIE_SECURE"] = environment == "production"  # HTTPS only in production
+app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent JavaScript access to session cookie
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
+app.config["SESSION_REFRESH_EACH_REQUEST"] = False  # Don't extend session on each request
+
 # File upload configuration
 app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 1 * 1024 * 1024))  # 1MB default
 app.config["ALLOWED_IMAGE_EXTENSIONS"] = {'png', 'jpg', 'jpeg', 'gif', 'webp'}

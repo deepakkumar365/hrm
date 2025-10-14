@@ -9,6 +9,7 @@ import routes  # noqa: F401
 import routes_tenant_company  # noqa: F401 - Tenant/Company hierarchy routes
 import routes_team_documents  # noqa: F401 - Team and Documents module routes
 import routes_enhancements  # noqa: F401 - Employee edit, reports, bank info enhancements
+import routes_masters  # noqa: F401 - Master data management (Roles, Departments, Working Hours, Work Schedules)
 import cli_commands  # noqa: F401 - CLI commands for database management
 
 if __name__ == "__main__":

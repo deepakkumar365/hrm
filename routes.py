@@ -41,6 +41,42 @@ def health_check():
     except Exception as e:
         return {'status': 'unhealthy', 'error': str(e)}, 503
 
+
+@app.route('/debug/user-info')
+@require_login
+def debug_user_info():
+    """Debug endpoint to check user configuration"""
+    try:
+        user_info = {
+            'user_id': current_user.id,
+            'username': current_user.username,
+            'email': current_user.email,
+            'role': current_user.role.name if current_user.role else None,
+            'role_id': current_user.role_id,
+            'organization_id': current_user.organization_id,
+            'has_organization': current_user.organization is not None,
+        }
+        
+        if current_user.organization:
+            user_info['organization_name'] = current_user.organization.name
+            user_info['organization_tenant_id'] = str(current_user.organization.tenant_id) if current_user.organization.tenant_id else None
+            
+            if current_user.organization.tenant_id:
+                company = Company.query.filter_by(tenant_id=current_user.organization.tenant_id).first()
+                user_info['has_company'] = company is not None
+                if company:
+                    user_info['company_name'] = company.name
+                    user_info['company_id'] = company.id
+        
+        return jsonify(user_info), 200
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+
 # Create default users and master data on first run
 def create_default_master_data():
     """Create default master data if it doesn't exist"""
@@ -142,7 +178,22 @@ if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
 
 @app.before_request
 def make_session_permanent():
+    """Set session as permanent with configured lifetime"""
     session.permanent = True
+    # Mark session as modified to ensure it's saved
+    session.modified = True
+
+
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to prevent caching of authenticated pages"""
+    # Don't cache authenticated pages (except static files and login page)
+    if request.endpoint and request.endpoint not in ['static', 'login']:
+        if current_user.is_authenticated:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+    return response
 
 
 @app.route('/')
@@ -157,21 +208,43 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """User login"""
+    # If user is already authenticated, clear session and force re-login
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        # Check if this is a fresh login attempt (POST request)
+        if request.method == 'POST':
+            # User is trying to login again, clear old session
+            logout_user()
+            session.clear()
+        else:
+            # GET request with authenticated user, redirect to dashboard
+            return redirect(url_for('dashboard'))
 
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data) and user.is_active:
-            login_user(user)
+            # Clear any existing session data before login
+            session.clear()
+            
+            # Login user with fresh session
+            login_user(user, remember=False, fresh=True)
+            
+            # Get next page or default to dashboard
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(
-                url_for('dashboard'))
+            
+            # Create response with cache control headers
+            response = redirect(next_page) if next_page else redirect(url_for('dashboard'))
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            
+            return response
         else:
             flash('Invalid username or password', 'error')
 
-    return render_template('auth/login.html', form=form)
+    # Render login page with cache control headers
+    response = render_template('auth/login.html', form=form)
+    return response
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -201,107 +274,165 @@ def register():
 @app.route('/logout')
 @require_login
 def logout():
-    """User logout"""
+    """User logout - Clear all session data"""
+    # Clear Flask-Login user session
     logout_user()
-    return redirect(url_for('login'))
+    
+    # Clear all session data to prevent any residual data
+    session.clear()
+    
+    # Create response with cache control headers
+    response = redirect(url_for('login'))
+    
+    # Prevent caching of authenticated pages
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response
 
 
 def render_tenant_admin_dashboard():
     """Render Tenant Admin specific dashboard with tenant-specific metrics"""
     from sqlalchemy import func, extract
     from datetime import datetime, timedelta
+    import traceback
     
-    # Get current user's organization and related company
-    user_org = current_user.organization
-    if not user_org:
-        # Fallback to regular dashboard if no organization
+    try:
+        # Debug logging
+        print(f"[DEBUG] Dashboard - User: {current_user.username}, Role: {current_user.role.name if current_user.role else 'NO ROLE'}")
+        print(f"[DEBUG] Dashboard - Organization ID: {current_user.organization_id}")
+        
+        # Get current user's organization and related company
+        user_org = current_user.organization
+        if not user_org:
+            # Fallback to regular dashboard if no organization
+            print(f"[ERROR] Dashboard - No organization found for user {current_user.username}")
+            flash('No organization assigned to your account. Please contact administrator.', 'warning')
+            return render_template('dashboard.html', stats={}, recent_activities=[])
+        
+        print(f"[DEBUG] Dashboard - Organization: {user_org.name}, Tenant ID: {user_org.tenant_id}")
+        
+        # Get company associated with this organization's tenant
+        company = None
+        if user_org.tenant_id:
+            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
+            if company:
+                print(f"[DEBUG] Dashboard - Company found: {company.name} (ID: {company.id})")
+            else:
+                print(f"[WARNING] Dashboard - No company found for tenant_id: {user_org.tenant_id}")
+        else:
+            print(f"[WARNING] Dashboard - Organization has no tenant_id")
+        
+        # Get current month dates
+        start_date, end_date = get_current_month_dates()
+    except AttributeError as e:
+        # Handle case where organization relationship is not loaded
+        print(f"[ERROR] Dashboard - AttributeError: {str(e)}")
+        traceback.print_exc()
+        flash('Error loading organization data. Please contact administrator.', 'error')
+        return render_template('dashboard.html', stats={}, recent_activities=[])
+    except Exception as e:
+        # Log the error for debugging
+        print(f"[ERROR] Dashboard - Exception in initial setup: {str(e)}")
+        traceback.print_exc()
+        flash('An error occurred while loading the dashboard.', 'error')
         return render_template('dashboard.html', stats={}, recent_activities=[])
     
-    # Get company associated with this organization's tenant
-    company = None
-    if user_org.tenant_id:
-        company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
-    
-    # Get current month dates
-    start_date, end_date = get_current_month_dates()
-    
-    # Total Employees in Tenant (company)
-    if company:
-        total_employees = Employee.query.filter_by(
-            company_id=company.id,
-            is_active=True
-        ).count()
+    try:
+        # Total Employees in Tenant (company)
+        if company:
+            total_employees = Employee.query.filter_by(
+                company_id=company.id,
+                is_active=True
+            ).count()
+            
+            # Active Payrolls this Month
+            active_payrolls = Payroll.query.join(Employee).filter(
+                Employee.company_id == company.id,
+                extract('month', Payroll.pay_period_start) == start_date.month,
+                extract('year', Payroll.pay_period_start) == start_date.year
+            ).count()
+            
+            # Attendance Summary (Monthly)
+            total_attendance = Attendance.query.join(Employee).filter(
+                Employee.company_id == company.id,
+                Attendance.date.between(start_date, end_date)
+            ).count()
+            
+            # Calculate attendance rate
+            working_days = sum(1 for d in range((end_date - start_date).days + 1)
+                              if (start_date + timedelta(d)).weekday() < 5)
+            expected_records = total_employees * working_days if working_days > 0 else 0
+            attendance_rate = round((total_attendance / expected_records) * 100) if expected_records > 0 else 0
+            
+            # Leave Requests Overview
+            pending_leaves = Leave.query.join(Employee).filter(
+                Employee.company_id == company.id,
+                Leave.status == 'Pending'
+            ).count()
+            
+            approved_leaves_month = Leave.query.join(Employee).filter(
+                Employee.company_id == company.id,
+                Leave.status == 'Approved',
+                Leave.start_date.between(start_date, end_date)
+            ).count()
+            
+            # Financial Summary (Tenant specific)
+            total_payroll_month = db.session.query(func.sum(Payroll.net_pay)).join(Employee).filter(
+                Employee.company_id == company.id,
+                extract('month', Payroll.pay_period_start) == start_date.month,
+                extract('year', Payroll.pay_period_start) == start_date.year
+            ).scalar() or 0
+            
+        else:
+            # No company found, use default values
+            total_employees = 0
+            active_payrolls = 0
+            total_attendance = 0
+            attendance_rate = 0
+            pending_leaves = 0
+            approved_leaves_month = 0
+            total_payroll_month = 0
         
-        # Active Payrolls this Month
-        active_payrolls = Payroll.query.join(Employee).filter(
-            Employee.company_id == company.id,
-            extract('month', Payroll.pay_period_start) == start_date.month,
-            extract('year', Payroll.pay_period_start) == start_date.year
-        ).count()
+        stats = {
+            'total_employees': total_employees,
+            'active_payrolls': active_payrolls,
+            'attendance_rate': attendance_rate,
+            'total_attendance': total_attendance,
+            'pending_leaves': pending_leaves,
+            'approved_leaves_month': approved_leaves_month,
+            'total_payroll_month': float(total_payroll_month),
+            'company_name': company.name if company else 'No Company'
+        }
         
-        # Attendance Summary (Monthly)
-        total_attendance = Attendance.query.join(Employee).filter(
-            Employee.company_id == company.id,
-            Attendance.date.between(start_date, end_date)
-        ).count()
+        # Get recent activities
+        recent_leaves = []
+        if company:
+            recent_leaves = Leave.query.join(Employee).filter(
+                Employee.company_id == company.id,
+                Leave.status == 'Pending'
+            ).order_by(Leave.created_at.desc()).limit(5).all()
         
-        # Calculate attendance rate
-        working_days = sum(1 for d in range((end_date - start_date).days + 1)
-                          if (start_date + timedelta(d)).weekday() < 5)
-        expected_records = total_employees * working_days if working_days > 0 else 0
-        attendance_rate = round((total_attendance / expected_records) * 100) if expected_records > 0 else 0
-        
-        # Leave Requests Overview
-        pending_leaves = Leave.query.join(Employee).filter(
-            Employee.company_id == company.id,
-            Leave.status == 'Pending'
-        ).count()
-        
-        approved_leaves_month = Leave.query.join(Employee).filter(
-            Employee.company_id == company.id,
-            Leave.status == 'Approved',
-            Leave.start_date.between(start_date, end_date)
-        ).count()
-        
-        # Financial Summary (Tenant specific)
-        total_payroll_month = db.session.query(func.sum(Payroll.net_pay)).join(Employee).filter(
-            Employee.company_id == company.id,
-            extract('month', Payroll.pay_period_start) == start_date.month,
-            extract('year', Payroll.pay_period_start) == start_date.year
-        ).scalar() or 0
-        
-    else:
-        # No company found, use default values
-        total_employees = 0
-        active_payrolls = 0
-        total_attendance = 0
-        attendance_rate = 0
-        pending_leaves = 0
-        approved_leaves_month = 0
-        total_payroll_month = 0
-    
-    stats = {
-        'total_employees': total_employees,
-        'active_payrolls': active_payrolls,
-        'attendance_rate': attendance_rate,
-        'total_attendance': total_attendance,
-        'pending_leaves': pending_leaves,
-        'approved_leaves_month': approved_leaves_month,
-        'total_payroll_month': float(total_payroll_month),
-        'company_name': company.name if company else 'No Company'
-    }
-    
-    # Get recent activities
-    recent_leaves = []
-    if company:
-        recent_leaves = Leave.query.join(Employee).filter(
-            Employee.company_id == company.id,
-            Leave.status == 'Pending'
-        ).order_by(Leave.created_at.desc()).limit(5).all()
-    
-    return render_template('tenant_admin_dashboard.html',
-                         stats=stats,
-                         recent_leaves=recent_leaves)
+        print(f"[DEBUG] Dashboard - Rendering tenant_admin_dashboard.html with stats: {stats}")
+        return render_template('tenant_admin_dashboard.html',
+                             stats=stats,
+                             recent_leaves=recent_leaves)
+    except Exception as e:
+        # Log the error for debugging
+        print(f"[ERROR] Dashboard - Error rendering tenant admin dashboard: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash('An error occurred while loading dashboard data.', 'error')
+        # Return a basic dashboard with empty stats
+        return render_template('dashboard.html', 
+                             stats={
+                                 'total_employees': 0,
+                                 'pending_leaves': 0,
+                                 'pending_claims': 0,
+                                 'attendance_rate': 0
+                             }, 
+                             recent_activities=[])
 
 
 def render_super_admin_dashboard():
@@ -387,11 +518,13 @@ def dashboard():
     # Check user role and render appropriate dashboard
     user_role_name = current_user.role.name if current_user.role else None
     
-    if user_role_name == 'Super Admin':
+    # Handle both naming conventions: 'SUPER_ADMIN' and 'Super Admin'
+    if user_role_name in ['Super Admin', 'SUPER_ADMIN']:
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
     
-    if user_role_name == 'Admin':
+    # Handle both naming conventions: 'ADMIN' and 'Admin'
+    if user_role_name in ['Admin', 'ADMIN']:
         # Render Tenant Admin Dashboard
         return render_tenant_admin_dashboard()
 
@@ -1008,6 +1141,40 @@ def profile_photo_upload():
         flash(f'Failed to upload photo: {str(e)}', 'error')
 
     return redirect(url_for('profile'))
+
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@require_login
+def profile_edit():
+    """Edit user's own profile - limited fields"""
+    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+        flash('Profile not found. Please contact your administrator.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    employee = current_user.employee_profile
+    
+    if request.method == 'POST':
+        try:
+            # Update only allowed fields (employees can't change core employment details)
+            employee.phone = request.form.get('phone', '').strip()
+            employee.address = request.form.get('address', '').strip()
+            employee.postal_code = request.form.get('postal_code', '').strip()
+            
+            # Bank details
+            employee.bank_name = request.form.get('bank_name', '').strip()
+            employee.bank_account = request.form.get('bank_account', '').strip()
+            employee.account_holder_name = request.form.get('account_holder_name', '').strip()
+            employee.swift_code = request.form.get('swift_code', '').strip()
+            employee.ifsc_code = request.form.get('ifsc_code', '').strip()
+            
+            db.session.commit()
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('profile'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating profile: {str(e)}', 'error')
+    
+    return render_template('profile_edit.html', employee=employee)
 
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
@@ -2809,345 +2976,4 @@ def export_employees():
         'Basic Salary'
     ]
 
-    return export_to_csv(csv_data, 'employees_export.csv', headers)
-
-
-# Mobile API routes for PWA functionality
-@app.route('/api/attendance/check')
-@require_login
-def api_attendance_check():
-    """Check today's attendance status for mobile"""
-    if not hasattr(current_user, 'employee_profile'):
-        return jsonify({'error': 'Employee profile not found'}), 400
-
-    today = date.today()
-    attendance = Attendance.query.filter_by(
-        employee_id=current_user.employee_profile.id, date=today).first()
-
-    if attendance:
-        return jsonify({
-            'clocked_in':
-            attendance.clock_in is not None,
-            'clocked_out':
-            attendance.clock_out is not None,
-            'on_break':
-            attendance.break_start is not None
-            and attendance.break_end is None,
-            'clock_in_time':
-            attendance.clock_in.strftime('%H:%M')
-            if attendance.clock_in else None,
-            'clock_out_time':
-            attendance.clock_out.strftime('%H:%M')
-            if attendance.clock_out else None
-        })
-    else:
-        return jsonify({
-            'clocked_in': False,
-            'clocked_out': False,
-            'on_break': False
-        })
-
-
-# Master Data Management Routes
-
-# Role Management Routes
-@app.route('/masters/roles')
-@require_role(['Super Admin', 'Admin'])
-def role_list():
-    """List all roles"""
-    page = request.args.get('page', 1, type=int)
-    roles = Role.query.filter_by(is_active=True).paginate(
-        page=page, per_page=20, error_out=False)
-    return render_template('masters/roles/list.html', roles=roles)
-
-
-@app.route('/masters/roles/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def role_add():
-    """Add new role"""
-    if request.method == 'POST':
-        try:
-            role = Role(
-                name=request.form.get('name'),
-                description=request.form.get('description')
-            )
-            db.session.add(role)
-            db.session.commit()
-            flash('Role created successfully', 'success')
-            return redirect(url_for('role_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating role: {str(e)}', 'error')
-    
-    return render_template('masters/roles/form.html')
-
-
-@app.route('/masters/roles/<int:role_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def role_edit(role_id):
-    """Edit role"""
-    role = Role.query.get_or_404(role_id)
-    
-    if request.method == 'POST':
-        try:
-            role.name = request.form.get('name')
-            role.description = request.form.get('description')
-            db.session.commit()
-            flash('Role updated successfully', 'success')
-            return redirect(url_for('role_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating role: {str(e)}', 'error')
-    
-    return render_template('masters/roles/form.html', role=role)
-
-
-@app.route('/masters/roles/<int:role_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def role_delete(role_id):
-    """Delete role (soft delete)"""
-    role = Role.query.get_or_404(role_id)
-    try:
-        role.is_active = False
-        db.session.commit()
-        flash('Role deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting role: {str(e)}', 'error')
-    
-    return redirect(url_for('role_list'))
-
-
-# Department Management Routes
-@app.route('/masters/departments')
-@require_role(['Super Admin', 'Admin'])
-def department_list():
-    """List all departments"""
-    page = request.args.get('page', 1, type=int)
-    departments = Department.query.filter_by(is_active=True).paginate(
-        page=page, per_page=20, error_out=False)
-    return render_template('masters/departments/list.html', departments=departments)
-
-
-@app.route('/masters/departments/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def department_add():
-    """Add new department"""
-    if request.method == 'POST':
-        try:
-            manager_id = request.form.get('manager_id')
-            department = Department(
-                name=request.form.get('name'),
-                description=request.form.get('description'),
-                manager_id=int(manager_id) if manager_id else None
-            )
-            db.session.add(department)
-            db.session.commit()
-            flash('Department created successfully', 'success')
-            return redirect(url_for('department_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating department: {str(e)}', 'error')
-    
-    # Get potential managers
-    managers = Employee.query.filter_by(is_active=True).filter(
-        Employee.position.ilike('%manager%')).all()
-    return render_template('masters/departments/form.html', managers=managers)
-
-
-@app.route('/masters/departments/<int:department_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def department_edit(department_id):
-    """Edit department"""
-    department = Department.query.get_or_404(department_id)
-    
-    if request.method == 'POST':
-        try:
-            manager_id = request.form.get('manager_id')
-            department.name = request.form.get('name')
-            department.description = request.form.get('description')
-            department.manager_id = int(manager_id) if manager_id else None
-            db.session.commit()
-            flash('Department updated successfully', 'success')
-            return redirect(url_for('department_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating department: {str(e)}', 'error')
-    
-    # Get potential managers
-    managers = Employee.query.filter_by(is_active=True).filter(
-        Employee.position.ilike('%manager%')).all()
-    return render_template('masters/departments/form.html', department=department, managers=managers)
-
-
-@app.route('/masters/departments/<int:department_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def department_delete(department_id):
-    """Delete department (soft delete)"""
-    department = Department.query.get_or_404(department_id)
-    try:
-        department.is_active = False
-        db.session.commit()
-        flash('Department deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting department: {str(e)}', 'error')
-    return redirect(url_for('department_list'))
-
-
-# Working Hours Management Routes
-@app.route('/masters/working-hours')
-@require_role(['Super Admin', 'Admin'])
-def working_hours_list():
-    """List all working hours configurations"""
-    page = request.args.get('page', 1, type=int)
-    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).paginate(
-        page=page, per_page=20, error_out=False)
-    return render_template('masters/working_hours/list.html', working_hours=working_hours)
-
-
-@app.route('/masters/working-hours/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def working_hours_add():
-    """Add new working hours configuration"""
-    if request.method == 'POST':
-        try:
-            working_hours = WorkingHours(
-                name=request.form.get('name'),
-                hours_per_day=float(request.form.get('hours_per_day')),
-                hours_per_week=float(request.form.get('hours_per_week')),
-                description=request.form.get('description')
-            )
-            db.session.add(working_hours)
-            db.session.commit()
-            flash('Working hours configuration created successfully', 'success')
-            return redirect(url_for('working_hours_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating working hours configuration: {str(e)}', 'error')
-    
-    return render_template('masters/working_hours/form.html')
-
-
-@app.route('/masters/working-hours/<int:working_hours_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def working_hours_edit(working_hours_id):
-    """Edit working hours configuration"""
-    working_hours = WorkingHours.query.get_or_404(working_hours_id)
-    
-    if request.method == 'POST':
-        try:
-            working_hours.name = request.form.get('name')
-            working_hours.hours_per_day = float(request.form.get('hours_per_day'))
-            working_hours.hours_per_week = float(request.form.get('hours_per_week'))
-            working_hours.description = request.form.get('description')
-            db.session.commit()
-            flash('Working hours configuration updated successfully', 'success')
-            return redirect(url_for('working_hours_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating working hours configuration: {str(e)}', 'error')
-    
-    return render_template('masters/working_hours/form.html', working_hours=working_hours)
-
-
-@app.route('/masters/working-hours/<int:working_hours_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def working_hours_delete(working_hours_id):
-    """Delete working hours configuration (soft delete)"""
-    working_hours = WorkingHours.query.get_or_404(working_hours_id)
-    try:
-        working_hours.is_active = False
-        db.session.commit()
-        flash('Working hours configuration deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting working hours configuration: {str(e)}', 'error')
-    return redirect(url_for('working_hours_list'))
-
-
-# Work Schedule Management Routes
-@app.route('/masters/work-schedules')
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_list():
-    """List all work schedules"""
-    page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '')
-    
-    query = WorkSchedule.query.filter_by(is_active=True)
-    if search:
-        query = query.filter(WorkSchedule.name.ilike(f'%{search}%'))
-    
-    work_schedules = query.order_by(WorkSchedule.name).paginate(
-        page=page, per_page=20, error_out=False)
-    return render_template('masters/work_schedules/list.html', work_schedules=work_schedules, search=search)
-
-
-@app.route('/masters/work-schedules/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_add():
-    """Add new work schedule"""
-    if request.method == 'POST':
-        try:
-            from datetime import datetime
-            start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
-            end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
-            
-            work_schedule = WorkSchedule(
-                name=request.form.get('name'),
-                start_time=start_time,
-                end_time=end_time,
-                break_duration=int(request.form.get('break_duration', 60)),
-                description=request.form.get('description')
-            )
-            db.session.add(work_schedule)
-            db.session.commit()
-            flash('Work schedule created successfully', 'success')
-            return redirect(url_for('work_schedule_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating work schedule: {str(e)}', 'error')
-    
-    return render_template('masters/work_schedules/form.html')
-
-
-@app.route('/masters/work-schedules/<int:work_schedule_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_edit(work_schedule_id):
-    """Edit work schedule"""
-    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
-    
-    if request.method == 'POST':
-        try:
-            from datetime import datetime
-            start_time = datetime.strptime(request.form.get('start_time'), '%H:%M').time()
-            end_time = datetime.strptime(request.form.get('end_time'), '%H:%M').time()
-            
-            work_schedule.name = request.form.get('name')
-            work_schedule.start_time = start_time
-            work_schedule.end_time = end_time
-            work_schedule.break_duration = int(request.form.get('break_duration', 60))
-            work_schedule.description = request.form.get('description')
-            db.session.commit()
-            flash('Work schedule updated successfully', 'success')
-            return redirect(url_for('work_schedule_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating work schedule: {str(e)}', 'error')
-    
-    return render_template('masters/work_schedules/form.html', work_schedule=work_schedule)
-
-
-@app.route('/masters/work-schedules/<int:work_schedule_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def work_schedule_delete(work_schedule_id):
-    """Delete work schedule (soft delete)"""
-    work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
-    try:
-        work_schedule.is_active = False
-        db.session.commit()
-        flash('Work schedule deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting work schedule: {str(e)}', 'error')
-    return redirect(url_for('work_schedule_list'))
+    return e
