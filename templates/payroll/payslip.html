@@ -3,231 +3,504 @@
 <head>
     <meta charset="UTF-8">
     <title>Payslip - {{ employee.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: "Arial", sans-serif;
+        /* ========================================
+           PASTEL PROFESSIONAL THEME
+           Color Palette:
+           - Background: #FBEFF1 (Soft blush pink)
+           - Bottom Wave: #C7E3E6 (Light teal/aqua)
+           - Header Bar: #A5C2C4 (Muted teal gray)
+           - Company Bar: #7BA6AA (Deeper teal)
+           - Title: #8A4F24 (Rich brown)
+           - Subtext: #7A7CCF (Soft blue)
+           - Text/Borders: #4A4A4A (Neutral gray)
+        ======================================== */
+        
+        * {
             margin: 0;
             padding: 0;
-            background: #fff;
-            color: #000;
+            box-sizing: border-box;
         }
+        
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: linear-gradient(135deg, #FBEFF1 0%, #F5E8EA 50%, #E8F4F5 100%);
+            color: #4A4A4A;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
         .payslip-container {
-            width: 750px;
-            margin: 20px auto;
+            width: 800px;
+            max-width: 95%;
+            margin: 0 auto;
+            background: #FFFFFF;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+        
+        /* Company Header Bar */
+        .company-header {
+            background: linear-gradient(135deg, #7BA6AA 0%, #A5C2C4 100%);
             padding: 25px 30px;
-            border: 1px solid #000;
-        }
-        .company-block {
             text-align: center;
-            margin-bottom: 15px;
+            color: #FFFFFF;
+            position: relative;
         }
-        .company-block .company-name {
-            font-size: 18px;
-            font-weight: bold;
+        
+        .company-header::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #7BA6AA 0%, #A5C2C4 50%, #7BA6AA 100%);
+            opacity: 0.3;
+        }
+        
+        .company-name {
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
         }
-        .company-block .company-address {
+        
+        .company-address {
             font-size: 13px;
-            margin: 4px 0;
+            font-weight: 400;
+            margin: 5px 0;
+            opacity: 0.95;
         }
-        .company-block .company-uen {
-            font-size: 13px;
+        
+        .company-uen {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+            opacity: 0.9;
         }
+        
+        /* Salary Slip Title Section */
+        .slip-title-section {
+            background: #A5C2C4;
+            padding: 18px 30px;
+            text-align: center;
+            border-bottom: 3px solid #7BA6AA;
+        }
+        
+        .slip-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            color: #8A4F24;
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+        
+        .slip-subtitle {
+            font-family: 'Poppins', sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            color: #7A7CCF;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Content Area */
+        .content-area {
+            background: #FBEFF1;
+            padding: 30px;
+        }
+        
+        /* Employee Info Section */
+        .info-section {
+            background: #FFFFFF;
+            border: 1px solid #A5C2C4;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
         }
+        
+        .info-table tr {
+            border-bottom: 1px solid #E8E8E8;
+        }
+        
+        .info-table tr:last-child {
+            border-bottom: none;
+        }
+        
         .info-table td {
             font-size: 13px;
-            padding: 4px 6px;
+            padding: 10px 8px;
             vertical-align: top;
         }
+        
         .info-table .label {
-            font-weight: bold;
-            width: 150px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            color: #7BA6AA;
+            width: 180px;
         }
+        
+        .info-table .value {
+            color: #4A4A4A;
+            font-weight: 400;
+        }
+        
+        /* Pay Details Table */
+        .pay-section {
+            background: #FFFFFF;
+            border: 1px solid #A5C2C4;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
         .pay-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 5px;
         }
-        .pay-table th, .pay-table td {
-            border: 1px solid #000;
-            font-size: 13px;
-            padding: 6px 8px;
-            text-align: left;
+        
+        .pay-table thead {
+            background: linear-gradient(135deg, #A5C2C4 0%, #7BA6AA 100%);
         }
+        
         .pay-table th {
-            background: #f2f2f2;
-            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #FFFFFF;
+            padding: 12px 10px;
+            text-align: left;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
         }
-        /* Right align amount columns (4th and 6th columns) */
-        .pay-table td:nth-child(4), 
+        
+        .pay-table th:last-child {
+            border-right: none;
+        }
+        
+        .pay-table tbody tr {
+            border-bottom: 1px solid #E8E8E8;
+            transition: background 0.2s ease;
+        }
+        
+        .pay-table tbody tr:hover {
+            background: #F9F9F9;
+        }
+        
+        .pay-table td {
+            font-size: 13px;
+            padding: 10px;
+            color: #4A4A4A;
+            border-right: 1px solid #E8E8E8;
+        }
+        
+        .pay-table td:last-child {
+            border-right: none;
+        }
+        
+        /* Right align amount columns */
+        .pay-table td:nth-child(2),
+        .pay-table td:nth-child(3),
+        .pay-table td:nth-child(4),
         .pay-table td:nth-child(6),
-        .pay-table th:nth-child(4), 
+        .pay-table th:nth-child(2),
+        .pay-table th:nth-child(3),
+        .pay-table th:nth-child(4),
         .pay-table th:nth-child(6) {
-            text-align: right !important;
-        }
-        /* Right align rate column (2nd column) for numbers */
-        .pay-table td:nth-child(2) {
             text-align: right;
         }
-        /* Right align hours column (3rd column) for numbers */
-        .pay-table td:nth-child(3) {
-            text-align: right;
-        }
+        
+        /* Totals Row */
         .totals-row {
-            font-weight: bold;
-            background: #f9f9f9;
+            background: linear-gradient(135deg, #F0F8F9 0%, #FFF5F6 100%);
+            font-weight: 600;
+            color: #7BA6AA;
         }
-        .totals-row td:nth-child(4), 
-        .totals-row td:nth-child(6) {
-            text-align: right !important;
+        
+        .totals-row td {
+            padding: 12px 10px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
         }
+        
+        /* Summary Section */
+        .summary-section {
+            background: #FFFFFF;
+            border: 2px solid #A5C2C4;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
         .summary-table {
-            width: 50%;
-            border-collapse: collapse;
-            margin-top: 15px;
+            width: 100%;
+            max-width: 400px;
             margin-left: auto;
+            border-collapse: collapse;
         }
+        
+        .summary-table tr {
+            border-bottom: 1px solid #E8E8E8;
+        }
+        
+        .summary-table tr:last-child {
+            border-bottom: none;
+        }
+        
         .summary-table td {
             font-size: 14px;
-            padding: 6px;
+            padding: 10px 8px;
         }
+        
         .summary-table .label {
-            font-weight: bold;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            color: #7BA6AA;
         }
+        
         .summary-table td:nth-child(2) {
-            text-align: right !important;
+            text-align: right;
+            font-weight: 600;
+            color: #4A4A4A;
         }
+        
+        /* Net Pay Row - Highlighted */
         .netpay-row {
-            font-weight: bold;
+            background: linear-gradient(135deg, #7BA6AA 0%, #A5C2C4 100%);
+            border-radius: 6px;
         }
-        .netpay-row td:nth-child(2) {
-            text-align: right !important;
+        
+        .netpay-row td {
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #FFFFFF;
+            padding: 14px 12px;
         }
-        .footer-note {
-            margin-top: 20px;
+        
+        /* Footer Wave Section */
+        .footer-wave {
+            background: linear-gradient(135deg, #C7E3E6 0%, #A5C2C4 100%);
+            padding: 20px 30px;
             text-align: center;
+            position: relative;
+        }
+        
+        .footer-wave::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 0;
+            right: 0;
+            height: 15px;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 15"><path fill="%23C7E3E6" d="M0,10 Q300,0 600,10 T1200,10 L1200,15 L0,15 Z"/></svg>') repeat-x;
+            background-size: 100% 15px;
+        }
+        
+        .footer-note {
+            font-family: 'Open Sans', sans-serif;
             font-size: 12px;
             font-style: italic;
+            color: #4A4A4A;
+            margin-bottom: 8px;
+        }
+        
+        .footer-logo {
+            font-family: 'Poppins', sans-serif;
+            font-size: 10px;
+            font-weight: 600;
+            color: #7BA6AA;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                background: #FFFFFF;
+                padding: 0;
+            }
+            
+            .payslip-container {
+                box-shadow: none;
+                border-radius: 0;
+                max-width: 100%;
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .payslip-container {
+                width: 100%;
+            }
+            
+            .company-name {
+                font-size: 20px;
+            }
+            
+            .slip-title {
+                font-size: 22px;
+            }
+            
+            .content-area {
+                padding: 20px;
+            }
+            
+            .pay-table th,
+            .pay-table td {
+                font-size: 11px;
+                padding: 8px 6px;
+            }
         }
     </style>
 </head>
 <body>
 <div class="payslip-container">
-    <!-- Company Info -->
-    <div class="company-block">
+    
+    <!-- Company Header Bar -->
+    <div class="company-header">
         <div class="company-name">{{ company.name }}</div>
         <div class="company-address">{{ company.address }}</div>
         <div class="company-uen">UEN NO: {{ company.uen }}</div>
     </div>
-
-    <!-- Employee Info -->
-    <table class="info-table">
-        <tr>
-            <td class="label">Employee Name:</td>
-            <td>{{ employee.name }}</td>
-            <td class="label">Pay Date:</td>
-            <td>{{ payroll.pay_date }}</td>
-        </tr>
-        <tr>
-            <td class="label">NRIC/FIN/WP/SP:</td>
-            <td>{{ employee.nric }}</td>
-            <td class="label">Designation:</td>
-            <td>{{ employee.designation }}</td>
-        </tr>
-        <tr>
-            <td class="label">Nationality:</td>
-            <td>{{ employee.nationality }}</td>
-            <td class="label"></td>
-            <td></td>
-        </tr>
-    </table>
-
-    <!-- Pay Details Table -->
-    <table class="pay-table">
-        <thead>
-        <tr>
-            <th>Earnings</th>
-            <th>Rate (SGD)</th>
-            <th>Hours</th>
-            <th>Amount (SGD)</th>
-            <th>Deductions</th>
-            <th>Amount (SGD)</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>Regular Pay</td>
-            <td>{{ earnings.regular_pay_rate }}</td>
-            <td></td>
-            <td>{{ earnings.regular_pay_amount }}</td>
-            <td>Income Tax</td>
-            <td>{{ deductions.income_tax }}</td>
-        </tr>
-        <tr>
-            <td>Overtime Pay</td>
-            <td>{{ earnings.overtime_pay_rate }}</td>
-            <td>{{ earnings.overtime_hours }}</td>
-            <td>{{ earnings.overtime_amount }}</td>
-            <td>Medical</td>
-            <td>{{ deductions.medical }}</td>
-        </tr>
-        <tr>
-            <td>Holiday Pay</td>
-            <td></td>
-            <td></td>
-            <td>{{ earnings.holiday_pay }}</td>
-            <td>Life Insurance</td>
-            <td>{{ deductions.life_insurance }}</td>
-        </tr>
-        <tr>
-            <td>Vacation Pay</td>
-            <td></td>
-            <td></td>
-            <td>{{ earnings.vacation_pay }}</td>
-            <td>Provident Fund</td>
-            <td>{{ deductions.provident_fund }}</td>
-        </tr>
-        <tr>
-            <td>Others</td>
-            <td></td>
-            <td></td>
-            <td>{{ earnings.others }}</td>
-            <td>Others</td>
-            <td>{{ deductions.others }}</td>
-        </tr>
-        <tr class="totals-row">
-            <td colspan="3">Total (Gross)</td>
-            <td>{{ payroll.total_earnings }}</td>
-            <td>Total</td>
-            <td>{{ payroll.total_deductions }}</td>
-        </tr>
-        </tbody>
-    </table>
-
-    <!-- Summary -->
-    <table class="summary-table">
-        <tr>
-            <td class="label">Total Earnings (SGD)</td>
-            <td>{{ payroll.total_earnings }}</td>
-        </tr>
-        <tr>
-            <td class="label">Total Deductions (SGD)</td>
-            <td>{{ payroll.total_deductions }}</td>
-        </tr>
-        <tr class="netpay-row">
-            <td class="label">Net Pay (SGD)</td>
-            <td>{{ payroll.net_pay }}</td>
-        </tr>
-    </table>
-
-    <!-- Footer -->
-    <div class="footer-note">
-        This is system generated document. Hence, signature is not needed!
+    
+    <!-- Salary Slip Title Section -->
+    <div class="slip-title-section">
+        <div class="slip-title">PAYROLL SALARY SLIP</div>
+        <div class="slip-subtitle">Professional Template</div>
     </div>
+    
+    <!-- Content Area with Pastel Background -->
+    <div class="content-area">
+        
+        <!-- Employee Information Section -->
+        <div class="info-section">
+            <table class="info-table">
+                <tr>
+                    <td class="label">Employee Name:</td>
+                    <td class="value">{{ employee.name }}</td>
+                    <td class="label">Pay Date:</td>
+                    <td class="value">{{ payroll.pay_date }}</td>
+                </tr>
+                <tr>
+                    <td class="label">NRIC/FIN/WP/SP:</td>
+                    <td class="value">{{ employee.nric }}</td>
+                    <td class="label">Designation:</td>
+                    <td class="value">{{ employee.designation }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Nationality:</td>
+                    <td class="value">{{ employee.nationality }}</td>
+                    <td class="label">Department:</td>
+                    <td class="value">{{ employee.department if employee.department else 'N/A' }}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Pay Details Section -->
+        <div class="pay-section">
+            <table class="pay-table">
+                <thead>
+                <tr>
+                    <th>Earnings</th>
+                    <th>Rate (SGD)</th>
+                    <th>Hours</th>
+                    <th>Amount (SGD)</th>
+                    <th>Deductions</th>
+                    <th>Amount (SGD)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Regular Pay</td>
+                    <td>{{ earnings.regular_pay_rate }}</td>
+                    <td>-</td>
+                    <td>{{ earnings.regular_pay_amount }}</td>
+                    <td>Income Tax</td>
+                    <td>{{ deductions.income_tax }}</td>
+                </tr>
+                <tr>
+                    <td>Overtime Pay</td>
+                    <td>{{ earnings.overtime_pay_rate }}</td>
+                    <td>{{ earnings.overtime_hours if earnings.overtime_hours else '-' }}</td>
+                    <td>{{ earnings.overtime_amount }}</td>
+                    <td>Medical</td>
+                    <td>{{ deductions.medical }}</td>
+                </tr>
+                <tr>
+                    <td>Holiday Pay</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ earnings.holiday_pay }}</td>
+                    <td>Life Insurance</td>
+                    <td>{{ deductions.life_insurance }}</td>
+                </tr>
+                <tr>
+                    <td>Vacation Pay</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ earnings.vacation_pay }}</td>
+                    <td>Provident Fund</td>
+                    <td>{{ deductions.provident_fund }}</td>
+                </tr>
+                <tr>
+                    <td>Others</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ earnings.others }}</td>
+                    <td>Others</td>
+                    <td>{{ deductions.others }}</td>
+                </tr>
+                <tr class="totals-row">
+                    <td colspan="3">Total (Gross)</td>
+                    <td>{{ payroll.total_earnings }}</td>
+                    <td>Total</td>
+                    <td>{{ payroll.total_deductions }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <table class="summary-table">
+                <tr>
+                    <td class="label">Total Earnings (SGD)</td>
+                    <td>{{ payroll.total_earnings }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Total Deductions (SGD)</td>
+                    <td>{{ payroll.total_deductions }}</td>
+                </tr>
+                <tr class="netpay-row">
+                    <td class="label">Net Pay (SGD)</td>
+                    <td>{{ payroll.net_pay }}</td>
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+    
+    <!-- Footer Wave Section -->
+    <div class="footer-wave">
+        <div class="footer-note">
+            This is a system-generated document. Hence, signature is not needed!
+        </div>
+        <div class="footer-logo">
+            HRMS Payroll System
+        </div>
+    </div>
+    
 </div>
 </body>
 </html>

@@ -22,8 +22,9 @@ from utils import format_date
 @require_login
 def team_list():
     """
-    Display team members (employees with the same manager as logged-in user)
-    Only visible to users with 'User' role
+    Display team members based on user role:
+    - User role: Shows peers (employees with the same manager)
+    - Manager role: Shows direct reports (employees who report to this manager)
     """
     # Check if current user has employee profile
     if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
@@ -31,30 +32,53 @@ def team_list():
         return redirect(url_for('dashboard'))
     
     current_employee = current_user.employee_profile
+    user_role_name = current_user.role.name if current_user.role else None
     
-    # Get the manager_id of the current user
-    manager_id = current_employee.manager_id
+    # For Manager role: Show direct reports
+    if user_role_name == 'Manager':
+        # Get all employees who report directly to this manager
+        team_members = Employee.query.filter(
+            and_(
+                Employee.manager_id == current_employee.id,
+                Employee.is_active == True
+            )
+        ).order_by(Employee.first_name, Employee.last_name).all()
+        
+        if not team_members:
+            flash('You do not have any direct reports assigned yet.', 'info')
+        
+        return render_template('team/team_list.html', 
+                             team_members=team_members,
+                             manager=None,
+                             current_employee=current_employee,
+                             is_manager_view=True)
     
-    if not manager_id:
-        flash('You do not have a reporting manager assigned. Please contact HR.', 'info')
-        return render_template('team/team_list.html', team_members=[])
-    
-    # Get all employees with the same manager (excluding self)
-    team_members = Employee.query.filter(
-        and_(
-            Employee.manager_id == manager_id,
-            Employee.id != current_employee.id,
-            Employee.is_active == True
-        )
-    ).order_by(Employee.first_name, Employee.last_name).all()
-    
-    # Get manager info for display
-    manager = Employee.query.get(manager_id)
-    
-    return render_template('team/team_list.html', 
-                         team_members=team_members,
-                         manager=manager,
-                         current_employee=current_employee)
+    # For User role: Show peers with same manager
+    else:
+        # Get the manager_id of the current user
+        manager_id = current_employee.manager_id
+        
+        if not manager_id:
+            flash('You do not have a reporting manager assigned. Please contact HR.', 'info')
+            return render_template('team/team_list.html', team_members=[], is_manager_view=False)
+        
+        # Get all employees with the same manager (excluding self)
+        team_members = Employee.query.filter(
+            and_(
+                Employee.manager_id == manager_id,
+                Employee.id != current_employee.id,
+                Employee.is_active == True
+            )
+        ).order_by(Employee.first_name, Employee.last_name).all()
+        
+        # Get manager info for display
+        manager = Employee.query.get(manager_id)
+        
+        return render_template('team/team_list.html', 
+                             team_members=team_members,
+                             manager=manager,
+                             current_employee=current_employee,
+                             is_manager_view=False)
 
 
 # =====================================================

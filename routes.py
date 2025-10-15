@@ -1235,26 +1235,6 @@ def employee_edit(employee_id):
             employee.swift_code = request.form.get('swift_code')
             employee.ifsc_code = request.form.get('ifsc_code')
 
-            # Validate mandatory banking field
-            if not (employee.account_holder_name and employee.account_holder_name.strip()):
-                flash('Account Holder Name is required', 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies)
-
             # Optional profile image replace on edit
             file = request.files.get('profile_image')
             if file and file.filename.strip():
@@ -1370,6 +1350,85 @@ def employee_edit(employee_id):
                            working_hours=working_hours,
                            work_schedules=work_schedules,
                            companies=companies)
+
+
+@app.route('/employees/export')
+@require_role(['Super Admin', 'Admin'])
+def export_employees():
+    """Export employees to CSV"""
+    try:
+        # Query all active employees with company and tenant info
+        query = db.session.query(
+            Employee,
+            Company.name.label('company_name'),
+            Tenant.name.label('tenant_name')
+        ).join(
+            Company, Employee.company_id == Company.id
+        ).join(
+            Tenant, Company.tenant_id == Tenant.id
+        ).filter(Employee.is_active == True)
+        
+        # Apply filters if provided
+        search = request.args.get('search', '', type=str)
+        department = request.args.get('department', '', type=str)
+        
+        if search:
+            query = query.filter(
+                db.or_(Employee.first_name.ilike(f'%{search}%'),
+                       Employee.last_name.ilike(f'%{search}%'),
+                       Employee.employee_id.ilike(f'%{search}%'),
+                       Employee.email.ilike(f'%{search}%'),
+                       Company.name.ilike(f'%{search}%'),
+                       Tenant.name.ilike(f'%{search}%')))
+        
+        if department:
+            query = query.filter(Employee.department == department)
+        
+        # Role-based filtering
+        if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile'):
+            query = query.filter(Employee.manager_id == current_user.employee_profile.id)
+        
+        results = query.all()
+        
+        # Prepare data for CSV export
+        csv_data = []
+        headers = [
+            'Employee ID', 'First Name', 'Last Name', 'Email', 'Phone',
+            'NRIC', 'Position', 'Department', 'Employment Type',
+            'Hire Date', 'Basic Salary', 'Allowances', 'Company', 'Tenant'
+        ]
+        
+        for item in results:
+            employee = item[0]
+            company_name = item[1]
+            tenant_name = item[2]
+            
+            csv_data.append({
+                'Employee ID': employee.employee_id or '',
+                'First Name': employee.first_name or '',
+                'Last Name': employee.last_name or '',
+                'Email': employee.email or '',
+                'Phone': employee.phone or '',
+                'NRIC': employee.nric or '',
+                'Position': employee.position or '',
+                'Department': employee.department or '',
+                'Employment Type': employee.employment_type or '',
+                'Hire Date': format_date(employee.hire_date) if employee.hire_date else '',
+                'Basic Salary': f"{employee.basic_salary:.2f}" if employee.basic_salary else '0.00',
+                'Allowances': f"{employee.allowances:.2f}" if employee.allowances else '0.00',
+                'Company': company_name or '',
+                'Tenant': tenant_name or ''
+            })
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'employees_export_{timestamp}.csv'
+        
+        return export_to_csv(csv_data, filename, headers)
+        
+    except Exception as e:
+        flash(f'Error exporting employees: {str(e)}', 'error')
+        return redirect(url_for('employee_list'))
 
 
 # Payroll Management Routes
@@ -1628,14 +1687,36 @@ def payroll_preview_api():
                 'message': 'Month and year are required'
             }), 400
         
+        # Get current user's organization and company for tenant filtering
+        user_org = current_user.organization
+        if not user_org:
+            return jsonify({
+                'success': False,
+                'message': 'No organization assigned to your account'
+            }), 400
+        
+        # Get company associated with this organization's tenant
+        company = None
+        if user_org.tenant_id:
+            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
+        
+        if not company:
+            return jsonify({
+                'success': False,
+                'message': 'No company found for your organization'
+            }), 400
+        
         # Calculate pay period
         from calendar import monthrange
         pay_period_start = date(year, month, 1)
         last_day = monthrange(year, month)[1]
         pay_period_end = date(year, month, last_day)
         
-        # Get all active employees
-        employees = Employee.query.filter_by(is_active=True).all()
+        # Get all active employees for this company
+        employees = Employee.query.filter_by(
+            company_id=company.id,
+            is_active=True
+        ).all()
         
         employee_data = []
         for emp in employees:
@@ -1664,11 +1745,13 @@ def payroll_preview_api():
             ot_amount = total_ot_hours * ot_rate
             
             # Calculate gross salary
-            basic_salary = float(emp.basic_salary)
+            basic_salary = float(emp.basic_salary or 0)
             gross_salary = basic_salary + total_allowances + ot_amount
             
             # Calculate CPF deductions (simplified - using employee rate)
-            cpf_deduction = gross_salary * (float(emp.employee_cpf_rate) / 100)
+            # Handle None values for employee_cpf_rate
+            employee_cpf_rate = float(emp.employee_cpf_rate) if emp.employee_cpf_rate else 20.00
+            cpf_deduction = gross_salary * (employee_cpf_rate / 100)
             
             # Calculate net salary
             total_deductions = cpf_deduction
@@ -1702,6 +1785,9 @@ def payroll_preview_api():
         })
     
     except Exception as e:
+        import traceback
+        print(f"[ERROR] Payroll Preview API: {str(e)}")
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error loading payroll preview: {str(e)}'
@@ -2836,144 +2922,123 @@ def compliance_generate(report_type):
             Payroll.status == 'Approved').all()
 
         if not payrolls:
-            flash('No approved payroll records found for the selected period',
-                  'warning')
+            flash('No approved payroll records found for the selected period', 'warning')
             return redirect(url_for('compliance_dashboard'))
 
+        # Generate report based on type
         if report_type == 'cpf':
-            data = payroll_calc.generate_cpf_file(payrolls, month, year)
-            filename = f"CPF_Submission_{year}_{month:02d}.csv"
-
-            # Prepare CSV data
-            csv_data = []
-            for record in data['records']:
-                csv_data.append([
-                    record['employee_id'], record['name'], record['nric'],
-                    record['cpf_account'], record['gross_salary'],
-                    record['employee_cpf'], record['employer_cpf'],
-                    record['total_cpf']
-                ])
-
-            headers = [
-                'Employee ID', 'Name', 'NRIC', 'CPF Account', 'Gross Salary',
-                'Employee CPF', 'Employer CPF', 'Total CPF'
-            ]
-
-            return export_to_csv(csv_data, filename, headers)
-
+            return generate_cpf_report(payrolls, month, year)
         elif report_type == 'ais':
-            data = payroll_calc.generate_ais_file(payrolls, year)
-            filename = f"AIS_Report_{year}.csv"
-
-            csv_data = []
-            for record in data['records']:
-                csv_data.append([
-                    record['employee_id'], record['name'], record['nric'],
-                    record['annual_income'], record['employment_period']
-                ])
-
-            headers = [
-                'Employee ID', 'Name', 'NRIC', 'Annual Income',
-                'Employment Period'
-            ]
-
-            return export_to_csv(csv_data, filename, headers)
-
+            return generate_ais_report(payrolls, month, year)
         elif report_type == 'oed':
-            data = payroll_calc.generate_oed_file(payrolls, month, year)
-            filename = f"OED_Report_{year}_{month:02d}.csv"
-
-            csv_data = []
-            for record in data['records']:
-                csv_data.append([
-                    record['employee_id'], record['name'],
-                    record['passport_number'], record['work_permit_type'],
-                    record['work_permit_expiry'], record['gross_salary'],
-                    record['nationality'], record['position']
-                ])
-
-            headers = [
-                'Employee ID', 'Name', 'Passport/ID', 'Work Permit Type',
-                'Work Permit Expiry', 'Gross Salary', 'Nationality', 'Position'
-            ]
-
-            return export_to_csv(csv_data, filename, headers)
-
-        elif report_type == 'bank':
-            data = payroll_calc.generate_bank_file(payrolls)
-            filename = f"Bank_Transfer_{year}_{month:02d}.csv"
-
-            csv_data = []
-            for record in data['records']:
-                csv_data.append([
-                    record['employee_id'], record['name'],
-                    record['bank_account'], record['bank_name'],
-                    record['amount'], record['reference']
-                ])
-
-            headers = [
-                'Employee ID', 'Name', 'Bank Account', 'Bank Name', 'Amount',
-                'Reference'
-            ]
-
-            return export_to_csv(csv_data, filename, headers)
-
+            return generate_oed_report(payrolls, month, year)
         else:
             flash('Invalid report type', 'error')
             return redirect(url_for('compliance_dashboard'))
 
     except Exception as e:
-        flash(f'Error generating {report_type.upper()} report: {str(e)}',
-              'error')
+        flash(f'Error generating report: {str(e)}', 'error')
         return redirect(url_for('compliance_dashboard'))
 
 
-# Export routes
-@app.route('/users')
-@require_role(['Super Admin', 'Admin'])
-def user_management():
-    """User management for admins"""
-    users = User.query.order_by(User.first_name).all()
-    return render_template('users/list.html', users=users)
-
-
-@app.route('/users/<user_id>/role', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def update_user_role(user_id):
-    """Update user role"""
-    user = User.query.get_or_404(user_id)
-    new_role = request.form.get('role')
-
-    if new_role in ['Super Admin', 'Admin', 'Manager', 'User']:
-        user.role = new_role
-        db.session.commit()
-        flash(f'User role updated to {new_role}', 'success')
-    else:
-        flash('Invalid role specified', 'error')
-
-    return redirect(url_for('user_management'))
-
-
-@app.route('/export/employees')
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def export_employees():
-    """Export employees to CSV"""
-    employees = Employee.query.filter_by(is_active=True).all()
-
-    csv_data = []
-    for emp in employees:
-        csv_data.append([
-            emp.employee_id, emp.first_name, emp.last_name, emp.email,
-            emp.nric, emp.position, emp.department,
-            format_date(emp.hire_date), emp.employment_type,
-            emp.work_permit_type,
-            format_currency(emp.basic_salary)
+def generate_cpf_report(payrolls, month, year):
+    """Generate CPF submission report"""
+    import csv
+    from io import StringIO, BytesIO
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # CPF report headers
+    writer.writerow(['Employee ID', 'Employee Name', 'NRIC', 'Gross Salary', 
+                     'Employee CPF', 'Employer CPF', 'Total CPF'])
+    
+    for payroll in payrolls:
+        emp = payroll.employee
+        writer.writerow([
+            emp.employee_id,
+            f"{emp.first_name} {emp.last_name}",
+            emp.nric,
+            payroll.gross_pay,
+            payroll.employee_cpf,
+            payroll.employer_cpf,
+            payroll.employee_cpf + payroll.employer_cpf
         ])
+    
+    output.seek(0)
+    filename = f"CPF_Report_{year}_{month:02d}.csv"
+    
+    return send_file(
+        BytesIO(output.getvalue().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=filename
+    )
 
-    headers = [
-        'Employee ID', 'First Name', 'Last Name', 'Email', 'NRIC', 'Position',
-        'Department', 'Hire Date', 'Employment Type', 'Work Permit Type',
-        'Basic Salary'
-    ]
 
-    return e
+def generate_ais_report(payrolls, month, year):
+    """Generate AIS (Auto-Inclusion Scheme) report"""
+    import csv
+    from io import StringIO, BytesIO
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # AIS report headers
+    writer.writerow(['Employee ID', 'Employee Name', 'NRIC', 'Gross Income', 
+                     'Employee CPF', 'Employer CPF'])
+    
+    for payroll in payrolls:
+        emp = payroll.employee
+        writer.writerow([
+            emp.employee_id,
+            f"{emp.first_name} {emp.last_name}",
+            emp.nric,
+            payroll.gross_pay,
+            payroll.employee_cpf,
+            payroll.employer_cpf
+        ])
+    
+    output.seek(0)
+    filename = f"AIS_Report_{year}_{month:02d}.csv"
+    
+    return send_file(
+        BytesIO(output.getvalue().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+def generate_oed_report(payrolls, month, year):
+    """Generate OED (Occupational Employment Dataset) report"""
+    import csv
+    from io import StringIO, BytesIO
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # OED report headers
+    writer.writerow(['Employee ID', 'Employee Name', 'NRIC', 'Designation', 
+                     'Gross Salary', 'Employment Type'])
+    
+    for payroll in payrolls:
+        emp = payroll.employee
+        writer.writerow([
+            emp.employee_id,
+            f"{emp.first_name} {emp.last_name}",
+            emp.nric,
+            emp.position or 'N/A',
+            payroll.gross_pay,
+            emp.employment_type or 'Full-time'
+        ])
+    
+    output.seek(0)
+    filename = f"OED_Report_{year}_{month:02d}.csv"
+    
+    return send_file(
+        BytesIO(output.getvalue().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=filename
+    )

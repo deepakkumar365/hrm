@@ -110,8 +110,8 @@
                     <!-- Regular Admin/Manager/User Menus -->
                     {% if not is_super_admin %}
                     
-                    <!-- My Team - Visible only to User role -->
-                    {% if is_user %}
+                    <!-- My Team - Visible to Manager and User roles -->
+                    {% if is_manager or is_user %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('team_list') }}">
                             <i class="fas fa-users"></i>
@@ -246,6 +246,11 @@
                             <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
                                 <i class="fas fa-users"></i>
                                 All Employees
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('employee_bulk_upload') }}">
+                                <i class="fas fa-file-upload"></i>
+                                Employee Bulk Upload
                             </a></li>
                         </ul>
                     </li>

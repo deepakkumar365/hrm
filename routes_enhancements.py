@@ -92,105 +92,188 @@ def reports_menu():
 @require_role(['Super Admin', 'Admin', 'HR Manager'])
 def report_employee_history():
     """Employee History Report"""
-    employees = Employee.query.filter_by(is_active=True).order_by(Employee.hire_date.desc()).all()
+    try:
+        # Get current user's organization and company for tenant filtering
+        user_org = current_user.organization
+        if not user_org:
+            flash('No organization assigned to your account. Please contact administrator.', 'warning')
+            return render_template('reports/employee_history.html', employees=[])
+        
+        # Get company associated with this organization's tenant
+        company = None
+        if user_org.tenant_id:
+            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
+        
+        if not company:
+            flash('No company found for your organization. Please contact administrator.', 'warning')
+            return render_template('reports/employee_history.html', employees=[])
+        
+        # Filter employees by company
+        employees = Employee.query.filter_by(
+            company_id=company.id,
+            is_active=True
+        ).order_by(Employee.hire_date.desc()).all()
+        
+        # Export if requested
+        if request.args.get('export') == 'csv':
+            # Prepare data for CSV export
+            report_data = []
+            for emp in employees:
+                report_data.append({
+                    'employee_id': emp.employee_id,
+                    'name': f"{emp.first_name} {emp.last_name}",
+                    'email': emp.email,
+                    'position': emp.position,
+                    'department': emp.department,
+                    'hire_date': emp.hire_date,
+                    'exit_date': emp.termination_date,
+                    'manager': f"{emp.manager.first_name} {emp.manager.last_name}" if emp.manager else 'N/A',
+                    'status': 'Active' if emp.is_active else 'Inactive'
+                })
+            return export_employee_history_csv(report_data)
+        
+        # Pass actual Employee objects to template
+        return render_template('reports/employee_history.html', employees=employees)
     
-    report_data = []
-    for emp in employees:
-        report_data.append({
-            'employee_id': emp.employee_id,
-            'name': f"{emp.first_name} {emp.last_name}",
-            'email': emp.email,
-            'position': emp.position,
-            'department': emp.department,
-            'hire_date': emp.hire_date,
-            'exit_date': emp.termination_date,
-            'manager': f"{emp.manager.first_name} {emp.manager.last_name}" if emp.manager else 'N/A',
-            'status': 'Active' if emp.is_active else 'Inactive'
-        })
-    
-    # Export if requested
-    if request.args.get('export') == 'csv':
-        return export_employee_history_csv(report_data)
-    
-    return render_template('reports/employee_history.html', employees=report_data)
+    except Exception as e:
+        print(f"[ERROR] Employee History Report: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error loading employee history report: {str(e)}', 'error')
+        return render_template('reports/employee_history.html', employees=[])
 
 
 @app.route('/reports/payroll-configuration')
 @require_role(['Super Admin', 'Admin', 'HR Manager'])
 def report_payroll_configuration():
     """Payroll Configuration Report"""
-    configs = PayrollConfiguration.query.join(Employee).filter(Employee.is_active == True).all()
+    try:
+        # Get current user's organization and company for tenant filtering
+        user_org = current_user.organization
+        if not user_org:
+            flash('No organization assigned to your account. Please contact administrator.', 'warning')
+            return render_template('reports/payroll_configuration.html', configs=[])
+        
+        # Get company associated with this organization's tenant
+        company = None
+        if user_org.tenant_id:
+            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
+        
+        if not company:
+            flash('No company found for your organization. Please contact administrator.', 'warning')
+            return render_template('reports/payroll_configuration.html', configs=[])
+        
+        # Filter by company
+        configs = PayrollConfiguration.query.join(Employee).filter(
+            Employee.company_id == company.id,
+            Employee.is_active == True
+        ).all()
+        
+        report_data = []
+        for config in configs:
+            emp = config.employee
+            report_data.append({
+                'employee_id': emp.employee_id,
+                'name': f"{emp.first_name} {emp.last_name}",
+                'basic_salary': emp.basic_salary,
+                'allowance_1': f"{config.allowance_1_name}: {config.allowance_1_amount}",
+                'allowance_2': f"{config.allowance_2_name}: {config.allowance_2_amount}",
+                'allowance_3': f"{config.allowance_3_name}: {config.allowance_3_amount}",
+                'allowance_4': f"{config.allowance_4_name}: {config.allowance_4_amount}",
+                'employer_cpf': config.employer_cpf,
+                'employee_cpf': config.employee_cpf,
+                'net_salary': config.net_salary,
+                'ot_rate': config.ot_rate_per_hour,
+                'remarks': config.remarks
+            })
+        
+        # Export if requested
+        if request.args.get('export') == 'csv':
+            return export_payroll_config_csv(report_data)
+        
+        return render_template('reports/payroll_configuration.html', configs=report_data)
     
-    report_data = []
-    for config in configs:
-        emp = config.employee
-        report_data.append({
-            'employee_id': emp.employee_id,
-            'name': f"{emp.first_name} {emp.last_name}",
-            'basic_salary': emp.basic_salary,
-            'allowance_1': f"{config.allowance_1_name}: {config.allowance_1_amount}",
-            'allowance_2': f"{config.allowance_2_name}: {config.allowance_2_amount}",
-            'allowance_3': f"{config.allowance_3_name}: {config.allowance_3_amount}",
-            'allowance_4': f"{config.allowance_4_name}: {config.allowance_4_amount}",
-            'employer_cpf': config.employer_cpf,
-            'employee_cpf': config.employee_cpf,
-            'net_salary': config.net_salary,
-            'ot_rate': config.ot_rate_per_hour,
-            'remarks': config.remarks
-        })
-    
-    # Export if requested
-    if request.args.get('export') == 'csv':
-        return export_payroll_config_csv(report_data)
-    
-    return render_template('reports/payroll_configuration.html', configs=report_data)
+    except Exception as e:
+        print(f"[ERROR] Payroll Configuration Report: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error loading payroll configuration report: {str(e)}', 'error')
+        return render_template('reports/payroll_configuration.html', configs=[])
 
 
 @app.route('/reports/attendance')
 @require_role(['Super Admin', 'Admin', 'HR Manager'])
 def report_attendance():
     """Attendance Report"""
-    # Get date range from query params
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
+    try:
+        # Get current user's organization and company for tenant filtering
+        user_org = current_user.organization
+        if not user_org:
+            flash('No organization assigned to your account. Please contact administrator.', 'warning')
+            return render_template('reports/attendance.html', attendance=[], 
+                                 start_date=date.today(), end_date=date.today())
+        
+        # Get company associated with this organization's tenant
+        company = None
+        if user_org.tenant_id:
+            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
+        
+        if not company:
+            flash('No company found for your organization. Please contact administrator.', 'warning')
+            return render_template('reports/attendance.html', attendance=[], 
+                                 start_date=date.today(), end_date=date.today())
+        
+        # Get date range from query params
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        if not start_date or not end_date:
+            # Default to current month
+            today = date.today()
+            start_date = date(today.year, today.month, 1)
+            end_date = today
+        else:
+            start_date = parse_date(start_date)
+            end_date = parse_date(end_date)
+        
+        # Filter by company
+        attendance_records = Attendance.query.join(Employee).filter(
+            Employee.company_id == company.id,
+            Attendance.date.between(start_date, end_date),
+            Employee.is_active == True
+        ).order_by(Attendance.date.desc()).all()
+        
+        report_data = []
+        for record in attendance_records:
+            emp = record.employee
+            report_data.append({
+                'employee_id': emp.employee_id,
+                'name': f"{emp.first_name} {emp.last_name}",
+                'date': record.date,
+                'clock_in': record.clock_in,
+                'clock_out': record.clock_out,
+                'regular_hours': record.regular_hours,
+                'overtime_hours': record.overtime_hours,
+                'total_hours': record.total_hours,
+                'status': record.status
+            })
+        
+        # Export if requested
+        if request.args.get('export') == 'csv':
+            return export_attendance_csv(report_data)
+        
+        return render_template('reports/attendance.html', 
+                               attendance=report_data,
+                               start_date=start_date,
+                               end_date=end_date)
     
-    if not start_date or not end_date:
-        # Default to current month
-        today = date.today()
-        start_date = date(today.year, today.month, 1)
-        end_date = today
-    else:
-        start_date = parse_date(start_date)
-        end_date = parse_date(end_date)
-    
-    attendance_records = Attendance.query.join(Employee).filter(
-        Attendance.date.between(start_date, end_date),
-        Employee.is_active == True
-    ).order_by(Attendance.date.desc()).all()
-    
-    report_data = []
-    for record in attendance_records:
-        emp = record.employee
-        report_data.append({
-            'employee_id': emp.employee_id,
-            'name': f"{emp.first_name} {emp.last_name}",
-            'date': record.date,
-            'clock_in': record.clock_in,
-            'clock_out': record.clock_out,
-            'regular_hours': record.regular_hours,
-            'overtime_hours': record.overtime_hours,
-            'total_hours': record.total_hours,
-            'status': record.status
-        })
-    
-    # Export if requested
-    if request.args.get('export') == 'csv':
-        return export_attendance_csv(report_data)
-    
-    return render_template('reports/attendance.html', 
-                           attendance=report_data,
-                           start_date=start_date,
-                           end_date=end_date)
+    except Exception as e:
+        print(f"[ERROR] Attendance Report: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        flash(f'Error loading attendance report: {str(e)}', 'error')
+        return render_template('reports/attendance.html', attendance=[], 
+                             start_date=date.today(), end_date=date.today())
 
 
 # Export helper functions

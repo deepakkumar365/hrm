@@ -360,7 +360,7 @@
 .rating-group input[type="radio"]:checked ~ .rating-label,
 .rating-group .rating-label:hover,
 .rating-group .rating-label.active {
-    color: #ffc107;
+    color: #F4C542;
 }
 
 .rating-group input[type="radio"]:checked ~ .rating-label ~ .rating-label {
@@ -465,7 +465,7 @@ function updateRatingVisuals(group, rating, isHover = false) {
     const labels = group.querySelectorAll('.rating-label');
     labels.forEach((label, index) => {
         if (index < rating) {
-            label.style.color = '#ffc107';
+            label.style.color = '#F4C542';
         } else {
             label.style.color = '#ddd';
         }
@@ -495,7 +495,7 @@ function calculateOverallRating() {
         for (let i = 1; i <= 5; i++) {
             const star = document.createElement('i');
             star.className = 'fas fa-star';
-            star.style.color = i <= Math.round(average) ? '#ffc107' : '#ddd';
+            star.style.color = i <= Math.round(average) ? '#F4C542' : '#ddd';
             starsContainer.appendChild(star);
         }
         
