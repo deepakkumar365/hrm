@@ -1899,16 +1899,48 @@ def attendance_list():
     page = request.args.get('page', 1, type=int)
     date_filter = request.args.get('date', type=str)
     employee_filter = request.args.get('employee', type=int)
+    department_filter = request.args.get('department', type=str)
+    date_range_filter = request.args.get('date_range', type=str, default='today')
+    start_date = request.args.get('start_date', type=str)
+    end_date = request.args.get('end_date', type=str)
 
     query = Attendance.query.join(Employee)
 
-    if date_filter:
+    # Handle date range filtering
+    if date_range_filter == 'custom' and start_date and end_date:
+        start_date_obj = parse_date(start_date)
+        end_date_obj = parse_date(end_date)
+        if start_date_obj and end_date_obj:
+            query = query.filter(Attendance.date.between(start_date_obj, end_date_obj))
+    elif date_range_filter == 'today':
+        today = date.today()
+        query = query.filter(Attendance.date == today)
+    elif date_range_filter == 'week':
+        today = date.today()
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
+        query = query.filter(Attendance.date.between(week_start, week_end))
+    elif date_range_filter == 'month':
+        today = date.today()
+        month_start = date(today.year, today.month, 1)
+        if today.month == 12:
+            month_end = date(today.year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(today.year, today.month + 1, 1) - timedelta(days=1)
+        query = query.filter(Attendance.date.between(month_start, month_end))
+    elif date_filter:
+        # Legacy single date filter support
         filter_date = parse_date(date_filter)
         if filter_date:
             query = query.filter(Attendance.date == filter_date)
 
+    # Employee filter
     if employee_filter:
         query = query.filter(Attendance.employee_id == employee_filter)
+
+    # Department filter
+    if department_filter:
+        query = query.filter(Employee.department == department_filter)
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
@@ -1924,12 +1956,12 @@ def attendance_list():
                 Employee.manager_id == manager_id      # Team's attendance
             )
         )
-    elif (current_user.role.name if current_user.role else None) == 'Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        # Admin: Only their own attendance (as per requirement)
+    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Tenant Admin'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        # Admin/Tenant Admin: Only their own attendance (as per requirement)
         admin_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == admin_id)
-    elif (current_user.role.name if current_user.role else None) == 'Super Admin':
-        # Super Admin: Can see all attendance records
+    elif (current_user.role.name if current_user.role else None) in ['Super Admin', 'HR Manager']:
+        # Super Admin and HR Manager: Can see all attendance records
         pass
 
     attendance_records = query.order_by(Attendance.date.desc()).paginate(
@@ -1948,8 +1980,8 @@ def attendance_list():
 
     # Get employees for filter dropdown based on role
     employees = []
-    if (current_user.role.name if current_user.role else None) == 'Super Admin':
-        # Super Admin can filter by all employees
+    if (current_user.role.name if current_user.role else None) in ['Super Admin', 'HR Manager']:
+        # Super Admin and HR Manager can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
     elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
@@ -1962,11 +1994,25 @@ def attendance_list():
             )
         ).filter_by(is_active=True).order_by(Employee.first_name).all()
 
+    # Get unique departments for filter dropdown
+    departments = []
+    if (current_user.role.name if current_user.role else None) in ['Super Admin', 'HR Manager', 'Manager']:
+        departments = db.session.query(Employee.department).filter(
+            Employee.department.isnot(None),
+            Employee.is_active == True
+        ).distinct().order_by(Employee.department).all()
+        departments = [dept[0] for dept in departments if dept[0]]
+
     return render_template('attendance/list.html',
                            attendance_records=attendance_records,
                            employees=employees,
+                           departments=departments,
                            date_filter=date_filter,
                            employee_filter=employee_filter,
+                           department_filter=department_filter,
+                           date_range_filter=date_range_filter,
+                           start_date=start_date,
+                           end_date=end_date,
                            summary=summary)
 
 
@@ -2860,185 +2906,7 @@ def appraisal_create():
             flash(f'Error creating appraisal: {str(e)}', 'error')
 
     # Get employees for appraisal
-    employees = Employee.query.filter_by(is_active=True)
-    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                  'employee_profile'):
-        employees = employees.filter(
-            Employee.manager_id == current_user.employee_profile.id)
-    employees = employees.order_by(Employee.first_name).all()
+    employees = Employee.query.filter_by(is_active=True).order_by(
+        Employee.first_name).all()
 
     return render_template('appraisal/form.html', employees=employees)
-
-
-# Compliance and Reports
-@app.route('/compliance')
-@require_role(['Super Admin', 'Admin'])
-def compliance_dashboard():
-    """Compliance dashboard"""
-
-    # Get current month for defaults
-    current_month = datetime.now().month
-    current_year = datetime.now().year
-
-    # Recent compliance reports
-    recent_reports = ComplianceReport.query.order_by(
-        ComplianceReport.generated_at.desc()).limit(10).all()
-
-    # Upcoming deadlines (simplified)
-    deadlines = [{
-        'type':
-        'CPF Submission',
-        'date':
-        f"14/{current_month + 1 if current_month < 12 else 1}/{current_year if current_month < 12 else current_year + 1}"
-    }, {
-        'type': 'AIS Filing',
-        'date': f"31/03/{current_year + 1}"
-    }, {
-        'type':
-        'MOM OED',
-        'date':
-        f"15/{current_month + 1 if current_month < 12 else 1}/{current_year if current_month < 12 else current_year + 1}"
-    }]
-
-    return render_template('compliance/dashboard.html',
-                           recent_reports=recent_reports,
-                           deadlines=deadlines,
-                           current_month=current_month,
-                           current_year=current_year)
-
-
-@app.route('/compliance/generate/<report_type>')
-@require_role(['Super Admin', 'Admin'])
-def compliance_generate(report_type):
-    """Generate compliance reports"""
-    month = request.args.get('month', datetime.now().month, type=int)
-    year = request.args.get('year', datetime.now().year, type=int)
-
-    try:
-        # Get payroll records for the period
-        payrolls = Payroll.query.filter(
-            extract('month', Payroll.pay_period_end) == month,
-            extract('year', Payroll.pay_period_end) == year,
-            Payroll.status == 'Approved').all()
-
-        if not payrolls:
-            flash('No approved payroll records found for the selected period', 'warning')
-            return redirect(url_for('compliance_dashboard'))
-
-        # Generate report based on type
-        if report_type == 'cpf':
-            return generate_cpf_report(payrolls, month, year)
-        elif report_type == 'ais':
-            return generate_ais_report(payrolls, month, year)
-        elif report_type == 'oed':
-            return generate_oed_report(payrolls, month, year)
-        else:
-            flash('Invalid report type', 'error')
-            return redirect(url_for('compliance_dashboard'))
-
-    except Exception as e:
-        flash(f'Error generating report: {str(e)}', 'error')
-        return redirect(url_for('compliance_dashboard'))
-
-
-def generate_cpf_report(payrolls, month, year):
-    """Generate CPF submission report"""
-    import csv
-    from io import StringIO, BytesIO
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    
-    # CPF report headers
-    writer.writerow(['Employee ID', 'Employee Name', 'NRIC', 'Gross Salary', 
-                     'Employee CPF', 'Employer CPF', 'Total CPF'])
-    
-    for payroll in payrolls:
-        emp = payroll.employee
-        writer.writerow([
-            emp.employee_id,
-            f"{emp.first_name} {emp.last_name}",
-            emp.nric,
-            payroll.gross_pay,
-            payroll.employee_cpf,
-            payroll.employer_cpf,
-            payroll.employee_cpf + payroll.employer_cpf
-        ])
-    
-    output.seek(0)
-    filename = f"CPF_Report_{year}_{month:02d}.csv"
-    
-    return send_file(
-        BytesIO(output.getvalue().encode('utf-8')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name=filename
-    )
-
-
-def generate_ais_report(payrolls, month, year):
-    """Generate AIS (Auto-Inclusion Scheme) report"""
-    import csv
-    from io import StringIO, BytesIO
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    
-    # AIS report headers
-    writer.writerow(['Employee ID', 'Employee Name', 'NRIC', 'Gross Income', 
-                     'Employee CPF', 'Employer CPF'])
-    
-    for payroll in payrolls:
-        emp = payroll.employee
-        writer.writerow([
-            emp.employee_id,
-            f"{emp.first_name} {emp.last_name}",
-            emp.nric,
-            payroll.gross_pay,
-            payroll.employee_cpf,
-            payroll.employer_cpf
-        ])
-    
-    output.seek(0)
-    filename = f"AIS_Report_{year}_{month:02d}.csv"
-    
-    return send_file(
-        BytesIO(output.getvalue().encode('utf-8')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name=filename
-    )
-
-
-def generate_oed_report(payrolls, month, year):
-    """Generate OED (Occupational Employment Dataset) report"""
-    import csv
-    from io import StringIO, BytesIO
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    
-    # OED report headers
-    writer.writerow(['Employee ID', 'Employee Name', 'NRIC', 'Designation', 
-                     'Gross Salary', 'Employment Type'])
-    
-    for payroll in payrolls:
-        emp = payroll.employee
-        writer.writerow([
-            emp.employee_id,
-            f"{emp.first_name} {emp.last_name}",
-            emp.nric,
-            emp.position or 'N/A',
-            payroll.gross_pay,
-            emp.employment_type or 'Full-time'
-        ])
-    
-    output.seek(0)
-    filename = f"OED_Report_{year}_{month:02d}.csv"
-    
-    return send_file(
-        BytesIO(output.getvalue().encode('utf-8')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name=filename
-    )

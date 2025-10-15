@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <form method="POST" class="leave-request-form needs-validation" novalidate>
+    <form method="POST" enctype="multipart/form-data" class="leave-request-form needs-validation" novalidate>
         <div class="leave-form-compact">
             <!-- Section 1: Leave Details & Period (Side by Side) -->
             <div class="card mb-3">
@@ -107,7 +107,14 @@
                             <h6 class="mb-3"><i class="fas fa-file-alt me-2"></i>Reason & Documentation</h6>
                             <div class="mb-2">
                                 <label for="reason" class="form-label small">Reason for Leave</label>
-                                <textarea class="form-control form-control-sm" id="reason" name="reason" rows="3" placeholder="Brief context">{{ form_data.get('reason') if form_data else (leave.reason if leave else '') }}</textarea>
+                                <textarea class="form-control form-control-sm" id="reason" name="reason" rows="2" placeholder="Brief context">{{ form_data.get('reason') if form_data else (leave.reason if leave else '') }}</textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label for="attachment" class="form-label small">
+                                    <i class="fas fa-paperclip me-1"></i>Attach Document (Optional)
+                                </label>
+                                <input type="file" class="form-control form-control-sm" id="attachment" name="attachment" accept=".pdf,.jpg,.jpeg,.png">
+                                <small class="form-text text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
                             </div>
                             <div class="alert alert-warning py-2 px-3 mb-0">
                                 <small><i class="fas fa-info-circle me-1"></i><strong>Guidelines:</strong> Annual leave: 2 weeks advance. Medical leave >3 days: MC required.</small>

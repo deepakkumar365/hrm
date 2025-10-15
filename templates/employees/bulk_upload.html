@@ -3,50 +3,39 @@
 {% block title %}Employee Bulk Upload - Noltrion{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid" style="max-height: calc(100vh - 120px); overflow-y: auto;">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h3>
+            <h3 class="mb-1">
                 <i class="fas fa-file-upload me-2"></i>Employee Bulk Upload
             </h3>
-            <p class="text-muted mb-0">Upload multiple employees using Excel template</p>
+            <p class="text-muted mb-0 small">Upload multiple employees using Excel template</p>
         </div>
-        <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-arrow-left me-1"></i>Back to Employee List
         </a>
     </div>
 
-    <!-- Instructions Card -->
-    <div class="row mb-4">
-        <div class="col-lg-8 mx-auto">
+    <!-- Instructions Card - Compact -->
+    <div class="row mb-3">
+        <div class="col-lg-10 mx-auto">
             <div class="card border-info">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
+                <div class="card-header bg-info text-white py-2">
+                    <h6 class="mb-0">
                         <i class="fas fa-info-circle me-2"></i>How to Use Bulk Upload
-                    </h5>
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <ol class="mb-0">
-                        <li class="mb-2">
-                            <strong>Download Template:</strong> Click the "Download Template" button below to get the Excel template with all required fields.
+                <div class="card-body py-2">
+                    <ol class="mb-0 small">
+                        <li class="mb-1">
+                            <strong>Download Template:</strong> Click "Download Template" to get the Excel template.
                         </li>
-                        <li class="mb-2">
-                            <strong>Fill Employee Data:</strong> Open the template and fill in employee information starting from row 3.
-                            <ul class="mt-1">
-                                <li>Fields marked with <span class="badge bg-warning text-dark">*</span> are mandatory</li>
-                                <li>Mandatory fields are highlighted in <span style="background-color: #FFE699; padding: 2px 6px;">YELLOW</span></li>
-                                <li>Follow the format specified in row 2 (descriptions)</li>
-                            </ul>
+                        <li class="mb-1">
+                            <strong>Fill Data:</strong> Fill employee information from row 3. Fields with <span class="badge bg-warning text-dark">*</span> are mandatory.
                         </li>
-                        <li class="mb-2">
-                            <strong>Save the File:</strong> Save your Excel file after filling in the data.
-                        </li>
-                        <li class="mb-2">
-                            <strong>Upload:</strong> Click "Upload Excel" button and select your filled template.
-                        </li>
-                        <li class="mb-0">
-                            <strong>Review Results:</strong> The system will process the file and show you the results.
+                        <li class="mb-1">
+                            <strong>Upload:</strong> Click "Upload Excel" and select your filled template.
                         </li>
                     </ol>
                 </div>
@@ -54,26 +43,20 @@
         </div>
     </div>
 
-    <!-- Action Cards -->
-    <div class="row">
+    <!-- Action Cards - Compact -->
+    <div class="row mb-3">
         <!-- Download Template Card -->
-        <div class="col-md-6 mb-4">
+        <div class="col-md-6 mb-3">
             <div class="card h-100 shadow-sm">
-                <div class="card-body text-center p-5">
-                    <div class="mb-4">
-                        <i class="fas fa-download fa-4x text-success"></i>
+                <div class="card-body text-center p-3">
+                    <div class="mb-2">
+                        <i class="fas fa-download fa-3x text-success"></i>
                     </div>
-                    <h4 class="card-title mb-3">Step 1: Download Template</h4>
-                    <p class="card-text text-muted mb-4">
-                        Download the Excel template with all employee fields. The template includes:
+                    <h5 class="card-title mb-2">Step 1: Download Template</h5>
+                    <p class="card-text text-muted mb-3 small">
+                        Excel template with all employee fields, descriptions, and sample data.
                     </p>
-                    <ul class="text-start mb-4">
-                        <li>All employee master fields</li>
-                        <li>Field descriptions and formats</li>
-                        <li>Sample data row</li>
-                        <li>Detailed instructions</li>
-                    </ul>
-                    <a href="{{ url_for('download_employee_template') }}" class="btn btn-success btn-lg">
+                    <a href="{{ url_for('download_employee_template') }}" class="btn btn-success">
                         <i class="fas fa-file-excel me-2"></i>Download Template
                     </a>
                 </div>
@@ -81,24 +64,24 @@
         </div>
 
         <!-- Upload Excel Card -->
-        <div class="col-md-6 mb-4">
+        <div class="col-md-6 mb-3">
             <div class="card h-100 shadow-sm">
-                <div class="card-body text-center p-5">
-                    <div class="mb-4">
-                        <i class="fas fa-upload fa-4x text-primary"></i>
+                <div class="card-body text-center p-3">
+                    <div class="mb-2">
+                        <i class="fas fa-upload fa-3x text-primary"></i>
                     </div>
-                    <h4 class="card-title mb-3">Step 2: Upload Excel</h4>
-                    <p class="card-text text-muted mb-4">
-                        Upload your filled Excel template to import employees into the system.
+                    <h5 class="card-title mb-2">Step 2: Upload Excel</h5>
+                    <p class="card-text text-muted mb-3 small">
+                        Upload your filled Excel template to import employees.
                     </p>
                     
                     <form method="POST" action="{{ url_for('upload_employee_excel') }}" enctype="multipart/form-data" id="uploadForm">
-                        <div class="mb-4">
-                            <input type="file" class="form-control" id="excel_file" name="excel_file" 
+                        <div class="mb-2">
+                            <input type="file" class="form-control form-control-sm" id="excel_file" name="excel_file" 
                                    accept=".xlsx,.xls" required>
-                            <small class="form-text text-muted">Accepted formats: .xlsx, .xls</small>
+                            <small class="form-text text-muted">Formats: .xlsx, .xls</small>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                        <button type="submit" class="btn btn-primary" id="uploadBtn">
                             <i class="fas fa-cloud-upload-alt me-2"></i>Upload Excel
                         </button>
                     </form>
@@ -107,39 +90,32 @@
         </div>
     </div>
 
-    <!-- Important Notes Card -->
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
+    <!-- Important Notes Card - Compact -->
+    <div class="row mb-3">
+        <div class="col-lg-10 mx-auto">
             <div class="card border-warning">
-                <div class="card-header bg-warning">
-                    <h5 class="mb-0">
+                <div class="card-header bg-warning py-2">
+                    <h6 class="mb-0">
                         <i class="fas fa-exclamation-triangle me-2"></i>Important Notes
-                    </h5>
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <ul class="mb-0">
-                        <li class="mb-2">
-                            <strong>Unique Fields:</strong> Employee ID, Email, and NRIC must be unique. Duplicate values will be rejected.
-                        </li>
-                        <li class="mb-2">
-                            <strong>Date Format:</strong> All dates must be in YYYY-MM-DD format (e.g., 2024-01-15).
-                        </li>
-                        <li class="mb-2">
-                            <strong>Company Code:</strong> Must match an existing company code in the system.
-                        </li>
-                        <li class="mb-2">
-                            <strong>User Role:</strong> Must be one of: Super Admin, Admin, HR Manager, Manager, or User.
-                        </li>
-                        <li class="mb-2">
-                            <strong>Default Password:</strong> All new employees will be assigned the default password and must reset it on first login.
-                        </li>
-                        <li class="mb-2">
-                            <strong>Profile Images:</strong> Profile images cannot be uploaded via bulk upload. They must be added individually after employee creation.
-                        </li>
-                        <li class="mb-0">
-                            <strong>Validation:</strong> The system will validate all data before creating employees. Invalid rows will be skipped with error messages.
-                        </li>
-                    </ul>
+                <div class="card-body py-2">
+                    <div class="row small">
+                        <div class="col-md-6">
+                            <ul class="mb-0">
+                                <li class="mb-1"><strong>Unique Fields:</strong> Employee ID, Email, NRIC must be unique.</li>
+                                <li class="mb-1"><strong>Date Format:</strong> YYYY-MM-DD (e.g., 2024-01-15).</li>
+                                <li class="mb-1"><strong>Company Code:</strong> Must exist in system.</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="mb-0">
+                                <li class="mb-1"><strong>User Role:</strong> Super Admin/Admin/HR Manager/Manager/User.</li>
+                                <li class="mb-1"><strong>Default Password:</strong> Assigned on creation, must reset on first login.</li>
+                                <li class="mb-1"><strong>Validation:</strong> Invalid rows skipped with error messages.</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
