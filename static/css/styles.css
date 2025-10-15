@@ -2,67 +2,57 @@
 
 /* ===== CSS RESET & GLOBAL VARIABLES ===== */
 :root {
-    /* Pastel Professional Color Palette - Payroll Inspired */
-    --primary-color: #6C8F91;           /* Teal - Primary actions, headers */
-    --primary-dark: #5A7678;            /* Darker teal for hover states */
-    --primary-light: #7BA6AA;           /* Lighter teal for navbar */
-    --secondary-color: #A5C2C4;         /* Light teal - Secondary elements */
-    --accent-color: #C7E3E6;            /* Very light teal - Accents, footer */
-    --highlight-color: #8A4F24;         /* Brown - Important highlights, headers */
-    
-    /* Background Colors */
-    --background-main: #FBEFF1;         /* Soft blush pink - Main background */
-    --background-card: #FFFFFF;         /* White - Card backgrounds */
-    --background-hover: #F5E6E8;        /* Slightly darker blush for hover */
+    /* Modern Teal Color Palette */
+    --primary: #008080;           /* Teal - Primary actions, headers */
+    --secondary: #66b2b2;         /* Lighter teal for navbar and secondary elements */
+    --accent: #004d4d;            /* Darker teal for hover and accent states */
+    --background: #ffffff;        /* White background */
+    --background-card: #ffffff;   /* White for card backgrounds */
     
     /* Text Colors */
-    --text-primary: #4A4A4A;            /* Dark grey - Primary text */
-    --text-secondary: #6B6B6B;          /* Medium grey - Secondary text */
-    --text-light: #8A8A8A;              /* Light grey - Tertiary text */
-    --text-white: #FFFFFF;              /* White text for dark backgrounds */
+    --text-primary: #1a1a1a;        /* Dark grey for primary text */
+    --text-secondary: #5f5f5f;      /* Medium grey for secondary text */
+    --text-white: #FFFFFF;          /* White text for dark backgrounds */
+    
+    /* RGB values for use in rgba() */
+    --primary-rgb: 0, 128, 128;
+    --secondary-rgb: 102, 178, 178;
+    --accent-rgb: 0, 77, 77;
     
     /* Border Colors */
-    --border-light: #A5C2C4;            /* Light teal borders */
-    --border-medium: #8AABAD;           /* Medium teal borders */
-    --border-dark: #6C8F91;             /* Dark teal borders */
+    --border-color: rgba(var(--primary-rgb), 0.15);
+    --border-color-medium: rgba(var(--primary-rgb), 0.3);
     
-    /* Semantic Colors - Adjusted for pastel theme */
+    /* Semantic Colors */
     --white: #FFFFFF;
     --black: #000000;
-    --danger: #D97979;                  /* Softer red */
-    --warning: #E8B563;                 /* Softer orange */
-    --info: #7BA6D9;                    /* Softer blue */
-    --success: #8BC4A8;                 /* Softer green */
+    --danger: #e53e3e;
+    --warning: #dd6b20;
+    --info: #3182ce;
+    --success: #38a169;
     
-    /* Legacy compatibility - map old colors to new */
-    --primary-green: #6C8F91;
-    --primary-green-dark: #5A7678;
-    --primary-green-light: #7BA6AA;
-    --accent-green: #A5C2C4;
-    --success-green: #8BC4A8;
+    /* Neutral Greys */
+    --grey-50: #f7fafc;
+    --grey-100: #edf2f7;
+    --grey-200: #e2e8f0;
+    --grey-300: #cbd5e0;
+    --grey-400: #a0aec0;
+    --grey-500: #718096;
+    --grey-600: #4a5568;
+    --grey-700: #2d3748;
+    --grey-800: #1a202c;
+    --grey-900: #171923;
     
-    /* Neutral Greys - Adjusted for softer look */
-    --grey-50: #FBEFF1;
-    --grey-100: #F5E6E8;
-    --grey-200: #E8D5D8;
-    --grey-300: #D0B8BC;
-    --grey-400: #A89A9D;
-    --grey-500: #8A8A8A;
-    --grey-600: #6B6B6B;
-    --grey-700: #4A4A4A;
-    --grey-800: #3A3A3A;
-    --grey-900: #2A2A2A;
-    
-    /* Typography - Industry standard sizes (Workday, BambooHR, SAP SuccessFactors) */
+    /* Typography */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-    --font-size-xs: 0.75rem;    /* 12px - Small labels, captions */
-    --font-size-sm: 0.875rem;   /* 14px - Secondary text, table data */
-    --font-size-base: 1rem;     /* 16px - Body text (industry standard) */
-    --font-size-lg: 1.125rem;   /* 18px - Emphasized text */
-    --font-size-xl: 1.25rem;    /* 20px - Small headings */
-    --font-size-2xl: 1.5rem;    /* 24px - Section headings */
-    --font-size-3xl: 1.875rem;  /* 30px - Page headings */
-    --font-size-4xl: 2.25rem;   /* 36px - Main titles */
+    --font-size-xs: 0.75rem;    /* 12px */
+    --font-size-sm: 0.875rem;   /* 14px */
+    --font-size-base: 1rem;     /* 16px */
+    --font-size-lg: 1.125rem;   /* 18px */
+    --font-size-xl: 1.25rem;    /* 20px */
+    --font-size-2xl: 1.5rem;    /* 24px */
+    --font-size-3xl: 1.875rem;  /* 30px */
+    --font-size-4xl: 2.25rem;   /* 36px */
     
     --font-weight-normal: 400;
     --font-weight-medium: 500;
@@ -113,7 +103,7 @@
 }
 
 html {
-    font-size: 16px; /* Industry standard base size (Workday, BambooHR, SAP) */
+    font-size: 16px;
     line-height: 1.5;
     -webkit-text-size-adjust: 100%;
     -moz-tab-size: 4;
@@ -126,7 +116,7 @@ body {
     font-weight: var(--font-weight-normal);
     line-height: 1.6;
     color: var(--text-primary);
-    background-color: var(--background-main);
+    background-color: var(--background);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -136,7 +126,7 @@ h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-family);
     font-weight: var(--font-weight-semibold);
     line-height: 1.25;
-    color: var(--highlight-color);
+    color: var(--accent);
     margin: 0;
 }
 
@@ -153,13 +143,13 @@ p {
 }
 
 a {
-    color: var(--primary-green);
+    color: var(--primary);
     text-decoration: none;
     transition: color var(--transition-fast);
 }
 
 a:hover {
-    color: var(--primary-green-dark);
+    color: var(--accent);
 }
 
 /* ===== LAYOUT CONTAINERS ===== */
@@ -178,7 +168,7 @@ a:hover {
 
 /* ===== HEADER & NAVIGATION ===== */
 .navbar {
-    background: var(--primary-light) !important;
+    background: var(--primary) !important;
     height: var(--header-height);
     padding: 0;
     box-shadow: var(--shadow-md);
@@ -199,7 +189,7 @@ a:hover {
 
 .navbar-brand {
     font-family: var(--font-family);
-    font-size: 1.25rem; /* 20px - Standard brand size */
+    font-size: 1.25rem; /* 20px */
     font-weight: var(--font-weight-bold);
     color: var(--white) !important;
     text-decoration: none;
@@ -215,7 +205,7 @@ a:hover {
 }
 
 .navbar-brand i {
-    font-size: 1.25rem; /* 20px - Match brand text */
+    font-size: 1.25rem; /* 20px */
     color: var(--white);
 }
 
@@ -235,7 +225,7 @@ a:hover {
 
 .navbar-nav .nav-link {
     font-family: var(--font-family);
-    font-size: 0.875rem; /* 14px - Standard navigation size */
+    font-size: 0.875rem; /* 14px */
     font-weight: var(--font-weight-medium);
     color: var(--white) !important;
     padding: var(--spacing-2) var(--spacing-4);
@@ -263,7 +253,7 @@ a:hover {
 /* Dropdown Menus */
 .navbar-nav .dropdown-menu {
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
     padding: var(--spacing-2);
@@ -275,8 +265,8 @@ a:hover {
 .navbar-nav .dropdown-item {
     font-family: var(--font-family);
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-normal);
-    color: var(--grey-700) !important;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary) !important;
     padding: var(--spacing-2) var(--spacing-3);
     border-radius: var(--radius-sm);
     transition: all var(--transition-fast);
@@ -289,18 +279,18 @@ a:hover {
 .navbar-nav .dropdown-item:hover,
 .navbar-nav .dropdown-item:focus {
     background-color: var(--grey-100);
-    color: var(--primary-green) !important;
+    color: var(--primary) !important;
 }
 
 .navbar-nav .dropdown-item i {
     font-size: var(--font-size-sm);
-    color: var(--grey-500);
+    color: var(--grey-400);
     width: 16px;
     text-align: center;
 }
 
 .navbar-nav .dropdown-item:hover i {
-    color: var(--primary-green);
+    color: var(--primary);
 }
 
 /* Profile Dropdown */
@@ -322,9 +312,8 @@ a:hover {
     border-radius: var(--radius-full);
 }
 
-/* Profile name display - increased font size */
 .navbar-nav .nav-link.dropdown-toggle {
-    font-size: 0.875rem; /* 14px - Standard navigation size */
+    font-size: 0.875rem; /* 14px */
 }
 
 /* Mobile Navigation Toggle */
@@ -347,19 +336,16 @@ a:hover {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
-/* --- Mobile Navbar Fixes for iOS and Cross-Device Consistency --- */
-
-/* Solid background for navbar (all views) */
+/* --- Mobile Navbar Fixes --- */
 .navbar {
-    background-color: var(--primary-light) !important;
+    background-color: var(--primary) !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-bottom: 1px solid var(--border-medium);
+    border-bottom: 1px solid var(--accent);
 }
 
-/* Ensure collapsed mobile menu has solid background and shadow */
 @media (max-width: 991.98px) {
     .navbar-collapse {
-        background-color: var(--primary-light) !important;
+        background-color: var(--primary) !important;
         box-shadow: 0 4px 16px rgba(0,0,0,0.12);
         border-radius: 0 0 12px 12px;
     }
@@ -368,56 +354,29 @@ a:hover {
         color: var(--text-white) !important;
     }
     .navbar-nav .dropdown-menu {
-        background: var(--primary-light) !important;
+        background: var(--secondary) !important;
         color: var(--text-white) !important;
         box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-        border: 1px solid var(--border-medium) !important;
+        border: 1px solid var(--accent) !important;
     }
 }
 
-/* Hamburger icon contrast */
 .navbar-toggler {
     border-color: var(--text-white) !important;
 }
-.navbar-toggler-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,1)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-}
 
-/* Responsive: keep desktop menu unchanged */
 @media (min-width: 992px) {
     .navbar {
-        background-color: var(--primary-light) !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        background-color: var(--primary) !important;
     }
     .navbar-nav .dropdown-menu {
         background: var(--background-card) !important;
         color: var(--text-primary) !important;
         box-shadow: var(--shadow-xl);
-        border: 1px solid var(--border-light);
+        border: 1px solid var(--border-color);
     }
 }
 
-/* iOS Safari dark mode fix */
-@media (prefers-color-scheme: dark) {
-    .navbar,
-    .navbar-collapse,
-    .navbar-nav .dropdown-menu {
-        background-color: var(--primary-light) !important;
-        color: var(--text-white) !important;
-    }
-    .navbar-nav .nav-link,
-    .navbar-nav .dropdown-item {
-        color: var(--text-white) !important;
-    }
-    .navbar-toggler {
-        border-color: var(--text-white) !important;
-    }
-    .navbar-toggler-icon {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255,255,255,1)' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-    }
-}
-
-/* Slight shadow for mobile menu for better visibility */
 .navbar-collapse {
     box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
@@ -426,7 +385,7 @@ a:hover {
 .page-container {
     margin-top: var(--header-height);
     min-height: calc(100vh - var(--header-height));
-    background: var(--background-main);
+    background: var(--background);
 }
 
 /* ===== DASHBOARD LAYOUT ===== */
@@ -443,7 +402,7 @@ a:hover {
 .dashboard-title {
     font-size: var(--font-size-3xl);
     font-weight: var(--font-weight-bold);
-    color: var(--highlight-color);
+    color: var(--accent);
     margin-bottom: var(--spacing-2);
 }
 
@@ -452,7 +411,6 @@ a:hover {
     color: var(--text-secondary);
 }
 
-/* Dashboard Grid System */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -473,7 +431,7 @@ a:hover {
 /* ===== CARDS ===== */
 .card {
     background: var(--background-card);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-sm);
     transition: box-shadow var(--transition-base);
@@ -486,14 +444,14 @@ a:hover {
 
 .card-header {
     background: var(--background-card);
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-color);
     padding: var(--spacing-6);
 }
 
 .card-title {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
-    color: var(--highlight-color);
+    color: var(--accent);
     margin: 0;
 }
 
@@ -501,10 +459,9 @@ a:hover {
     padding: var(--spacing-6);
 }
 
-/* Stat Cards */
 .stat-card {
     background: var(--background-card);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     padding: var(--spacing-6);
     box-shadow: var(--shadow-sm);
@@ -528,29 +485,29 @@ a:hover {
 }
 
 .stat-card-icon.primary {
-    background: rgba(108, 143, 145, 0.15);
-    color: var(--primary-color);
+    background: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary);
 }
 
 .stat-card-icon.success {
-    background: rgba(139, 196, 168, 0.15);
+    background: rgba(56, 161, 105, 0.1);
     color: var(--success);
 }
 
 .stat-card-icon.warning {
-    background: rgba(232, 181, 99, 0.15);
+    background: rgba(221, 107, 32, 0.1);
     color: var(--warning);
 }
 
 .stat-card-icon.danger {
-    background: rgba(217, 121, 121, 0.15);
+    background: rgba(229, 62, 62, 0.1);
     color: var(--danger);
 }
 
 .stat-card-value {
     font-size: var(--font-size-3xl);
     font-weight: var(--font-weight-bold);
-    color: var(--highlight-color);
+    color: var(--accent);
     margin-bottom: var(--spacing-1);
 }
 
@@ -576,10 +533,9 @@ a:hover {
     color: var(--danger);
 }
 
-/* Chart Cards */
 .chart-card {
     background: var(--background-card);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     padding: var(--spacing-6);
     box-shadow: var(--shadow-sm);
@@ -587,7 +543,7 @@ a:hover {
 
 .chart-card-header {
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: var(--spacing-6);
 }
@@ -595,7 +551,7 @@ a:hover {
 .chart-card-title {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
-    color: var(--highlight-color);
+    color: var(--accent);
 }
 
 .chart-container {
@@ -608,7 +564,7 @@ a:hover {
 .btn {
     font-family: var(--font-family);
     font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-semibold);
     line-height: 1.5;
     padding: var(--spacing-2) var(--spacing-4);
     border-radius: var(--radius-md);
@@ -623,74 +579,69 @@ a:hover {
     white-space: nowrap;
 }
 
-/* Dashboard action buttons - increased by 15% */
-.dashboard-header .btn {
-    font-size: 0.92rem; /* 15% increase from 0.8rem (var(--font-size-sm)) */
-}
-
 .btn:focus {
-    outline: 2px solid var(--primary-color);
+    outline: 2px solid var(--secondary);
     outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(var(--secondary-rgb), 0.25);
 }
 
 .btn-primary {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+    background: var(--primary);
+    border-color: var(--primary);
     color: var(--text-white);
 }
 
 .btn-primary:hover {
-    background: var(--highlight-color);
-    border-color: var(--highlight-color);
+    background: var(--accent);
+    border-color: var(--accent);
     color: var(--text-white);
 }
 
 .btn-secondary {
-    background: var(--accent-color);
-    border-color: var(--accent-color);
-    color: var(--text-primary);
+    background: var(--secondary);
+    border-color: var(--secondary);
+    color: var(--text-white);
 }
 
 .btn-secondary:hover {
-    background: var(--secondary-color);
-    border-color: var(--secondary-color);
-    color: var(--text-primary);
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--text-white);
 }
 
 .btn-outline-primary {
     background: transparent;
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .btn-outline-primary:hover {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
+    background: var(--primary);
+    border-color: var(--primary);
     color: var(--text-white);
 }
 
 .btn-outline-secondary {
     background: transparent;
-    border-color: var(--border-light);
-    color: var(--text-primary);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
 }
 
 .btn-outline-secondary:hover {
-    background: var(--background-hover);
-    border-color: var(--border-medium);
+    background: var(--grey-100);
+    border-color: var(--border-color-medium);
     color: var(--text-primary);
 }
 
 .btn-light {
     background: var(--background-card);
-    border-color: var(--border-light);
+    border-color: var(--border-color);
     color: var(--text-primary);
 }
 
 .btn-light:hover {
-    background: var(--background-hover);
-    border-color: var(--border-medium);
-    color: var(--text-primary);
+    background: var(--grey-100);
+    border-color: var(--border-color-medium);
 }
 
 .btn-sm {
@@ -721,7 +672,7 @@ a:hover {
     line-height: 1.5;
     color: var(--text-primary);
     background: var(--background-card);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: var(--spacing-2) var(--spacing-3);
     transition: all var(--transition-fast);
@@ -731,12 +682,13 @@ a:hover {
 .form-control:focus,
 .form-select:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(108, 143, 145, 0.15);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
 }
 
 .form-control::placeholder {
-    color: var(--text-light);
+    color: var(--text-secondary);
+    opacity: 0.7;
 }
 
 /* ===== TABLES ===== */
@@ -750,17 +702,17 @@ a:hover {
 .table td {
     padding: var(--spacing-3) var(--spacing-4);
     text-align: left;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .table th {
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
-    background: var(--secondary-color);
+    background: var(--grey-50);
 }
 
 .table tbody tr:hover {
-    background: var(--background-hover);
+    background: rgba(var(--primary-rgb), 0.04);
 }
 
 /* ===== BADGES ===== */
@@ -775,7 +727,7 @@ a:hover {
 }
 
 .badge.bg-primary {
-    background: var(--primary-color);
+    background: var(--primary);
     color: var(--text-white);
 }
 
@@ -795,8 +747,8 @@ a:hover {
 }
 
 .badge.bg-secondary {
-    background: var(--secondary-color);
-    color: var(--text-primary);
+    background: var(--secondary);
+    color: var(--accent);
 }
 
 /* ===== ALERTS ===== */
@@ -808,25 +760,25 @@ a:hover {
 }
 
 .alert-success {
-    background: rgba(139, 196, 168, 0.15);
+    background: rgba(56, 161, 105, 0.1);
     border-color: var(--success);
     color: var(--text-primary);
 }
 
 .alert-warning {
-    background: rgba(232, 181, 99, 0.15);
+    background: rgba(221, 107, 32, 0.1);
     border-color: var(--warning);
     color: var(--text-primary);
 }
 
 .alert-danger {
-    background: rgba(217, 121, 121, 0.15);
+    background: rgba(229, 62, 62, 0.1);
     border-color: var(--danger);
     color: var(--text-primary);
 }
 
 .alert-info {
-    background: rgba(123, 166, 217, 0.15);
+    background: rgba(49, 130, 206, 0.1);
     border-color: var(--info);
     color: var(--text-primary);
 }
@@ -886,7 +838,6 @@ a:hover {
 
 /* ===== RESPONSIVE DESIGN ===== */
 
-/* Tablet */
 @media (max-width: 1024px) {
     .dashboard-grid {
         grid-template-columns: repeat(8, 1fr);
@@ -902,7 +853,6 @@ a:hover {
     }
 }
 
-/* Mobile */
 @media (max-width: 768px) {
     :root {
         --header-height: 3.5rem; /* 56px */
@@ -949,7 +899,7 @@ a:hover {
         float: none !important;
         width: 100% !important;
         margin: 0 !important;
-        background: var(--grey-100) !important;
+        background: var(--secondary) !important;
         border: none !important;
         border-radius: 0 !important;
         box-shadow: none !important;
@@ -966,7 +916,6 @@ a:hover {
     }
 }
 
-/* Small Mobile */
 @media (max-width: 480px) {
     .container,
     .container-fluid {
@@ -999,7 +948,7 @@ a:hover {
     width: 56px;
     height: 56px;
     border-radius: var(--radius-full);
-    background: var(--primary-color);
+    background: var(--primary);
     color: var(--text-white);
     border: none;
     box-shadow: var(--shadow-lg);
@@ -1013,7 +962,7 @@ a:hover {
 }
 
 .fab:hover {
-    background: var(--highlight-color);
+    background: var(--accent);
     transform: scale(1.05);
 }
 
@@ -1036,7 +985,7 @@ a:hover {
 .section-title {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
-    color: var(--highlight-color);
+    color: var(--accent);
     margin: 0;
 }
 
@@ -1055,7 +1004,7 @@ a:hover {
 
 .section-card {
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     padding: var(--spacing-6);
     margin-bottom: var(--spacing-6);
@@ -1066,7 +1015,7 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--grey-100);
+    background: var(--grey-50);
     border-radius: var(--radius-lg);
     padding: var(--spacing-4);
     margin-top: var(--spacing-4);
@@ -1083,14 +1032,14 @@ a:hover {
 .leave-timeline .item span {
     display: block;
     font-size: var(--font-size-sm);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     margin-bottom: var(--spacing-1);
 }
 
 .leave-timeline .item strong {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
-    color: var(--primary-green);
+    color: var(--primary);
 }
 
 /* ===== PROGRESS BARS ===== */
@@ -1104,7 +1053,7 @@ a:hover {
 
 .progress-bar {
     height: 100%;
-    background: var(--primary-green);
+    background: var(--primary);
     border-radius: var(--radius-full);
     transition: width var(--transition-base);
 }
@@ -1117,7 +1066,7 @@ a:hover {
 
 .form-control.is-valid,
 .form-select.is-valid {
-    border-color: var(--success-green);
+    border-color: var(--success);
 }
 
 .invalid-feedback {
@@ -1128,7 +1077,7 @@ a:hover {
 
 .valid-feedback {
     font-size: var(--font-size-xs);
-    color: var(--success-green);
+    color: var(--success);
     margin-top: var(--spacing-1);
 }
 
@@ -1143,18 +1092,18 @@ a:hover {
     width: 1rem;
     height: 1rem;
     margin: 0;
-    border: 1px solid var(--grey-300);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
 }
 
 .form-check-input:checked {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
+    background-color: var(--primary);
+    border-color: var(--primary);
 }
 
 .form-check-label {
     font-size: var(--font-size-sm);
-    color: var(--grey-700);
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -1176,18 +1125,18 @@ a:hover {
 /* ===== FILTER SECTIONS ===== */
 .filter-card {
     background: var(--grey-50);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     margin-bottom: var(--spacing-4);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
 }
 
 .card-header-green {
-    background: linear-gradient(135deg, var(--primary-green), var(--success-green));
+    background: linear-gradient(135deg, var(--primary), var(--success));
     color: white;
     padding: var(--spacing-3) var(--spacing-4);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
-    border-bottom: 1px solid var(--grey-200);
+    border-bottom: 1px solid var(--border-color);
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-medium);
     display: flex;
@@ -1212,7 +1161,7 @@ a:hover {
 
 .filter-card .form-control,
 .filter-card .form-select {
-    border: 1px solid var(--grey-300);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     padding: var(--spacing-2) var(--spacing-3);
     font-size: var(--font-size-sm);
@@ -1221,8 +1170,8 @@ a:hover {
 
 .filter-card .form-control:focus,
 .filter-card .form-select:focus {
-    border-color: var(--primary-green);
-    box-shadow: 0 0 0 0.2rem rgba(45, 106, 79, 0.25);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
 }
 
 .filter-card .btn {
@@ -1233,26 +1182,26 @@ a:hover {
 }
 
 .filter-card .btn-outline-primary {
-    border-color: var(--primary-green);
-    color: var(--primary-green);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .filter-card .btn-outline-primary:hover {
-    background-color: var(--primary-green);
-    border-color: var(--primary-green);
+    background-color: var(--primary);
+    border-color: var(--primary);
     color: white;
 }
 
 .filter-card .card-header, .filter-card .filter-header {
-    background: var(--primary-color);
+    background: var(--primary);
     color: #fff;
     font-family: var(--font-family);
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
-    padding: var(--spacing-2) var(--spacing-4); /* Reduced vertical padding */
-    min-height: 2.5rem; /* Ensures compact height */
+    padding: var(--spacing-2) var(--spacing-4);
+    min-height: 2.5rem;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
-    border-bottom: 1px solid var(--primary-green-dark);
+    border-bottom: 1px solid var(--accent);
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
@@ -1266,12 +1215,11 @@ a:hover {
     }
 }
 
-/* Filter header buttons and dropdowns */
 .filter-card .card-header .btn,
 .filter-card .filter-header .btn {
     background: rgba(255,255,255,0.12);
     color: #fff;
-    border: 1px solid #fff;
+    border: 1px solid rgba(255,255,255,0.5);
     font-weight: var(--font-weight-medium);
     margin-left: var(--spacing-2);
     transition: background 0.2s, color 0.2s;
@@ -1279,7 +1227,7 @@ a:hover {
 .filter-card .card-header .btn:hover,
 .filter-card .filter-header .btn:hover {
     background: #fff;
-    color: var(--primary-color);
+    color: var(--primary);
     border-color: #fff;
 }
 .filter-card .card-header .dropdown-menu,
@@ -1290,7 +1238,6 @@ a:hover {
 
 /* ===== ENHANCED DASHBOARD STYLES ===== */
 
-/* Enhanced Stat Cards */
 .stat-card-enhanced {
     position: relative;
     overflow: visible;
@@ -1314,17 +1261,16 @@ a:hover {
 }
 
 .stat-card-icon.info {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(49, 130, 206, 0.1);
     color: var(--info);
 }
 
-/* Quick Stats Container */
 .quick-stats-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: var(--spacing-4);
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     padding: var(--spacing-4);
     box-shadow: var(--shadow-sm);
@@ -1349,8 +1295,8 @@ a:hover {
     width: 48px;
     height: 48px;
     border-radius: var(--radius-lg);
-    background: rgba(45, 106, 79, 0.1);
-    color: var(--primary-green);
+    background: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1367,13 +1313,13 @@ a:hover {
 
 .quick-stat-label {
     font-size: var(--font-size-sm);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     font-weight: var(--font-weight-medium);
 }
 
 .quick-stat-value {
     font-size: var(--font-size-base);
-    color: var(--grey-900);
+    color: var(--text-primary);
     font-weight: var(--font-weight-semibold);
 }
 
@@ -1382,7 +1328,7 @@ a:hover {
     height: 32px;
     border-radius: var(--radius-md);
     background: var(--grey-100);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1391,7 +1337,7 @@ a:hover {
 }
 
 .quick-stat-action:hover {
-    background: var(--primary-green);
+    background: var(--primary);
     color: var(--white);
 }
 
@@ -1408,16 +1354,16 @@ a:hover {
     gap: var(--spacing-2);
     padding: var(--spacing-2) var(--spacing-4);
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-full);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    color: var(--grey-700);
+    color: var(--text-secondary);
     box-shadow: var(--shadow-sm);
 }
 
 .team-stat-badge i {
-    color: var(--primary-green);
+    color: var(--primary);
 }
 
 .team-grid {
@@ -1428,7 +1374,7 @@ a:hover {
 
 .team-member-card {
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
@@ -1442,7 +1388,7 @@ a:hover {
 
 .team-card-header {
     padding: var(--spacing-6);
-    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1469,7 +1415,7 @@ a:hover {
     height: 100%;
     border-radius: var(--radius-full);
     background: var(--white);
-    color: var(--primary-green);
+    color: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1486,7 +1432,7 @@ a:hover {
     width: 16px;
     height: 16px;
     border-radius: var(--radius-full);
-    background: var(--success-green);
+    background: var(--success);
     border: 3px solid var(--white);
 }
 
@@ -1498,7 +1444,7 @@ a:hover {
 .team-member-name {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
-    color: var(--grey-900);
+    color: var(--text-primary);
     margin-bottom: var(--spacing-2);
 }
 
@@ -1507,7 +1453,7 @@ a:hover {
     align-items: center;
     justify-content: center;
     gap: var(--spacing-2);
-    color: var(--primary-green);
+    color: var(--primary);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     margin-bottom: var(--spacing-3);
@@ -1518,7 +1464,7 @@ a:hover {
     align-items: center;
     justify-content: center;
     gap: var(--spacing-2);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     font-size: var(--font-size-sm);
     margin-bottom: var(--spacing-2);
 }
@@ -1531,7 +1477,7 @@ a:hover {
 .team-card-footer {
     padding: var(--spacing-4);
     background: var(--grey-50);
-    border-top: 1px solid var(--grey-200);
+    border-top: 1px solid var(--border-color);
 }
 
 .team-contact-actions {
@@ -1545,8 +1491,8 @@ a:hover {
     height: 40px;
     border-radius: var(--radius-md);
     background: var(--white);
-    border: 1px solid var(--grey-300);
-    color: var(--grey-600);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1556,8 +1502,8 @@ a:hover {
 }
 
 .team-contact-btn:hover {
-    background: var(--primary-green);
-    border-color: var(--primary-green);
+    background: var(--primary);
+    border-color: var(--primary);
     color: var(--white);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
@@ -1567,7 +1513,7 @@ a:hover {
 
 .attendance-filter-section {
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     padding: var(--spacing-6);
     margin-bottom: var(--spacing-6);
@@ -1592,9 +1538,9 @@ a:hover {
     gap: var(--spacing-2);
     padding: var(--spacing-2) var(--spacing-4);
     background: var(--grey-100);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    color: var(--grey-700);
+    color: var(--text-secondary);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     cursor: pointer;
@@ -1603,12 +1549,12 @@ a:hover {
 
 .filter-tab:hover {
     background: var(--grey-200);
-    border-color: var(--grey-300);
+    border-color: var(--border-color-medium);
 }
 
 .filter-tab.active {
-    background: var(--primary-green);
-    border-color: var(--primary-green);
+    background: var(--primary);
+    border-color: var(--primary);
     color: var(--white);
 }
 
@@ -1637,11 +1583,11 @@ a:hover {
     gap: var(--spacing-2);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    color: var(--grey-700);
+    color: var(--text-primary);
 }
 
 .filter-input-group label i {
-    color: var(--primary-green);
+    color: var(--primary);
 }
 
 .filter-actions {
@@ -1657,7 +1603,7 @@ a:hover {
 
 .attendance-record-card {
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
@@ -1666,7 +1612,7 @@ a:hover {
 
 .attendance-record-card:hover {
     box-shadow: var(--shadow-md);
-    border-color: var(--primary-green);
+    border-color: var(--primary);
 }
 
 .attendance-card-header {
@@ -1675,7 +1621,7 @@ a:hover {
     align-items: start;
     padding: var(--spacing-5);
     background: var(--grey-50);
-    border-bottom: 1px solid var(--grey-200);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .attendance-date-info {
@@ -1687,13 +1633,13 @@ a:hover {
 .employee-name {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
-    color: var(--grey-900);
+    color: var(--text-primary);
     margin: 0;
 }
 
 .employee-id {
     font-size: var(--font-size-sm);
-    color: var(--grey-600);
+    color: var(--text-secondary);
 }
 
 .record-date {
@@ -1701,12 +1647,12 @@ a:hover {
     align-items: center;
     gap: var(--spacing-2);
     font-size: var(--font-size-sm);
-    color: var(--grey-700);
+    color: var(--text-secondary);
     font-weight: var(--font-weight-medium);
 }
 
 .record-date i {
-    color: var(--primary-green);
+    color: var(--primary);
 }
 
 .attendance-status-badge {
@@ -1729,18 +1675,18 @@ a:hover {
 }
 
 .status-badge.status-present {
-    background: rgba(116, 198, 157, 0.15);
-    color: var(--primary-green-dark);
+    background: rgba(56, 161, 105, 0.1);
+    color: var(--success);
 }
 
 .status-badge.status-absent {
-    background: rgba(239, 68, 68, 0.15);
-    color: #991B1B;
+    background: rgba(229, 62, 62, 0.1);
+    color: var(--danger);
 }
 
 .status-badge.status-late {
-    background: rgba(245, 158, 11, 0.15);
-    color: #92400E;
+    background: rgba(221, 107, 32, 0.1);
+    color: var(--warning);
 }
 
 .overtime-badge {
@@ -1748,8 +1694,8 @@ a:hover {
     align-items: center;
     gap: var(--spacing-1);
     padding: var(--spacing-1) var(--spacing-2);
-    background: rgba(59, 130, 246, 0.15);
-    color: #1E40AF;
+    background: rgba(49, 130, 206, 0.1);
+    color: var(--info);
     border-radius: var(--radius-full);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
@@ -1791,23 +1737,23 @@ a:hover {
 }
 
 .time-item.clock-in .time-icon {
-    background: rgba(116, 198, 157, 0.15);
-    color: var(--success-green);
+    background: rgba(56, 161, 105, 0.1);
+    color: var(--success);
 }
 
 .time-item.clock-out .time-icon {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(229, 62, 62, 0.1);
     color: var(--danger);
 }
 
 .time-item.break-time .time-icon {
-    background: rgba(245, 158, 11, 0.15);
+    background: rgba(221, 107, 32, 0.1);
     color: var(--warning);
 }
 
 .time-item.total-hours .time-icon {
-    background: rgba(45, 106, 79, 0.15);
-    color: var(--primary-green);
+    background: rgba(var(--primary-rgb), 0.1);
+    color: var(--primary);
 }
 
 .time-details {
@@ -1818,7 +1764,7 @@ a:hover {
 
 .time-label {
     font-size: var(--font-size-xs);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -1826,26 +1772,26 @@ a:hover {
 
 .time-value {
     font-size: var(--font-size-base);
-    color: var(--grey-900);
+    color: var(--text-primary);
     font-weight: var(--font-weight-semibold);
 }
 
 .time-value.highlight {
-    color: var(--primary-green);
+    color: var(--primary);
     font-size: var(--font-size-lg);
 }
 
 .attendance-remarks {
     margin-top: var(--spacing-4);
     padding: var(--spacing-3);
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(49, 130, 206, 0.05);
     border-left: 3px solid var(--info);
     border-radius: var(--radius-md);
     display: flex;
     align-items: start;
     gap: var(--spacing-2);
     font-size: var(--font-size-sm);
-    color: var(--grey-700);
+    color: var(--text-secondary);
 }
 
 .attendance-remarks i {
@@ -1874,7 +1820,7 @@ a:hover {
 
 .leave-form-section {
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     padding: var(--spacing-6);
     box-shadow: var(--shadow-sm);
@@ -1886,14 +1832,14 @@ a:hover {
     gap: var(--spacing-2);
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-semibold);
-    color: var(--grey-900);
+    color: var(--text-primary);
     margin-bottom: var(--spacing-4);
     padding-bottom: var(--spacing-3);
-    border-bottom: 2px solid var(--grey-200);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .section-heading i {
-    color: var(--primary-green);
+    color: var(--primary);
 }
 
 .leave-form-sidebar {
@@ -1903,7 +1849,7 @@ a:hover {
 
 .leave-summary-card {
     background: var(--white);
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
     padding: var(--spacing-6);
     box-shadow: var(--shadow-md);
@@ -1915,13 +1861,13 @@ a:hover {
     align-items: center;
     margin-bottom: var(--spacing-5);
     padding-bottom: var(--spacing-4);
-    border-bottom: 2px solid var(--grey-200);
+    border-bottom: 2px solid var(--border-color);
 }
 
 .summary-title {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
-    color: var(--grey-900);
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -1930,7 +1876,7 @@ a:hover {
     align-items: center;
     gap: var(--spacing-3);
     padding: var(--spacing-4);
-    background: linear-gradient(135deg, rgba(45, 106, 79, 0.1) 0%, rgba(116, 198, 157, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.05) 0%, rgba(var(--secondary-rgb), 0.1) 100%);
     border-radius: var(--radius-lg);
     margin-bottom: var(--spacing-5);
 }
@@ -1939,7 +1885,7 @@ a:hover {
     width: 48px;
     height: 48px;
     border-radius: var(--radius-lg);
-    background: var(--primary-green);
+    background: var(--primary);
     color: var(--white);
     display: flex;
     align-items: center;
@@ -1955,14 +1901,14 @@ a:hover {
 .balance-value {
     font-size: var(--font-size-3xl);
     font-weight: var(--font-weight-bold);
-    color: var(--primary-green);
+    color: var(--primary);
     line-height: 1;
     margin-bottom: var(--spacing-1);
 }
 
 .balance-label {
     font-size: var(--font-size-sm);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     font-weight: var(--font-weight-medium);
 }
 
@@ -1982,13 +1928,13 @@ a:hover {
 
 .summary-label {
     font-size: var(--font-size-sm);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     font-weight: var(--font-weight-medium);
 }
 
 .summary-value {
     font-size: var(--font-size-base);
-    color: var(--grey-900);
+    color: var(--text-primary);
     font-weight: var(--font-weight-semibold);
 }
 
@@ -1996,7 +1942,7 @@ a:hover {
     display: flex;
     gap: var(--spacing-3);
     padding: var(--spacing-4);
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(49, 130, 206, 0.05);
     border-radius: var(--radius-lg);
     margin-bottom: var(--spacing-5);
 }
@@ -2020,13 +1966,13 @@ a:hover {
 .info-title {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
-    color: var(--grey-900);
+    color: var(--text-primary);
     margin-bottom: var(--spacing-1);
 }
 
 .info-text {
     font-size: var(--font-size-xs);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     line-height: 1.5;
     margin: 0;
 }
@@ -2069,13 +2015,13 @@ a:hover {
 .empty-state-title {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-semibold);
-    color: var(--grey-700);
+    color: var(--text-primary);
     margin-bottom: var(--spacing-3);
 }
 
 .empty-state-text {
     font-size: var(--font-size-base);
-    color: var(--grey-600);
+    color: var(--text-secondary);
     margin-bottom: var(--spacing-6);
     max-width: 500px;
 }
@@ -2108,7 +2054,7 @@ a:hover {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--white);
-    background: var(--primary-green);
+    background: var(--primary);
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
@@ -2117,7 +2063,7 @@ a:hover {
 }
 
 .export-btn:hover {
-    background: var(--primary-green-dark);
+    background: var(--accent);
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
 }
@@ -2132,19 +2078,19 @@ a:hover {
 }
 
 .export-btn-csv {
-    background: var(--success-green);
+    background: var(--success);
 }
 
 .export-btn-csv:hover {
-    background: #52B788;
+    background: #2f855a;
 }
 
 .export-btn-excel {
-    background: #10B981;
+    background: #38a169;
 }
 
 .export-btn-excel:hover {
-    background: #059669;
+    background: #2f855a;
 }
 
 .export-btn-pdf {
@@ -2152,17 +2098,16 @@ a:hover {
 }
 
 .export-btn-pdf:hover {
-    background: #DC2626;
+    background: #c53030;
 }
 
 .export-label {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    color: var(--grey-700);
+    color: var(--text-secondary);
     margin-right: var(--spacing-2);
 }
 
-/* Export dropdown alternative */
 .export-dropdown {
     position: relative;
     display: inline-block;
@@ -2176,7 +2121,7 @@ a:hover {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--white);
-    background: var(--primary-green);
+    background: var(--primary);
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
@@ -2184,7 +2129,7 @@ a:hover {
 }
 
 .export-dropdown-btn:hover {
-    background: var(--primary-green-dark);
+    background: var(--accent);
 }
 
 .export-dropdown-menu {
@@ -2210,7 +2155,7 @@ a:hover {
     gap: var(--spacing-2);
     padding: var(--spacing-3) var(--spacing-4);
     font-size: var(--font-size-sm);
-    color: var(--grey-700);
+    color: var(--text-primary);
     text-decoration: none;
     transition: background var(--transition-fast);
     cursor: pointer;
@@ -2244,14 +2189,14 @@ a:hover {
 }
 
 .leave-form-compact .card {
-    border: 1px solid var(--grey-200);
+    border: 1px solid var(--border-color);
     box-shadow: var(--shadow-sm);
 }
 
 .leave-form-compact h6 {
-    color: var(--primary-green);
+    color: var(--primary);
     font-weight: 600;
-    border-bottom: 2px solid var(--grey-200);
+    border-bottom: 2px solid var(--border-color);
     padding-bottom: 8px;
 }
 
@@ -2331,7 +2276,7 @@ a:hover {
     align-items: center;
     justify-content: center;
     background: var(--grey-100);
-    border: 3px solid var(--grey-200);
+    border: 3px solid var(--border-color);
     box-shadow: var(--shadow-md);
 }
 
