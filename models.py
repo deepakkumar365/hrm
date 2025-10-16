@@ -26,15 +26,14 @@ class User(db.Model, UserMixin):
     must_reset_password = db.Column(db.Boolean, default=True, nullable=False)
 
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey('hrm_roles.id'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
     reporting_manager_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     organization = db.relationship('Organization', back_populates='users')
-    role = db.relationship('Role', back_populates='users')  # Primary role (backward compatibility)
-    # roles = db.relationship('Role', secondary='hrm_user_roles', backref=db.backref('assigned_users', lazy='dynamic'))  # Multiple roles - UNCOMMENT AFTER MIGRATION
+    role = db.relationship('Role', back_populates='users')
     reporting_manager = db.relationship('User', remote_side=[id], backref=db.backref('direct_reports', lazy='dynamic'))
     employee_profile = db.relationship('Employee', back_populates='user', uselist=False)
 
@@ -48,17 +47,6 @@ class User(db.Model, UserMixin):
     @property
     def role_name(self):
         return self.role.name if self.role else None
-    
-    @property
-    def role_names(self):
-        """Get all role names for this user"""
-        # return [r.name for r in self.roles] if self.roles else []  # UNCOMMENT AFTER MIGRATION
-        return [self.role.name] if self.role else []  # Temporary: single role only
-    
-    def has_role(self, role_name):
-        """Check if user has a specific role"""
-        # return role_name in self.role_names or (self.role and self.role.name == role_name)  # UNCOMMENT AFTER MIGRATION
-        return self.role and self.role.name == role_name  # Temporary: single role only
 
 # OAuth table removed - no longer using Replit Auth
 
@@ -289,8 +277,7 @@ class Employee(db.Model):
     timezone = db.Column(db.String(50), default='UTC')  # NEW: For attendance timezone handling
 
     # Employment details
-    position = db.Column(db.String(100), nullable=True)  # Deprecated: Use designation_id instead
-    # designation_id = db.Column(db.Integer, db.ForeignKey('hrm_designations.id'), nullable=True)  # NEW: Designation from master - UNCOMMENT AFTER MIGRATION
+    position = db.Column(db.String(100), nullable=False)
     department = db.Column(db.String(100))
     hire_date = db.Column(db.Date, nullable=False)
     employment_type = db.Column(db.String(20))  # Full-time, Part-time, Contract
@@ -340,9 +327,7 @@ class Employee(db.Model):
     # Relationships
     user = db.relationship('User', back_populates='employee_profile')
     organization = db.relationship('Organization', back_populates='org_employees')
-    company = db.relationship('Company', back_populates='employees')  # Primary company (backward compatibility)
-    # companies = db.relationship('Company', secondary='hrm_employee_companies', backref=db.backref('assigned_employees', lazy='dynamic'))  # Multiple companies - UNCOMMENT AFTER MIGRATION
-    # designation = db.relationship('Designation', backref='employees')  # NEW: Designation relationship - UNCOMMENT AFTER MIGRATION
+    company = db.relationship('Company', back_populates='employees')
     manager = db.relationship(
         'Employee',
         remote_side=[id],
@@ -694,7 +679,7 @@ class Organization(db.Model):
 
 
 class Role(db.Model):
-    __tablename__ = 'hrm_roles'
+    __tablename__ = 'role'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.String(255))
@@ -757,35 +742,3 @@ class WorkSchedule(db.Model):
 
     def __repr__(self):
         return f'<WorkSchedule {self.name}: {self.start_time}-{self.end_time}>'
-
-
-# UNCOMMENT AFTER MIGRATION - START
-# class Designation(db.Model):
-#     """Master data for employee designations"""
-#     __tablename__ = 'hrm_designations'
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(100), unique=True, nullable=False)
-#     description = db.Column(db.Text)
-#     is_active = db.Column(db.Boolean, default=True)
-#     created_at = db.Column(db.DateTime, default=datetime.now)
-#     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-# 
-#     def __repr__(self):
-#         return f'<Designation {self.name}>'
-# 
-# 
-# # Association table for many-to-many relationship between Employee and Company
-# employee_companies = db.Table('hrm_employee_companies',
-#     db.Column('employee_id', db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), primary_key=True),
-#     db.Column('company_id', UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), primary_key=True),
-#     db.Column('created_at', db.DateTime, default=datetime.now)
-# )
-# 
-# 
-# # Association table for many-to-many relationship between User and Role
-# user_roles = db.Table('hrm_user_roles',
-#     db.Column('user_id', db.Integer, db.ForeignKey('hrm_users.id', ondelete='CASCADE'), primary_key=True),
-#     db.Column('role_id', db.Integer, db.ForeignKey('hrm_roles.id', ondelete='CASCADE'), primary_key=True),
-#     db.Column('created_at', db.DateTime, default=datetime.now)
-# )
-# UNCOMMENT AFTER MIGRATION - END

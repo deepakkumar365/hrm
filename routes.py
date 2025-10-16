@@ -12,7 +12,6 @@ from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal, 
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                     Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument)
-                    # Designation)  # UNCOMMENT AFTER MIGRATION
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -2906,4 +2905,8 @@ def appraisal_create():
             db.session.rollback()
             flash(f'Error creating appraisal: {str(e)}', 'error')
 
-    # Get
+    # Get employees for appraisal
+    employees = Employee.query.filter_by(is_active=True).order_by(
+        Employee.first_name).all()
+
+    return render_template('appraisal/form.html', employees=employees)
