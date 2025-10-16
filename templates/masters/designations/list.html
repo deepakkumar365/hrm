@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Designations - Noltrion{% endblock %}
+
+{% block content %}
+<div class="container-fluid employee-list-container">
+    <!-- Header with search and actions -->
+    <div class="row mb-1">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <!-- Breadcrumb navigation -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item">Masters</li>
+                            <li class="breadcrumb-item active" aria-current="page">Designations</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="btn-group">
+                    <a href="{{ url_for('designation_add') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Add Designation
+                    </a>
+                    <a href="#" class="btn btn-outline-secondary">
+                        <i class="fas fa-download me-1"></i>Export
+                    </a>
+                </div>
+            </div>
+
+            <hr class="mt-0 mb-3">
+
+            <!-- Filters -->
+            <form method="GET" class="filter-card">
+                <div class="card-header">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <input type="text" name="search" class="form-control"
+                                   placeholder="Search designations..." value="{{ search }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-search me-1"></i>Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if designations.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Designation</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for designation in designations.items %}
+                        <tr>
+                            <td>
+                                <strong>{{ designation.name }}</strong>
+                            </td>
+                            <td>{{ designation.description or '-' }}</td>
+                            <td>
+                                {% if designation.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ designation.created_at.strftime('%d %b %Y') }}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('designation_edit', designation_id=designation.id) }}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger"
+                                            onclick="confirmDelete('{{ designation.name }}', '{{ url_for('designation_delete', designation_id=designation.id) }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if designations.pages > 1 %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if designations.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('designation_list', page=designations.prev_num) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in designations.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != designations.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('designation_list', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if designations.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('designation_list', page=designations.next_num) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-id-badge fa-3x text-muted mb-3"></i>
+                <h5>No designations found</h5>
+                <p class="text-muted">Get started by adding your first designation.</p>
+                <a href="{{ url_for('designation_add') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Designation
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the designation "<span id="designationName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(name, url) {
+    document.getElementById('designationName').textContent = name;
+    document.getElementById('deleteForm').action = url;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}
