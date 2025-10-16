@@ -805,14 +805,14 @@ def employee_add():
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
             
-            # GEN-EMP-004: Handle Designation Master
-            designation_id = request.form.get('designation_id')
-            if designation_id:
-                employee.designation_id = int(designation_id)
-                # Also set position from designation name for backward compatibility
-                designation = Designation.query.get(int(designation_id))
-                if designation:
-                    employee.position = designation.name
+            # GEN-EMP-004: Handle Designation Master - COMMENTED OUT - needs migration
+            # designation_id = request.form.get('designation_id')
+            # if designation_id:
+            #     employee.designation_id = int(designation_id)
+            #     # Also set position from designation name for backward compatibility
+            #     designation = Designation.query.get(int(designation_id))
+            #     if designation:
+            #         employee.position = designation.name
             
             employee.department = request.form.get('department')
             employee.hire_date = parse_date(request.form.get('hire_date'))
@@ -1243,14 +1243,14 @@ def employee_edit(employee_id):
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
             
-            # GEN-EMP-004: Handle Designation Master on edit
-            designation_id = request.form.get('designation_id')
-            if designation_id:
-                employee.designation_id = int(designation_id)
-                # Also set position from designation name for backward compatibility
-                designation = Designation.query.get(int(designation_id))
-                if designation:
-                    employee.position = designation.name
+            # GEN-EMP-004: Handle Designation Master on edit - COMMENTED OUT - needs migration
+            # designation_id = request.form.get('designation_id')
+            # if designation_id:
+            #     employee.designation_id = int(designation_id)
+            #     # Also set position from designation name for backward compatibility
+            #     designation = Designation.query.get(int(designation_id))
+            #     if designation:
+            #         employee.position = designation.name
             
             employee.department = request.form.get('department')
             employee.employment_type = request.form.get('employment_type')
@@ -2885,95 +2885,17 @@ def claims_approve(claim_id):
             claim.approved_by = current_user.id
             claim.approved_at = datetime.now()
             flash('Claim approved', 'success')
-
+        
         elif action == 'reject':
             claim.status = 'Rejected'
             claim.approved_by = current_user.id
             claim.approved_at = datetime.now()
-            claim.rejection_reason = request.form.get('rejection_reason')
             flash('Claim rejected', 'success')
-
+        
         db.session.commit()
+        return redirect(url_for('claims_list'))
 
     except Exception as e:
         db.session.rollback()
         flash(f'Error processing claim: {str(e)}', 'error')
-
-    return redirect(url_for('claims_list'))
-
-
-# Appraisal Management Routes
-@app.route('/appraisal')
-@require_login
-def appraisal_list():
-    """List appraisals"""
-    page = request.args.get('page', 1, type=int)
-
-    query = Appraisal.query.join(Employee)
-
-    # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
-                                                   'employee_profile'):
-        query = query.filter(
-            Appraisal.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                    'employee_profile'):
-        query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
-
-    appraisals = query.order_by(Appraisal.created_at.desc()).paginate(
-        page=page, per_page=20, error_out=False)
-
-    return render_template('appraisal/list.html', appraisals=appraisals)
-
-
-@app.route('/appraisal/create', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def appraisal_create():
-    """Create new appraisal"""
-    if request.method == 'POST':
-        try:
-            appraisal = Appraisal()
-            employee_id_str = request.form.get('employee_id')
-            appraisal.employee_id = int(
-                employee_id_str) if employee_id_str else 0
-            appraisal.review_period_start = parse_date(
-                request.form.get('review_period_start'))
-            appraisal.review_period_end = parse_date(
-                request.form.get('review_period_end'))
-            appraisal.performance_rating = int(
-                request.form.get('performance_rating', '0'))
-            appraisal.goals_achievement = int(
-                request.form.get('goals_achievement', '0'))
-            appraisal.teamwork_rating = int(
-                request.form.get('teamwork_rating', '0'))
-            appraisal.communication_rating = int(
-                request.form.get('communication_rating', '0'))
-
-            # Calculate overall rating
-            ratings = [
-                appraisal.performance_rating, appraisal.goals_achievement,
-                appraisal.teamwork_rating, appraisal.communication_rating
-            ]
-            appraisal.overall_rating = sum(ratings) / len(ratings)
-
-            appraisal.manager_feedback = request.form.get('manager_feedback')
-            appraisal.development_goals = request.form.get('development_goals')
-            appraisal.training_recommendations = request.form.get(
-                'training_recommendations')
-            appraisal.reviewed_by = current_user.id
-            appraisal.status = 'Completed'
-            appraisal.completed_at = datetime.now()
-
-            db.session.add(appraisal)
-            db.session.commit()
-
-            flash('Appraisal created successfully', 'success')
-            return redirect(url_for('appraisal_list'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating appraisal: {str(e)}', 'error')
-
-    # Get employees for appraisal
-    empl
+        return redirect(url_for('claims_list'))

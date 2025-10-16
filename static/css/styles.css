@@ -4,6 +4,8 @@
 :root {
     /* Modern Teal Color Palette */
     --primary: #008080;           /* Teal - Primary actions, headers */
+    --primary-green: #008080;     /* Alias for primary - used in templates for consistency */
+    --primary-green-light: #66b2b2; /* Light teal - used as fallback in profile */
     --secondary: #66b2b2;         /* Lighter teal for navbar and secondary elements */
     --accent: #004d4d;            /* Darker teal for hover and accent states */
     --background: #ffffff;        /* White background */
