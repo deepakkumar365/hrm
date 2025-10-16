@@ -278,6 +278,7 @@ class Employee(db.Model):
 
     # Employment details
     position = db.Column(db.String(100), nullable=False)
+    designation_id = db.Column(db.Integer, db.ForeignKey('hrm_designation.id'), nullable=True)  # NEW: Designation Master link
     department = db.Column(db.String(100))
     hire_date = db.Column(db.Date, nullable=False)
     employment_type = db.Column(db.String(20))  # Full-time, Part-time, Contract
@@ -337,6 +338,7 @@ class Employee(db.Model):
     )
     working_hours = db.relationship('WorkingHours', backref='employees')
     work_schedule = db.relationship('WorkSchedule', backref='employees')
+    designation = db.relationship('Designation', backref='employees')  # NEW: Designation relationship
     leaves = db.relationship('Leave', back_populates='employee')
     claims = db.relationship('Claim', back_populates='employee')
     appraisals = db.relationship('Appraisal', back_populates='employee')
@@ -742,3 +744,101 @@ class WorkSchedule(db.Model):
 
     def __repr__(self):
         return f'<WorkSchedule {self.name}: {self.start_time}-{self.end_time}>'
+
+
+# =====================================================
+# NEW: DESIGNATION MASTER (GEN-EMP-004)
+# =====================================================
+class Designation(db.Model):
+    """Master data for job designations/positions"""
+    __tablename__ = 'hrm_designation'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)  # e.g., "Software Engineer", "Senior Developer"
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_by = db.Column(db.String(100), default='system')
+    modified_by = db.Column(db.String(100))
+    
+    def __repr__(self):
+        return f'<Designation {self.name}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# =====================================================
+# NEW: USER ROLE MAPPING (ROLE-001 - Multiple roles support)
+# =====================================================
+class UserRoleMapping(db.Model):
+    """Maps users to multiple roles and companies for flexible access control"""
+    __tablename__ = 'hrm_user_role_mapping'
+    __table_args__ = (
+        Index('idx_user_role_mapping_user_id', 'user_id'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='CASCADE'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_by = db.Column(db.String(100), default='system')
+    
+    user = db.relationship('User', backref='role_mappings')
+    role = db.relationship('Role')
+    company = db.relationship('Company')
+    
+    def __repr__(self):
+        return f'<UserRoleMapping user_id={self.user_id} role_id={self.role_id}>'
+
+
+# =====================================================
+# NEW: ROLE ACCESS CONTROL (Access Control Management)
+# =====================================================
+class RoleAccessControl(db.Model):
+    """Controls which roles have access to which modules, menus, and sub-menus"""
+    __tablename__ = 'hrm_role_access_control'
+    __table_args__ = (
+        Index('idx_role_access_module_menu', 'module_name', 'menu_name'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    module_name = db.Column(db.String(100), nullable=False)  # e.g., "Payroll", "Attendance"
+    menu_name = db.Column(db.String(100), nullable=False)  # e.g., "Payroll List", "Reports"
+    sub_menu_name = db.Column(db.String(100), nullable=True)  # e.g., "Payroll Generation"
+    
+    # Access levels per role: 'Editable', 'View Only', 'Hidden'
+    super_admin_access = db.Column(db.String(20), default='Editable')  # Enum-like
+    tenant_admin_access = db.Column(db.String(20), default='Hidden')
+    hr_manager_access = db.Column(db.String(20), default='Hidden')
+    employee_access = db.Column(db.String(20), default='Hidden')
+    
+    # Audit fields
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_by = db.Column(db.String(100), default='system')
+    updated_by = db.Column(db.String(100))
+    
+    def __repr__(self):
+        return f'<RoleAccessControl {self.module_name}.{self.menu_name}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'module_name': self.module_name,
+            'menu_name': self.menu_name,
+            'sub_menu_name': self.sub_menu_name,
+            'super_admin_access': self.super_admin_access,
+            'tenant_admin_access': self.tenant_admin_access,
+            'hr_manager_access': self.hr_manager_access,
+            'employee_access': self.employee_access,
+        }

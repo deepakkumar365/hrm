@@ -11,7 +11,8 @@ from app import app, db
 from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal, 
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
-                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument)
+                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument,
+                    Designation, UserRoleMapping, RoleAccessControl)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -733,7 +734,12 @@ def employee_add():
                 flash('Invalid NRIC format', 'error')
                 # Load master data and preserve form data for re-rendering
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin, include Tenantadmin
+                user_roles = Role.query.filter(
+                    Role.is_active==True,
+                    Role.name.notlike('%superadmin%')
+                ).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -743,6 +749,7 @@ def employee_add():
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
+                                       designations=designations,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
@@ -754,7 +761,12 @@ def employee_add():
                 flash('Employee with this NRIC already exists', 'error')
                 # Load master data and preserve form data for re-rendering
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin, include Tenantadmin
+                user_roles = Role.query.filter(
+                    Role.is_active==True,
+                    Role.name.notlike('%superadmin%')
+                ).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -764,6 +776,7 @@ def employee_add():
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
+                                       designations=designations,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
@@ -791,7 +804,16 @@ def employee_add():
             employee.nationality = request.form.get('nationality')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            employee.position = request.form.get('position')
+            
+            # GEN-EMP-004: Handle Designation Master
+            designation_id = request.form.get('designation_id')
+            if designation_id:
+                employee.designation_id = int(designation_id)
+                # Also set position from designation name for backward compatibility
+                designation = Designation.query.get(int(designation_id))
+                if designation:
+                    employee.position = designation.name
+            
             employee.department = request.form.get('department')
             employee.hire_date = parse_date(request.form.get('hire_date'))
             employee.employment_type = request.form.get('employment_type')
@@ -833,7 +855,11 @@ def employee_add():
             if not file or not file.filename.strip():
                 flash('Profile image is required.', 'error')
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                user_roles = Role.query.filter(
+                    Role.is_active==True,
+                    Role.name.notlike('%superadmin%')
+                ).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -843,6 +869,7 @@ def employee_add():
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
+                                       designations=designations,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
@@ -851,7 +878,11 @@ def employee_add():
             if not _allowed_image(file.filename):
                 flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                user_roles = Role.query.filter(
+                    Role.is_active==True,
+                    Role.name.notlike('%superadmin%')
+                ).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -861,6 +892,7 @@ def employee_add():
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
+                                       designations=designations,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
@@ -941,7 +973,11 @@ def employee_add():
             flash(f'Error adding employee: {str(e)}', 'error')
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+            user_roles = Role.query.filter(
+                Role.is_active==True,
+                Role.name.notlike('%superadmin%')
+            ).order_by(Role.name).all()
+            designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -951,6 +987,7 @@ def employee_add():
                                    form_data=request.form,
                                    roles=roles,
                                    user_roles=user_roles,
+                                   designations=designations,
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
@@ -960,7 +997,12 @@ def employee_add():
     # Get managers for dropdown
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin, include Tenantadmin
+    user_roles = Role.query.filter(
+        Role.is_active==True,
+        Role.name.notlike('%superadmin%')
+    ).order_by(Role.name).all()
+    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -972,6 +1014,7 @@ def employee_add():
                            managers=managers,
                            roles=roles,
                            user_roles=user_roles,
+                           designations=designations,
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
@@ -1199,7 +1242,16 @@ def employee_edit(employee_id):
             employee.nric = request.form.get('nric')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            employee.position = request.form.get('position')
+            
+            # GEN-EMP-004: Handle Designation Master on edit
+            designation_id = request.form.get('designation_id')
+            if designation_id:
+                employee.designation_id = int(designation_id)
+                # Also set position from designation name for backward compatibility
+                designation = Designation.query.get(int(designation_id))
+                if designation:
+                    employee.position = designation.name
+            
             employee.department = request.form.get('department')
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
@@ -1241,7 +1293,12 @@ def employee_edit(employee_id):
                 if not _allowed_image(file.filename):
                     flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
                     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                    # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin
+                    user_roles = Role.query.filter(
+                        Role.is_active==True,
+                        Role.name.notlike('%superadmin%')
+                    ).order_by(Role.name).all()
+                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -1252,6 +1309,7 @@ def employee_edit(employee_id):
                                            form_data=request.form,
                                            roles=roles,
                                            user_roles=user_roles,
+                                           designations=designations,
                                            departments=departments,
                                            working_hours=working_hours,
                                            work_schedules=work_schedules,
@@ -1313,7 +1371,12 @@ def employee_edit(employee_id):
             flash(f'Error updating employee: {str(e)}', 'error')
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+            # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin
+            user_roles = Role.query.filter(
+                Role.is_active==True,
+                Role.name.notlike('%superadmin%')
+            ).order_by(Role.name).all()
+            designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -1325,6 +1388,7 @@ def employee_edit(employee_id):
                                    managers=managers,
                                    roles=roles,
                                    user_roles=user_roles,
+                                   designations=designations,
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
@@ -1332,7 +1396,12 @@ def employee_edit(employee_id):
 
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+    # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin
+    user_roles = Role.query.filter(
+        Role.is_active==True,
+        Role.name.notlike('%superadmin%')
+    ).order_by(Role.name).all()
+    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
@@ -1346,6 +1415,7 @@ def employee_edit(employee_id):
                            managers=managers,
                            roles=roles,
                            user_roles=user_roles,
+                           designations=designations,
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
@@ -2906,7 +2976,4 @@ def appraisal_create():
             flash(f'Error creating appraisal: {str(e)}', 'error')
 
     # Get employees for appraisal
-    employees = Employee.query.filter_by(is_active=True).order_by(
-        Employee.first_name).all()
-
-    return render_template('appraisal/form.html', employees=employees)
+    empl
