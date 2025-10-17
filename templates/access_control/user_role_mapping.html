@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+
+{% block title %}User Role Mapping - Admin Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="page-title">
+                <i class="fas fa-users-cog"></i> User Role & Company Access Mapping
+            </h1>
+            <p class="text-muted">Assign multiple roles and company access to users</p>
+        </div>
+    </div>
+
+    <!-- Alert Section -->
+    <div id="alertContainer"></div>
+
+    <!-- Instructions Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">
+                <i class="fas fa-lightbulb"></i> About This Interface
+            </h5>
+            <p class="mb-0">
+                You can assign multiple roles to a single user and grant access to multiple companies.
+                This enables flexible user permissions across your organization hierarchy.
+            </p>
+        </div>
+    </div>
+
+    <!-- User Role Mapping Form -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">User Role & Company Assignment</h5>
+        </div>
+        <div class="card-body">
+            <form id="userRoleMappingForm">
+                <!-- User Selection -->
+                <div class="form-group">
+                    <label for="userSelect">Select User *</label>
+                    <select class="form-control form-control-lg" id="userSelect" required onchange="loadUserMappings()">
+                        <option value="">-- Select a User --</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}" data-email="{{ user.email }}">
+                            {{ user.first_name }} {{ user.last_name }} ({{ user.username }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Select the user to manage their roles and access</small>
+                </div>
+
+                <!-- Current Mappings Display -->
+                <div id="currentMappingsContainer" style="display: none;" class="mb-4">
+                    <div class="alert alert-info">
+                        <strong>Current Mappings:</strong>
+                        <span id="currentMappingsList"></span>
+                    </div>
+                </div>
+
+                <!-- Roles Selection -->
+                <div class="form-group">
+                    <label>Assign Roles *</label>
+                    <div id="rolesContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                        {% for role in roles %}
+                        <div class="form-check">
+                            <input class="form-check-input role-checkbox" type="checkbox" value="{{ role.id }}" 
+                                   id="role_{{ role.id }}" name="roles">
+                            <label class="form-check-label" for="role_{{ role.id }}">
+                                <strong>{{ role.name }}</strong>
+                                {% if role.description %}<br><small class="text-muted">{{ role.description }}</small>{% endif %}
+                            </label>
+                        </div>
+                        <hr class="my-2">
+                        {% endfor %}
+                    </div>
+                    <small class="form-text text-muted mt-2">Select one or multiple roles for this user</small>
+                </div>
+
+                <!-- Company Access Selection -->
+                <div class="form-group">
+                    <label>Company Access (Optional)</label>
+                    <div id="companiesContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                        {% if companies %}
+                            {% for company in companies %}
+                            <div class="form-check">
+                                <input class="form-check-input company-checkbox" type="checkbox" value="{{ company.id }}" 
+                                       id="company_{{ company.id }}" name="companies">
+                                <label class="form-check-label" for="company_{{ company.id }}">
+                                    <strong>{{ company.name }}</strong> ({{ company.code }})
+                                    {% if company.description %}<br><small class="text-muted">{{ company.description }}</small>{% endif %}
+                                </label>
+                            </div>
+                            <hr class="my-2">
+                            {% endfor %}
+                        {% else %}
+                        <p class="text-muted mb-0"><i class="fas fa-info-circle"></i> No companies available</p>
+                        {% endif %}
+                    </div>
+                    <small class="form-text text-muted mt-2">Leave empty for all companies. Check specific companies to restrict access.</small>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-group mt-4 pt-2 border-top">
+                    <button type="submit" class="btn btn-primary btn-lg" id="saveBtn">
+                        <i class="fas fa-save"></i> Save Mapping
+                    </button>
+                    <button type="reset" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-redo"></i> Reset
+                    </button>
+                    <button type="button" class="btn btn-danger btn-lg" onclick="clearUserMappings()">
+                        <i class="fas fa-trash"></i> Clear Mappings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Mappings Table -->
+    <div class="card mt-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">All User Role Mappings</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Assigned Roles</th>
+                        <th>Company Access</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <strong>{{ user.first_name }} {{ user.last_name }}</strong><br>
+                            <small class="text-muted">{{ user.username }}</small>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            {% if user_mappings.get(user.id) %}
+                                {% set role_names = user_mappings[user.id]|map(attribute='role.name')|unique|list %}
+                                {% for role_name in role_names %}
+                                    <span class="badge badge-info">{{ role_name }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="text-muted">--</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user_mappings.get(user.id) %}
+                                {% set company_names = user_mappings[user.id]|selectattr('company')|map(attribute='company.name')|unique|list %}
+                                {% if company_names %}
+                                    {% for company_name in company_names %}
+                                        <span class="badge badge-success">{{ company_name }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-info">All Companies</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">--</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge badge-success">Active</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-title {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.form-check {
+    padding-left: 0;
+    margin-bottom: 8px;
+}
+
+.form-check-label {
+    margin-bottom: 0;
+    cursor: pointer;
+    padding-left: 25px;
+}
+
+.form-check-input {
+    margin-left: -25px;
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+#rolesContainer, #companiesContainer {
+    background-color: #f9f9f9;
+}
+
+.badge {
+    font-size: 11px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+    .btn-lg {
+        padding: .5rem 1rem;
+        font-size: 1rem;
+    }
+}
+</style>
+
+<script>
+// Load user mappings when user is selected
+function loadUserMappings() {
+    const userId = document.getElementById('userSelect').value;
+    
+    if (!userId) {
+        document.getElementById('currentMappingsContainer').style.display = 'none';
+        clearFormCheckboxes();
+        return;
+    }
+    
+    // Fetch user mappings via AJAX
+    fetch(`/api/user-role-mappings/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update role checkboxes
+                document.querySelectorAll('.role-checkbox').forEach(checkbox => {
+                    checkbox.checked = data.mappings.some(m => m.role_id === parseInt(checkbox.value));
+                });
+                
+                // Update company checkboxes
+                document.querySelectorAll('.company-checkbox').forEach(checkbox => {
+                    checkbox.checked = data.mappings.some(m => m.company_id === checkbox.value);
+                });
+                
+                // Show current mappings
+                if (data.mappings.length > 0) {
+                    const mappingsList = data.mappings
+                        .map(m => `<strong>${m.role_name}</strong> ${m.company_name ? `(${m.company_name})` : '(All Companies)'}`)
+                        .join(', ');
+                    document.getElementById('currentMappingsList').innerHTML = mappingsList;
+                    document.getElementById('currentMappingsContainer').style.display = 'block';
+                } else {
+                    document.getElementById('currentMappingsContainer').style.display = 'none';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading mappings:', error);
+            showAlert('danger', 'Error loading user mappings');
+        });
+}
+
+// Clear form checkboxes
+function clearFormCheckboxes() {
+    document.querySelectorAll('.role-checkbox, .company-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+// Handle form submission
+document.getElementById('userRoleMappingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const userId = document.getElementById('userSelect').value;
+    if (!userId) {
+        showAlert('warning', 'Please select a user');
+        return;
+    }
+    
+    const roleIds = Array.from(document.querySelectorAll('.role-checkbox:checked'))
+        .map(cb => parseInt(cb.value));
+    
+    if (roleIds.length === 0) {
+        showAlert('warning', 'Please select at least one role');
+        return;
+    }
+    
+    const companyIds = Array.from(document.querySelectorAll('.company-checkbox:checked'))
+        .map(cb => cb.value);
+    
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    
+    fetch('{{ url_for("access_control.save_user_role_mapping") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            role_ids: roleIds,
+            company_ids: companyIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Mapping';
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Mapping';
+        showAlert('danger', 'Error saving mapping: ' + error);
+    });
+});
+
+// Clear user mappings
+function clearUserMappings() {
+    const userId = document.getElementById('userSelect').value;
+    if (!userId) {
+        showAlert('warning', 'Please select a user');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to clear all mappings for this user?')) {
+        return;
+    }
+    
+    fetch('{{ url_for("access_control.save_user_role_mapping") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            role_ids: [],
+            company_ids: []
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Mappings cleared successfully');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error clearing mappings: ' + error);
+    });
+}
+
+// Show alert message
+function showAlert(type, message) {
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <strong>{{ 'Success!' if type == 'success' else 'Error!' if type == 'danger' else 'Warning!' }}</strong>
+            ${message}
+            <button type="button" class="close" data-dismiss="alert">
+                <span>&times;</span>
+            </button>
+        </div>
+    `;
+    
+    const container = document.getElementById('alertContainer');
+    container.innerHTML = alertHTML;
+    
+    if (type === 'success') {
+        setTimeout(() => {
+            container.innerHTML = '';
+        }, 5000);
+    }
+}
+</script>
+
+{% endblock %}

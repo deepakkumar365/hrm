@@ -11,6 +11,7 @@ import routes_team_documents  # noqa: F401 - Team and Documents module routes
 import routes_enhancements  # noqa: F401 - Employee edit, reports, bank info enhancements
 import routes_masters  # noqa: F401 - Master data management (Roles, Departments, Working Hours, Work Schedules)
 import routes_bulk_upload  # noqa: F401 - Employee bulk upload functionality
+import routes_access_control  # noqa: F401 - Access Control Management
 import cli_commands  # noqa: F401 - CLI commands for database management
 
 if __name__ == "__main__":

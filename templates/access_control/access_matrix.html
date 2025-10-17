@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Role Access Control Matrix - Admin Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="page-title">
+                <i class="fas fa-shield-alt"></i> Role Access Control Configuration
+            </h1>
+            <p class="text-muted">Manage role-based access to modules, menus, and sub-menus</p>
+        </div>
+        <div class="col-md-4 text-right">
+            <button class="btn btn-primary" data-toggle="modal" data-target="#importModal">
+                <i class="fas fa-upload"></i> Import Matrix
+            </button>
+            <a href="{{ url_for('access_control.export_access_matrix') }}" class="btn btn-success">
+                <i class="fas fa-download"></i> Export as Excel
+            </a>
+            <button class="btn btn-warning" onclick="resetMatrix()">
+                <i class="fas fa-redo"></i> Reset to Default
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Section -->
+    <div id="alertContainer"></div>
+
+    <!-- Instructions Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Access Levels Explained</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start">
+                        <span class="badge badge-success mr-2" style="padding: 8px 12px;">Editable</span>
+                        <small>Full access: view, create, edit, and delete</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start">
+                        <span class="badge badge-info mr-2" style="padding: 8px 12px;">View Only</span>
+                        <small>Read-only access: view data only</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex align-items-start">
+                        <span class="badge badge-secondary mr-2" style="padding: 8px 12px;">Hidden</span>
+                        <small>No access: menu hidden</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Access Matrix Table -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Access Matrix by Module & Role</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0" id="accessMatrix">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 15%;">Module</th>
+                        <th style="width: 20%;">Menu</th>
+                        <th style="width: 20%;">Sub-Menu</th>
+                        {% for role in roles %}
+                        <th class="text-center" style="width: 15%;">
+                            <span class="badge badge-primary">{{ role }}</span>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for module, menus in matrix_data.items() %}
+                        {% set module_row_count = menus|sum(attribute='menus|length') %}
+                        {% for menu, sub_menus in menus.items() %}
+                            {% for sub_menu in sub_menus %}
+                            <tr class="align-middle">
+                                {% if loop.first and loop.parent.first %}
+                                    <td rowspan="{{ module_row_count }}" class="bg-light font-weight-bold">
+                                        {{ module }}
+                                    </td>
+                                {% endif %}
+                                
+                                {% if loop.first %}
+                                    <td class="bg-light font-weight-bold">{{ menu }}</td>
+                                {% endif %}
+                                
+                                <td>{{ sub_menu.sub_menu_name or 'N/A' }}</td>
+                                
+                                <!-- Access Level Dropdowns -->
+                                {% for role_idx, role in enumerate(roles) %}
+                                <td class="text-center">
+                                    <select class="form-control form-control-sm access-level-select" 
+                                            data-access-id="{{ sub_menu.id }}"
+                                            data-role="{% if role_idx == 0 %}super_admin{% elif role_idx == 1 %}tenant_admin{% elif role_idx == 2 %}hr_manager{% else %}employee{% endif %}"
+                                            onchange="updateAccessLevel(this)">
+                                        {% set current_value = attribute(sub_menu, (role_map[role_idx] if role_idx < role_map|length else 'employee_access')) %}
+                                        {% for level in access_levels %}
+                                        <option value="{{ level }}"
+                                                {% if level == (attribute(sub_menu, role_column(role_idx))) %}selected{% endif %}>
+                                            {{ level }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Last Updated Info -->
+    <div class="mt-3 text-muted small">
+        <i class="fas fa-info-circle"></i>
+        Changes are saved automatically. Audit logs are maintained for all updates.
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import Access Matrix</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Upload an Excel file with the access matrix structure.</p>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="importFile" accept=".xlsx,.xls">
+                    <label class="custom-file-label" for="importFile">Choose file...</label>
+                </div>
+                <small class="text-muted mt-2 d-block">
+                    The file should have columns: Module, Menu, Sub-Menu, Super Admin, Tenant Admin, HR Manager, Employee
+                </small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="importMatrix()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-title {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.access-level-select {
+    cursor: pointer;
+    font-size: 13px;
+    text-align: center;
+}
+
+.access-level-select:hover {
+    border-color: #007bff;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+thead {
+    position: sticky;
+    top: 0;
+}
+
+.badge-primary {
+    font-size: 11px;
+    padding: 5px 8px;
+}
+
+@media (max-width: 768px) {
+    .table {
+        font-size: 12px;
+    }
+    
+    .access-level-select {
+        font-size: 11px;
+        padding: 4px 2px;
+    }
+}
+</style>
+
+<script>
+// Helper function to get role column name
+function roleColumn(roleIndex) {
+    const columns = ['super_admin_access', 'tenant_admin_access', 'hr_manager_access', 'employee_access'];
+    return columns[roleIndex] || 'employee_access';
+}
+
+// Update access level via AJAX
+function updateAccessLevel(selectElement) {
+    const accessId = selectElement.dataset.accessId;
+    const role = selectElement.dataset.role;
+    const accessLevel = selectElement.value;
+    
+    const originalValue = selectElement.innerHTML;
+    selectElement.disabled = true;
+    selectElement.classList.add('bg-light');
+    
+    fetch('{{ url_for("access_control.update_access_matrix") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            access_id: accessId,
+            role: role,
+            access_level: accessLevel
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        selectElement.disabled = false;
+        selectElement.classList.remove('bg-light');
+        
+        if (data.success) {
+            showAlert('success', data.message);
+            // Add a checkmark animation
+            selectElement.classList.add('border-success');
+            setTimeout(() => selectElement.classList.remove('border-success'), 2000);
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+            selectElement.value = selectElement.innerHTML;
+        }
+    })
+    .catch(error => {
+        selectElement.disabled = false;
+        selectElement.classList.remove('bg-light');
+        showAlert('danger', 'Error updating access level: ' + error);
+    });
+}
+
+// Reset matrix to defaults
+function resetMatrix() {
+    if (!confirm('Are you sure you want to reset the access matrix to default values? This action cannot be undone.')) {
+        return;
+    }
+    
+    fetch('{{ url_for("access_control.reset_access_matrix") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error resetting matrix: ' + error);
+    });
+}
+
+// Import matrix from Excel
+function importMatrix() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showAlert('warning', 'Please select a file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    fetch('{{ url_for("access_control.import_access_matrix") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            $('#importModal').modal('hide');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', 'Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error importing matrix: ' + error);
+    });
+}
+
+// Show alert message
+function showAlert(type, message) {
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <strong>{{ 'Success!' if type == 'success' else 'Error!' if type == 'danger' else 'Warning!' }}</strong>
+            ${message}
+            <button type="button" class="close" data-dismiss="alert">
+                <span>&times;</span>
+            </button>
+        </div>
+    `;
+    
+    const container = document.getElementById('alertContainer');
+    container.innerHTML = alertHTML;
+    
+    // Auto-hide success messages
+    if (type === 'success') {
+        setTimeout(() => {
+            container.innerHTML = '';
+        }, 5000);
+    }
+}
+
+// Update file input label
+document.getElementById('importFile')?.addEventListener('change', function() {
+    const fileName = this.files[0]?.name || 'Choose file...';
+    this.nextElementSibling.textContent = fileName;
+});
+</script>
+
+{% endblock %}

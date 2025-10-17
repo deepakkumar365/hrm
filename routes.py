@@ -12,7 +12,7 @@ from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal, 
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                     Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument,
-                    Designation, UserRoleMapping, RoleAccessControl)
+                    Designation, UserRoleMapping, RoleAccessControl, AuditLog)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -2887,15 +2887,4 @@ def claims_approve(claim_id):
             flash('Claim approved', 'success')
         
         elif action == 'reject':
-            claim.status = 'Rejected'
-            claim.approved_by = current_user.id
-            claim.approved_at = datetime.now()
-            flash('Claim rejected', 'success')
-        
-        db.session.commit()
-        return redirect(url_for('claims_list'))
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error processing claim: {str(e)}', 'error')
-        return redirect(url_for('claims_list'))
+            c

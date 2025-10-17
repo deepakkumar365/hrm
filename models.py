@@ -842,3 +842,44 @@ class RoleAccessControl(db.Model):
             'hr_manager_access': self.hr_manager_access,
             'employee_access': self.employee_access,
         }
+
+
+# =====================================================
+# AUDIT LOG MODEL (Access Control Audit Trail)
+# =====================================================
+
+class AuditLog(db.Model):
+    """Audit log for tracking all access control and system changes"""
+    __tablename__ = 'hrm_audit_log'
+    __table_args__ = (
+        Index('idx_audit_log_user_id', 'user_id'),
+        Index('idx_audit_log_action', 'action'),
+        Index('idx_audit_log_created_at', 'created_at'),
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
+    action = db.Column(db.String(100), nullable=False)  # e.g., 'UPDATE_ACCESS_CONTROL', 'CREATE_USER'
+    resource_type = db.Column(db.String(100), nullable=False)  # e.g., 'RoleAccessControl', 'User'
+    resource_id = db.Column(db.String(100), nullable=False)  # ID of the affected resource
+    changes = db.Column(db.Text)  # JSON string with before/after values
+    status = db.Column(db.String(20), default='Success')  # 'Success' or 'Failed'
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    
+    # Relationship
+    user = db.relationship('User', backref='audit_logs')
+    
+    def __repr__(self):
+        return f'<AuditLog {self.action} on {self.resource_type}:{self.resource_id}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'action': self.action,
+            'resource_type': self.resource_type,
+            'resource_id': self.resource_id,
+            'changes': self.changes,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
