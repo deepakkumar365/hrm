@@ -2932,17 +2932,3 @@ def claims_approve(claim_id):
         db.session.rollback()
         flash(f'Error processing claim: {str(e)}', 'error')
         return redirect(url_for('claims_list'))
-   elif action == 'reject':
-            claim.status = 'Rejected'
-            claim.approved_by = current_user.id
-            claim.approved_at = datetime.now()
-            claim.rejection_reason = request.form.get('reason', '')
-            flash('Claim rejected', 'info')
-
-        db.session.commit()
-        return redirect(url_for('claims_list'))
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error processing claim: {str(e)}', 'error')
-        return redirect(url_for('claims_list'))

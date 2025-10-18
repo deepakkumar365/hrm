@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Clean up duplicate code in routes.py caused by auto-fix"""
 
+import os
+
 def cleanup_routes():
     """Remove the duplicate elif block from claims_approve function"""
     try:
-        filepath = 'D:/Projects/HRMS/hrm/routes.py'
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.join(script_dir, 'routes.py')
         
         # Read the file
         with open(filepath, 'r', encoding='utf-8') as f:
