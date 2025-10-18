@@ -46,7 +46,7 @@ def _allowed_image(filename: str) -> bool:
 # =====================================================
 
 @app.route('/employees/<int:employee_id>/reset-password', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def employee_reset_password(employee_id):
     """Reset employee password"""
     try:
@@ -436,7 +436,7 @@ def update_payroll_config(config_id):
 # =====================================================
 
 @app.route('/employees/generate-id', methods=['GET'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def generate_new_employee_id():
     """Generate a new unique employee ID"""
     try:

@@ -21,14 +21,14 @@ from constants import DEFAULT_USER_PASSWORD
 
 
 @app.route('/employees/bulk-upload')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def employee_bulk_upload():
     """Employee Bulk Upload page with download template and upload options"""
     return render_template('employees/bulk_upload.html')
 
 
 @app.route('/employees/bulk-upload/download-template')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def download_employee_template():
     """Download Excel template for bulk employee upload"""
     
@@ -207,7 +207,7 @@ def download_employee_template():
 
 
 @app.route('/employees/bulk-upload/upload', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def upload_employee_excel():
     """Process uploaded Excel file and create employees"""
     

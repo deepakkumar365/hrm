@@ -249,7 +249,7 @@ def login():
 
 
 @app.route('/register', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def register():
     """Register new user (Admin only)"""
     form = RegisterForm()
@@ -723,7 +723,7 @@ def employee_list():
 
 
 @app.route('/employees/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def employee_add():
     """Add new employee"""
     if request.method == 'POST':
@@ -1221,7 +1221,7 @@ def profile_edit():
 
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def employee_edit(employee_id):
     """Edit employee details"""
     employee = Employee.query.get_or_404(employee_id)
@@ -1423,7 +1423,7 @@ def employee_edit(employee_id):
 
 
 @app.route('/employees/export')
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def export_employees():
     """Export employees to CSV"""
     try:
@@ -1503,7 +1503,8 @@ def export_employees():
 
 # Payroll Management Routes
 @app.route('/payroll')
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_login
+@require_role(['Super Admin', 'Tenant Admin', 'Manager', 'HR Manager'])
 def payroll_list():
     """List payroll records"""
     page = request.args.get('page', 1, type=int)
@@ -1527,22 +1528,29 @@ def payroll_list():
                 Payroll.employee_id == manager_id,  # Manager's own payroll
                 Employee.manager_id == manager_id  # Team's payroll
             ))
-    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
-        # Admin and Super Admin: Can see all payroll records
+    elif (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'Super Admin', 'HR Manager']:
+        # Admin, Tenant Admin and HR Manager: Can see all payroll records
         pass  # No filtering - they can see all
 
     payrolls = query.order_by(Payroll.pay_period_end.desc()).paginate(
         page=page, per_page=20, error_out=False)
 
+    # Calculate current year for template
+    from datetime import datetime as dt
+    current_year = dt.now().year
+    years = list(range(current_year - 2, current_year + 1))
+
     return render_template('payroll/list.html',
                            payrolls=payrolls,
                            month=month,
                            year=year,
+                           years=years,
                            calendar=calendar)
 
 
 @app.route('/payroll/generate', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_login
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def payroll_generate():
     """Generate payroll for selected period"""
     if request.method == 'POST':
@@ -1583,9 +1591,10 @@ def payroll_generate():
                 if config:
                     total_allowances = float(config.get_total_allowances())
 
-                # Get attendance data for overtime calculation
+                # Get attendance data for overtime calculation (only "Present" status)
                 attendance_records = Attendance.query.filter_by(
-                    employee_id=employee.id).filter(
+                    employee_id=employee.id,
+                    status='Present').filter(
                         Attendance.date.between(pay_period_start,
                                                 pay_period_end)).all()
 
@@ -1654,7 +1663,8 @@ def payroll_generate():
 
 
 @app.route('/payroll/config')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_login
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def payroll_config():
     """Payroll configuration page - manage employee salary allowances and OT rates"""
     page = request.args.get('page', 1, type=int)
@@ -1692,7 +1702,8 @@ def payroll_config():
 
 
 @app.route('/payroll/config/update', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_login
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def payroll_config_update():
     """Update payroll configuration for an employee (AJAX endpoint)"""
     try:
@@ -1700,6 +1711,15 @@ def payroll_config_update():
         employee_id = data.get('employee_id')
         
         employee = Employee.query.get_or_404(employee_id)
+        
+        # Security check: Ensure employee belongs to user's organization
+        if (current_user.role.name if current_user.role else None) not in ['Super Admin']:
+            if employee.organization_id != current_user.organization_id:
+                return jsonify({
+                    'success': False,
+                    'message': 'You do not have permission to modify this employee'
+                }), 403
+        
         config = employee.payroll_config
         
         if not config:
@@ -1744,7 +1764,8 @@ def payroll_config_update():
 
 
 @app.route('/api/payroll/preview')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_login
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def payroll_preview_api():
     """API endpoint to preview payroll data for selected month"""
     try:
@@ -1783,8 +1804,10 @@ def payroll_preview_api():
         pay_period_end = date(year, month, last_day)
         
         # Get all active employees for this company
+        # Security: Only fetch employees from user's company
         employees = Employee.query.filter_by(
             company_id=company.id,
+            organization_id=current_user.organization_id,
             is_active=True
         ).all()
         
@@ -1800,9 +1823,10 @@ def payroll_preview_api():
             allowance_4 = float(config.allowance_4_amount) if config else 0
             total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
             
-            # Get attendance data for the month
+            # Get attendance data for the month (only "Present" status)
             attendance_records = Attendance.query.filter_by(
-                employee_id=emp.id
+                employee_id=emp.id,
+                status='Present'
             ).filter(
                 Attendance.date.between(pay_period_start, pay_period_end)
             ).all()
@@ -1944,12 +1968,21 @@ def payroll_payslip(payroll_id):
 
 
 @app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_login
+@require_role(['Super Admin', 'Tenant Admin'])
 def payroll_approve(payroll_id):
     """Approve payroll record"""
     payroll = Payroll.query.get_or_404(payroll_id)
     
     try:
+        # Security check: Ensure payroll belongs to user's organization
+        if (current_user.role.name if current_user.role else None) not in ['Super Admin']:
+            if payroll.employee.organization_id != current_user.organization_id:
+                return jsonify({
+                    'success': False,
+                    'message': 'You do not have permission to approve this payroll'
+                }), 403
+        
         if payroll.status == 'Draft':
             payroll.status = 'Approved'
             db.session.commit()
@@ -2543,7 +2576,7 @@ def auto_create_daily_attendance():
 
 
 @app.route('/attendance/auto-create', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def attendance_auto_create():
     """Manual trigger for creating daily attendance records - useful for Render deployment"""
     try:
@@ -2885,6 +2918,31 @@ def claims_approve(claim_id):
             claim.approved_by = current_user.id
             claim.approved_at = datetime.now()
             flash('Claim approved', 'success')
-        
         elif action == 'reject':
-            c
+            claim.status = 'Rejected'
+            claim.approved_by = current_user.id
+            claim.approved_at = datetime.now()
+            claim.rejection_reason = request.form.get('reason', '')
+            flash('Claim rejected', 'info')
+
+        db.session.commit()
+        return redirect(url_for('claims_list'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error processing claim: {str(e)}', 'error')
+        return redirect(url_for('claims_list'))
+   elif action == 'reject':
+            claim.status = 'Rejected'
+            claim.approved_by = current_user.id
+            claim.approved_at = datetime.now()
+            claim.rejection_reason = request.form.get('reason', '')
+            flash('Claim rejected', 'info')
+
+        db.session.commit()
+        return redirect(url_for('claims_list'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error processing claim: {str(e)}', 'error')
+        return redirect(url_for('claims_list'))

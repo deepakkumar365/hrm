@@ -17,7 +17,7 @@ from models import Role, Department, WorkingHours, WorkSchedule, Employee
 # ============================================================================
 
 @app.route('/masters/roles')
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin'])
 def role_list():
     """List all roles with search and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -43,7 +43,7 @@ def role_list():
 
 
 @app.route('/masters/roles/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin'])
 def role_add():
     """Add a new role"""
     if request.method == 'POST':
@@ -78,7 +78,7 @@ def role_add():
 
 
 @app.route('/masters/roles/<int:role_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin'])
 def role_edit(role_id):
     """Edit an existing role"""
     role = Role.query.get_or_404(role_id)
@@ -115,7 +115,7 @@ def role_edit(role_id):
 
 
 @app.route('/masters/roles/<int:role_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin'])
 def role_delete(role_id):
     """Delete a role"""
     role = Role.query.get_or_404(role_id)
@@ -143,7 +143,7 @@ def role_delete(role_id):
 # ============================================================================
 
 @app.route('/masters/departments')
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def department_list():
     """List all departments with search and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -169,7 +169,7 @@ def department_list():
 
 
 @app.route('/masters/departments/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def department_add():
     """Add a new department"""
     if request.method == 'POST':
@@ -213,7 +213,7 @@ def department_add():
 
 
 @app.route('/masters/departments/<int:department_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def department_edit(department_id):
     """Edit an existing department"""
     department = Department.query.get_or_404(department_id)
@@ -259,7 +259,7 @@ def department_edit(department_id):
 
 
 @app.route('/masters/departments/<int:department_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def department_delete(department_id):
     """Delete a department"""
     department = Department.query.get_or_404(department_id)
@@ -287,7 +287,7 @@ def department_delete(department_id):
 # ============================================================================
 
 @app.route('/masters/working-hours')
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def working_hours_list():
     """List all working hours configurations with search and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -313,7 +313,7 @@ def working_hours_list():
 
 
 @app.route('/masters/working-hours/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def working_hours_add():
     """Add a new working hours configuration"""
     if request.method == 'POST':
@@ -359,7 +359,7 @@ def working_hours_add():
 
 
 @app.route('/masters/working-hours/<int:working_hours_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def working_hours_edit(working_hours_id):
     """Edit an existing working hours configuration"""
     working_hours = WorkingHours.query.get_or_404(working_hours_id)
@@ -407,7 +407,7 @@ def working_hours_edit(working_hours_id):
 
 
 @app.route('/masters/working-hours/<int:working_hours_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def working_hours_delete(working_hours_id):
     """Delete a working hours configuration"""
     working_hours = WorkingHours.query.get_or_404(working_hours_id)
@@ -435,7 +435,7 @@ def working_hours_delete(working_hours_id):
 # ============================================================================
 
 @app.route('/masters/work-schedules')
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def work_schedule_list():
     """List all work schedules with search and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -461,7 +461,7 @@ def work_schedule_list():
 
 
 @app.route('/masters/work-schedules/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def work_schedule_add():
     """Add a new work schedule"""
     if request.method == 'POST':
@@ -516,7 +516,7 @@ def work_schedule_add():
 
 
 @app.route('/masters/work-schedules/<int:work_schedule_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def work_schedule_edit(work_schedule_id):
     """Edit an existing work schedule"""
     work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
@@ -573,7 +573,7 @@ def work_schedule_edit(work_schedule_id):
 
 
 @app.route('/masters/work-schedules/<int:work_schedule_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def work_schedule_delete(work_schedule_id):
     """Delete a work schedule"""
     work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)

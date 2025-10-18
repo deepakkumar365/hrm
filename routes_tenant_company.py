@@ -175,7 +175,7 @@ def get_tenant(tenant_id):
 
 
 @app.route('/api/tenants', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def create_tenant():
     """Create a new tenant"""
     try:
@@ -224,7 +224,7 @@ def create_tenant():
 
 
 @app.route('/api/tenants/<uuid:tenant_id>', methods=['PUT'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def update_tenant(tenant_id):
     """Update an existing tenant"""
     try:
@@ -272,7 +272,7 @@ def update_tenant(tenant_id):
 
 
 @app.route('/api/tenants/<uuid:tenant_id>', methods=['DELETE'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def delete_tenant(tenant_id):
     """Delete a tenant (cascades to companies and employees)"""
     try:
@@ -539,7 +539,7 @@ def update_company(company_id):
 
 
 @app.route('/api/companies/<uuid:company_id>', methods=['DELETE'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def delete_company(company_id):
     """Delete a company (cascades to employees)"""
     try:
@@ -667,7 +667,7 @@ def companies_page():
 # =====================================================
 
 @app.route('/tenant-payment-config')
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def tenant_payment_config_list():
     """Display tenant payment configuration page"""
     try:
@@ -690,7 +690,7 @@ def tenant_payment_config_list():
 
 
 @app.route('/api/tenant-payment-config/<uuid:tenant_id>', methods=['GET'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def get_tenant_payment_config(tenant_id):
     """Get payment configuration for a specific tenant"""
     try:
@@ -711,7 +711,7 @@ def get_tenant_payment_config(tenant_id):
 
 
 @app.route('/api/tenant-payment-config', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def create_tenant_payment_config():
     """Create or update tenant payment configuration"""
     try:
@@ -770,7 +770,7 @@ def create_tenant_payment_config():
 
 
 @app.route('/api/tenant-payment-config/<uuid:tenant_id>', methods=['DELETE'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def delete_tenant_payment_config(tenant_id):
     """Delete tenant payment configuration"""
     try:
@@ -802,7 +802,7 @@ def delete_tenant_payment_config(tenant_id):
 # =====================================================
 
 @app.route('/api/tenant-documents/<uuid:tenant_id>', methods=['GET'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def get_tenant_documents(tenant_id):
     """Get all documents for a specific tenant"""
     try:
@@ -818,7 +818,7 @@ def get_tenant_documents(tenant_id):
 
 
 @app.route('/api/tenant-documents/<uuid:tenant_id>', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def upload_tenant_document(tenant_id):
     """Upload a document for a tenant"""
     try:
@@ -891,7 +891,7 @@ def upload_tenant_document(tenant_id):
 
 
 @app.route('/api/tenant-documents/<int:document_id>', methods=['DELETE'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def delete_tenant_document(document_id):
     """Delete a tenant document"""
     try:

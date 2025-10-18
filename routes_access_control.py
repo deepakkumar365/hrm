@@ -92,17 +92,33 @@ def initialize_access_control_matrix():
                 for sub_menu_name in sub_menus:
                     # Set default access levels
                     if module_name == 'Admin Settings':
-                        # Only Super Admin can access admin settings
-                        access_level = RoleAccessControl(
-                            module_name=module_name,
-                            menu_name=menu_name,
-                            sub_menu_name=sub_menu_name,
-                            super_admin_access='Editable',
-                            tenant_admin_access='Hidden',
-                            hr_manager_access='Hidden',
-                            employee_access='Hidden',
-                            created_by='system'
-                        )
+                        # Admin Settings: Super Admin has full access
+                        # Tenant Admin can access Master Data (Roles, Departments, Designations)
+                        # HR Manager and Employee cannot access admin settings
+                        if menu_name == 'Master Data':
+                            # Tenant Admin can manage master data
+                            access_level = RoleAccessControl(
+                                module_name=module_name,
+                                menu_name=menu_name,
+                                sub_menu_name=sub_menu_name,
+                                super_admin_access='Editable',
+                                tenant_admin_access='Editable',
+                                hr_manager_access='Hidden',
+                                employee_access='Hidden',
+                                created_by='system'
+                            )
+                        else:
+                            # Other admin settings only for Super Admin
+                            access_level = RoleAccessControl(
+                                module_name=module_name,
+                                menu_name=menu_name,
+                                sub_menu_name=sub_menu_name,
+                                super_admin_access='Editable',
+                                tenant_admin_access='Hidden',
+                                hr_manager_access='Hidden',
+                                employee_access='Hidden',
+                                created_by='system'
+                            )
                     elif module_name in ['Payroll', 'Appraisals']:
                         # Limited access
                         access_level = RoleAccessControl(
@@ -616,14 +632,14 @@ def check_edit_permission(user_role, module_name, menu_name=None):
     return access_level == 'Editable'
 
 
-# Register blueprint
-@app.before_request
-def register_access_control_blueprint():
-    """Register the blueprint on first request"""
-    if not hasattr(app, '_access_control_registered'):
-        app.register_blueprint(access_control_bp)
-        app._access_control_registered = True
+# Register blueprint at module load time (before first request)
+app.register_blueprint(access_control_bp)
 
 
-# Initialize when routes are loaded
-initialize_access_control_matrix()
+# Initialize when routes are loaded (within app context)
+try:
+    with app.app_context():
+        initialize_access_control_matrix()
+except RuntimeError:
+    # App context not available during import, will initialize on first request
+    pass

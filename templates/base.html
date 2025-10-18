@@ -47,7 +47,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 {% set user_role = current_user.role.name if current_user.role else None %}
                 {% set is_super_admin = user_role == 'Super Admin' %}
-                {% set is_admin = user_role in ['Admin', 'HR Manager'] %}
+                {% set is_admin = user_role in ['"Tenant Admin"', 'HR Manager'] %}
                 {% set is_manager = user_role == 'Manager' %}
                 {% set is_user = user_role == 'User' %}
                 
