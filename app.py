@@ -54,7 +54,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 
 # Session configuration for security
-from datetime import timedelta
+from datetime import timedelta, date
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=2)  # Session expires after 2 hours
 app.config["SESSION_COOKIE_SECURE"] = environment == "production"  # HTTPS only in production
 app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent JavaScript access to session cookie
@@ -80,6 +80,9 @@ import models  # noqa: E402,F401
 
 # Add hasattr to Jinja2 global functions
 app.jinja_env.globals['hasattr'] = hasattr
+
+# Add date module to Jinja2 globals for template use
+app.jinja_env.globals['date'] = date
 
 # Add custom Jinja2 filters
 def date_filter(value, format='%d/%m/%Y'):
