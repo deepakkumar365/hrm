@@ -84,6 +84,12 @@ app.jinja_env.globals['hasattr'] = hasattr
 # Add date module to Jinja2 globals for template use
 app.jinja_env.globals['date'] = date
 
+# Add a helper function to get current year
+def get_current_year():
+    return date.today().year
+
+app.jinja_env.globals['get_current_year'] = get_current_year
+
 # Add custom Jinja2 filters
 def date_filter(value, format='%d/%m/%Y'):
     """Format a date object to a string."""
