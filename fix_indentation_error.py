@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Fix the indentation error in routes.py"""
 
+import os
 import sys
 
 def fix_indentation_error():
     """Remove the duplicate elif block from claims_approve function"""
     try:
-        # Read the file
-        with open('D:/Projects/HRMS/hrm/routes.py', 'r', encoding='utf-8') as f:
+        # Construct a relative path to routes.py
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.join(script_dir, 'routes.py')
+        with open(filepath, 'r', encoding='utf-8') as f: # Read the file
             lines = f.readlines()
         
         # Find and remove the duplicate code (lines with bad indentation)
@@ -27,7 +30,7 @@ def fix_indentation_error():
                 new_lines.append(line)
         
         # Write back the fixed file
-        with open('D:/Projects/HRMS/hrm/routes.py', 'w', encoding='utf-8') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             f.writelines(new_lines)
         
         print("✅ Fixed indentation error - removed duplicate code from claims_approve function")

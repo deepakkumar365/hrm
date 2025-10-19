@@ -2,16 +2,20 @@
 """Verify the syntax fix was applied correctly"""
 
 import sys
+import os
 
 def verify_routes_syntax():
     """Verify routes.py has valid Python syntax"""
     print("=" * 60)
     print("🔍 Verifying routes.py Syntax")
     print("=" * 60)
-    
+
     try:
+        # Construct a relative path to routes.py
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.join(script_dir, 'routes.py')
         # Try to compile the file
-        with open('D:/Projects/HRMS/hrm/routes.py', 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             code = f.read()
         
         compile(code, 'routes.py', 'exec')
@@ -36,7 +40,10 @@ def verify_claims_approve_complete():
     print("=" * 60)
     
     try:
-        with open('D:/Projects/HRMS/hrm/routes.py', 'r', encoding='utf-8') as f:
+        # Construct a relative path to routes.py
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.join(script_dir, 'routes.py')
+        with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
         
         # Check for required components

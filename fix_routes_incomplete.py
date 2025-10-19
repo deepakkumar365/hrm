@@ -4,7 +4,8 @@
 import os
 
 def fix_routes_file():
-    routes_path = "D:/Projects/HRMS/hrm/routes.py"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    routes_path = os.path.join(script_dir, 'routes.py')
     
     # Read the file
     with open(routes_path, 'r', encoding='utf-8') as f:

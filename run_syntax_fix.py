@@ -3,9 +3,10 @@
 import sys
 import os
 
+# Get the project directory where this script is located
+project_dir = os.path.dirname(os.path.abspath(__file__))
 # Change to the project directory
-os.chdir('D:/Projects/HRMS/hrm')
-sys.path.insert(0, 'D:/Projects/HRMS/hrm')
+sys.path.insert(0, project_dir)
 
 try:
     # Import and execute the fix
@@ -18,7 +19,7 @@ try:
         print("⚠️ Fix did not complete. Trying alternative approach...")
         
         # Alternative: directly fix using string replacement with smarter matching
-        path = "D:/Projects/HRMS/hrm/routes.py"
+        path = os.path.join(project_dir, "routes.py")
         with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
         
