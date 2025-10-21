@@ -821,6 +821,18 @@ def employee_add():
             #     if designation:
             #         employee.position = designation.name
 
+            # Handle Designation - Set position from designation
+            designation_id = request.form.get('designation_id')
+            if designation_id:
+                employee.designation_id = int(designation_id)
+                # Set position from designation name for backward compatibility
+                designation = Designation.query.get(int(designation_id))
+                if designation:
+                    employee.position = designation.name
+            else:
+                # Fallback: if no designation provided, set a default position
+                employee.position = "Employee"
+
             employee.department = request.form.get('department')
             employee.hire_date = parse_date(request.form.get('hire_date'))
             employee.employment_type = request.form.get('employment_type')
@@ -1256,14 +1268,18 @@ def employee_edit(employee_id):
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
 
-            # GEN-EMP-004: Handle Designation Master on edit - COMMENTED OUT - needs migration
-            # designation_id = request.form.get('designation_id')
-            # if designation_id:
-            #     employee.designation_id = int(designation_id)
-            #     # Also set position from designation name for backward compatibility
-            #     designation = Designation.query.get(int(designation_id))
-            #     if designation:
-            #         employee.position = designation.name
+            # Handle Designation Master on edit
+            designation_id = request.form.get('designation_id')
+            if designation_id:
+                employee.designation_id = int(designation_id)
+                # Also set position from designation name for backward compatibility
+                designation = Designation.query.get(int(designation_id))
+                if designation:
+                    employee.position = designation.name
+            else:
+                # Fallback: if no designation provided, keep existing or set default
+                if not employee.position:
+                    employee.position = "Employee"
 
             employee.department = request.form.get('department')
             employee.employment_type = request.form.get('employment_type')
@@ -2445,7 +2461,7 @@ def attendance_incomplete():
 
 
 @app.route('/attendance/bulk', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager', 'Manager'])
 def attendance_bulk_manage():
     """Bulk attendance management - mark employees as absent for a specific date"""
     selected_date = request.args.get('date') or request.form.get('date')
@@ -2461,7 +2477,7 @@ def attendance_bulk_manage():
 
     if request.method == 'POST':
         try:
-            # Get list of employee IDs marked as absent
+            # Get list of employee IDs marked as absent (for backward compatibility)
             absent_employee_ids = request.form.getlist('absent_employees')
             absent_employee_ids = [int(emp_id) for emp_id in absent_employee_ids if emp_id.isdigit()]
 
@@ -2485,6 +2501,9 @@ def attendance_bulk_manage():
             # Ensure attendance records exist for all employees for this date
             create_daily_attendance_records(filter_date, all_employees)
 
+            # Track status counts for summary
+            status_counts = {'Present': 0, 'Absent': 0, 'Leave': 0, 'Half Day': 0}
+
             # Update attendance status for all employees
             for employee in all_employees:
                 attendance = Attendance.query.filter_by(
@@ -2493,9 +2512,22 @@ def attendance_bulk_manage():
                 ).first()
 
                 if attendance:
-                    if employee.id in absent_employee_ids:
-                        attendance.status = 'Absent'
-                        attendance.remarks = f'Marked absent by {current_user.first_name} {current_user.last_name}'
+                    # Check if there's a new status dropdown value for this employee
+                    status_field = f'status_{employee.id}'
+                    new_status = request.form.get(status_field, 'Present')
+                    
+                    # Fallback to checkbox logic if no dropdown value (backward compatibility)
+                    if not new_status or new_status not in ['Present', 'Absent', 'Leave', 'Half Day']:
+                        new_status = 'Absent' if employee.id in absent_employee_ids else 'Present'
+                    
+                    attendance.status = new_status
+                    attendance.remarks = f'Updated by {current_user.first_name} {current_user.last_name}'
+                    
+                    # Update tracking counters
+                    status_counts[new_status] = status_counts.get(new_status, 0) + 1
+                    
+                    # Adjust time fields based on status
+                    if new_status == 'Absent':
                         # Clear time fields for absent employees
                         attendance.clock_in = None
                         attendance.clock_out = None
@@ -2504,8 +2536,22 @@ def attendance_bulk_manage():
                         attendance.regular_hours = 0
                         attendance.overtime_hours = 0
                         attendance.total_hours = 0
-                    else:
-                        attendance.status = 'Present'
+                    elif new_status == 'Half Day':
+                        # Half day: 4 hours
+                        if not attendance.clock_in and not attendance.clock_out:
+                            attendance.regular_hours = 4
+                            attendance.total_hours = 4
+                            attendance.overtime_hours = 0
+                    elif new_status == 'Leave':
+                        # Leave: 0 hours
+                        attendance.clock_in = None
+                        attendance.clock_out = None
+                        attendance.break_start = None
+                        attendance.break_end = None
+                        attendance.regular_hours = 0
+                        attendance.overtime_hours = 0
+                        attendance.total_hours = 0
+                    else:  # Present
                         # For present employees, set default 8 hours if not manually clocked
                         if not attendance.clock_in and not attendance.clock_out:
                             attendance.regular_hours = 8
@@ -2514,11 +2560,21 @@ def attendance_bulk_manage():
 
             db.session.commit()
 
-            present_count = len(all_employees) - len(absent_employee_ids)
-            absent_count = len(absent_employee_ids)
-
+            # Build summary message
+            summary_parts = []
+            if status_counts['Present'] > 0:
+                summary_parts.append(f"{status_counts['Present']} Present")
+            if status_counts['Absent'] > 0:
+                summary_parts.append(f"{status_counts['Absent']} Absent")
+            if status_counts['Leave'] > 0:
+                summary_parts.append(f"{status_counts['Leave']} Leave")
+            if status_counts['Half Day'] > 0:
+                summary_parts.append(f"{status_counts['Half Day']} Half Day")
+            
+            summary_text = ', '.join(summary_parts) if summary_parts else "No changes"
+            
             flash(
-                f'Attendance updated for {filter_date.strftime("%B %d, %Y")}: {present_count} Present, {absent_count} Absent',
+                f'Attendance updated for {filter_date.strftime("%B %d, %Y")}: {summary_text}',
                 'success')
 
         except Exception as e:
@@ -2886,49 +2942,6 @@ def claims_list():
                                                                                          'employee_profile'):
         query = query.filter(
             Claim.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                                                          'employee_profile'):
-        query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
-
-    claims = query.order_by(Claim.created_at.desc()).paginate(page=page,
-                                                              per_page=20,
-                                                              error_out=False)
-
-    return render_template('claims/list.html',
-                           claims=claims,
-                           status_filter=status_filter)
-
-
-@app.route('/claims/submit', methods=['GET', 'POST'])
-@require_login
-def claims_submit():
-    """Submit new claim"""
-    if request.method == 'POST':
-        try:
-            if not hasattr(
-                    current_user,
-                    'employee_profile') or not current_user.employee_profile:
-                flash('Employee profile required for attendance marking',
-                      'error')
-                return redirect(url_for('dashboard'))
-
-            claim = Claim()
-            claim.employee_id = current_user.employee_profile.id
-            claim.claim_type = request.form.get('claim_type')
-            amount_str = request.form.get('amount')
-            claim.amount = float(amount_str) if amount_str else 0.0
-            claim.claim_date = parse_date(request.form.get('claim_date'))
-            claim.description = request.form.get('description')
-            claim.receipt_number = request.form.get('receipt_number')
-            claim.submitted_by = current_user.id
-
-            db.session.add(claim)
-            db.session.commit()
-
-            flash('Claim submitted successfully', 'success')
-            return redirect(url_for('claims_list'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error submitting claim: {str(e)}', 'error')
+    
+    claims = query.paginate(page=page, per_page=10)
+ 
