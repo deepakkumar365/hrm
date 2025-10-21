@@ -68,26 +68,7 @@
                         </div>
                     </div>
                 </form>
-                
-                <!-- Auto Create Button Row -->
-                <div class="row mt-3 pt-3 border-top">
-                    <div class="col-12">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <span>Check employees to mark as <strong>Absent</strong>. Unchecked employees will be marked as <strong>Present</strong>.</span>
-                            </small>
-                            <form method="POST" action="{{ url_for('attendance_auto_create') }}" class="d-inline">
-                                <input type="hidden" name="date" value="{{ selected_date }}">
-                                <button type="submit" class="btn btn-success btn-sm" 
-                                        onclick="return confirm('Create attendance records for all employees on {{ filter_date.strftime('%B %d, %Y') }}?')"
-                                        title="Auto-create attendance for all employees">
-                                    <i class="fas fa-plus me-1"></i>Auto Create All Records
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+
             </div>
         </div>
 
@@ -96,11 +77,11 @@
             <form method="POST">
                 <input type="hidden" name="date" value="{{ selected_date }}">
                 
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">
+                <div class="card-header" style="padding-top: 1rem; padding-bottom: 1rem;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0" style="font-weight: 600; font-size: 1rem;">
                             <i class="fas fa-users me-2"></i>Employee Attendance - {{ filter_date.strftime('%B %d, %Y') }}
-                        </h6>
+                        </h5>
                     </div>
                     
                     <!-- Quick Action Buttons -->
@@ -165,15 +146,15 @@
                                             <div class="d-flex align-items-center">
                                                 {% if employee.profile_image_path %}
                                                 <img src="{{ url_for('static', filename=employee.profile_image_path) }}" 
-                                                     class="rounded-circle me-2" width="28" height="28" alt="Profile">
+                                                     class="rounded-circle" width="36" height="36" alt="Profile" style="margin-right: 12px; flex-shrink: 0;">
                                                 {% else %}
-                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
-                                                     style="width: 28px; height: 28px; font-size: 12px; flex-shrink: 0;">
+                                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                                     style="width: 36px; height: 36px; margin-right: 12px; font-size: 13px; flex-shrink: 0; font-weight: 600;">
                                                     {{ employee.first_name[0] }}{{ employee.last_name[0] }}
                                                 </div>
                                                 {% endif %}
                                                 <div>
-                                                    <strong class="d-block">{{ employee.first_name }} {{ employee.last_name }}</strong>
+                                                    <strong class="d-block" style="font-size: 0.9375rem;">{{ employee.first_name }} {{ employee.last_name }}</strong>
                                                 </div>
                                             </div>
                                         </td>
@@ -183,7 +164,8 @@
                                             <select class="form-select form-select-sm status-select" 
                                                     name="status_{{ employee.id }}"
                                                     onchange="updateCheckboxFromStatus(this, {{ employee.id }})">
-                                                <option value="Present" {% if not attendance or attendance.status == 'Present' %}selected{% endif %}>Present</option>
+                                                <option value="Pending" {% if not attendance or attendance.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                                <option value="Present" {% if attendance and attendance.status == 'Present' %}selected{% endif %}>Present</option>
                                                 <option value="Absent" {% if attendance and attendance.status == 'Absent' %}selected{% endif %}>Absent</option>
                                                 <option value="Leave" {% if attendance and attendance.status == 'Leave' %}selected{% endif %}>Leave</option>
                                                 <option value="Half Day" {% if attendance and attendance.status == 'Half Day' %}selected{% endif %}>Half Day</option>
@@ -193,11 +175,13 @@
                                             {% if attendance %}
                                                 {% if attendance.status == 'Present' %}
                                                     <span class="text-success"><strong>{{ attendance.total_hours or 8 }}h</strong></span>
+                                                {% elif attendance.status == 'Half Day' %}
+                                                    <span class="text-info"><strong>{{ attendance.total_hours or 4 }}h</strong></span>
                                                 {% else %}
                                                     <span class="text-muted">—</span>
                                                 {% endif %}
                                             {% else %}
-                                                <span class="text-success"><strong>8h</strong></span>
+                                                <span class="text-muted">—</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -259,11 +243,13 @@
                                         {% if attendance %}
                                             {% if attendance.status == 'Present' %}
                                                 <strong class="text-success"><small>{{ attendance.total_hours or 8 }}h</small></strong>
+                                            {% elif attendance.status == 'Half Day' %}
+                                                <strong class="text-info"><small>{{ attendance.total_hours or 4 }}h</small></strong>
                                             {% else %}
-                                                <strong class="text-muted"><small>0h</small></strong>
+                                                <strong class="text-muted"><small>—</small></strong>
                                             {% endif %}
                                         {% else %}
-                                            <strong class="text-success"><small>8h</small></strong>
+                                            <strong class="text-muted"><small>—</small></strong>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -304,71 +290,88 @@
 <script>
 // JavaScript for bulk selection functionality
 function selectAll(absent) {
-    const checkboxes = document.querySelectorAll('.employee-checkbox');
-    checkboxes.forEach(checkbox => {
+    // Get all checkboxes from both desktop and mobile views
+    const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
+    const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
+    
+    // Update desktop checkboxes
+    desktopCheckboxes.forEach(checkbox => {
         checkbox.checked = absent;
-        updateRowStatus(checkbox);
     });
-    updateSelectAllCheckbox();
+    
+    // Update mobile checkboxes with same state
+    mobileCheckboxes.forEach(checkbox => {
+        checkbox.checked = absent;
+    });
+    
+    // Update the select all checkbox state
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = absent;
+    }
+    
+    updateSelectionCount();
 }
 
 function toggleSelectAll() {
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    if (!selectAllCheckbox) return;
     
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAllCheckbox.checked;
-        updateRowStatus(checkbox);
+    // Get all desktop checkboxes
+    const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
+    const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
+    
+    const shouldCheck = selectAllCheckbox.checked;
+    
+    // Update all desktop checkboxes
+    desktopCheckboxes.forEach(checkbox => {
+        checkbox.checked = shouldCheck;
     });
+    
+    // Update all mobile checkboxes
+    mobileCheckboxes.forEach(checkbox => {
+        checkbox.checked = shouldCheck;
+    });
+    
+    updateSelectionCount();
 }
 
 function updateSelectAllCheckbox() {
-    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     
-    if (selectAllCheckbox) {
-        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-        selectAllCheckbox.checked = checkedCount === checkboxes.length;
-        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
-    }
-}
-
-function updateRowStatus(checkbox) {
-    const employeeId = checkbox.value;
-    const row = document.querySelector(`[data-employee-id="${employeeId}"]`);
-    const statusBadge = row.querySelector('.status-badge');
-    
-    if (checkbox.checked) {
-        // Mark as Absent
-        statusBadge.textContent = 'Absent';
-        statusBadge.className = 'status-badge badge bg-danger';
-        row.classList.add('table-danger');
-    } else {
-        // Mark as Present
-        statusBadge.textContent = 'Present';
-        statusBadge.className = 'status-badge badge bg-success';
-        row.classList.remove('table-danger');
+    if (selectAllCheckbox && desktopCheckboxes.length > 0) {
+        const checkedCount = Array.from(desktopCheckboxes).filter(cb => cb.checked).length;
+        selectAllCheckbox.checked = checkedCount === desktopCheckboxes.length && checkedCount > 0;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < desktopCheckboxes.length;
     }
 }
 
 // Initialize event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    // Get all checkboxes
+    const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
+    const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
+    const allCheckboxes = document.querySelectorAll('.employee-checkbox');
+    
     // Add change event listeners to all employee checkboxes
-    const checkboxes = document.querySelectorAll('.employee-checkbox');
-    checkboxes.forEach(checkbox => {
+    allCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
-            updateRowStatus(this);
+            // Keep desktop and mobile checkboxes in sync
+            const employeeId = this.value;
+            const otherCheckbox = Array.from(allCheckboxes).find(cb => cb !== this && cb.value === employeeId);
+            if (otherCheckbox) {
+                otherCheckbox.checked = this.checked;
+            }
+            
             updateSelectAllCheckbox();
+            updateSelectionCount();
         });
     });
     
     // Initialize the select all checkbox state
     updateSelectAllCheckbox();
-    
-    // Initialize row statuses based on current checkbox states
-    checkboxes.forEach(checkbox => {
-        updateRowStatus(checkbox);
-    });
+    updateSelectionCount();
 });
 
 // Update checkbox state based on status dropdown
@@ -463,11 +466,32 @@ function showSuccessMessage(message) {
 .bulk-attendance-wrapper {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 2rem 1.5rem;
+    padding: 0.5rem 1.5rem 2rem 1.5rem;
 }
 
 .page-header {
-    padding-bottom: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Font consistency across the page */
+.bulk-attendance-wrapper h5,
+.bulk-attendance-wrapper h6,
+.bulk-attendance-wrapper .card-header {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+}
+
+.bulk-attendance-wrapper small,
+.bulk-attendance-wrapper td small,
+.bulk-attendance-wrapper .table td {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8875rem;
+}
+
+.table-header-bg th {
+    font-weight: 600;
+    font-size: 0.8875rem;
+    font-family: 'Inter', sans-serif;
 }
 
 /* ===== FILTER CARD ===== */

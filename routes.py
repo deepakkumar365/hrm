@@ -1707,6 +1707,11 @@ def payroll_config():
     # Query active employees
     query = Employee.query.filter_by(is_active=True)
 
+    # Filter by organization for Tenant Admin and HR Manager
+    user_role = current_user.role.name if current_user.role else None
+    if user_role != 'Super Admin':
+        query = query.filter_by(organization_id=current_user.organization_id)
+
     if search:
         query = query.filter(
             db.or_(
@@ -2878,70 +2883,8 @@ def leave_edit(leave_id):
 
             flash('Leave request updated successfully', 'success')
             return redirect(url_for('leave_list'))
-
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating leave request: {str(e)}', 'error')
-            return render_template('leave/form.html', leave=leave, is_edit=True, form_data=request.form)
-
-    return render_template('leave/form.html', leave=leave, is_edit=True)
-
-
-@app.route('/leave/<int:leave_id>/approve', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def leave_approve(leave_id):
-    """Approve/reject leave request"""
-    leave = Leave.query.get_or_404(leave_id)
-
-    # Check if manager can approve this leave
-    if (current_user.role.name if current_user.role else None) == 'Manager':
-        if not (hasattr(current_user, 'employee_profile') and
-                leave.employee.manager_id == current_user.employee_profile.id):
-            return render_template('403.html'), 403
-
-    try:
-        action = request.form.get('action')
-
-        if action == 'approve':
-            leave.status = 'Approved'
-            leave.approved_by = current_user.id
-            leave.approved_at = datetime.now()
-            flash('Leave request approved', 'success')
-
-        elif action == 'reject':
-            leave.status = 'Rejected'
-            leave.approved_by = current_user.id
-            leave.approved_at = datetime.now()
-            leave.rejection_reason = request.form.get('rejection_reason')
-            flash('Leave request rejected', 'success')
-
-        db.session.commit()
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error processing leave request: {str(e)}', 'error')
-
-    return redirect(url_for('leave_list'))
-
-
-# Claims Management Routes
-@app.route('/claims')
-@require_login
-def claims_list():
-    """List claims"""
-    page = request.args.get('page', 1, type=int)
-    status_filter = request.args.get('status', type=str)
-
-    query = Claim.query.join(Employee)
-
-    if status_filter:
-        query = query.filter(Claim.status == status_filter)
-
-    # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
-                                                                                         'employee_profile'):
-        query = query.filter(
-            Claim.employee_id == current_user.employee_profile.id)
     
-    claims = query.paginate(page=page, per_page=10)
- 
+    return render_template('leave/form.html', leave=leave, is_edit=True) 
