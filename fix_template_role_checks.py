@@ -7,7 +7,9 @@ import re
 from pathlib import Path
 
 def fix_template_files():
-    templates_dir = Path('E:/Gobi/Pro/HRMS/hrm/templates')
+    # Construct a relative path to the templates directory
+    script_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+    templates_dir = script_dir / 'templates'
     
     print("\n" + "="*70)
     print("🔧 FIXING ROLE CHECKS IN TEMPLATE FILES")

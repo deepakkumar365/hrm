@@ -21,7 +21,7 @@ The syntax fix has been **automatically configured** to run when you start the a
 
 2. **Run from Terminal**:
    ```bash
-   cd D:\Projects\HRMS\hrm
+   cd /path/to/your/hrm/project
    python main.py
    ```
    The fix will run automatically before importing routes.

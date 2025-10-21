@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
-from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal, 
+from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                     Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument,
                     Designation, UserRoleMapping, RoleAccessControl, AuditLog)
@@ -21,12 +21,14 @@ from utils import (export_to_csv, format_currency, format_date, parse_date,
                    mobile_optimized_pagination, get_current_month_dates)
 from constants import DEFAULT_USER_PASSWORD
 
+
 # Helper to validate image extension
 def _allowed_image(filename: str) -> bool:
     if not filename or '.' not in filename:
         return False
     ext = filename.rsplit('.', 1)[1].lower()
     return ext in app.config.get('ALLOWED_IMAGE_EXTENSIONS', set())
+
 
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
@@ -57,18 +59,19 @@ def debug_user_info():
             'organization_id': current_user.organization_id,
             'has_organization': current_user.organization is not None,
         }
-        
+
         if current_user.organization:
             user_info['organization_name'] = current_user.organization.name
-            user_info['organization_tenant_id'] = str(current_user.organization.tenant_id) if current_user.organization.tenant_id else None
-            
+            user_info['organization_tenant_id'] = str(
+                current_user.organization.tenant_id) if current_user.organization.tenant_id else None
+
             if current_user.organization.tenant_id:
                 company = Company.query.filter_by(tenant_id=current_user.organization.tenant_id).first()
                 user_info['has_company'] = company is not None
                 if company:
                     user_info['company_name'] = company.name
                     user_info['company_id'] = company.id
-        
+
         return jsonify(user_info), 200
     except Exception as e:
         import traceback
@@ -86,7 +89,8 @@ def create_default_master_data():
         if Role.query.count() == 0:
             roles = [
                 Role(name='Software Engineer', description='Develops and maintains software applications'),
-                Role(name='Senior Developer', description='Senior software development role with leadership responsibilities'),
+                Role(name='Senior Developer',
+                     description='Senior software development role with leadership responsibilities'),
                 Role(name='Team Lead', description='Leads development teams and manages projects'),
                 Role(name='HR Manager', description='Manages human resources operations'),
                 Role(name='Sales Executive', description='Responsible for sales activities and client relationships'),
@@ -96,7 +100,7 @@ def create_default_master_data():
             ]
             for role in roles:
                 db.session.add(role)
-        
+
         # Create default departments if none exist
         if Department.query.count() == 0:
             departments = [
@@ -109,44 +113,45 @@ def create_default_master_data():
             ]
             for dept in departments:
                 db.session.add(dept)
-        
+
         # Create default working hours if none exist
         if WorkingHours.query.count() == 0:
             working_hours = [
-                WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0, 
-                           description='Standard full-time working hours'),
-                WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0, 
-                           description='Half day part-time schedule'),
-                WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0, 
-                           description='Extended working hours with overtime'),
-                WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0, 
-                           description='Flexible working arrangement'),
+                WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0,
+                             description='Standard full-time working hours'),
+                WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0,
+                             description='Half day part-time schedule'),
+                WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0,
+                             description='Extended working hours with overtime'),
+                WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0,
+                             description='Flexible working arrangement'),
             ]
             for wh in working_hours:
                 db.session.add(wh)
-        
+
         # Create default work schedules if none exist
         if WorkSchedule.query.count() == 0:
             from datetime import time
             schedules = [
-                WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0), 
-                           break_duration=60, description='Standard 9-to-6 schedule'),
-                WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0), 
-                           break_duration=60, description='Early morning shift'),
-                WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0), 
-                           break_duration=60, description='Afternoon to evening shift'),
-                WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0), 
-                           break_duration=60, description='Flexible timing schedule'),
+                WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0),
+                             break_duration=60, description='Standard 9-to-6 schedule'),
+                WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0),
+                             break_duration=60, description='Early morning shift'),
+                WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0),
+                             break_duration=60, description='Afternoon to evening shift'),
+                WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0),
+                             break_duration=60, description='Flexible timing schedule'),
             ]
             for schedule in schedules:
                 db.session.add(schedule)
-        
+
         db.session.commit()
         return True
     except Exception as e:
         print(f"Error creating master data: {e}")
         db.session.rollback()
         return False
+
 
 def initialize_default_data():
     """Initialize default users and master data - call this after ensuring DB is ready"""
@@ -156,13 +161,13 @@ def initialize_default_data():
             from sqlalchemy import inspect
             inspector = inspect(db.engine)
             tables = inspector.get_table_names()
-            
+
             # Only proceed if the hrm_users table exists
             if 'hrm_users' not in tables:
                 print("⚠️  Database tables not yet created. Skipping default data initialization.")
                 print("Run 'flask db upgrade' to create tables, then restart the application.")
                 return
-            
+
             if create_default_users():
                 print("✅ Default users created successfully!")
             if create_default_master_data():
@@ -171,6 +176,7 @@ def initialize_default_data():
         print(f"⚠️  Warning: Could not initialize default data: {e}")
         print("This is normal if the database is not yet set up or tables haven't been created.")
         print("Run 'flask db upgrade' to create tables, then restart the application.")
+
 
 # Only initialize default data if we're running the app (not during imports for migrations, etc.)
 if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
@@ -226,19 +232,19 @@ def login():
         if user and user.check_password(form.password.data) and user.is_active:
             # Clear any existing session data before login
             session.clear()
-            
+
             # Login user with fresh session
             login_user(user, remember=False, fresh=True)
-            
+
             # Get next page or default to dashboard
             next_page = request.args.get('next')
-            
+
             # Create response with cache control headers
             response = redirect(next_page) if next_page else redirect(url_for('dashboard'))
             response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
             response.headers['Pragma'] = 'no-cache'
             response.headers['Expires'] = '0'
-            
+
             return response
         else:
             flash('Invalid username or password', 'error')
@@ -278,18 +284,18 @@ def logout():
     """User logout - Clear all session data"""
     # Clear Flask-Login user session
     logout_user()
-    
+
     # Clear all session data to prevent any residual data
     session.clear()
-    
+
     # Create response with cache control headers
     response = redirect(url_for('login'))
-    
+
     # Prevent caching of authenticated pages
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
-    
+
     return response
 
 
@@ -298,12 +304,13 @@ def render_tenant_admin_dashboard():
     from sqlalchemy import func, extract
     from datetime import datetime, timedelta
     import traceback
-    
+
     try:
         # Debug logging
-        print(f"[DEBUG] Dashboard - User: {current_user.username}, Role: {current_user.role.name if current_user.role else 'NO ROLE'}")
+        print(
+            f"[DEBUG] Dashboard - User: {current_user.username}, Role: {current_user.role.name if current_user.role else 'NO ROLE'}")
         print(f"[DEBUG] Dashboard - Organization ID: {current_user.organization_id}")
-        
+
         # Get current user's organization and related company
         user_org = current_user.organization
         if not user_org:
@@ -311,9 +318,9 @@ def render_tenant_admin_dashboard():
             print(f"[ERROR] Dashboard - No organization found for user {current_user.username}")
             flash('No organization assigned to your account. Please contact administrator.', 'warning')
             return render_template('dashboard.html', stats={}, recent_activities=[])
-        
+
         print(f"[DEBUG] Dashboard - Organization: {user_org.name}, Tenant ID: {user_org.tenant_id}")
-        
+
         # Get company associated with this organization's tenant
         company = None
         if user_org.tenant_id:
@@ -324,7 +331,7 @@ def render_tenant_admin_dashboard():
                 print(f"[WARNING] Dashboard - No company found for tenant_id: {user_org.tenant_id}")
         else:
             print(f"[WARNING] Dashboard - Organization has no tenant_id")
-        
+
         # Get current month dates
         start_date, end_date = get_current_month_dates()
     except AttributeError as e:
@@ -339,7 +346,7 @@ def render_tenant_admin_dashboard():
         traceback.print_exc()
         flash('An error occurred while loading the dashboard.', 'error')
         return render_template('dashboard.html', stats={}, recent_activities=[])
-    
+
     try:
         # Total Employees in Tenant (company)
         if company:
@@ -347,45 +354,45 @@ def render_tenant_admin_dashboard():
                 company_id=company.id,
                 is_active=True
             ).count()
-            
+
             # Active Payrolls this Month
             active_payrolls = Payroll.query.join(Employee).filter(
                 Employee.company_id == company.id,
                 extract('month', Payroll.pay_period_start) == start_date.month,
                 extract('year', Payroll.pay_period_start) == start_date.year
             ).count()
-            
+
             # Attendance Summary (Monthly)
             total_attendance = Attendance.query.join(Employee).filter(
                 Employee.company_id == company.id,
                 Attendance.date.between(start_date, end_date)
             ).count()
-            
+
             # Calculate attendance rate
             working_days = sum(1 for d in range((end_date - start_date).days + 1)
-                              if (start_date + timedelta(d)).weekday() < 5)
+                               if (start_date + timedelta(d)).weekday() < 5)
             expected_records = total_employees * working_days if working_days > 0 else 0
             attendance_rate = round((total_attendance / expected_records) * 100) if expected_records > 0 else 0
-            
+
             # Leave Requests Overview
             pending_leaves = Leave.query.join(Employee).filter(
                 Employee.company_id == company.id,
                 Leave.status == 'Pending'
             ).count()
-            
+
             approved_leaves_month = Leave.query.join(Employee).filter(
                 Employee.company_id == company.id,
                 Leave.status == 'Approved',
                 Leave.start_date.between(start_date, end_date)
             ).count()
-            
+
             # Financial Summary (Tenant specific)
             total_payroll_month = db.session.query(func.sum(Payroll.net_pay)).join(Employee).filter(
                 Employee.company_id == company.id,
                 extract('month', Payroll.pay_period_start) == start_date.month,
                 extract('year', Payroll.pay_period_start) == start_date.year
             ).scalar() or 0
-            
+
         else:
             # No company found, use default values
             total_employees = 0
@@ -395,7 +402,7 @@ def render_tenant_admin_dashboard():
             pending_leaves = 0
             approved_leaves_month = 0
             total_payroll_month = 0
-        
+
         stats = {
             'total_employees': total_employees,
             'active_payrolls': active_payrolls,
@@ -406,7 +413,7 @@ def render_tenant_admin_dashboard():
             'total_payroll_month': float(total_payroll_month),
             'company_name': company.name if company else 'No Company'
         }
-        
+
         # Get recent activities
         recent_leaves = []
         if company:
@@ -414,11 +421,11 @@ def render_tenant_admin_dashboard():
                 Employee.company_id == company.id,
                 Leave.status == 'Pending'
             ).order_by(Leave.created_at.desc()).limit(5).all()
-        
+
         print(f"[DEBUG] Dashboard - Rendering tenant_admin_dashboard.html with stats: {stats}")
         return render_template('tenant_admin_dashboard.html',
-                             stats=stats,
-                             recent_leaves=recent_leaves)
+                               stats=stats,
+                               recent_leaves=recent_leaves)
     except Exception as e:
         # Log the error for debugging
         print(f"[ERROR] Dashboard - Error rendering tenant admin dashboard: {str(e)}")
@@ -426,14 +433,14 @@ def render_tenant_admin_dashboard():
         traceback.print_exc()
         flash('An error occurred while loading dashboard data.', 'error')
         # Return a basic dashboard with empty stats
-        return render_template('dashboard.html', 
-                             stats={
-                                 'total_employees': 0,
-                                 'pending_leaves': 0,
-                                 'pending_claims': 0,
-                                 'attendance_rate': 0
-                             }, 
-                             recent_activities=[])
+        return render_template('dashboard.html',
+                               stats={
+                                   'total_employees': 0,
+                                   'pending_leaves': 0,
+                                   'pending_claims': 0,
+                                   'attendance_rate': 0
+                               },
+                               recent_activities=[])
 
 
 def render_super_admin_dashboard():
@@ -441,46 +448,46 @@ def render_super_admin_dashboard():
     from sqlalchemy import func, extract
     from datetime import datetime, timedelta
     from dateutil.relativedelta import relativedelta
-    
+
     # Get tenant statistics
     total_tenants = Tenant.query.count()
     active_tenants = Tenant.query.filter_by(is_active=True).count()
-    
+
     # Get company statistics
     total_companies = Company.query.count()
-    
+
     # Get user statistics
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
-    
+
     # Calculate revenue from payment configurations
     payment_configs = TenantPaymentConfig.query.all()
     monthly_revenue = float(sum(config.monthly_charges or 0 for config in payment_configs))
     quarterly_revenue = monthly_revenue * 3
     yearly_revenue = monthly_revenue * 12
-    
+
     # Calculate collected/pending/overdue based on actual payment tracking
     # TODO: Replace with actual payment records when payment tracking is implemented
     collected_revenue = monthly_revenue * 0.70  # 70% collected
     quarterly_collected = quarterly_revenue * 0.65  # 65% collected
     yearly_collected = yearly_revenue * 0.55  # 55% collected
-    
+
     # Pending = Total - Collected - Overdue
     pending_payments = monthly_revenue * 0.25  # 25% pending
     overdue_payments = monthly_revenue * 0.05  # 5% overdue
-    
+
     # Get recent tenants with their stats
     recent_tenants = []
     tenants = Tenant.query.order_by(Tenant.created_at.desc()).limit(5).all()
     for tenant in tenants:
         company_count = Company.query.filter_by(tenant_id=tenant.id).count()
-        user_count = db.session.query(func.count(Employee.id))\
-            .join(Company, Employee.company_id == Company.id)\
-            .filter(Company.tenant_id == tenant.id).scalar() or 0
-        
+        user_count = db.session.query(func.count(Employee.id)) \
+                         .join(Company, Employee.company_id == Company.id) \
+                         .filter(Company.tenant_id == tenant.id).scalar() or 0
+
         payment_config = TenantPaymentConfig.query.filter_by(tenant_id=tenant.id).first()
         payment_type = payment_config.payment_type if payment_config else None
-        
+
         recent_tenants.append({
             'name': tenant.name,
             'code': tenant.code,
@@ -489,7 +496,7 @@ def render_super_admin_dashboard():
             'user_count': user_count,
             'payment_type': payment_type
         })
-    
+
     stats = {
         'total_tenants': total_tenants,
         'active_tenants': active_tenants,
@@ -505,25 +512,25 @@ def render_super_admin_dashboard():
         'pending_payments': pending_payments,
         'overdue_payments': overdue_payments
     }
-    
+
     return render_template('super_admin_dashboard.html',
-                         stats=stats,
-                         recent_tenants=recent_tenants)
+                           stats=stats,
+                           recent_tenants=recent_tenants)
 
 
 @app.route('/dashboard')
 @require_login
 def dashboard():
     """Main dashboard with HR metrics"""
-    
+
     # Check user role and render appropriate dashboard
     user_role_name = current_user.role.name if current_user.role else None
-    
+
     # Handle both naming conventions: 'SUPER_ADMIN' and 'Super Admin'
     if user_role_name in ['Super Admin', 'SUPER_ADMIN']:
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
-    
+
     # Handle both naming conventions: 'ADMIN' and 'Admin'
     if user_role_name in ['Admin', 'ADMIN']:
         # Render Tenant Admin Dashboard
@@ -566,9 +573,9 @@ def dashboard():
             recent_activities.append({
                 'type': 'leave_request',
                 'employee':
-                f"{leave.employee.first_name} {leave.employee.last_name}",
+                    f"{leave.employee.first_name} {leave.employee.last_name}",
                 'details':
-                f"{leave.leave_type} leave from {format_date(leave.start_date)}",
+                    f"{leave.leave_type} leave from {format_date(leave.start_date)}",
                 'date': leave.created_at
             })
 
@@ -577,13 +584,13 @@ def dashboard():
         team_leaves = Leave.query.join(Employee).filter(
             Employee.manager_id == current_user.employee_profile.id,
             Leave.status == 'Pending').order_by(
-                Leave.created_at.desc()).limit(5).all()
+            Leave.created_at.desc()).limit(5).all()
 
         for leave in team_leaves:
             recent_activities.append({
                 'type': 'team_leave',
                 'employee':
-                f"{leave.employee.first_name} {leave.employee.last_name}",
+                    f"{leave.employee.first_name} {leave.employee.last_name}",
                 'details': f"{leave.leave_type} leave request",
                 'date': leave.created_at
             })
@@ -649,7 +656,7 @@ def employee_list():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                  'employee_profile'):
+                                                                                        'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
 
@@ -674,7 +681,7 @@ def employee_list():
 
     # Paginate the results
     pagination = query.paginate(page=page, per_page=20, error_out=False)
-    
+
     # Extract employee objects with company and tenant names
     employees_data = []
     for item in pagination.items:
@@ -682,7 +689,7 @@ def employee_list():
         employee.company_name = item[1]
         employee.tenant_name = item[2]
         employees_data.append(employee)
-    
+
     # Create a custom pagination object
     class CustomPagination:
         def __init__(self, items, pagination):
@@ -694,18 +701,18 @@ def employee_list():
             self.has_next = pagination.has_next
             self.prev_num = pagination.prev_num
             self.next_num = pagination.next_num
-            
+
         def iter_pages(self, left_edge=2, left_current=2, right_current=3, right_edge=2):
             last = 0
             for num in range(1, self.pages + 1):
                 if num <= left_edge or \
-                   (num > self.page - left_current - 1 and num < self.page + right_current) or \
-                   num > self.pages - right_edge:
+                        (num > self.page - left_current - 1 and num < self.page + right_current) or \
+                        num > self.pages - right_edge:
                     if last + 1 != num:
                         yield None
                     yield num
                     last = num
-    
+
     employees = CustomPagination(employees_data, pagination)
 
     # Get departments for filter
@@ -736,7 +743,7 @@ def employee_add():
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin, include Tenantadmin
                 user_roles = Role.query.filter(
-                    Role.is_active==True,
+                    Role.is_active == True,
                     Role.name.notlike('%superadmin%')
                 ).order_by(Role.name).all()
                 designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
@@ -745,7 +752,7 @@ def employee_add():
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
+                return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
@@ -763,7 +770,7 @@ def employee_add():
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin, include Tenantadmin
                 user_roles = Role.query.filter(
-                    Role.is_active==True,
+                    Role.is_active == True,
                     Role.name.notlike('%superadmin%')
                 ).order_by(Role.name).all()
                 designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
@@ -772,7 +779,7 @@ def employee_add():
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
+                return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
@@ -787,12 +794,12 @@ def employee_add():
             employee = Employee()
             employee.employee_id = generate_employee_id()
             employee.organization_id = current_user.organization_id
-            
+
             # Set company_id from form
             company_id = request.form.get('company_id')
             if company_id:
                 employee.company_id = company_id
-            
+
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             employee.email = request.form.get('email')
@@ -804,7 +811,7 @@ def employee_add():
             employee.nationality = request.form.get('nationality')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            
+
             # GEN-EMP-004: Handle Designation Master - COMMENTED OUT - needs migration
             # designation_id = request.form.get('designation_id')
             # if designation_id:
@@ -813,7 +820,19 @@ def employee_add():
             #     designation = Designation.query.get(int(designation_id))
             #     if designation:
             #         employee.position = designation.name
-            
+
+            # Handle Designation - Set position from designation
+            designation_id = request.form.get('designation_id')
+            if designation_id:
+                employee.designation_id = int(designation_id)
+                # Set position from designation name for backward compatibility
+                designation = Designation.query.get(int(designation_id))
+                if designation:
+                    employee.position = designation.name
+            else:
+                # Fallback: if no designation provided, set a default position
+                employee.position = "Employee"
+
             employee.department = request.form.get('department')
             employee.hire_date = parse_date(request.form.get('hire_date'))
             employee.employment_type = request.form.get('employment_type')
@@ -841,11 +860,11 @@ def employee_add():
             working_hours_id = request.form.get('working_hours_id')
             if working_hours_id:
                 employee.working_hours_id = int(working_hours_id)
-                
+
             work_schedule_id = request.form.get('work_schedule_id')
             if work_schedule_id:
                 employee.work_schedule_id = int(work_schedule_id)
-                
+
             manager_id = request.form.get('manager_id')
             if manager_id:
                 employee.manager_id = int(manager_id)
@@ -856,7 +875,7 @@ def employee_add():
                 flash('Profile image is required.', 'error')
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 user_roles = Role.query.filter(
-                    Role.is_active==True,
+                    Role.is_active == True,
                     Role.name.notlike('%superadmin%')
                 ).order_by(Role.name).all()
                 designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
@@ -865,7 +884,7 @@ def employee_add():
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
+                return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
@@ -876,10 +895,12 @@ def employee_add():
                                        managers=managers,
                                        companies=companies)
             if not _allowed_image(file.filename):
-                flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
+                flash(
+                    'Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))),
+                    'error')
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 user_roles = Role.query.filter(
-                    Role.is_active==True,
+                    Role.is_active == True,
                     Role.name.notlike('%superadmin%')
                 ).order_by(Role.name).all()
                 designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
@@ -888,7 +909,7 @@ def employee_add():
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
+                return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
@@ -916,12 +937,12 @@ def employee_add():
                 base_username = f"{employee.first_name.lower()}.{employee.last_name.lower()}"
                 username = base_username
                 counter = 1
-                
+
                 # Ensure unique username
                 while User.query.filter_by(username=username).first():
                     username = f"{base_username}{counter}"
                     counter += 1
-                
+
                 # Create user account
                 user = User()
                 user.username = username
@@ -929,7 +950,7 @@ def employee_add():
                 user.first_name = employee.first_name
                 user.last_name = employee.last_name
                 user.organization_id = current_user.organization_id
-                
+
                 # Get role from form selection
                 user_role_id = request.form.get('user_role_id')
                 if user_role_id:
@@ -939,33 +960,37 @@ def employee_add():
                     default_role = Role.query.filter(
                         (Role.name == 'User') | (Role.name == 'Employee')
                     ).filter_by(is_active=True).first()
-                    
+
                     if not default_role:
                         # If no default role found, get any active role
                         default_role = Role.query.filter_by(is_active=True).first()
-                    
+
                     if default_role:
                         user.role_id = default_role.id
                     else:
                         raise ValueError("No active roles found in the system. Please create roles first.")
-                
+
                 # Set default password for all new users
                 user.set_password(DEFAULT_USER_PASSWORD)
                 user.must_reset_password = True  # Force password change on first login
-                
+
                 db.session.add(user)
                 db.session.commit()
-                
+
                 # Link employee to user account
                 employee.user_id = user.id
                 db.session.commit()
-                
-                flash(f'Employee added successfully. Login credentials created - Username: {username}, Password: {DEFAULT_USER_PASSWORD}', 'success')
-                
+
+                flash(
+                    f'Employee added successfully. Login credentials created - Username: {username}, Password: {DEFAULT_USER_PASSWORD}',
+                    'success')
+
             except Exception as user_error:
                 # Employee was created but user creation failed
-                flash(f'Employee added successfully, but user account creation failed: {str(user_error)}. Please create manually.', 'warning')
-            
+                flash(
+                    f'Employee added successfully, but user account creation failed: {str(user_error)}. Please create manually.',
+                    'warning')
+
             return redirect(url_for('employee_list'))
 
         except Exception as e:
@@ -974,7 +999,7 @@ def employee_add():
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
             user_roles = Role.query.filter(
-                Role.is_active==True,
+                Role.is_active == True,
                 Role.name.notlike('%superadmin%')
             ).order_by(Role.name).all()
             designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
@@ -983,7 +1008,7 @@ def employee_add():
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
             managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
             companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-            return render_template('employees/form.html', 
+            return render_template('employees/form.html',
                                    form_data=request.form,
                                    roles=roles,
                                    user_roles=user_roles,
@@ -999,7 +1024,7 @@ def employee_add():
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
     # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin, include Tenantadmin
     user_roles = Role.query.filter(
-        Role.is_active==True,
+        Role.is_active == True,
         Role.name.notlike('%superadmin%')
     ).order_by(Role.name).all()
     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
@@ -1010,7 +1035,7 @@ def employee_add():
         Employee.position.ilike('%manager%')).all()
     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
-    return render_template('employees/form.html', 
+    return render_template('employees/form.html',
                            managers=managers,
                            roles=roles,
                            user_roles=user_roles,
@@ -1041,12 +1066,12 @@ def employee_view(employee_id):
     # Get recent payslips
     recent_payslips = Payroll.query.filter_by(
         employee_id=employee_id).order_by(
-            Payroll.pay_period_end.desc()).limit(3).all()
+        Payroll.pay_period_end.desc()).limit(3).all()
 
     # Get recent attendance
     recent_attendance = Attendance.query.filter_by(
         employee_id=employee_id).order_by(
-            Attendance.date.desc()).limit(7).all()
+        Attendance.date.desc()).limit(7).all()
 
     return render_template('employees/view.html',
                            employee=employee,
@@ -1062,9 +1087,9 @@ def profile():
     if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
         flash('Profile not found. Please contact your administrator.', 'error')
         return redirect(url_for('dashboard'))
-    
+
     employee = current_user.employee_profile
-    
+
     # Get attendance stats
     today = date.today()
     first_day = today.replace(day=1)
@@ -1133,10 +1158,10 @@ def profile():
     activities.sort(key=lambda x: datetime.strptime(x['time'], '%d %b %Y'), reverse=True)
 
     return render_template('profile.html',
-                         stats=stats,
-                         activities=activities,
-                         attendance=attendance_records,
-                         leaves=leaves)
+                           stats=stats,
+                           activities=activities,
+                           attendance=attendance_records,
+                           leaves=leaves)
 
 
 @app.route('/profile/photo', methods=['POST'])
@@ -1193,30 +1218,30 @@ def profile_edit():
     if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
         flash('Profile not found. Please contact your administrator.', 'error')
         return redirect(url_for('dashboard'))
-    
+
     employee = current_user.employee_profile
-    
+
     if request.method == 'POST':
         try:
             # Update only allowed fields (employees can't change core employment details)
             employee.phone = request.form.get('phone', '').strip()
             employee.address = request.form.get('address', '').strip()
             employee.postal_code = request.form.get('postal_code', '').strip()
-            
+
             # Bank details
             employee.bank_name = request.form.get('bank_name', '').strip()
             employee.bank_account = request.form.get('bank_account', '').strip()
             employee.account_holder_name = request.form.get('account_holder_name', '').strip()
             employee.swift_code = request.form.get('swift_code', '').strip()
             employee.ifsc_code = request.form.get('ifsc_code', '').strip()
-            
+
             db.session.commit()
             flash('Profile updated successfully!', 'success')
             return redirect(url_for('profile'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating profile: {str(e)}', 'error')
-    
+
     return render_template('profile_edit.html', employee=employee)
 
 
@@ -1234,7 +1259,7 @@ def employee_edit(employee_id):
                 employee.company_id = company_id
             else:
                 employee.company_id = None
-            
+
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             employee.email = request.form.get('email')
@@ -1242,29 +1267,33 @@ def employee_edit(employee_id):
             employee.nric = request.form.get('nric')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            
-            # GEN-EMP-004: Handle Designation Master on edit - COMMENTED OUT - needs migration
-            # designation_id = request.form.get('designation_id')
-            # if designation_id:
-            #     employee.designation_id = int(designation_id)
-            #     # Also set position from designation name for backward compatibility
-            #     designation = Designation.query.get(int(designation_id))
-            #     if designation:
-            #         employee.position = designation.name
-            
+
+            # Handle Designation Master on edit
+            designation_id = request.form.get('designation_id')
+            if designation_id:
+                employee.designation_id = int(designation_id)
+                # Also set position from designation name for backward compatibility
+                designation = Designation.query.get(int(designation_id))
+                if designation:
+                    employee.position = designation.name
+            else:
+                # Fallback: if no designation provided, keep existing or set default
+                if not employee.position:
+                    employee.position = "Employee"
+
             employee.department = request.form.get('department')
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
-            
+
             # Handle additional personal fields
             employee.gender = request.form.get('gender')
             employee.nationality = request.form.get('nationality')
-            
+
             # Handle date fields
             hire_date = request.form.get('hire_date')
             if hire_date:
                 employee.hire_date = parse_date(hire_date)
-                
+
             date_of_birth = request.form.get('date_of_birth')
             if date_of_birth:
                 employee.date_of_birth = parse_date(date_of_birth)
@@ -1291,20 +1320,22 @@ def employee_edit(employee_id):
             file = request.files.get('profile_image')
             if file and file.filename.strip():
                 if not _allowed_image(file.filename):
-                    flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
+                    flash('Invalid image type. Allowed: ' + ', '.join(
+                        sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
                     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                     # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin
                     user_roles = Role.query.filter(
-                        Role.is_active==True,
+                        Role.is_active == True,
                         Role.name.notlike('%superadmin%')
                     ).order_by(Role.name).all()
                     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                    managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                    managers = Employee.query.filter_by(is_active=True).filter(
+                        Employee.position.ilike('%manager%')).all()
                     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                    return render_template('employees/form.html', 
+                    return render_template('employees/form.html',
                                            employee=employee,
                                            form_data=request.form,
                                            roles=roles,
@@ -1331,19 +1362,19 @@ def employee_edit(employee_id):
                     pass
                 employee.profile_image_path = f"uploads/employees/{unique_name}"
 
-            # Handle master data relationships  
+            # Handle master data relationships
             working_hours_id = request.form.get('working_hours_id')
             if working_hours_id:
                 employee.working_hours_id = int(working_hours_id)
             else:
                 employee.working_hours_id = None
-                
+
             work_schedule_id = request.form.get('work_schedule_id')
             if work_schedule_id:
                 employee.work_schedule_id = int(work_schedule_id)
             else:
                 employee.work_schedule_id = None
-                
+
             manager_id = request.form.get('manager_id')
             if manager_id:
                 employee.manager_id = int(manager_id)
@@ -1373,14 +1404,15 @@ def employee_edit(employee_id):
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
             # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin
             user_roles = Role.query.filter(
-                Role.is_active==True,
+                Role.is_active == True,
                 Role.name.notlike('%superadmin%')
             ).order_by(Role.name).all()
             designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-            managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%'), Employee.id != employee_id).all()
+            managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%'),
+                                                                       Employee.id != employee_id).all()
             companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
             return render_template('employees/form.html',
                                    employee=employee,
@@ -1398,7 +1430,7 @@ def employee_edit(employee_id):
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
     # GEN-EMP-001, GEN-EMP-002: Filter roles - exclude Superadmin
     user_roles = Role.query.filter(
-        Role.is_active==True,
+        Role.is_active == True,
         Role.name.notlike('%superadmin%')
     ).order_by(Role.name).all()
     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
@@ -1407,7 +1439,7 @@ def employee_edit(employee_id):
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
     managers = Employee.query.filter_by(is_active=True).filter(
         Employee.position.ilike('%manager%'), Employee.id
-        != employee_id).all()
+                                              != employee_id).all()
     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
     return render_template('employees/form.html',
@@ -1437,11 +1469,11 @@ def export_employees():
         ).join(
             Tenant, Company.tenant_id == Tenant.id
         ).filter(Employee.is_active == True)
-        
+
         # Apply filters if provided
         search = request.args.get('search', '', type=str)
         department = request.args.get('department', '', type=str)
-        
+
         if search:
             query = query.filter(
                 db.or_(Employee.first_name.ilike(f'%{search}%'),
@@ -1450,16 +1482,17 @@ def export_employees():
                        Employee.email.ilike(f'%{search}%'),
                        Company.name.ilike(f'%{search}%'),
                        Tenant.name.ilike(f'%{search}%')))
-        
+
         if department:
             query = query.filter(Employee.department == department)
-        
+
         # Role-based filtering
-        if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile'):
+        if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                                                            'employee_profile'):
             query = query.filter(Employee.manager_id == current_user.employee_profile.id)
-        
+
         results = query.all()
-        
+
         # Prepare data for CSV export
         csv_data = []
         headers = [
@@ -1467,12 +1500,12 @@ def export_employees():
             'NRIC', 'Position', 'Department', 'Employment Type',
             'Hire Date', 'Basic Salary', 'Allowances', 'Company', 'Tenant'
         ]
-        
+
         for item in results:
             employee = item[0]
             company_name = item[1]
             tenant_name = item[2]
-            
+
             csv_data.append({
                 'Employee ID': employee.employee_id or '',
                 'First Name': employee.first_name or '',
@@ -1489,13 +1522,13 @@ def export_employees():
                 'Company': company_name or '',
                 'Tenant': tenant_name or ''
             })
-        
+
         # Generate filename with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f'employees_export_{timestamp}.csv'
-        
+
         return export_to_csv(csv_data, filename, headers)
-        
+
     except Exception as e:
         flash(f'Error exporting employees: {str(e)}', 'error')
         return redirect(url_for('employee_list'))
@@ -1520,7 +1553,7 @@ def payroll_list():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                  'employee_profile'):
+                                                                                        'employee_profile'):
         # Manager: Their own payroll + their team's payroll
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -1585,7 +1618,7 @@ def payroll_generate():
 
                 # Get payroll config
                 config = employee.payroll_config
-                
+
                 # Calculate allowances
                 total_allowances = 0
                 if config:
@@ -1595,14 +1628,15 @@ def payroll_generate():
                 attendance_records = Attendance.query.filter_by(
                     employee_id=employee.id,
                     status='Present').filter(
-                        Attendance.date.between(pay_period_start,
-                                                pay_period_end)).all()
+                    Attendance.date.between(pay_period_start,
+                                            pay_period_end)).all()
 
                 total_overtime = sum(float(record.overtime_hours or 0)
                                      for record in attendance_records)
 
                 # Calculate OT pay
-                ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
+                ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(
+                    employee.hourly_rate or 0)
                 overtime_pay = total_overtime * ot_rate
 
                 # Calculate gross pay
@@ -1640,11 +1674,11 @@ def payroll_generate():
                 generated_count += 1
 
             db.session.commit()
-            
+
             message = f'Generated payroll for {generated_count} employee(s)'
             if skipped_count > 0:
                 message += f'. Skipped {skipped_count} employee(s) with existing payroll.'
-            
+
             flash(message, 'success')
             return redirect(url_for('payroll_list'))
 
@@ -1656,10 +1690,10 @@ def payroll_generate():
     from datetime import datetime as dt
     current_month = dt.now().month
     current_year = dt.now().year
-    
-    return render_template('payroll/generate.html', 
-                         current_month=current_month,
-                         current_year=current_year)
+
+    return render_template('payroll/generate.html',
+                           current_month=current_month,
+                           current_year=current_year)
 
 
 @app.route('/payroll/config')
@@ -1669,10 +1703,10 @@ def payroll_config():
     """Payroll configuration page - manage employee salary allowances and OT rates"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
-    
+
     # Query active employees
     query = Employee.query.filter_by(is_active=True)
-    
+
     if search:
         query = query.filter(
             db.or_(
@@ -1681,23 +1715,23 @@ def payroll_config():
                 Employee.employee_id.ilike(f'%{search}%')
             )
         )
-    
+
     employees = query.order_by(Employee.employee_id).paginate(
         page=page, per_page=20, error_out=False
     )
-    
+
     # Get or create payroll configurations for each employee
     for employee in employees.items:
         if not employee.payroll_config:
             config = PayrollConfiguration(employee_id=employee.id)
             db.session.add(config)
-    
+
     try:
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         print(f"Error creating payroll configs: {e}")
-    
+
     return render_template('payroll/config.html', employees=employees, search=search)
 
 
@@ -1709,9 +1743,9 @@ def payroll_config_update():
     try:
         data = request.get_json()
         employee_id = data.get('employee_id')
-        
+
         employee = Employee.query.get_or_404(employee_id)
-        
+
         # Security check: Ensure employee belongs to user's organization
         if (current_user.role.name if current_user.role else None) not in ['Super Admin']:
             if employee.organization_id != current_user.organization_id:
@@ -1719,17 +1753,17 @@ def payroll_config_update():
                     'success': False,
                     'message': 'You do not have permission to modify this employee'
                 }), 403
-        
+
         config = employee.payroll_config
-        
+
         if not config:
             config = PayrollConfiguration(employee_id=employee_id)
             db.session.add(config)
-        
+
         # Update base salary (on Employee model)
         if 'basic_salary' in data:
             employee.basic_salary = float(data['basic_salary'])
-        
+
         # Update allowances
         if 'allowance_1_amount' in data:
             config.allowance_1_amount = float(data['allowance_1_amount']) if data['allowance_1_amount'] else 0
@@ -1739,22 +1773,22 @@ def payroll_config_update():
             config.allowance_3_amount = float(data['allowance_3_amount']) if data['allowance_3_amount'] else 0
         if 'allowance_4_amount' in data:
             config.allowance_4_amount = float(data['allowance_4_amount']) if data['allowance_4_amount'] else 0
-        
+
         # Update OT rate
         if 'ot_rate_per_hour' in data:
             config.ot_rate_per_hour = float(data['ot_rate_per_hour']) if data['ot_rate_per_hour'] else None
-        
+
         config.updated_by = current_user.id
         config.updated_at = datetime.now()
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Payroll configuration updated successfully',
             'total_allowances': float(config.get_total_allowances())
         })
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
@@ -1771,13 +1805,13 @@ def payroll_preview_api():
     try:
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
-        
+
         if not month or not year:
             return jsonify({
                 'success': False,
                 'message': 'Month and year are required'
             }), 400
-        
+
         # Get current user's organization and company for tenant filtering
         user_org = current_user.organization
         if not user_org:
@@ -1785,24 +1819,24 @@ def payroll_preview_api():
                 'success': False,
                 'message': 'No organization assigned to your account'
             }), 400
-        
+
         # Get company associated with this organization's tenant
         company = None
         if user_org.tenant_id:
             company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
-        
+
         if not company:
             return jsonify({
                 'success': False,
                 'message': 'No company found for your organization'
             }), 400
-        
+
         # Calculate pay period
         from calendar import monthrange
         pay_period_start = date(year, month, 1)
         last_day = monthrange(year, month)[1]
         pay_period_end = date(year, month, last_day)
-        
+
         # Get all active employees for this company
         # Security: Only fetch employees from user's company
         employees = Employee.query.filter_by(
@@ -1810,19 +1844,19 @@ def payroll_preview_api():
             organization_id=current_user.organization_id,
             is_active=True
         ).all()
-        
+
         employee_data = []
         for emp in employees:
             # Get payroll config
             config = emp.payroll_config
-            
+
             # Calculate allowances
             allowance_1 = float(config.allowance_1_amount) if config else 0
             allowance_2 = float(config.allowance_2_amount) if config else 0
             allowance_3 = float(config.allowance_3_amount) if config else 0
             allowance_4 = float(config.allowance_4_amount) if config else 0
             total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
-            
+
             # Get attendance data for the month (only "Present" status)
             attendance_records = Attendance.query.filter_by(
                 employee_id=emp.id,
@@ -1830,27 +1864,28 @@ def payroll_preview_api():
             ).filter(
                 Attendance.date.between(pay_period_start, pay_period_end)
             ).all()
-            
+
             attendance_days = len(attendance_records)
             total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
-            
+
             # Calculate OT amount
-            ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(emp.hourly_rate or 0)
+            ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(
+                emp.hourly_rate or 0)
             ot_amount = total_ot_hours * ot_rate
-            
+
             # Calculate gross salary
             basic_salary = float(emp.basic_salary or 0)
             gross_salary = basic_salary + total_allowances + ot_amount
-            
+
             # Calculate CPF deductions (simplified - using employee rate)
             # Handle None values for employee_cpf_rate
             employee_cpf_rate = float(emp.employee_cpf_rate) if emp.employee_cpf_rate else 20.00
             cpf_deduction = gross_salary * (employee_cpf_rate / 100)
-            
+
             # Calculate net salary
             total_deductions = cpf_deduction
             net_salary = gross_salary - total_deductions
-            
+
             employee_data.append({
                 'id': emp.id,
                 'employee_id': emp.employee_id,
@@ -1870,14 +1905,14 @@ def payroll_preview_api():
                 'total_deductions': total_deductions,
                 'net_salary': net_salary
             })
-        
+
         return jsonify({
             'success': True,
             'employees': employee_data,
             'month': month,
             'year': year
         })
-    
+
     except Exception as e:
         import traceback
         print(f"[ERROR] Payroll Preview API: {str(e)}")
@@ -1911,10 +1946,10 @@ def payroll_payslip(payroll_id):
     # Prepare data for template
     employee = payroll.employee
     company = employee.organization
-    
+
     # Calculate pay date (end of pay period)
     pay_date = payroll.pay_period_end.strftime('%d %b %Y')
-    
+
     # Prepare earnings data
     earnings = {
         'regular_pay_rate': f"{float(employee.basic_salary):,.2f}",
@@ -1926,7 +1961,7 @@ def payroll_payslip(payroll_id):
         'vacation_pay': "0.00",  # Not in current model
         'others': f"{float(payroll.allowances + payroll.bonuses):,.2f}"
     }
-    
+
     # Prepare deductions data
     deductions = {
         'income_tax': f"{float(payroll.income_tax):,.2f}",
@@ -1935,7 +1970,7 @@ def payroll_payslip(payroll_id):
         'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
         'others': f"{float(payroll.other_deductions):,.2f}"
     }
-    
+
     # Prepare employee data
     employee_data = {
         'name': f"{employee.first_name} {employee.last_name}",
@@ -1943,14 +1978,14 @@ def payroll_payslip(payroll_id):
         'nationality': employee.nationality or 'N/A',
         'designation': employee.position
     }
-    
+
     # Prepare company data
     company_data = {
         'name': company.name,
         'address': company.address or 'N/A',
         'uen': company.uen or 'N/A'
     }
-    
+
     # Prepare payroll summary
     payroll_data = {
         'pay_date': pay_date,
@@ -1959,12 +1994,12 @@ def payroll_payslip(payroll_id):
         'net_pay': f"{float(payroll.net_pay):,.2f}"
     }
 
-    return render_template('payroll/payslip.html', 
-                         payroll=payroll_data,
-                         employee=employee_data,
-                         company=company_data,
-                         earnings=earnings,
-                         deductions=deductions)
+    return render_template('payroll/payslip.html',
+                           payroll=payroll_data,
+                           employee=employee_data,
+                           company=company_data,
+                           earnings=earnings,
+                           deductions=deductions)
 
 
 @app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])
@@ -1973,7 +2008,7 @@ def payroll_payslip(payroll_id):
 def payroll_approve(payroll_id):
     """Approve payroll record"""
     payroll = Payroll.query.get_or_404(payroll_id)
-    
+
     try:
         # Security check: Ensure payroll belongs to user's organization
         if (current_user.role.name if current_user.role else None) not in ['Super Admin']:
@@ -1982,7 +2017,7 @@ def payroll_approve(payroll_id):
                     'success': False,
                     'message': 'You do not have permission to approve this payroll'
                 }), 403
-        
+
         if payroll.status == 'Draft':
             payroll.status = 'Approved'
             db.session.commit()
@@ -2046,20 +2081,23 @@ def attendance_list():
         query = query.filter(Employee.department == department_filter)
 
     # Role-based filtering
-    if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user,
+                                                                                                   'employee_profile') and current_user.employee_profile:
         # Employee: Only their own attendance
         employee_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == employee_id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                                                          'employee_profile') and current_user.employee_profile:
         # Manager: Their own attendance + their team's attendance
         manager_id = current_user.employee_profile.id
         query = query.filter(
             db.or_(
                 Attendance.employee_id == manager_id,  # Manager's own attendance
-                Employee.manager_id == manager_id      # Team's attendance
+                Employee.manager_id == manager_id  # Team's attendance
             )
         )
-    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Tenant Admin'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Tenant Admin'] and hasattr(current_user,
+                                                                                                          'employee_profile') and current_user.employee_profile:
         # Admin/Tenant Admin: Only their own attendance (as per requirement)
         admin_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == admin_id)
@@ -2087,7 +2125,8 @@ def attendance_list():
         # Super Admin and HR Manager can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                                                          'employee_profile') and current_user.employee_profile:
         # Manager can filter by themselves and their team
         manager_id = current_user.employee_profile.id
         employees = Employee.query.filter(
@@ -2149,7 +2188,7 @@ def attendance_mark():
                 incomplete_attendance = Attendance.query.filter(
                     Attendance.employee_id == employee_id, Attendance.date
                     < today, Attendance.clock_out.is_(None)).order_by(
-                        Attendance.date.desc()).first()
+                    Attendance.date.desc()).first()
 
                 if incomplete_attendance:
                     # Auto-complete previous day with default 6PM clock out
@@ -2295,7 +2334,7 @@ def attendance_correct(attendance_id):
     # Check if manager can access this employee's record
     if (current_user.role.name if current_user.role else None) == 'Manager':
         if not hasattr(current_user, 'employee_profile') or \
-           attendance.employee.manager_id != current_user.employee_profile.id:
+                attendance.employee.manager_id != current_user.employee_profile.id:
             flash('Access denied', 'error')
             return redirect(url_for('attendance_list'))
 
@@ -2411,7 +2450,7 @@ def attendance_incomplete():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                  'employee_profile'):
+                                                                                        'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
 
@@ -2422,31 +2461,32 @@ def attendance_incomplete():
 
 
 @app.route('/attendance/bulk', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager', 'Manager'])
 def attendance_bulk_manage():
     """Bulk attendance management - mark employees as absent for a specific date"""
     selected_date = request.args.get('date') or request.form.get('date')
     if not selected_date:
         selected_date = date.today().strftime('%Y-%m-%d')
-    
+
     try:
         filter_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
     except ValueError:
         flash('Invalid date format', 'error')
         filter_date = date.today()
         selected_date = filter_date.strftime('%Y-%m-%d')
-    
+
     if request.method == 'POST':
         try:
-            # Get list of employee IDs marked as absent
+            # Get list of employee IDs marked as absent (for backward compatibility)
             absent_employee_ids = request.form.getlist('absent_employees')
             absent_employee_ids = [int(emp_id) for emp_id in absent_employee_ids if emp_id.isdigit()]
-            
+
             # Get all employees based on role permissions
             employees_query = Employee.query.filter_by(is_active=True)
-            
+
             # Apply role-based filtering
-            if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                                                                'employee_profile') and current_user.employee_profile:
                 # Manager: Can manage their team + themselves
                 manager_id = current_user.employee_profile.id
                 employees_query = employees_query.filter(
@@ -2455,23 +2495,39 @@ def attendance_bulk_manage():
                         Employee.manager_id == manager_id
                     )
                 )
-            
+
             all_employees = employees_query.all()
-            
+
             # Ensure attendance records exist for all employees for this date
             create_daily_attendance_records(filter_date, all_employees)
-            
+
+            # Track status counts for summary
+            status_counts = {'Present': 0, 'Absent': 0, 'Leave': 0, 'Half Day': 0}
+
             # Update attendance status for all employees
             for employee in all_employees:
                 attendance = Attendance.query.filter_by(
                     employee_id=employee.id,
                     date=filter_date
                 ).first()
-                
+
                 if attendance:
-                    if employee.id in absent_employee_ids:
-                        attendance.status = 'Absent'
-                        attendance.remarks = f'Marked absent by {current_user.first_name} {current_user.last_name}'
+                    # Check if there's a new status dropdown value for this employee
+                    status_field = f'status_{employee.id}'
+                    new_status = request.form.get(status_field, 'Present')
+                    
+                    # Fallback to checkbox logic if no dropdown value (backward compatibility)
+                    if not new_status or new_status not in ['Present', 'Absent', 'Leave', 'Half Day']:
+                        new_status = 'Absent' if employee.id in absent_employee_ids else 'Present'
+                    
+                    attendance.status = new_status
+                    attendance.remarks = f'Updated by {current_user.first_name} {current_user.last_name}'
+                    
+                    # Update tracking counters
+                    status_counts[new_status] = status_counts.get(new_status, 0) + 1
+                    
+                    # Adjust time fields based on status
+                    if new_status == 'Absent':
                         # Clear time fields for absent employees
                         attendance.clock_in = None
                         attendance.clock_out = None
@@ -2480,30 +2536,57 @@ def attendance_bulk_manage():
                         attendance.regular_hours = 0
                         attendance.overtime_hours = 0
                         attendance.total_hours = 0
-                    else:
-                        attendance.status = 'Present'
+                    elif new_status == 'Half Day':
+                        # Half day: 4 hours
+                        if not attendance.clock_in and not attendance.clock_out:
+                            attendance.regular_hours = 4
+                            attendance.total_hours = 4
+                            attendance.overtime_hours = 0
+                    elif new_status == 'Leave':
+                        # Leave: 0 hours
+                        attendance.clock_in = None
+                        attendance.clock_out = None
+                        attendance.break_start = None
+                        attendance.break_end = None
+                        attendance.regular_hours = 0
+                        attendance.overtime_hours = 0
+                        attendance.total_hours = 0
+                    else:  # Present
                         # For present employees, set default 8 hours if not manually clocked
                         if not attendance.clock_in and not attendance.clock_out:
                             attendance.regular_hours = 8
                             attendance.total_hours = 8
                             attendance.overtime_hours = 0
-            
+
             db.session.commit()
+
+            # Build summary message
+            summary_parts = []
+            if status_counts['Present'] > 0:
+                summary_parts.append(f"{status_counts['Present']} Present")
+            if status_counts['Absent'] > 0:
+                summary_parts.append(f"{status_counts['Absent']} Absent")
+            if status_counts['Leave'] > 0:
+                summary_parts.append(f"{status_counts['Leave']} Leave")
+            if status_counts['Half Day'] > 0:
+                summary_parts.append(f"{status_counts['Half Day']} Half Day")
             
-            present_count = len(all_employees) - len(absent_employee_ids)
-            absent_count = len(absent_employee_ids)
+            summary_text = ', '.join(summary_parts) if summary_parts else "No changes"
             
-            flash(f'Attendance updated for {filter_date.strftime("%B %d, %Y")}: {present_count} Present, {absent_count} Absent', 'success')
-            
+            flash(
+                f'Attendance updated for {filter_date.strftime("%B %d, %Y")}: {summary_text}',
+                'success')
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating attendance: {str(e)}', 'error')
-    
+
     # Get employees and their attendance for the selected date
     employees_query = Employee.query.filter_by(is_active=True)
-    
+
     # Apply role-based filtering for display
-    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                                                        'employee_profile') and current_user.employee_profile:
         manager_id = current_user.employee_profile.id
         employees_query = employees_query.filter(
             db.or_(
@@ -2511,12 +2594,12 @@ def attendance_bulk_manage():
                 Employee.manager_id == manager_id
             )
         )
-    
+
     employees = employees_query.order_by(Employee.first_name, Employee.last_name).all()
-    
+
     # Ensure attendance records exist for all employees for this date
     create_daily_attendance_records(filter_date, employees)
-    
+
     # Get attendance records for the selected date
     attendance_records = {}
     for employee in employees:
@@ -2525,20 +2608,20 @@ def attendance_bulk_manage():
             date=filter_date
         ).first()
         attendance_records[employee.id] = attendance
-    
+
     return render_template('attendance/bulk_manage.html',
-                         employees=employees,
-                         attendance_records=attendance_records,
-                         selected_date=selected_date,
-                         filter_date=filter_date,
-                         date=date)
+                           employees=employees,
+                           attendance_records=attendance_records,
+                           selected_date=selected_date,
+                           filter_date=filter_date,
+                           date=date)
 
 
 def create_daily_attendance_records(target_date, employees=None):
     """Create attendance records for all active employees for a specific date"""
     if employees is None:
         employees = Employee.query.filter_by(is_active=True).all()
-    
+
     created_count = 0
     for employee in employees:
         # Check if attendance record already exists
@@ -2546,7 +2629,7 @@ def create_daily_attendance_records(target_date, employees=None):
             employee_id=employee.id,
             date=target_date
         ).first()
-        
+
         if not existing:
             # Create new attendance record with default Present status
             attendance = Attendance()
@@ -2557,14 +2640,14 @@ def create_daily_attendance_records(target_date, employees=None):
             attendance.total_hours = 8
             attendance.overtime_hours = 0
             attendance.remarks = 'Auto-generated attendance record'
-            
+
             db.session.add(attendance)
             created_count += 1
-    
+
     if created_count > 0:
         db.session.commit()
         print(f"Created {created_count} attendance records for {target_date}")
-    
+
     return created_count
 
 
@@ -2585,23 +2668,23 @@ def attendance_auto_create():
             target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
         else:
             target_date = date.today()
-        
+
         # Get all active employees
         employees = Employee.query.filter_by(is_active=True).all()
-        
+
         # Create attendance records
         created_count = create_daily_attendance_records(target_date, employees)
-        
+
         if created_count > 0:
             flash(f'Successfully created attendance records for {created_count} employees on {target_date}', 'success')
         else:
             flash(f'Attendance records already exist for all employees on {target_date}', 'info')
-            
+
     except ValueError:
         flash('Invalid date format. Please use YYYY-MM-DD format.', 'error')
     except Exception as e:
         flash(f'Error creating attendance records: {str(e)}', 'error')
-        
+
     return redirect(url_for('attendance_bulk_manage'))
 
 
@@ -2612,29 +2695,29 @@ def api_attendance_auto_create():
         # Simple API key authentication (you should set this in environment variables)
         api_key = request.headers.get('X-API-Key') or request.form.get('api_key')
         expected_api_key = os.environ.get('ATTENDANCE_API_KEY', 'your-secret-api-key-here')
-        
+
         if api_key != expected_api_key:
             return {'error': 'Invalid API key'}, 401
-        
+
         target_date_str = request.form.get('date') or request.json.get('date') if request.is_json else None
         if target_date_str:
             target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
         else:
             target_date = date.today()
-        
+
         # Get all active employees
         employees = Employee.query.filter_by(is_active=True).all()
-        
+
         # Create attendance records
         created_count = create_daily_attendance_records(target_date, employees)
-        
+
         return {
             'success': True,
             'message': f'Created attendance records for {created_count} employees on {target_date}',
             'date': target_date.strftime('%Y-%m-%d'),
             'created_count': created_count
         }, 200
-            
+
     except ValueError:
         return {'error': 'Invalid date format. Please use YYYY-MM-DD format.'}, 400
     except Exception as e:
@@ -2659,11 +2742,13 @@ def leave_list():
         query = query.filter(Leave.employee_id == employee_filter)
 
     # Role-based filtering
-    if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user, 'employee_profile'):
+    if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user,
+                                                                                                   'employee_profile'):
         # Employee/User: Only their own leave requests
         query = query.filter(
             Leave.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile'):
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                                                          'employee_profile'):
         # Manager: Their own leave requests + their team's leave requests
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -2671,7 +2756,8 @@ def leave_list():
                 Leave.employee_id == manager_id,  # Manager's own leave requests
                 Employee.manager_id == manager_id  # Team's leave requests
             ))
-    elif (current_user.role.name if current_user.role else None) == 'Admin' and hasattr(current_user, 'employee_profile'):
+    elif (current_user.role.name if current_user.role else None) == 'Admin' and hasattr(current_user,
+                                                                                        'employee_profile'):
         # Admin: Only their own leave requests (as per attendance requirement)
         admin_id = current_user.employee_profile.id
         query = query.filter(Leave.employee_id == admin_id)
@@ -2688,7 +2774,8 @@ def leave_list():
         # Super Admin can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                                                          'employee_profile') and current_user.employee_profile:
         # Manager can filter by themselves and their team
         manager_id = current_user.employee_profile.id
         employees = Employee.query.filter(
@@ -2750,52 +2837,53 @@ def leave_request():
 def leave_edit(leave_id):
     """Edit leave request"""
     leave = Leave.query.get_or_404(leave_id)
-    
+
     # Check if user can edit this leave request
     can_edit = False
-    
+
     # Requestor can edit their own pending requests
-    if (hasattr(current_user, 'employee_profile') and 
-        current_user.employee_profile and 
-        leave.employee_id == current_user.employee_profile.id and 
-        leave.status == 'Pending'):
+    if (hasattr(current_user, 'employee_profile') and
+            current_user.employee_profile and
+            leave.employee_id == current_user.employee_profile.id and
+            leave.status == 'Pending'):
         can_edit = True
-    
+
     # Approvers (Manager/Admin/Super Admin) can edit pending requests for their scope
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile'):
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                                                          'employee_profile'):
         if leave.employee.manager_id == current_user.employee_profile.id and leave.status == 'Pending':
             can_edit = True
     elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
         if leave.status == 'Pending':
             can_edit = True
-    
+
     if not can_edit:
         flash('You cannot edit this leave request', 'error')
         return redirect(url_for('leave_list'))
-    
+
     if request.method == 'POST':
         try:
             leave.leave_type = request.form.get('leave_type')
             leave.start_date = parse_date(request.form.get('start_date'))
             leave.end_date = parse_date(request.form.get('end_date'))
             leave.reason = request.form.get('reason')
-            
+
             # Recalculate days
             if leave.start_date and leave.end_date:
                 days = (leave.end_date - leave.start_date).days + 1
                 leave.days_requested = days
-            
+
             leave.updated_at = datetime.now()
             db.session.commit()
-            
+
             flash('Leave request updated successfully', 'success')
             return redirect(url_for('leave_list'))
-            
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating leave request: {str(e)}', 'error')
             return render_template('leave/form.html', leave=leave, is_edit=True, form_data=request.form)
-    
+
     return render_template('leave/form.html', leave=leave, is_edit=True)
 
 
@@ -2851,84 +2939,9 @@ def claims_list():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
-                                                   'employee_profile'):
+                                                                                         'employee_profile'):
         query = query.filter(
             Claim.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                    'employee_profile'):
-        query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
-
-    claims = query.order_by(Claim.created_at.desc()).paginate(page=page,
-                                                              per_page=20,
-                                                              error_out=False)
-
-    return render_template('claims/list.html',
-                           claims=claims,
-                           status_filter=status_filter)
-
-
-@app.route('/claims/submit', methods=['GET', 'POST'])
-@require_login
-def claims_submit():
-    """Submit new claim"""
-    if request.method == 'POST':
-        try:
-            if not hasattr(
-                    current_user,
-                    'employee_profile') or not current_user.employee_profile:
-                flash('Employee profile required for attendance marking',
-                      'error')
-                return redirect(url_for('dashboard'))
-
-            claim = Claim()
-            claim.employee_id = current_user.employee_profile.id
-            claim.claim_type = request.form.get('claim_type')
-            amount_str = request.form.get('amount')
-            claim.amount = float(amount_str) if amount_str else 0.0
-            claim.claim_date = parse_date(request.form.get('claim_date'))
-            claim.description = request.form.get('description')
-            claim.receipt_number = request.form.get('receipt_number')
-            claim.submitted_by = current_user.id
-
-            db.session.add(claim)
-            db.session.commit()
-
-            flash('Claim submitted successfully', 'success')
-            return redirect(url_for('claims_list'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error submitting claim: {str(e)}', 'error')
-
-    return render_template('claims/form.html')
-
-
-@app.route('/claims/<int:claim_id>/approve', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def claims_approve(claim_id):
-    """Approve/reject claim"""
-    claim = Claim.query.get_or_404(claim_id)
-
-    try:
-        action = request.form.get('action')
-
-        if action == 'approve':
-            claim.status = 'Approved'
-            claim.approved_by = current_user.id
-            claim.approved_at = datetime.now()
-            flash('Claim approved', 'success')
-        elif action == 'reject':
-            claim.status = 'Rejected'
-            claim.approved_by = current_user.id
-            claim.approved_at = datetime.now()
-            claim.rejection_reason = request.form.get('reason', '')
-            flash('Claim rejected', 'info')
-
-        db.session.commit()
-        return redirect(url_for('claims_list'))
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error processing claim: {str(e)}', 'error')
-        return redirect(url_for('claims_list'))
+    
+    claims = query.paginate(page=page, per_page=10)
+ 

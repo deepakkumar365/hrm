@@ -4,7 +4,7 @@ import os
 import sys
 
 # Add the project directory to path
-sys.path.insert(0, 'D:/Projects/HRMS/hrm')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import after path is set
 from app import app, db

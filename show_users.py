@@ -1,6 +1,7 @@
 """Display users from hrm_users table and show hashing method"""
 import sys
-sys.path.insert(0, 'E:/Gobi/Pro/HRMS/hrm')
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
 from models import User
@@ -49,6 +50,7 @@ with app.app_context():
     print('\n' + '='*80)
     print('📝 DEFAULT PASSWORDS (for reference)')
     print('='*80)
-    print('\nAll default users have password: admin123')
+    print('\nDefault admin/superadmin password is: Admin@123')
+    print('Default password for newly created employees is set in constants.py')
     print('\n⚠️  IMPORTANT: Change these passwords in production!')
     print('='*80 + '\n')

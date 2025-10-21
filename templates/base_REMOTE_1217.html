@@ -343,38 +343,28 @@
                         </div>
                         {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-        <br>
-        {% block content %}{% endblock %}
-    </main>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
 
-    <!-- Mobile Floating Action Button -->
-    {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) == 'User' %}
-    <div class="dropdown dropup position-fixed" style="bottom: 1.5rem; right: 1.5rem; z-index: 1050;">
-        <button class="fab" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-plus"></i>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end mb-2">
-            <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
-                <i class="fas fa-clock"></i>Mark Attendance
-            </a></li>
-            <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
-                <i class="fas fa-plane-departure"></i>Request Leave
-            </a></li>
-            <li><a class="dropdown-item" href="{{ url_for('claims_submit') }}">
-                <i class="fas fa-receipt"></i>Submit Claim
-            </a></li>
-        </ul>
-    </div>
-    {% endif %}
-    
-    <!-- Footer -->
-    <footer class="bg-light py-3 fixed-bottom">
-        <div class="container-fluid">
-            <p class="mb-0">&copy; {{ date.today().year }} HRM. All rights reserved.</p>
+        <!-- Mobile Floating Action Button -->
+        {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) == 'User' %}
+        <div class="dropdown dropup position-fixed" style="bottom: 1.5rem; right: 1.5rem; z-index: 1050;">
+            <button class="fab" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-plus"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end mb-2">
+                <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
+                    <i class="fas fa-clock"></i>Mark Attendance
+                </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
+                    <i class="fas fa-plane-departure"></i>Request Leave
+                </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('claims_submit') }}">
+                    <i class="fas fa-receipt"></i>Submit Claim
+                </a></li>
+            </ul>
         </div>
         {% endif %}
 

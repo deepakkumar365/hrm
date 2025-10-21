@@ -159,13 +159,13 @@
                                 <select class="form-select" id="designation_id" name="designation_id" required>
                                     <option value="">Select Designation</option>
                                     {% for designation in designations %}
-                                    <option value="{{ designation.id }}" {% if (form_data and form_data.get('designation_id') == designation.id|string) %}selected{% endif %}>
+                                    <option value="{{ designation.id }}" {% if (form_data and form_data.get('designation_id') == designation.id|string) or (employee and employee.designation_id and employee.designation_id|string == designation.id|string and not form_data) %}selected{% endif %}>
                                         {{ designation.name }}
                                     </option>
                                     {% endfor %}
                                 </select>
                                 <div class="invalid-feedback">Please select a designation.</div>
-                                <small class="form-text text-muted">Job title/designation from master data.</small>
+                                <small class="form-text text-muted">Job title/designation from master data. Sets the employee's position.</small>
                             </div>
                             <div class="col-md-6">
                                 <label for="user_role_id" class="form-label">User Role (System Access) *</label>

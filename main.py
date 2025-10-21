@@ -6,28 +6,9 @@ load_dotenv()
 
 from app import app
 
-# CRITICAL: Directly truncate routes.py to remove duplicate code BEFORE any imports
-# This must happen before Flask app imports routes
-try:
-    import os
-    routes_path = os.path.join(os.path.dirname(__file__), 'routes.py')
-    
-    with open(routes_path, 'r', encoding='utf-8') as f:
-        all_lines = f.readlines()
-    
-    if len(all_lines) > 2934:
-        # Keep only first 2934 lines (function properly ends there)
-        proper_lines = all_lines[:2934]
-        if proper_lines[-1] and not proper_lines[-1].endswith('\n'):
-            proper_lines[-1] = proper_lines[-1] + '\n'
-        
-        with open(routes_path, 'w', encoding='utf-8') as f:
-            f.writelines(proper_lines)
-        
-        removed = len(all_lines) - len(proper_lines)
-        print(f"✅ Cleaned up duplicate code - removed {removed} lines from routes.py")
-except Exception as e:
-    print(f"⚠️  Warning during cleanup: {e}")
+# NOTE: Route truncation disabled - routes.py is now complete with all functions
+# The file previously had duplicate code that was being auto-truncated, 
+# but this is no longer needed as the file structure is finalized.
 
 # Clean up any remaining issues
 try:
