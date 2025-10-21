@@ -1590,7 +1590,12 @@ def payroll_generate():
         try:
             month = int(request.form.get('month'))
             year = int(request.form.get('year'))
+            company_id = request.form.get('company')
             selected_employees = request.form.getlist('employees')
+            
+            if not company_id:
+                flash('Please select a company', 'error')
+                return redirect(url_for('payroll_generate'))
 
             # Calculate pay period
             from calendar import monthrange
@@ -1690,10 +1695,45 @@ def payroll_generate():
     from datetime import datetime as dt
     current_month = dt.now().month
     current_year = dt.now().year
+    
+    # Get available companies for the current user's organization
+    companies = []
+    user_org = current_user.organization
+    
+    # Debug logging
+    print(f"\n[PAYROLL DEBUG] ===== PAYROLL GENERATE PAGE DEBUG INFO =====")
+    print(f"[PAYROLL DEBUG] User: {current_user.username} (ID: {current_user.id})")
+    print(f"[PAYROLL DEBUG] User organization_id: {current_user.organization_id}")
+    print(f"[PAYROLL DEBUG] User organization object: {user_org}")
+    
+    if user_org:
+        print(f"[PAYROLL DEBUG] ✅ Organization Name: {user_org.name}")
+        print(f"[PAYROLL DEBUG] ✅ Organization Tenant ID: {user_org.tenant_id}")
+        if user_org.tenant_id:
+            companies = Company.query.filter_by(tenant_id=user_org.tenant_id, is_active=True).all()
+            print(f"[PAYROLL DEBUG] ✅ Found {len(companies)} ACTIVE companies for tenant {user_org.tenant_id}")
+            for company in companies:
+                print(f"[PAYROLL DEBUG]    - Company: {company.name} (ID: {company.id}, Active: {company.is_active})")
+            
+            # Also check inactive companies for debugging
+            inactive_companies = Company.query.filter_by(tenant_id=user_org.tenant_id, is_active=False).all()
+            if inactive_companies:
+                print(f"[PAYROLL DEBUG] ⚠️  Found {len(inactive_companies)} INACTIVE companies:")
+                for company in inactive_companies:
+                    print(f"[PAYROLL DEBUG]    - Company: {company.name} (INACTIVE)")
+        else:
+            print(f"[PAYROLL DEBUG] ❌ Organization has NO tenant_id set!")
+            print(f"[PAYROLL DEBUG] 💡 ACTION NEEDED: Link organization to a tenant")
+    else:
+        print(f"[PAYROLL DEBUG] ❌ User has NO organization assigned!")
+        print(f"[PAYROLL DEBUG] 💡 ACTION NEEDED: Assign organization to user")
+    
+    print(f"[PAYROLL DEBUG] ===== END DEBUG INFO =====\n")
 
     return render_template('payroll/generate.html',
                            current_month=current_month,
-                           current_year=current_year)
+                           current_year=current_year,
+                           companies=companies)
 
 
 @app.route('/payroll/config')
@@ -1810,6 +1850,7 @@ def payroll_preview_api():
     try:
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        company_id = request.args.get('company_id', type=str)
 
         if not month or not year:
             return jsonify({
@@ -1817,7 +1858,7 @@ def payroll_preview_api():
                 'message': 'Month and year are required'
             }), 400
 
-        # Get current user's organization and company for tenant filtering
+        # Get current user's organization for tenant filtering
         user_org = current_user.organization
         if not user_org:
             return jsonify({
@@ -1825,15 +1866,31 @@ def payroll_preview_api():
                 'message': 'No organization assigned to your account'
             }), 400
 
-        # Get company associated with this organization's tenant
+        # Get company - either from parameter or auto-fetch from tenant
         company = None
-        if user_org.tenant_id:
-            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
+        if company_id:
+            # Use the provided company_id
+            company = Company.query.get(company_id)
+            if not company:
+                return jsonify({
+                    'success': False,
+                    'message': 'Company not found'
+                }), 400
+            # Verify company belongs to user's tenant
+            if user_org.tenant_id and company.tenant_id != user_org.tenant_id:
+                return jsonify({
+                    'success': False,
+                    'message': 'You do not have access to this company'
+                }), 403
+        else:
+            # Auto-fetch from tenant (fallback)
+            if user_org.tenant_id:
+                company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
 
         if not company:
             return jsonify({
                 'success': False,
-                'message': 'No company found for your organization'
+                'message': 'No company found for your organization. Please select a company.'
             }), 400
 
         # Calculate pay period
@@ -2831,150 +2888,4 @@ def leave_request():
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error submitting leave request: {str(e)}', 'error')
-            return render_template('leave/form.html', form_data=request.form)
-
-    return render_template('leave/form.html')
-
-
-@app.route('/leave/<int:leave_id>/edit', methods=['GET', 'POST'])
-@require_login
-def leave_edit(leave_id):
-    """Edit leave request"""
-    leave = Leave.query.get_or_404(leave_id)
-
-    # Check if user can edit this leave request
-    can_edit = False
-
-    # Requestor can edit their own pending requests
-    if (hasattr(current_user, 'employee_profile') and
-            current_user.employee_profile and
-            leave.employee_id == current_user.employee_profile.id and
-            leave.status == 'Pending'):
-        can_edit = True
-
-    # Approvers (Manager/Admin/Super Admin) can edit pending requests for their scope
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                                                          'employee_profile'):
-        if leave.employee.manager_id == current_user.employee_profile.id and leave.status == 'Pending':
-            can_edit = True
-    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
-        if leave.status == 'Pending':
-            can_edit = True
-
-    if not can_edit:
-        flash('You cannot edit this leave request', 'error')
-        return redirect(url_for('leave_list'))
-
-    if request.method == 'POST':
-        try:
-            leave.leave_type = request.form.get('leave_type')
-            leave.start_date = parse_date(request.form.get('start_date'))
-            leave.end_date = parse_date(request.form.get('end_date'))
-            leave.reason = request.form.get('reason')
-
-            # Recalculate days
-            if leave.start_date and leave.end_date:
-                days = (leave.end_date - leave.start_date).days + 1
-                leave.days_requested = days
-
-            leave.updated_at = datetime.now()
-            db.session.commit()
-
-            flash('Leave request updated successfully', 'success')
-            return redirect(url_for('leave_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating leave request: {str(e)}', 'error')
-    
-    return render_template('leave/form.html', leave=leave, is_edit=True)
-
-
-# ===== CLAIMS ROUTES =====
-
-@app.route('/claims')
-@require_login
-def claims_list():
-    """List expense claims"""
-    page = request.args.get('page', 1, type=int)
-    status_filter = request.args.get('status', '', type=str)
-    
-    query = Claim.query
-    
-    # Filter by role/user
-    current_role = current_user.role.name if current_user.role else None
-    if current_role == 'Employee' and hasattr(current_user, 'employee_profile'):
-        query = query.filter(Claim.employee_id == current_user.employee_profile.id)
-    elif current_role not in ['Super Admin', 'Admin', 'Manager']:
-        flash('Unauthorized', 'error')
-        return redirect(url_for('dashboard'))
-    
-    # Filter by status if provided
-    if status_filter:
-        query = query.filter(Claim.status == status_filter)
-    
-    claims = query.paginate(page=page, per_page=20)
-    
-    return render_template('claims/list.html', 
-                         claims=claims, 
-                         status_filter=status_filter)
-
-
-@app.route('/claims/submit', methods=['GET', 'POST'])
-@require_login
-def claims_submit():
-    """Submit new claim"""
-    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
-        flash('Employee profile required for submitting claims', 'error')
-        return redirect(url_for('dashboard'))
-    
-    if request.method == 'POST':
-        try:
-            claim = Claim()
-            claim.employee_id = current_user.employee_profile.id
-            claim.organization_id = current_user.organization_id
-            claim.claim_type = request.form.get('claim_type')
-            claim.amount = float(request.form.get('amount', 0))
-            claim.description = request.form.get('description')
-            claim.claim_date = datetime.now()
-            claim.status = 'Pending'
-            
-            db.session.add(claim)
-            db.session.commit()
-            
-            flash('Claim submitted successfully', 'success')
-            return redirect(url_for('claims_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error submitting claim: {str(e)}', 'error')
-    
-    return render_template('claims/form.html')
-
-
-@app.route('/claims/<int:claim_id>/approve', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def claims_approve(claim_id):
-    """Approve/reject claim"""
-    claim = Claim.query.get_or_404(claim_id)
-    
-    try:
-        action = request.form.get('action')
-        
-        if action == 'approve':
-            claim.status = 'Approved'
-            claim.approved_by = current_user.id
-            claim.approved_at = datetime.now()
-            flash('Claim approved', 'success')
-        elif action == 'reject':
-            claim.status = 'Rejected'
-            claim.approved_by = current_user.id
-            claim.approved_at = datetime.now()
-            flash('Claim rejected', 'success')
-        
-        db.session.commit()
-        return redirect(url_for('claims_list'))
-    
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error processing claim: {str(e)}', 'error')
-        return redirect(url_for('claims_list')) 
+            flash(f'Error submitting leave request: {str(e)}', 'error')

@@ -458,7 +458,7 @@ function saveBankInfo() {
     saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
 
     // Send AJAX request
-    fetch('{{ url_for("employee_bank_info", employee_id=0) }}'.replace('0', employeeId), {
+    fetch('{{ url_for("get_bank_info", employee_id=0) }}'.replace('0', employeeId), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

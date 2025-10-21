@@ -27,9 +27,32 @@
     </div>
 
     <form method="POST" id="payrollForm">
-        <!-- Month Selection -->
+        <!-- Filter Section -->
         <div class="row mb-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label for="company" class="form-label">Select Company *</label>
+                <select name="company" id="company" class="form-select" required>
+                    <option value="">-- Select Company --</option>
+                    {% for company in companies %}
+                    <option value="{{ company.id }}">{{ company.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if not companies %}
+                <div class="alert alert-warning mt-2 mb-0 p-2" role="alert">
+                    <small>
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        <strong>No companies found!</strong><br>
+                        This usually means:<br>
+                        • Your organization is not linked to a tenant<br>
+                        • No companies exist for your organization's tenant<br>
+                        <br>
+                        <strong>Solution:</strong> Run the fix script:<br>
+                        <code>python fix_company_dropdown.py</code>
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
                 <label for="month" class="form-label">Select Month *</label>
                 <select name="month" id="month" class="form-select" required>
                     <option value="">-- Select Month --</option>
@@ -41,7 +64,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="year" class="form-label">Select Year *</label>
                 <select name="year" id="year" class="form-select" required>
                     {% for y in range(current_year - 1, current_year + 2) %}
@@ -49,7 +72,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label d-block">&nbsp;</label>
                 <button type="button" class="btn btn-primary" onclick="loadEmployeeData()">
                     <i class="fas fa-sync me-1"></i>Load Employee Data
@@ -145,11 +168,12 @@ document.getElementById('selectAllHeader').addEventListener('change', function()
 });
 
 function loadEmployeeData() {
+    const company = document.getElementById('company').value;
     const month = document.getElementById('month').value;
     const year = document.getElementById('year').value;
 
-    if (!month || !year) {
-        alert('Please select both month and year');
+    if (!company || !month || !year) {
+        alert('Please select company, month, and year');
         return;
     }
 
@@ -167,7 +191,7 @@ function loadEmployeeData() {
     `;
 
     // Fetch employee payroll data
-    fetch(`/api/payroll/preview?month=${month}&year=${year}`)
+    fetch(`/api/payroll/preview?company_id=${company}&month=${month}&year=${year}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {

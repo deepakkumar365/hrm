@@ -16,13 +16,13 @@
            - Subtext: #66b2b2 (Light teal)
            - Text/Borders: #4A4A4A (Neutral gray)
         ======================================== */
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Open Sans', sans-serif;
             background: linear-gradient(135deg, #f0f8f9 0%, #e8f4f5 50%, #e0f2f3 100%);
@@ -30,7 +30,7 @@
             padding: 20px;
             min-height: 100vh;
         }
-        
+
         .payslip-container {
             width: 800px;
             max-width: 95%;
@@ -40,7 +40,7 @@
             overflow: hidden;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         }
-        
+
         /* Company Header Bar */
         .company-header {
             background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
@@ -49,7 +49,7 @@
             color: #FFFFFF;
             position: relative;
         }
-        
+
         .company-header::after {
             content: '';
             position: absolute;
@@ -60,7 +60,7 @@
             background: linear-gradient(90deg, #008080 0%, #004d4d 50%, #008080 100%);
             opacity: 0.3;
         }
-        
+
         .company-name {
             font-family: 'Poppins', sans-serif;
             font-size: 24px;
@@ -69,29 +69,29 @@
             letter-spacing: 1.5px;
             margin-bottom: 8px;
         }
-        
+
         .company-address {
             font-size: 13px;
             font-weight: 400;
             margin: 5px 0;
             opacity: 0.95;
         }
-        
+
         .company-uen {
             font-size: 12px;
             font-weight: 600;
             margin-top: 8px;
             opacity: 0.9;
         }
-        
+
         /* Salary Slip Title Section */
         .slip-title-section {
-            background: #66b2b2;
+            background: #fff;
             padding: 18px 30px;
             text-align: center;
             border-bottom: 3px solid #008080;
         }
-        
+
         .slip-title {
             font-family: 'Poppins', sans-serif;
             font-size: 28px;
@@ -100,7 +100,7 @@
             letter-spacing: 2px;
             margin-bottom: 4px;
         }
-        
+
         .slip-subtitle {
             font-family: 'Poppins', sans-serif;
             font-size: 12px;
@@ -109,13 +109,13 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        
+
         /* Content Area */
         .content-area {
             background: #f8fafb;
             padding: 30px;
         }
-        
+
         /* Employee Info Section */
         .info-section {
             background: #FFFFFF;
@@ -124,38 +124,38 @@
             padding: 20px;
             margin-bottom: 20px;
         }
-        
+
         .info-table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         .info-table tr {
             border-bottom: 1px solid #E8E8E8;
         }
-        
+
         .info-table tr:last-child {
             border-bottom: none;
         }
-        
+
         .info-table td {
             font-size: 13px;
             padding: 10px 8px;
             vertical-align: top;
         }
-        
+
         .info-table .label {
             font-family: 'Poppins', sans-serif;
             font-weight: 600;
             color: #008080;
             width: 180px;
         }
-        
+
         .info-table .value {
             color: #4A4A4A;
             font-weight: 400;
         }
-        
+
         /* Pay Details Table */
         .pay-section {
             background: #FFFFFF;
@@ -164,16 +164,16 @@
             overflow: hidden;
             margin-bottom: 20px;
         }
-        
+
         .pay-table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         .pay-table thead {
             background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
         }
-        
+
         .pay-table th {
             font-family: 'Poppins', sans-serif;
             font-size: 13px;
@@ -183,31 +183,31 @@
             text-align: left;
             border-right: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .pay-table th:last-child {
             border-right: none;
         }
-        
+
         .pay-table tbody tr {
             border-bottom: 1px solid #E8E8E8;
             transition: background 0.2s ease;
         }
-        
+
         .pay-table tbody tr:hover {
             background: #F9F9F9;
         }
-        
+
         .pay-table td {
             font-size: 13px;
             padding: 10px;
             color: #4A4A4A;
             border-right: 1px solid #E8E8E8;
         }
-        
+
         .pay-table td:last-child {
             border-right: none;
         }
-        
+
         /* Right align amount columns */
         .pay-table td:nth-child(2),
         .pay-table td:nth-child(3),
@@ -219,20 +219,20 @@
         .pay-table th:nth-child(6) {
             text-align: right;
         }
-        
+
         /* Totals Row */
         .totals-row {
             background: linear-gradient(135deg, #e8f4f5 0%, #e0f2f3 100%);
             font-weight: 600;
             color: #008080;
         }
-        
+
         .totals-row td {
             padding: 12px 10px;
             font-family: 'Poppins', sans-serif;
             font-size: 14px;
         }
-        
+
         /* Summary Section */
         .summary-section {
             background: #FFFFFF;
@@ -241,45 +241,45 @@
             padding: 20px;
             margin-bottom: 20px;
         }
-        
+
         .summary-table {
             width: 100%;
             max-width: 400px;
             margin-left: auto;
             border-collapse: collapse;
         }
-        
+
         .summary-table tr {
             border-bottom: 1px solid #E8E8E8;
         }
-        
+
         .summary-table tr:last-child {
             border-bottom: none;
         }
-        
+
         .summary-table td {
             font-size: 14px;
             padding: 10px 8px;
         }
-        
+
         .summary-table .label {
             font-family: 'Poppins', sans-serif;
             font-weight: 600;
             color: #008080;
         }
-        
+
         .summary-table td:nth-child(2) {
             text-align: right;
             font-weight: 600;
             color: #4A4A4A;
         }
-        
+
         /* Net Pay Row - Highlighted */
         .netpay-row {
             background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
             border-radius: 6px;
         }
-        
+
         .netpay-row td {
             font-family: 'Poppins', sans-serif;
             font-size: 16px;
@@ -287,7 +287,17 @@
             color: #FFFFFF;
             padding: 14px 12px;
         }
-        
+
+        /* Override label color in netpay-row */
+        .netpay-row .label {
+            color: #FFFFFF;
+        }
+
+        /* Override amount color in netpay-row */
+        .netpay-row td:nth-child(2) {
+            color: #FFFFFF;
+        }
+
         /* Footer Wave Section */
         .footer-wave {
             background: linear-gradient(135deg, #66b2b2 0%, #008080 100%);
@@ -295,7 +305,7 @@
             text-align: center;
             position: relative;
         }
-        
+
         .footer-wave::before {
             content: '';
             position: absolute;
@@ -306,7 +316,7 @@
             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 15"><path fill="%2366b2b2" d="M0,10 Q300,0 600,10 T1200,10 L1200,15 L0,15 Z"/></svg>') repeat-x;
             background-size: 100% 15px;
         }
-        
+
         .footer-note {
             font-family: 'Open Sans', sans-serif;
             font-size: 12px;
@@ -314,7 +324,7 @@
             color: #FFFFFF;
             margin-bottom: 8px;
         }
-        
+
         .footer-logo {
             font-family: 'Poppins', sans-serif;
             font-size: 10px;
@@ -323,39 +333,39 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        
+
         /* Print Styles */
         @media print {
             body {
                 background: #FFFFFF;
                 padding: 0;
             }
-            
+
             .payslip-container {
                 box-shadow: none;
                 border-radius: 0;
                 max-width: 100%;
             }
         }
-        
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .payslip-container {
                 width: 100%;
             }
-            
+
             .company-name {
                 font-size: 20px;
             }
-            
+
             .slip-title {
                 font-size: 22px;
             }
-            
+
             .content-area {
                 padding: 20px;
             }
-            
+
             .pay-table th,
             .pay-table td {
                 font-size: 11px;
@@ -366,23 +376,23 @@
 </head>
 <body>
 <div class="payslip-container">
-    
+
     <!-- Company Header Bar -->
     <div class="company-header">
         <div class="company-name">{{ company.name }}</div>
         <div class="company-address">{{ company.address }}</div>
         <div class="company-uen">UEN NO: {{ company.uen }}</div>
     </div>
-    
+
     <!-- Salary Slip Title Section -->
     <div class="slip-title-section">
         <div class="slip-title">PAYROLL SALARY SLIP</div>
-        <div class="slip-subtitle">Professional Template</div>
+
     </div>
-    
+
     <!-- Content Area with Pastel Background -->
     <div class="content-area">
-        
+
         <!-- Employee Information Section -->
         <div class="info-section">
             <table class="info-table">
@@ -406,7 +416,7 @@
                 </tr>
             </table>
         </div>
-        
+
         <!-- Pay Details Section -->
         <div class="pay-section">
             <table class="pay-table">
@@ -470,7 +480,7 @@
                 </tbody>
             </table>
         </div>
-        
+
         <!-- Summary Section -->
         <div class="summary-section">
             <table class="summary-table">
@@ -488,9 +498,9 @@
                 </tr>
             </table>
         </div>
-        
+
     </div>
-    
+
     <!-- Footer Wave Section -->
     <div class="footer-wave">
         <div class="footer-note">
@@ -500,7 +510,7 @@
             HRMS Payroll System
         </div>
     </div>
-    
+
 </div>
 </body>
 </html>
