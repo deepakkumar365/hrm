@@ -62,16 +62,16 @@ def cleanup_routes():
                 f.writelines(cleaned_lines)
             
             removed_count = original_count - len(cleaned_lines)
-            print(f"✅ Cleaned up duplicate code - removed {removed_count} lines from routes.py (from line {duplicate_start + 1})")
+            print(f"[OK] Cleaned up duplicate code - removed {removed_count} lines from routes.py (from line {duplicate_start + 1})")
             return True
         
         # No duplicate found - still check if file looks complete
         # If we reach here, the file should be clean
-        print(f"✅ No duplicate code found - routes.py is clean ({original_count} lines)")
+        print(f"[OK] No duplicate code found - routes.py is clean ({original_count} lines)")
         return True
         
     except Exception as e:
-        print(f"⚠️  Could not cleanup: {e}")
+        print(f"[WARNING] Could not cleanup: {e}")
         import traceback
         traceback.print_exc()
         return False

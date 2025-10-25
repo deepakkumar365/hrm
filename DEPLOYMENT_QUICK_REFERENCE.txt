@@ -1,0 +1,173 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║         HRMS OVERTIME GROUP INTEGRATION - DEPLOYMENT QUICK REFERENCE        ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+WHAT'S BEING DEPLOYED:
+✅ Overtime Group Mapping for Employees
+✅ New Database Column: hrm_employee.overtime_group_id
+✅ Enhanced Employee Form with Group Selection
+✅ Tenant Configuration Integration
+
+FILES CHANGED:
+  • models.py (1 column added)
+  • routes.py (1 helper function + route updates)
+  • templates/employees/form.html (1 dropdown field)
+  • migrations/versions/add_overtime_group_id.py (NEW - migration)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+PRE-DEPLOYMENT CHECKLIST:
+
+[  ] 1. Backup database
+     $ pg_dump hrms_db > backup_$(date +%Y%m%d_%H%M%S).sql
+
+[  ] 2. Backup current code
+     $ cp routes.py routes.py.bak
+     $ cp models.py models.py.bak
+
+[  ] 3. Stop application
+     $ pkill -f "python app.py"
+     $ pkill -f gunicorn
+
+[  ] 4. Wait for graceful shutdown (2-3 seconds)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+DEPLOYMENT STEPS:
+
+STEP 1: Deploy Code Files
+     $ cp models.py /path/to/app/models.py
+     $ cp routes.py /path/to/app/routes.py
+     $ cp templates/employees/form.html /path/to/app/templates/employees/
+     $ cp migrations/versions/add_overtime_group_id.py /path/to/app/migrations/versions/
+
+STEP 2: Run Database Migration
+     $ cd /path/to/app
+     $ flask db upgrade
+     Expected Output: "INFO  [alembic.runtime.migration] Running upgrade ..."
+
+STEP 3: Verify Migration
+     $ flask db current
+     $ psql -d hrms_db -c "\d hrm_employee" | grep overtime_group_id
+
+STEP 4: Restart Application
+     $ python app.py
+     OR
+     $ gunicorn wsgi:app
+
+STEP 5: Verify Application Running
+     $ curl -s http://localhost:5000/health | grep "healthy"
+
+═══════════════════════════════════════════════════════════════════════════════
+
+QUICK VALIDATION TESTS:
+
+TEST 1: Form Loads
+     Browser → http://localhost:5000/employees/add
+     ✓ Page loads without errors
+     ✓ Form displays completely
+     ✓ "Overtime Group" dropdown visible
+
+TEST 2: Dropdown Populated
+     ✓ Dropdown shows: Group 1, Group 2, Group 3
+     ✓ Can select each option
+     ✓ Can deselect (leave empty)
+
+TEST 3: Save & Retrieve
+     1. Add new employee with Overtime Group = "Group 1"
+     2. Submit form
+     3. Edit same employee
+     ✓ "Overtime Group" shows "Group 1" selected
+
+TEST 4: Database Check
+     $ psql -d hrms_db -c "SELECT COUNT(*) FROM hrm_employee WHERE overtime_group_id IS NOT NULL;"
+     ✓ Returns correct count
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ROLLBACK (If Issues Occur):
+
+STEP 1: Stop Application
+     $ pkill -f "python app.py"
+
+STEP 2: Rollback Database
+     $ cd /path/to/app
+     $ flask db downgrade
+     Expected: "INFO  [alembic.runtime.migration] Running downgrade ..."
+
+STEP 3: Restore Backed-up Code
+     $ cp routes.py.bak routes.py
+     $ cp models.py.bak models.py
+     $ rm models.pyc routes.pyc (if exist)
+
+STEP 4: Restart Application
+     $ python app.py
+
+STEP 5: Verify Rollback
+     $ flask db current
+     $ psql -d hrms_db -c "\d hrm_employee" | grep -i overtime
+     (Should return nothing)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+MONITORING:
+
+Log Files to Watch:
+  • /var/log/hrms/app.log
+  • /var/log/postgresql/postgresql.log
+  • Browser Console (F12 for JS errors)
+
+Database Health Check:
+  $ psql -d hrms_db -c "SELECT version();"
+
+Application Health Check:
+  $ curl http://localhost:5000/health
+
+Monitor Commands:
+  $ tail -f /var/log/hrms/app.log | grep -i "error\|exception"
+  $ ps aux | grep "python\|gunicorn"
+  $ netstat -ltn | grep 5000
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SUPPORT CONTACTS:
+
+Issue Type          │ Contact           │ Priority
+────────────────────┼──────────────────┼──────────
+Database            │ DBA Team          │ HIGH
+Application Error   │ Backend Dev       │ HIGH
+Form/UI Issues      │ Frontend Dev      │ MEDIUM
+Missing Data        │ Data Team         │ MEDIUM
+Performance         │ DevOps/DBA        │ HIGH
+
+═══════════════════════════════════════════════════════════════════════════════
+
+KEY FACTS:
+
+• Total Downtime: < 5 minutes
+• Migration Size: ~1MB
+• Database Impact: Minimal (1 column, 1 index)
+• Users Affected: HR Managers, Tenant Admins
+• Rollback Available: YES (< 2 minutes)
+• Breaking Changes: NONE
+• Backward Compatible: YES
+
+═══════════════════════════════════════════════════════════════════════════════
+
+DEPLOYMENT SIGN-OFF:
+
+Deployed By: ________________________    Date: _______________
+
+Tested By: ___________________________    Date: _______________
+
+Approved By: __________________________   Date: _______________
+
+═══════════════════════════════════════════════════════════════════════════════
+
+NOTES:
+________________________________________________________________________
+________________________________________________________________________
+________________________________________________________________________
+________________________________________________________________________
+
+═══════════════════════════════════════════════════════════════════════════════

@@ -47,7 +47,7 @@ else:
 app.secret_key = session_secret
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-logging.info(f"🌍 Running in {environment.upper()} mode")
+logging.info(f"[INFO] Running in {environment.upper()} mode")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'pool_pre_ping': True,
     "pool_recycle": 300,

@@ -303,6 +303,24 @@
                                 <small class="form-text text-muted">For overtime calculations</small>
                             </div>
                             <div class="col-md-6">
+                                <label for="overtime_group_id" class="form-label">Overtime Group</label>
+                                <select class="form-select" id="overtime_group_id" name="overtime_group_id">
+                                    <option value="">Select Overtime Group</option>
+                                    {% if overtime_groups %}
+                                        {% for group in overtime_groups %}
+                                        <option value="{{ group }}" {% if (form_data and form_data.get('overtime_group_id') == group) or (employee and employee.overtime_group_id == group and not form_data) %}selected{% endif %}>
+                                            {{ group }}
+                                        </option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="Group 1" {% if employee and employee.overtime_group_id == 'Group 1' %}selected{% endif %}>Group 1</option>
+                                        <option value="Group 2" {% if employee and employee.overtime_group_id == 'Group 2' %}selected{% endif %}>Group 2</option>
+                                        <option value="Group 3" {% if employee and employee.overtime_group_id == 'Group 3' %}selected{% endif %}>Group 3</option>
+                                    {% endif %}
+                                </select>
+                                <small class="form-text text-muted">Assign overtime group for group-based overtime calculations</small>
+                            </div>
+                            <div class="col-md-6">
                                 <label for="cpf_account" class="form-label">CPF Account Number</label>
                                 <input type="text" class="form-control" id="cpf_account" name="cpf_account" 
                                        value="{{ employee.cpf_account if employee else '' }}">

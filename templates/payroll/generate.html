@@ -104,10 +104,15 @@
                             <th style="min-width: 100px;">Housing</th>
                             <th style="min-width: 100px;">Meal</th>
                             <th style="min-width: 100px;">Other</th>
+                            <th style="min-width: 100px;">Levy</th>
                             <th style="min-width: 90px;">OT Hours</th>
                             <th style="min-width: 100px;">OT Amount</th>
-                            <th style="min-width: 90px;">Att. Days</th>
-                            <th style="min-width: 110px;">Deductions</th>
+                            <th style="min-width: 70px;">Att. Days</th>
+                            <th style="min-width: 70px;">Absent Days</th>
+                            <th style="min-width: 70px;">LOP Days</th>
+                            <th style="min-width: 70px;">Calendar</th>
+                            <th style="min-width: 110px;">Other Ded.</th>
+                            <th style="min-width: 110px;">Total Ded.</th>
                             <th style="min-width: 120px;" class="text-end">Net Salary</th>
                         </tr>
                     </thead>
@@ -235,8 +240,13 @@ function renderEmployeeTable() {
         return;
     }
 
-    tbody.innerHTML = employeeData.map(emp => `
-        <tr>
+    tbody.innerHTML = employeeData.map(emp => {
+        // Determine if attendance is low (less than 20 days)
+        const lowAttendance = emp.attendance_days < 20;
+        const attendanceBgClass = lowAttendance ? 'table-warning' : '';
+        
+        return `
+        <tr class="${attendanceBgClass}">
             <td>
                 <input type="checkbox" class="form-check-input employee-checkbox"
                        name="employees" value="${emp.id}"
@@ -253,17 +263,61 @@ function renderEmployeeTable() {
             <td>$${parseFloat(emp.allowance_2 || 0).toFixed(2)}</td>
             <td>$${parseFloat(emp.allowance_3 || 0).toFixed(2)}</td>
             <td>$${parseFloat(emp.allowance_4 || 0).toFixed(2)}</td>
+            <td>$${parseFloat(emp.levy_allowance || 0).toFixed(2)}</td>
             <td>${parseFloat(emp.ot_hours || 0).toFixed(2)}</td>
             <td>$${parseFloat(emp.ot_amount || 0).toFixed(2)}</td>
-            <td>${emp.attendance_days || 0}</td>
+            <td class="${lowAttendance ? 'text-danger fw-bold' : ''}">
+                ${emp.attendance_days || 0}
+            </td>
+            <td>${emp.absent_days || 0}</td>
+            <td>${emp.lop_days || 0}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-info" onclick="showCalendarModal(${emp.id}, '${emp.name}')">
+                    <i class="fas fa-calendar"></i>
+                </button>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm other-deductions-input" 
+                       value="${parseFloat(emp.other_deductions || 0).toFixed(2)}"
+                       step="0.01" min="0"
+                       onchange="updateEmployeeDeductions(this, ${emp.id})"
+                       placeholder="0.00"
+                       style="width: 100%;">
+            </td>
             <td>$${parseFloat(emp.total_deductions || 0).toFixed(2)}</td>
             <td class="text-end">
-                <strong class="text-success">$${parseFloat(emp.net_salary).toFixed(2)}</strong>
+                <strong class="text-success net-salary-${emp.id}">$${parseFloat(emp.net_salary).toFixed(2)}</strong>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 
     updateSummary();
+}
+
+function updateEmployeeDeductions(input, empId) {
+    const otherDeduction = parseFloat(input.value) || 0;
+    const emp = employeeData.find(e => e.id === empId);
+    
+    if (emp) {
+        // Update the employee data
+        emp.other_deductions = otherDeduction;
+        emp.total_deductions = emp.cpf_deduction + emp.lop_deduction + otherDeduction;
+        emp.net_salary = emp.gross_salary - emp.total_deductions;
+        
+        // Update the display
+        const deductionsCell = input.parentElement.nextElementSibling;
+        deductionsCell.textContent = `$${emp.total_deductions.toFixed(2)}`;
+        
+        const netSalaryCell = document.querySelector(`.net-salary-${empId}`);
+        netSalaryCell.textContent = `$${emp.net_salary.toFixed(2)}`;
+        
+        // Update summary if this employee is checked
+        const checkbox = document.querySelector(`input[value="${empId}"][type="checkbox"].employee-checkbox`);
+        if (checkbox && checkbox.checked) {
+            updateSummary();
+        }
+    }
 }
 
 function updateSummary() {
@@ -281,6 +335,161 @@ function updateSummary() {
     document.getElementById('selectedCount').textContent = count;
     document.getElementById('totalPayroll').textContent = `$${total.toFixed(2)}`;
     document.getElementById('generateBtn').disabled = count === 0;
+}
+
+function showCalendarModal(employeeId, employeeName) {
+    const month = parseInt(document.getElementById('month').value);
+    const year = parseInt(document.getElementById('year').value);
+    
+    // Create modal HTML
+    const modalHtml = `
+        <div class="modal fade" id="calendarModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calendar me-2"></i>Attendance Calendar - ${employeeName}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="calendarContent">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="text-muted mt-2">Loading attendance data...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <div class="text-start flex-grow-1">
+                            <small class="text-muted">
+                                <span class="badge bg-success">Green</span> Present &nbsp;
+                                <span class="badge bg-warning text-dark">Yellow</span> Absent &nbsp;
+                                <span class="badge bg-danger">Red</span> LOP &nbsp;
+                                <span class="badge bg-secondary">Grey</span> Holiday/Weekend
+                            </small>
+                        </div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('calendarModal');
+    if (existingModal) existingModal.remove();
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
+    modal.show();
+    
+    // Fetch attendance data
+    fetch(`/api/attendance/calendar?employee_id=${employeeId}&month=${month}&year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderAttendanceCalendar(data.calendar, month, year);
+            } else {
+                document.getElementById('calendarContent').innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <p>${data.message || 'Error loading attendance data'}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            document.getElementById('calendarContent').innerHTML = `
+                <div class="text-center text-danger">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <p>Error loading attendance data. Please try again.</p>
+                </div>
+            `;
+        });
+}
+
+function renderAttendanceCalendar(calendar, month, year) {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    let calendarHtml = `
+        <div class="text-center mb-3">
+            <h5>${monthNames[month - 1]} ${year}</h5>
+        </div>
+        <table class="table table-bordered table-sm" style="font-size: 0.9rem;">
+            <thead class="table-light">
+                <tr>
+                    <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    // Get first day of month
+    const firstDay = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    let dayCounter = 1;
+    let cellCounter = 0;
+    
+    // Add empty cells for days before month starts
+    if (firstDay > 0) {
+        calendarHtml += '<tr>';
+        for (let i = 0; i < firstDay; i++) {
+            calendarHtml += '<td class="bg-light"></td>';
+            cellCounter++;
+        }
+    } else {
+        calendarHtml += '<tr>';
+    }
+    
+    // Add days of month
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const attendance = calendar[dateStr];
+        
+        let bgClass = 'bg-secondary';  // Default grey for weekends/holidays
+        let text = day;
+        
+        if (attendance) {
+            if (attendance.status === 'Present') {
+                bgClass = 'bg-success';
+            } else if (attendance.status === 'Absent' && attendance.lop) {
+                bgClass = 'bg-danger';
+            } else if (attendance.status === 'Absent') {
+                bgClass = 'bg-warning text-dark';
+            }
+            text = day + (attendance.lop && attendance.status === 'Absent' ? '*' : '');
+        }
+        
+        calendarHtml += `<td class="text-center p-2 ${bgClass} text-white" style="height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold;">${text}</td>`;
+        
+        cellCounter++;
+        if (cellCounter % 7 === 0) {
+            calendarHtml += '</tr><tr>';
+        }
+    }
+    
+    // Fill remaining cells
+    if (cellCounter % 7 !== 0) {
+        const remaining = 7 - (cellCounter % 7);
+        for (let i = 0; i < remaining; i++) {
+            calendarHtml += '<td class="bg-light"></td>';
+        }
+        calendarHtml += '</tr>';
+    } else {
+        calendarHtml += '</tr>';
+    }
+    
+    calendarHtml += '</tbody></table>';
+    
+    document.getElementById('calendarContent').innerHTML = calendarHtml;
 }
 
 // Form submission

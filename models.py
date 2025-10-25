@@ -76,6 +76,7 @@ class Tenant(db.Model):
     organizations = db.relationship('Organization', back_populates='tenant')
     payment_configs = db.relationship('TenantPaymentConfig', back_populates='tenant', cascade='all, delete-orphan')
     documents = db.relationship('TenantDocument', back_populates='tenant', cascade='all, delete-orphan')
+    configuration = db.relationship('TenantConfiguration', uselist=False, backref='tenant_obj', foreign_keys='TenantConfiguration.tenant_id')
 
     def __repr__(self):
         return f'<Tenant {self.name} ({self.code})>'
@@ -290,6 +291,9 @@ class Employee(db.Model):
 
     working_hours_id = db.Column(db.Integer, db.ForeignKey('hrm_working_hours.id'), nullable=True)
     work_schedule_id = db.Column(db.Integer, db.ForeignKey('hrm_work_schedules.id'), nullable=True)
+    
+    # Overtime Configuration
+    overtime_group_id = db.Column(db.String(50), nullable=True)  # Group mapping for overtime (e.g., "Group 1", "Group 2", etc.)
 
     created_at = db.Column(db.DateTime, default=datetime.now)
     modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -401,6 +405,9 @@ class PayrollConfiguration(db.Model):
     allowance_4_name = db.Column(db.String(100), default='Other Allowance')
     allowance_4_amount = db.Column(db.Numeric(10, 2), default=0)
 
+    levy_allowance_name = db.Column(db.String(100), default='Levy Allowance')
+    levy_allowance_amount = db.Column(db.Numeric(10, 2), default=0)
+
     ot_rate_per_hour = db.Column(db.Numeric(8, 2), nullable=True)
 
     employer_cpf = db.Column(db.Numeric(10, 2), default=0)
@@ -417,7 +424,8 @@ class PayrollConfiguration(db.Model):
 
     def get_total_allowances(self):
         return (self.allowance_1_amount or 0) + (self.allowance_2_amount or 0) + \
-               (self.allowance_3_amount or 0) + (self.allowance_4_amount or 0)
+               (self.allowance_3_amount or 0) + (self.allowance_4_amount or 0) + \
+               (self.levy_allowance_amount or 0)
 
     def get_effective_ot_rate(self):
         return self.ot_rate_per_hour or self.employee.hourly_rate or 0
@@ -446,6 +454,9 @@ class Payroll(db.Model):
     days_worked = db.Column(db.Integer, default=0)
     overtime_hours = db.Column(db.Numeric(5, 2), default=0)
     leave_days = db.Column(db.Integer, default=0)
+    absent_days = db.Column(db.Integer, default=0)
+    lop_days = db.Column(db.Integer, default=0)
+    lop_deduction = db.Column(db.Numeric(10, 2), default=0)
 
     status = db.Column(db.String(20), default='Draft')
     generated_by = db.Column(db.Integer, db.ForeignKey(User.id))
@@ -474,8 +485,10 @@ class Attendance(db.Model):
     overtime_approved_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
     overtime_approved_at = db.Column(db.DateTime, nullable=True)
 
-    status = db.Column(db.String(20), default='Present')
+    status = db.Column(db.String(20), default='Pending')
     remarks = db.Column(db.Text)
+    
+    lop = db.Column(db.Boolean, default=False)  # Loss of Pay
 
     location_lat = db.Column(db.String(20))
     location_lng = db.Column(db.String(20))
@@ -797,4 +810,71 @@ class AuditLog(db.Model):
             'changes': self.changes,
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class TenantConfiguration(db.Model):
+    """Tenant-level configuration settings for advanced features"""
+    __tablename__ = 'hrm_tenant_configuration'
+    __table_args__ = (
+        Index('idx_tenant_config_tenant_id', 'tenant_id'),
+        UniqueConstraint('tenant_id', name='uq_tenant_config_tenant'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
+
+    # Payslip Logo Configuration
+    payslip_logo_path = db.Column(db.String(255), nullable=True)
+    payslip_logo_filename = db.Column(db.String(255), nullable=True)
+    payslip_logo_uploaded_by = db.Column(db.String(100), nullable=True)
+    payslip_logo_uploaded_at = db.Column(db.DateTime, nullable=True)
+
+    # Employee ID Configuration
+    employee_id_prefix = db.Column(db.String(50), default='EMP')
+    employee_id_company_code = db.Column(db.String(20), nullable=True)
+    employee_id_format = db.Column(db.String(100), default='prefix-company-number')  # e.g., "EMP-ACME-0001"
+    employee_id_separator = db.Column(db.String(5), default='-')
+    employee_id_next_number = db.Column(db.Integer, default=1)
+    employee_id_pad_length = db.Column(db.Integer, default=4)  # Number of zeros to pad (e.g., 0001)
+    employee_id_suffix = db.Column(db.String(50), nullable=True)
+
+    # Overtime Configuration
+    overtime_enabled = db.Column(db.Boolean, default=True)
+    overtime_calculation_method = db.Column(db.String(20), default='By User')  # By User, By Designation, By Group
+    overtime_group_type = db.Column(db.String(50), nullable=True)  # Group 1, Group 2, etc.
+
+    # Overtime Charges
+    general_overtime_rate = db.Column(db.Numeric(5, 2), default=1.5)  # Multiplier or percentage
+    holiday_overtime_rate = db.Column(db.Numeric(5, 2), default=2.0)
+    weekend_overtime_rate = db.Column(db.Numeric(5, 2), default=1.5)
+
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    updated_by = db.Column(db.String(100), nullable=True)
+
+    tenant = db.relationship('Tenant', foreign_keys=[tenant_id], overlaps="configuration,tenant_obj")
+
+    def __repr__(self):
+        return f'<TenantConfiguration {self.tenant_id}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': str(self.tenant_id),
+            'payslip_logo_path': self.payslip_logo_path,
+            'employee_id_prefix': self.employee_id_prefix,
+            'employee_id_company_code': self.employee_id_company_code,
+            'employee_id_format': self.employee_id_format,
+            'employee_id_separator': self.employee_id_separator,
+            'employee_id_next_number': self.employee_id_next_number,
+            'employee_id_pad_length': self.employee_id_pad_length,
+            'employee_id_suffix': self.employee_id_suffix,
+            'overtime_enabled': self.overtime_enabled,
+            'overtime_calculation_method': self.overtime_calculation_method,
+            'overtime_group_type': self.overtime_group_type,
+            'general_overtime_rate': float(self.general_overtime_rate),
+            'holiday_overtime_rate': float(self.holiday_overtime_rate),
+            'weekend_overtime_rate': float(self.weekend_overtime_rate),
         }

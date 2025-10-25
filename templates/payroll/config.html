@@ -65,6 +65,7 @@
                         <th style="min-width: 130px;">Housing Allow.</th>
                         <th style="min-width: 130px;">Meal Allow.</th>
                         <th style="min-width: 130px;">Other Allow.</th>
+                        <th style="min-width: 130px;">Levy Allow.</th>
                         <th style="min-width: 130px;">OT Rate/Hour</th>
                         <th style="min-width: 130px;">Employer CPF</th>
                         <th style="min-width: 130px;">Employee CPF</th>
@@ -118,6 +119,13 @@
                                    class="form-control form-control-sm editable-field"
                                    data-field="allowance_4_amount"
                                    value="{{ employee.payroll_config.allowance_4_amount if employee.payroll_config else 0 }}"
+                                   disabled>
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" min="0"
+                                   class="form-control form-control-sm editable-field"
+                                   data-field="levy_allowance_amount"
+                                   value="{{ employee.payroll_config.levy_allowance_amount if employee.payroll_config else 0 }}"
                                    disabled>
                         </td>
                         <td>
@@ -311,6 +319,28 @@
 // Store original values for cancel functionality
 const originalValues = {};
 
+function calculateNetSalary(employeeId) {
+    const row = document.getElementById(`row-${employeeId}`);
+    
+    // Get all allowance and salary values
+    const baseSalary = parseFloat(row.querySelector('[data-field="basic_salary"]').value) || 0;
+    const allowance1 = parseFloat(row.querySelector('[data-field="allowance_1_amount"]').value) || 0;
+    const allowance2 = parseFloat(row.querySelector('[data-field="allowance_2_amount"]').value) || 0;
+    const allowance3 = parseFloat(row.querySelector('[data-field="allowance_3_amount"]').value) || 0;
+    const allowance4 = parseFloat(row.querySelector('[data-field="allowance_4_amount"]').value) || 0;
+    const levyAllowance = parseFloat(row.querySelector('[data-field="levy_allowance_amount"]').value) || 0;
+    const otRate = parseFloat(row.querySelector('[data-field="ot_rate_per_hour"]').value) || 0;
+    
+    // Get CPF values
+    const employeeCpf = parseFloat(row.querySelector('[data-field="employee_cpf"]').value) || 0;
+    
+    // Formula: (Base + Transport + Housing + Meal + Other + Levy + OT Rate) - Employee CPF
+    const netSalary = (baseSalary + allowance1 + allowance2 + allowance3 + allowance4 + levyAllowance + otRate) - employeeCpf;
+    
+    // Update net salary field
+    row.querySelector('[data-field="net_salary"]').value = Math.max(0, netSalary).toFixed(2);
+}
+
 function enableEdit(employeeId) {
     const row = document.getElementById(`row-${employeeId}`);
     const inputs = row.querySelectorAll('.editable-field');
@@ -321,12 +351,23 @@ function enableEdit(employeeId) {
         originalValues[employeeId][input.dataset.field] = input.value;
         input.disabled = false;
         input.classList.add('border-primary');
+        
+        // Add event listener for real-time calculation on allowance fields
+        const fieldName = input.dataset.field;
+        if (['allowance_1_amount', 'allowance_2_amount', 'allowance_3_amount', 'allowance_4_amount', 'levy_allowance_amount', 'ot_rate_per_hour'].includes(fieldName)) {
+            input.addEventListener('input', function() {
+                calculateNetSalary(employeeId);
+            });
+        }
     });
 
     // Toggle buttons
     row.querySelector('.btn-edit').style.display = 'none';
     row.querySelector('.btn-save').style.display = 'inline-block';
     row.querySelector('.btn-cancel').style.display = 'inline-block';
+    
+    // Initial calculation
+    calculateNetSalary(employeeId);
 }
 
 function cancelEdit(employeeId) {

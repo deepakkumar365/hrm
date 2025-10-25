@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}Tenant Configuration - Noltrion{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item active">Configuration</li>
+                        </ol>
+                    </nav>
+                </div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+            <h2 class="mb-0">Tenant Configuration</h2>
+            <small class="text-muted">Manage advanced settings for {{ tenant.name }}</small>
+            <hr class="mt-2 mb-3">
+        </div>
+    </div>
+
+    <form id="configForm">
+        <!-- Nav Tabs -->
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="logo-tab" data-bs-toggle="tab" 
+                        data-bs-target="#logo-tab-pane" type="button" role="tab">
+                    <i class="fas fa-image me-2"></i>Payslip Logo
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="employee-id-tab" data-bs-toggle="tab" 
+                        data-bs-target="#employee-id-tab-pane" type="button" role="tab">
+                    <i class="fas fa-id-card me-2"></i>Employee ID Format
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="overtime-tab" data-bs-toggle="tab" 
+                        data-bs-target="#overtime-tab-pane" type="button" role="tab">
+                    <i class="fas fa-clock me-2"></i>Overtime Settings
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Contents -->
+        <div class="tab-content">
+            <!-- Payslip Logo Tab -->
+            <div class="tab-pane fade show active" id="logo-tab-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-image me-2"></i>Payslip Logo Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="logoFile" class="form-label">Upload Logo</label>
+                                    <div class="input-group">
+                                        <input type="file" id="logoFile" class="form-control" 
+                                               accept=".jpg,.jpeg,.png,.svg"
+                                               aria-label="Upload logo file">
+                                        <button class="btn btn-primary" type="button" onclick="uploadLogo()">
+                                            <i class="fas fa-upload me-1"></i>Upload
+                                        </button>
+                                    </div>
+                                    <small class="text-muted d-block mt-2">
+                                        Supported formats: JPG, PNG, SVG (Max 2MB)
+                                    </small>
+                                </div>
+                                <div id="logoUploadMessage" class="alert d-none" role="alert"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Logo Preview</label>
+                                    <div class="border rounded p-3 text-center" style="min-height: 150px; background-color: #f8f9fa;">
+                                        {% if config.payslip_logo_path %}
+                                        <img id="logoPreview" src="{{ url_for('static', filename=config.payslip_logo_path.replace('\\', '/')) }}" 
+                                             alt="Payslip Logo" style="max-height: 100px; max-width: 100%;">
+                                        {% else %}
+                                        <div id="logoPreview" class="text-muted">
+                                            <i class="fas fa-image fa-3x mb-2"></i>
+                                            <p>No logo uploaded yet</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% if config.payslip_logo_path %}
+                                    <small class="text-muted d-block mt-2">
+                                        Uploaded by: {{ config.payslip_logo_uploaded_by }}<br>
+                                        Uploaded at: {{ config.payslip_logo_uploaded_at.strftime('%d %b %Y %H:%M') }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employee ID Format Tab -->
+            <div class="tab-pane fade" id="employee-id-tab-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-id-card me-2"></i>Employee ID Format Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="empIdPrefix" class="form-label">Prefix</label>
+                                    <input type="text" id="empIdPrefix" class="form-control" 
+                                           value="{{ config.employee_id_prefix }}" maxlength="50"
+                                           placeholder="e.g., EMP">
+                                    <small class="text-muted">Starting letters for Employee ID</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="empIdCompanyCode" class="form-label">Company Code (Optional)</label>
+                                    <input type="text" class="form-control" id="empIdCompanyCode"
+                                           value="{{ config.employee_id_company_code or '' }}" maxlength="20"
+                                           placeholder="e.g., ACME"
+                                           onchange="updateEmployeeIDPreview()">
+                                    <small class="text-muted">Company code to include in ID</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="empIdSeparator" class="form-label">Separator</label>
+                                    <input type="text" id="empIdSeparator" class="form-control" 
+                                           value="{{ config.employee_id_separator }}" maxlength="5"
+                                           placeholder="-"
+                                           onchange="updateEmployeeIDPreview()">
+                                    <small class="text-muted">Character(s) to separate components</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="empIdPadLength" class="form-label">Number Padding Length</label>
+                                    <input type="number" id="empIdPadLength" class="form-control" 
+                                           value="{{ config.employee_id_pad_length }}" min="1" max="10"
+                                           onchange="updateEmployeeIDPreview()">
+                                    <small class="text-muted">Number of zeros to pad (e.g., 0001)</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="empIdSuffix" class="form-label">Suffix (Optional)</label>
+                                    <input type="text" id="empIdSuffix" class="form-control" 
+                                           value="{{ config.employee_id_suffix or '' }}" maxlength="50"
+                                           placeholder="e.g., SG"
+                                           onchange="updateEmployeeIDPreview()">
+                                    <small class="text-muted">Ending letters for Employee ID</small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Sample Employee ID Format</h6>
+                                        <div class="alert alert-info mb-0">
+                                            <h4 id="sampleEmployeeID" style="font-family: monospace; word-break: break-all;">
+                                                {{ config.employee_id_prefix }}-{{ config.employee_id_company_code or 'ACME' }}-{{ '0001' }}{% if config.employee_id_suffix %}-{{ config.employee_id_suffix }}{% endif %}
+                                            </h4>
+                                        </div>
+                                        <small class="text-muted d-block mt-3">
+                                            This is a preview of how your employee IDs will look when generated. The last number will auto-increment for each new employee.
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info mt-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>How it works:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li>Prefix: Starting code (required)</li>
+                                        <li>Company Code: Company identifier (optional)</li>
+                                        <li>Auto-number: Increments automatically (next: {{ config.employee_id_next_number }})</li>
+                                        <li>Suffix: Ending code (optional)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overtime Settings Tab -->
+            <div class="tab-pane fade" id="overtime-tab-pane" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Overtime Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Overtime Toggle -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="overtimeEnabled" 
+                                           {% if config.overtime_enabled %}checked{% endif %}
+                                           onchange="toggleOvertimeFields()">
+                                    <label class="form-check-label" for="overtimeEnabled">
+                                        <strong>Enable Overtime Calculation</strong>
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    When disabled, overtime menus and calculations will be hidden from the system.
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Overtime Calculation Method -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="overtimeMethod" class="form-label">Calculation Method</label>
+                                    <select class="form-select" id="overtimeMethod">
+                                        <option value="By User" {% if config.overtime_calculation_method == 'By User' %}selected{% endif %}>By User (Individual OT Rates)</option>
+                                        <option value="By Designation" {% if config.overtime_calculation_method == 'By Designation' %}selected{% endif %}>By Designation</option>
+                                        <option value="By Group" {% if config.overtime_calculation_method == 'By Group' %}selected{% endif %}>By Group</option>
+                                    </select>
+                                    <small class="text-muted d-block mt-1">
+                                        How overtime rates are determined for employees
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3" id="groupTypeDiv" {% if config.overtime_calculation_method != 'By Group' %}style="display: none;"{% endif %}>
+                                    <label for="overtimeGroup" class="form-label">Group Type</label>
+                                    <select class="form-select" id="overtimeGroup">
+                                        <option value="">-- Select Group --</option>
+                                        <option value="Group 1" {% if config.overtime_group_type == 'Group 1' %}selected{% endif %}>Group 1</option>
+                                        <option value="Group 2" {% if config.overtime_group_type == 'Group 2' %}selected{% endif %}>Group 2</option>
+                                        <option value="Group 3" {% if config.overtime_group_type == 'Group 3' %}selected{% endif %}>Group 3</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Overtime Rates -->
+                        <h6 class="mb-3">Overtime Charge Rates</h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="generalOTRate" class="form-label">General Overtime Rate</label>
+                                    <div class="input-group">
+                                        <input type="number" id="generalOTRate" class="form-control" 
+                                               value="{{ '%.2f' % config.general_overtime_rate }}" 
+                                               step="0.01" min="0">
+                                        <span class="input-group-text">x</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Regular hours multiplier (e.g., 1.5 = 1.5x hourly rate)
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="holidayOTRate" class="form-label">Holiday Overtime Rate</label>
+                                    <div class="input-group">
+                                        <input type="number" id="holidayOTRate" class="form-control" 
+                                               value="{{ '%.2f' % config.holiday_overtime_rate }}" 
+                                               step="0.01" min="0">
+                                        <span class="input-group-text">x</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Overtime on holidays multiplier
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="weekendOTRate" class="form-label">Weekend Overtime Rate</label>
+                                    <div class="input-group">
+                                        <input type="number" id="weekendOTRate" class="form-control" 
+                                               value="{{ '%.2f' % config.weekend_overtime_rate }}" 
+                                               step="0.01" min="0">
+                                        <span class="input-group-text">x</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Overtime on weekends multiplier
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Example:</strong> If hourly rate is $10 and rate is 1.5x, OT rate = $15/hour
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="row mt-4">
+            <div class="col-12 text-end">
+                <button type="button" class="btn btn-secondary me-2" onclick="location.href='{{ url_for('dashboard') }}'">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" id="saveBtn">
+                    <i class="fas fa-save me-1"></i>Save Configuration
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleOvertimeFields() {
+    const enabled = document.getElementById('overtimeEnabled').checked;
+    const method = document.getElementById('overtimeMethod');
+    const group = document.getElementById('overtimeGroup');
+    const generalRate = document.getElementById('generalOTRate');
+    const holidayRate = document.getElementById('holidayOTRate');
+    const weekendRate = document.getElementById('weekendOTRate');
+    
+    method.disabled = !enabled;
+    group.disabled = !enabled;
+    generalRate.disabled = !enabled;
+    holidayRate.disabled = !enabled;
+    weekendRate.disabled = !enabled;
+}
+
+function updateEmployeeIDPreview() {
+    const prefix = document.getElementById('empIdPrefix').value || 'EMP';
+    const company = document.getElementById('empIdCompanyCode').value || 'ACME';
+    const separator = document.getElementById('empIdSeparator').value || '-';
+    const padLength = parseInt(document.getElementById('empIdPadLength').value) || 4;
+    const suffix = document.getElementById('empIdSuffix').value;
+    
+    const sample = String(1).padStart(padLength, '0');
+    let parts = [prefix, company, sample];
+    if (suffix) parts.push(suffix);
+    
+    const sampleID = parts.join(separator);
+    document.getElementById('sampleEmployeeID').textContent = sampleID;
+}
+
+function uploadLogo() {
+    const fileInput = document.getElementById('logoFile');
+    const file = fileInput.files[0];
+    const messageDiv = document.getElementById('logoUploadMessage');
+    
+    if (!file) {
+        messageDiv.classList.remove('d-none', 'alert-success', 'alert-danger');
+        messageDiv.classList.add('alert-warning', 'd-block');
+        messageDiv.innerHTML = '<i class="fas fa-warning me-2"></i>Please select a file first.';
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('logo_file', file);
+    
+    messageDiv.classList.add('d-none');
+    
+    fetch('{{ url_for("tenant_logo_upload") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        messageDiv.classList.remove('d-none');
+        if (data.success) {
+            messageDiv.classList.remove('alert-danger');
+            messageDiv.classList.add('alert-success');
+            messageDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + data.message;
+            
+            // Update preview
+            const preview = document.getElementById('logoPreview');
+            preview.innerHTML = '<img src="' + data.logo_path + '" alt="Payslip Logo" style="max-height: 100px; max-width: 100%;">';
+            
+            // Reset file input
+            fileInput.value = '';
+        } else {
+            messageDiv.classList.remove('alert-success');
+            messageDiv.classList.add('alert-danger');
+            messageDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + data.message;
+        }
+    })
+    .catch(error => {
+        messageDiv.classList.remove('d-none', 'alert-success');
+        messageDiv.classList.add('alert-danger');
+        messageDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error uploading logo: ' + error;
+    });
+}
+
+document.getElementById('configForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('employee_id_prefix', document.getElementById('empIdPrefix').value);
+    formData.append('employee_id_company_code', document.getElementById('empIdCompanyCode').value);
+    formData.append('employee_id_separator', document.getElementById('empIdSeparator').value);
+    formData.append('employee_id_pad_length', document.getElementById('empIdPadLength').value);
+    formData.append('employee_id_suffix', document.getElementById('empIdSuffix').value);
+    formData.append('overtime_enabled', document.getElementById('overtimeEnabled').checked ? 'on' : 'off');
+    formData.append('overtime_calculation_method', document.getElementById('overtimeMethod').value);
+    formData.append('overtime_group_type', document.getElementById('overtimeGroup').value);
+    formData.append('general_overtime_rate', document.getElementById('generalOTRate').value);
+    formData.append('holiday_overtime_rate', document.getElementById('holidayOTRate').value);
+    formData.append('weekend_overtime_rate', document.getElementById('weekendOTRate').value);
+    
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    
+    fetch('{{ url_for("tenant_configuration_update") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error saving configuration: ' + error);
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Configuration';
+    });
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleOvertimeFields();
+    updateEmployeeIDPreview();
+    
+    document.getElementById('overtimeMethod').addEventListener('change', function() {
+        const groupDiv = document.getElementById('groupTypeDiv');
+        groupDiv.style.display = this.value === 'By Group' ? 'block' : 'none';
+    });
+});
+</script>
+
+<style>
+.nav-tabs .nav-link {
+    color: #666;
+    border-bottom: 3px solid transparent;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom: 3px solid #0d6efd;
+    background: none;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #0d6efd;
+}
+</style>
+{% endblock %}

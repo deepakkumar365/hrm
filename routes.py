@@ -164,16 +164,16 @@ def initialize_default_data():
 
             # Only proceed if the hrm_users table exists
             if 'hrm_users' not in tables:
-                print("⚠️  Database tables not yet created. Skipping default data initialization.")
+                print("[WARNING] Database tables not yet created. Skipping default data initialization.")
                 print("Run 'flask db upgrade' to create tables, then restart the application.")
                 return
 
             if create_default_users():
-                print("✅ Default users created successfully!")
+                print("[OK] Default users created successfully!")
             if create_default_master_data():
-                print("✅ Default master data created successfully!")
+                print("[OK] Default master data created successfully!")
     except Exception as e:
-        print(f"⚠️  Warning: Could not initialize default data: {e}")
+        print(f"[WARNING] Could not initialize default data: {e}")
         print("This is normal if the database is not yet set up or tables haven't been created.")
         print("Run 'flask db upgrade' to create tables, then restart the application.")
 
@@ -2783,109 +2783,4 @@ def api_attendance_auto_create():
     except ValueError:
         return {'error': 'Invalid date format. Please use YYYY-MM-DD format.'}, 400
     except Exception as e:
-        return {'error': f'Error creating attendance records: {str(e)}'}, 500
-
-
-# Leave Management Routes
-@app.route('/leave')
-@require_login
-def leave_list():
-    """List leave requests"""
-    page = request.args.get('page', 1, type=int)
-    status_filter = request.args.get('status', type=str)
-    employee_filter = request.args.get('employee', type=int)
-
-    query = Leave.query.join(Employee)
-
-    if status_filter:
-        query = query.filter(Leave.status == status_filter)
-
-    if employee_filter:
-        query = query.filter(Leave.employee_id == employee_filter)
-
-    # Role-based filtering
-    if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user,
-                                                                                                   'employee_profile'):
-        # Employee/User: Only their own leave requests
-        query = query.filter(
-            Leave.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                                                          'employee_profile'):
-        # Manager: Their own leave requests + their team's leave requests
-        manager_id = current_user.employee_profile.id
-        query = query.filter(
-            db.or_(
-                Leave.employee_id == manager_id,  # Manager's own leave requests
-                Employee.manager_id == manager_id  # Team's leave requests
-            ))
-    elif (current_user.role.name if current_user.role else None) == 'Admin' and hasattr(current_user,
-                                                                                        'employee_profile'):
-        # Admin: Only their own leave requests (as per attendance requirement)
-        admin_id = current_user.employee_profile.id
-        query = query.filter(Leave.employee_id == admin_id)
-    elif (current_user.role.name if current_user.role else None) == 'Super Admin':
-        # Super Admin: Can see all leave requests
-        pass  # No filtering - they can see all
-
-    leave_requests = query.order_by(Leave.created_at.desc()).paginate(
-        page=page, per_page=20, error_out=False)
-
-    # Get employees for filter dropdown based on role
-    employees = []
-    if (current_user.role.name if current_user.role else None) == 'Super Admin':
-        # Super Admin can filter by all employees
-        employees = Employee.query.filter_by(is_active=True).order_by(
-            Employee.first_name).all()
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                                                          'employee_profile') and current_user.employee_profile:
-        # Manager can filter by themselves and their team
-        manager_id = current_user.employee_profile.id
-        employees = Employee.query.filter(
-            db.or_(
-                Employee.id == manager_id,
-                Employee.manager_id == manager_id
-            )
-        ).filter_by(is_active=True).order_by(Employee.first_name).all()
-
-    return render_template('leave/list.html',
-                           leave_requests=leave_requests,
-                           employees=employees,
-                           status_filter=status_filter,
-                           employee_filter=employee_filter)
-
-
-@app.route('/leave/request', methods=['GET', 'POST'])
-@require_login
-def leave_request():
-    """Submit leave request"""
-    if request.method == 'POST':
-        try:
-            if not hasattr(
-                    current_user,
-                    'employee_profile') or not current_user.employee_profile:
-                flash('Employee profile required for attendance marking',
-                      'error')
-                return redirect(url_for('dashboard'))
-
-            leave = Leave()
-            leave.employee_id = current_user.employee_profile.id
-            leave.leave_type = request.form.get('leave_type')
-            leave.start_date = parse_date(request.form.get('start_date'))
-            leave.end_date = parse_date(request.form.get('end_date'))
-            leave.reason = request.form.get('reason')
-            leave.requested_by = current_user.id
-
-            # Calculate days
-            if leave.start_date and leave.end_date:
-                days = (leave.end_date - leave.start_date).days + 1
-                leave.days_requested = days
-
-            db.session.add(leave)
-            db.session.commit()
-
-            flash('Leave request submitted successfully', 'success')
-            return redirect(url_for('leave_list'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error submitting leave request: {str(e)}', 'error')
+        return {'error': f'Error creating attendance records: {str(e)}'}, 500
