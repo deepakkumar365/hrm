@@ -131,6 +131,30 @@
                             </a>
                         </li>
                         {% endif %}
+                         <!-- Employees - Hidden from User role -->
+                        {% if not is_user %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-users"></i>
+                                Employees
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('employee_add') }}">
+                                    <i class="fas fa-user-plus"></i>
+                                    Add Employee
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
+                                    <i class="fas fa-users"></i>
+                                    All Employees
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('employee_bulk_upload') }}">
+                                    <i class="fas fa-file-upload"></i>
+                                    Employee Bulk Upload
+                                </a></li>
+                            </ul>
+                        </li>
+                        {% endif %}
 
                         <!-- Attendance - Visible to all except Super Admin and Tenant Admin -->
                         <li class="nav-item dropdown">
@@ -233,30 +257,7 @@
                         </li>
                         {% endif %}
 
-                        <!-- Employees - Hidden from User role -->
-                        {% if not is_user %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-users"></i>
-                                Employees
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('employee_add') }}">
-                                    <i class="fas fa-user-plus"></i>
-                                    Add Employee
-                                </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
-                                    <i class="fas fa-users"></i>
-                                    All Employees
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('employee_bulk_upload') }}">
-                                    <i class="fas fa-file-upload"></i>
-                                    Employee Bulk Upload
-                                </a></li>
-                            </ul>
-                        </li>
-                        {% endif %}
+
 
                         <!-- Masters - Hidden from User role -->
                         {% if not is_user %}
@@ -367,7 +368,7 @@
         </ul>
     </div>
     {% endif %}
-    
+
     <!-- Global Loader -->
     <div id="global-loader" class="global-loader">
         <div class="loader-overlay"></div>
