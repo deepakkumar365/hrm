@@ -50,13 +50,13 @@ def create_daily_attendance_records(target_date=None):
                 ).first()
                 
                 if not existing:
-                    # Create new attendance record with default Present status
+                    # Create new attendance record with default Pending status
                     attendance = Attendance()
                     attendance.employee_id = employee.id
                     attendance.date = target_date
-                    attendance.status = 'Present'
-                    attendance.regular_hours = 8  # Default 8 hours for present employees
-                    attendance.total_hours = 8
+                    attendance.status = 'Pending'
+                    attendance.regular_hours = 0  # No hours assigned for pending status
+                    attendance.total_hours = 0
                     attendance.overtime_hours = 0
                     attendance.remarks = 'Auto-generated attendance record'
                     attendance.created_at = datetime.now()
@@ -65,8 +65,8 @@ def create_daily_attendance_records(target_date=None):
                     db.session.add(attendance)
                     created_count += 1
                 else:
-                    # Update existing record if it's still in default state
-                    if existing.status == 'Present' and not existing.clock_in and not existing.clock_out:
+                    # Update existing record if it's still in default state (Pending or Present with no clock records)
+                    if existing.status in ['Pending', 'Present'] and not existing.clock_in and not existing.clock_out:
                         existing.regular_hours = 8
                         existing.total_hours = 8
                         existing.overtime_hours = 0

@@ -396,18 +396,18 @@ a:hover {
     flex: 1;
     min-height: calc(100vh - var(--header-height));
     background: var(--background);
-    padding-top: var(--spacing-4);
+    padding-top: 0.75rem;
 }
 
 /* ===== DASHBOARD LAYOUT ===== */
 .dashboard-wrapper {
-    padding: var(--spacing-6);
+    padding: 1rem 1.25rem;
     max-width: var(--container-max-width);
     margin: 0 auto;
 }
 
 .dashboard-header {
-    margin-bottom: var(--spacing-8);
+    margin-bottom: 1.25rem;
 }
 
 .dashboard-title {
@@ -425,8 +425,8 @@ a:hover {
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: var(--spacing-6);
-    margin-bottom: var(--spacing-8);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .dashboard-grid .col-span-1 { grid-column: span 1; }
@@ -456,7 +456,7 @@ a:hover {
 .card-header {
     background: var(--background-card);
     border-bottom: 1px solid var(--border-color);
-    padding: var(--spacing-6);
+    padding: 1rem;
 }
 
 .card-title {
@@ -467,14 +467,14 @@ a:hover {
 }
 
 .card-body {
-    padding: var(--spacing-6);
+    padding: 1rem;
 }
 
 .stat-card {
     background: var(--background-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-6);
+    padding: 1rem;
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-base);
 }
@@ -491,7 +491,7 @@ a:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: var(--spacing-4);
+    margin-bottom: 0.75rem;
     font-size: var(--font-size-xl);
 }
 
@@ -548,7 +548,7 @@ a:hover {
     background: var(--background-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-6);
+    padding: 1rem;
     box-shadow: var(--shadow-sm);
 }
 
@@ -556,7 +556,7 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-6);
+    margin-bottom: 0.75rem;
 }
 
 .chart-card-title {
@@ -755,7 +755,7 @@ a:hover {
 /* ===== FOOTER ===== */
 .footer {
     background-color: transparent; /* No separate background color */
-    padding: 1.5rem 0;             /* Add some vertical spacing */
+    padding: 1rem 0;               /* Add some vertical spacing */
     margin-top: auto;              /* Pushes footer to the bottom of the content */
     border-top: 1px solid #e7e7e7;  /* Subtle top border for separation */
     width: 100%;
@@ -806,10 +806,10 @@ a:hover {
 
 /* ===== ALERTS ===== */
 .alert {
-    padding: var(--spacing-4);
+    padding: 0.75rem 1rem;
     border-radius: var(--radius-lg);
     border: 1px solid transparent;
-    margin-bottom: var(--spacing-4);
+    margin-bottom: 0.75rem;
 }
 
 .alert-success {
@@ -885,6 +885,39 @@ a:hover {
 .p-3 { padding: var(--spacing-3); }
 .p-4 { padding: var(--spacing-4); }
 .p-6 { padding: var(--spacing-6); }
+
+/* Padding-Y utilities (override Bootstrap defaults) */
+.py-0 { padding-top: 0; padding-bottom: 0; }
+.py-1 { padding-top: var(--spacing-1); padding-bottom: var(--spacing-1); }
+.py-2 { padding-top: var(--spacing-2); padding-bottom: var(--spacing-2); }
+.py-3 { padding-top: var(--spacing-3); padding-bottom: var(--spacing-3); }
+.py-4 { padding-top: var(--spacing-4); padding-bottom: var(--spacing-4); }
+.py-5 { padding-top: var(--spacing-4); padding-bottom: var(--spacing-4); } /* Reduced from 3rem to 1rem */
+.py-6 { padding-top: var(--spacing-6); padding-bottom: var(--spacing-6); }
+
+/* Padding-X utilities */
+.px-0 { padding-left: 0; padding-right: 0; }
+.px-1 { padding-left: var(--spacing-1); padding-right: var(--spacing-1); }
+.px-2 { padding-left: var(--spacing-2); padding-right: var(--spacing-2); }
+.px-3 { padding-left: var(--spacing-3); padding-right: var(--spacing-3); }
+.px-4 { padding-left: var(--spacing-4); padding-right: var(--spacing-4); }
+.px-6 { padding-left: var(--spacing-6); padding-right: var(--spacing-6); }
+
+/* Margin-Y utilities */
+.my-0 { margin-top: 0; margin-bottom: 0; }
+.my-1 { margin-top: var(--spacing-1); margin-bottom: var(--spacing-1); }
+.my-2 { margin-top: var(--spacing-2); margin-bottom: var(--spacing-2); }
+.my-3 { margin-top: var(--spacing-3); margin-bottom: var(--spacing-3); }
+.my-4 { margin-top: var(--spacing-4); margin-bottom: var(--spacing-4); }
+.my-6 { margin-top: var(--spacing-6); margin-bottom: var(--spacing-6); }
+
+/* Margin-X utilities */
+.mx-0 { margin-left: 0; margin-right: 0; }
+.mx-1 { margin-left: var(--spacing-1); margin-right: var(--spacing-1); }
+.mx-2 { margin-left: var(--spacing-2); margin-right: var(--spacing-2); }
+.mx-3 { margin-left: var(--spacing-3); margin-right: var(--spacing-3); }
+.mx-4 { margin-left: var(--spacing-4); margin-right: var(--spacing-4); }
+.mx-6 { margin-left: var(--spacing-6); margin-right: var(--spacing-6); }
 
 .w-100 { width: 100%; }
 .h-100 { height: 100%; }
@@ -1050,7 +1083,7 @@ a:hover {
 
 /* ===== LEAVE FORM SPECIFIC STYLES ===== */
 .leave-layout {
-    padding: var(--spacing-6);
+    padding: 1rem;
     max-width: var(--container-max-width);
     margin: 0 auto;
 }
@@ -1180,14 +1213,14 @@ a:hover {
     background: var(--grey-50);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    margin-bottom: var(--spacing-4);
+    margin-bottom: 0.75rem;
     box-shadow: var(--shadow-sm);
 }
 
 .card-header-green {
     background: linear-gradient(135deg, var(--primary), var(--success));
     color: white;
-    padding: var(--spacing-3) var(--spacing-4);
+    padding: 0.75rem 1rem;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     border-bottom: 1px solid var(--border-color);
     font-size: var(--font-size-base);
@@ -1207,7 +1240,7 @@ a:hover {
 }
 
 .filter-card .card-body {
-    padding: var(--spacing-4);
+    padding: 0.75rem;
     background: white;
     border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
@@ -1216,7 +1249,7 @@ a:hover {
 .filter-card .form-select {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    padding: var(--spacing-2) var(--spacing-3);
+    padding: 0.5rem 0.75rem;
     font-size: var(--font-size-sm);
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -1230,7 +1263,7 @@ a:hover {
 .filter-card .btn {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    padding: var(--spacing-2) var(--spacing-3);
+    padding: 0.5rem 0.75rem;
     border-radius: var(--radius-sm);
 }
 
@@ -1251,8 +1284,8 @@ a:hover {
     font-family: var(--font-family);
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
-    padding: var(--spacing-2) var(--spacing-4);
-    min-height: 2.5rem;
+    padding: 0.75rem 1rem;
+    min-height: 2.3rem;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     border-bottom: 1px solid var(--accent);
     display: flex;
@@ -1321,19 +1354,19 @@ a:hover {
 .quick-stats-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--spacing-4);
+    gap: 0.75rem;
     background: var(--white);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-4);
+    padding: 0.75rem;
     box-shadow: var(--shadow-sm);
 }
 
 .quick-stat-item {
     display: flex;
     align-items: center;
-    gap: var(--spacing-3);
-    padding: var(--spacing-3);
+    gap: 0.75rem;
+    padding: 0.75rem;
     border-radius: var(--radius-lg);
     transition: all var(--transition-base);
     cursor: pointer;
@@ -1422,7 +1455,7 @@ a:hover {
 .team-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--spacing-6);
+    gap: 1rem;
 }
 
 .team-member-card {
@@ -1440,7 +1473,7 @@ a:hover {
 }
 
 .team-card-header {
-    padding: var(--spacing-6);
+    padding: 1rem;
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     display: flex;
     justify-content: center;
@@ -1490,7 +1523,7 @@ a:hover {
 }
 
 .team-card-body {
-    padding: var(--spacing-5);
+    padding: 0.75rem 0.75rem;
     text-align: center;
 }
 
@@ -1498,7 +1531,7 @@ a:hover {
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
-    margin-bottom: var(--spacing-2);
+    margin-bottom: 0.5rem;
 }
 
 .team-member-role {
@@ -1509,7 +1542,7 @@ a:hover {
     color: var(--primary);
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    margin-bottom: var(--spacing-3);
+    margin-bottom: 0.5rem;
 }
 
 .team-member-info {
@@ -1519,7 +1552,7 @@ a:hover {
     gap: var(--spacing-2);
     color: var(--text-secondary);
     font-size: var(--font-size-sm);
-    margin-bottom: var(--spacing-2);
+    margin-bottom: 0.5rem;
 }
 
 .team-member-info i {
@@ -1528,7 +1561,7 @@ a:hover {
 }
 
 .team-card-footer {
-    padding: var(--spacing-4);
+    padding: 0.75rem;
     background: var(--grey-50);
     border-top: 1px solid var(--border-color);
 }
@@ -1568,15 +1601,15 @@ a:hover {
     background: var(--white);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-6);
-    margin-bottom: var(--spacing-6);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
     box-shadow: var(--shadow-sm);
 }
 
 .attendance-filter-form {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-4);
+    gap: 0.75rem;
 }
 
 .filter-tabs {
@@ -1672,7 +1705,7 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: start;
-    padding: var(--spacing-5);
+    padding: 1rem;
     background: var(--grey-50);
     border-bottom: 1px solid var(--border-color);
 }
@@ -1755,20 +1788,20 @@ a:hover {
 }
 
 .attendance-card-body {
-    padding: var(--spacing-5);
+    padding: 0.75rem;
 }
 
 .attendance-time-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: var(--spacing-4);
+    gap: 0.75rem;
 }
 
 .time-item {
     display: flex;
     align-items: center;
-    gap: var(--spacing-3);
-    padding: var(--spacing-3);
+    gap: 0.75rem;
+    padding: 0.75rem;
     background: var(--grey-50);
     border-radius: var(--radius-lg);
     transition: all var(--transition-fast);
@@ -1861,21 +1894,21 @@ a:hover {
 .leave-form-container {
     display: grid;
     grid-template-columns: 1fr 380px;
-    gap: var(--spacing-6);
+    gap: 1rem;
     align-items: start;
 }
 
 .leave-form-main {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-6);
+    gap: 1rem;
 }
 
 .leave-form-section {
     background: var(--white);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-6);
+    padding: 1rem;
     box-shadow: var(--shadow-sm);
 }
 
@@ -1886,8 +1919,8 @@ a:hover {
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
-    margin-bottom: var(--spacing-4);
-    padding-bottom: var(--spacing-3);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
     border-bottom: 2px solid var(--border-color);
 }
 
@@ -1897,14 +1930,14 @@ a:hover {
 
 .leave-form-sidebar {
     position: sticky;
-    top: calc(var(--header-height) + var(--spacing-6));
+    top: calc(var(--header-height) + 1rem);
 }
 
 .leave-summary-card {
     background: var(--white);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-6);
+    padding: 1rem;
     box-shadow: var(--shadow-md);
 }
 
@@ -1912,8 +1945,8 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-5);
-    padding-bottom: var(--spacing-4);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
     border-bottom: 2px solid var(--border-color);
 }
 
@@ -1927,11 +1960,11 @@ a:hover {
 .summary-balance-card {
     display: flex;
     align-items: center;
-    gap: var(--spacing-3);
-    padding: var(--spacing-4);
+    gap: 0.75rem;
+    padding: 0.75rem;
     background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.05) 0%, rgba(var(--secondary-rgb), 0.1) 100%);
     border-radius: var(--radius-lg);
-    margin-bottom: var(--spacing-5);
+    margin-bottom: 0.75rem;
 }
 
 .balance-icon {
@@ -1969,7 +2002,7 @@ a:hover {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-3);
-    margin-bottom: var(--spacing-5);
+    margin-bottom: 1rem;
 }
 
 .summary-item {
@@ -1997,7 +2030,7 @@ a:hover {
     padding: var(--spacing-4);
     background: rgba(49, 130, 206, 0.05);
     border-radius: var(--radius-lg);
-    margin-bottom: var(--spacing-5);
+    margin-bottom: 0.75rem;
 }
 
 .info-icon {
@@ -2048,7 +2081,7 @@ a:hover {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: var(--spacing-12);
+    padding: 2rem;
     text-align: center;
 }
 
@@ -2062,7 +2095,7 @@ a:hover {
     align-items: center;
     justify-content: center;
     font-size: 3rem;
-    margin-bottom: var(--spacing-6);
+    margin-bottom: 1rem;
 }
 
 .empty-state-title {
@@ -2413,4 +2446,241 @@ a:hover {
     50% {
         opacity: 1;
     }
+}
+
+/* ===== SMART SPACING OPTIMIZATION - REDUCE UI CHROME, KEEP DATA READABLE ===== */
+
+/* ✅ KEEP DATA ROWS SPACIOUS - MORE DATA VISIBLE */
+table thead th {
+    padding: 1rem 0.75rem !important;  /* Keep header readable */
+}
+
+table tbody td {
+    padding: 0.9rem 0.75rem !important;  /* Spacious rows so data fits on screen */
+}
+
+/* Reduce excessive vertical padding in empty state messages ONLY */
+table tbody td.text-center.py-5,
+table tbody td.text-center.py-4,
+table tbody td.text-center.py-3 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+}
+
+/* 🔴 REDUCE MARGINS - UI CHROME & SPACING */
+
+/* Compact row margins */
+.row { margin-bottom: 0.5rem; }
+.row.mb-3 { margin-bottom: 0.5rem !important; }
+.row.mb-4 { margin-bottom: 0.75rem !important; }
+
+/* Reduce card spacing */
+.card { margin-bottom: 0.75rem; }
+
+/* HR line spacing - minimize */
+hr { margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }
+hr.mt-2 { margin-top: 0.25rem !important; }
+hr.mb-3 { margin-bottom: 0.5rem !important; }
+
+/* Compact form sections */
+.form-group { margin-bottom: 0.5rem; }
+
+/* Reduce filter section spacing */
+.filter-section { margin-bottom: 0.5rem; }
+
+/* Compact action buttons area */
+.action-buttons { margin-top: 0.5rem; }
+
+/* Breadcrumb compact sizing */
+.breadcrumb { margin-bottom: 0; padding: 0.25rem 0; }
+
+/* Alert message compact spacing */
+.alert { margin-bottom: 0.5rem; padding: 0.5rem 0.75rem; }
+
+/* Table responsive wrapper - no extra space */
+.table-responsive { margin-bottom: 0; }
+
+/* Card header compact */
+.card-header { padding: 0.75rem 1rem; }
+
+/* Card footer compact */
+.card-footer { padding: 0.75rem 1rem; }
+
+/* Form label compact */
+.form-label { margin-bottom: 0.25rem; }
+
+/* Select and input compact padding */
+.form-select, .form-control { padding: 0.5rem 0.75rem; }
+
+/* Reduce button area spacing */
+.btn-group, .btn-toolbar { gap: 0.5rem; }
+
+/* Spinner/loader state messaging */
+.spinner-text, .loader-text { margin-top: 0.25rem; }
+
+/* Reduce breadcrumb item spacing */
+.breadcrumb-item + .breadcrumb-item::before { margin: 0 0.25rem; }
+
+/* Compact header with breadcrumb and buttons */
+.page-header { margin-bottom: 0.5rem; }
+
+/* Reduce tab spacing */
+.nav-tabs { gap: 0.5rem; margin-bottom: 0.5rem; }
+
+/* Compact modal/dialog spacing - minimize chrome */
+.modal-header { padding: 0.5rem 1rem; }
+.modal-body { padding: 0.75rem 1rem; }
+.modal-footer { padding: 0.5rem 1rem; }
+
+/* Reduce empty state container padding */
+.empty-state { padding: 0.75rem !important; }
+
+/* Reduce section spacing */
+.section { margin-bottom: 0.5rem; }
+
+/* Prevent massive table cell padding for spinners and messages */
+td > .spinner-border {
+    margin-bottom: 0.25rem;
+}
+
+/* Compact dropdown menus */
+.dropdown-menu { padding: 0.25rem 0; }
+.dropdown-item { padding: 0.5rem 1rem; }
+
+/* ===== RESPONSIVE FORM GRID SYSTEM ===== */
+/* Professional compact form layout with 3-4 columns */
+.form-grid {
+    display: grid;
+    gap: var(--spacing-4); /* 16px gap between fields */
+    width: 100%;
+}
+
+/* Large screens (≥1200px): 4 columns */
+@media (min-width: 1200px) {
+    .form-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Medium-large screens (992px - 1199px): 3 columns */
+@media (min-width: 992px) and (max-width: 1199px) {
+    .form-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Medium screens (768px - 991px): 2 columns */
+@media (min-width: 768px) and (max-width: 991px) {
+    .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Small screens & mobile (< 768px): 1 column */
+@media (max-width: 767px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Form group item within grid */
+.form-grid-item {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+/* Full-width items that span all columns */
+.form-grid-item.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Half-width items on large screens (useful for adjusting specific fields) */
+@media (min-width: 1200px) {
+    .form-grid-item.half-width {
+        grid-column: span 2;
+    }
+}
+
+/* Form label consistent styling for grid items */
+.form-grid-item .form-label {
+    display: block;
+    margin-bottom: var(--spacing-2);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+}
+
+/* Input and select consistency within grid */
+.form-grid-item .form-control,
+.form-grid-item .form-select {
+    width: 100%;
+    padding: var(--spacing-3) var(--spacing-3);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    border: 1px solid var(--border-color-medium);
+    border-radius: var(--radius-md);
+    background-color: var(--background);
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.form-grid-item .form-control:focus,
+.form-grid-item .form-select:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+/* Input group within grid (for fields with buttons like Employee ID) */
+.form-grid-item .input-group {
+    display: flex;
+    gap: var(--spacing-2);
+}
+
+.form-grid-item .input-group .form-control {
+    flex: 1;
+}
+
+.form-grid-item .input-group .btn {
+    white-space: nowrap;
+}
+
+/* Invalid feedback styling */
+.form-grid-item .invalid-feedback {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--danger);
+    margin-top: var(--spacing-1);
+}
+
+/* Help text/small styling */
+.form-grid-item .form-text {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-1);
+}
+
+/* Textarea in grid */
+.form-grid-item textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Card body padding optimization for form-grid */
+.card-body .form-grid {
+    margin: 0;
+}
+
+/* Image preview container within grid */
+.form-grid-item .profile-image-container {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    padding: var(--spacing-2);
+}
+
+.form-grid-item .profile-image-container img {
+    border-radius: var(--radius-md);
+    object-fit: cover;
 }

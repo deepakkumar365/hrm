@@ -414,10 +414,18 @@ function updateSelectionCount() {
 
 // New function for bulk marking selected employees
 function markSelectedAs(status) {
-    const checkboxes = document.querySelectorAll('.employee-checkbox');
-
-    // Get currently checked employees (these are selected for bulk action)
-    const selectedEmployees = Array.from(checkboxes).filter(cb => cb.checked);
+    // Only get checkboxes from the visible container
+    const desktopTable = document.querySelector('.d-none.d-md-block');
+    const mobileContainer = document.querySelector('.d-md-none');
+    
+    let selectedEmployees = [];
+    if (desktopTable && desktopTable.offsetParent !== null) {
+        // Desktop is visible
+        selectedEmployees = Array.from(desktopTable.querySelectorAll('.employee-checkbox:checked'));
+    } else if (mobileContainer && mobileContainer.offsetParent !== null) {
+        // Mobile is visible
+        selectedEmployees = Array.from(mobileContainer.querySelectorAll('.employee-checkbox:checked'));
+    }
 
     // If no selection, show alert
     if (selectedEmployees.length === 0) {
@@ -612,6 +620,22 @@ td small,
 .form-check-input:indeterminate {
     background-color: #008080;
     border-color: #008080;
+}
+
+/* ===== LOP CHECKBOX CENTERING ===== */
+.form-check-inline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+}
+
+.bulk-attendance-table td.text-center .form-check-inline {
+    padding: 0;
+}
+
+.lop-checkbox {
+    flex-shrink: 0;
 }
 
 /* ===== STATUS SELECT DROPDOWN ===== */

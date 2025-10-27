@@ -869,64 +869,43 @@ def employee_add():
             if manager_id:
                 employee.manager_id = int(manager_id)
 
-            # Handle profile image upload (required on add)
+            # Handle profile image upload (OPTIONAL)
             file = request.files.get('profile_image')
-            if not file or not file.filename.strip():
-                flash('Profile image is required.', 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter(
-                    Role.is_active == True,
-                    Role.name.notlike('%superadmin%')
-                ).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html',
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       designations=designations,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies)
-            if not _allowed_image(file.filename):
-                flash(
-                    'Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))),
-                    'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter(
-                    Role.is_active == True,
-                    Role.name.notlike('%superadmin%')
-                ).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html',
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       designations=designations,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies)
+            if file and file.filename.strip():
+                # Only process if file is provided
+                if not _allowed_image(file.filename):
+                    flash(
+                        'Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))),
+                        'error')
+                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter(
+                        Role.is_active == True,
+                        Role.name.notlike('%superadmin%')
+                    ).order_by(Role.name).all()
+                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                    managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    return render_template('employees/form.html',
+                                           form_data=request.form,
+                                           roles=roles,
+                                           user_roles=user_roles,
+                                           designations=designations,
+                                           departments=departments,
+                                           working_hours=working_hours,
+                                           work_schedules=work_schedules,
+                                           managers=managers,
+                                           companies=companies)
 
-            # Save image with unique name based on employee_id and timestamp
-            original = secure_filename(file.filename)
-            ext = original.rsplit('.', 1)[1].lower()
-            unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-            file.save(save_path)
-            employee.profile_image_path = f"uploads/employees/{unique_name}"
+                # Save image with unique name based on employee_id and timestamp
+                original = secure_filename(file.filename)
+                ext = original.rsplit('.', 1)[1].lower()
+                unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                file.save(save_path)
+                employee.profile_image_path = f"uploads/employees/{unique_name}"
 
             db.session.add(employee)
             db.session.commit()
@@ -1644,16 +1623,33 @@ def payroll_generate():
                     employee.hourly_rate or 0)
                 overtime_pay = total_overtime * ot_rate
 
-                # Calculate gross pay
+                # Calculate basic pay
                 basic_pay = float(employee.basic_salary)
+                
+                # Calculate LOP (Loss of Pay) deduction
+                lop_records = Attendance.query.filter_by(
+                    employee_id=employee.id,
+                    status='Absent',
+                    lop=True).filter(
+                    Attendance.date.between(pay_period_start,
+                                            pay_period_end)).all()
+                
+                lop_days = len(lop_records)
+                # Calculate daily rate: basic_pay / 26 (standard working days per month)
+                daily_rate = basic_pay / 26
+                lop_deduction = lop_days * daily_rate
+
+                # Calculate gross pay (BEFORE deductions - standard payroll terminology)
                 gross_pay = basic_pay + total_allowances + overtime_pay
 
-                # Calculate CPF (simplified)
+                # Calculate CPF (simplified) - based on gross pay
                 employee_cpf = gross_pay * (float(employee.employee_cpf_rate) / 100)
                 employer_cpf = gross_pay * (float(employee.employer_cpf_rate) / 100)
 
-                # Calculate net pay
-                net_pay = gross_pay - employee_cpf
+                # Calculate net pay (after all deductions including LOP)
+                # net_pay = gross_pay - all_deductions
+                total_deductions_amount = employee_cpf + lop_deduction
+                net_pay = gross_pay - total_deductions_amount
 
                 # Create payroll record
                 payroll = Payroll()
@@ -1672,6 +1668,8 @@ def payroll_generate():
                 payroll.net_pay = net_pay
                 payroll.overtime_hours = total_overtime
                 payroll.days_worked = len(attendance_records)
+                payroll.lop_days = lop_days
+                payroll.lop_deduction = lop_deduction
                 payroll.generated_by = current_user.id
                 payroll.status = 'Draft'
 
@@ -2029,6 +2027,7 @@ def payroll_payslip(payroll_id):
         'income_tax': f"{float(payroll.income_tax):,.2f}",
         'medical': "0.00",  # Not in current model
         'life_insurance': "0.00",  # Not in current model
+        'loss_of_pay': f"{float(payroll.lop_deduction or 0):,.2f}",
         'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
         'others': f"{float(payroll.other_deductions):,.2f}"
     }
@@ -2052,7 +2051,7 @@ def payroll_payslip(payroll_id):
     payroll_data = {
         'pay_date': pay_date,
         'total_earnings': f"{float(payroll.gross_pay):,.2f}",
-        'total_deductions': f"{float(payroll.employee_cpf + payroll.income_tax + payroll.other_deductions):,.2f}",
+        'total_deductions': f"{float(payroll.employee_cpf + payroll.income_tax + payroll.other_deductions + (payroll.lop_deduction or 0)):,.2f}",
         'net_pay': f"{float(payroll.net_pay):,.2f}"
     }
 
@@ -2585,6 +2584,10 @@ def attendance_bulk_manage():
                     attendance.status = new_status
                     attendance.remarks = f'Updated by {current_user.first_name} {current_user.last_name}'
                     
+                    # Handle LOP (Loss of Pay) checkbox
+                    lop_field = f'lop_{employee.id}'
+                    attendance.lop = lop_field in request.form
+                    
                     # Update tracking counters
                     status_counts[new_status] = status_counts.get(new_status, 0) + 1
                     
@@ -2693,13 +2696,13 @@ def create_daily_attendance_records(target_date, employees=None):
         ).first()
 
         if not existing:
-            # Create new attendance record with default Present status
+            # Create new attendance record with default Pending status
             attendance = Attendance()
             attendance.employee_id = employee.id
             attendance.date = target_date
-            attendance.status = 'Present'
-            attendance.regular_hours = 8  # Default 8 hours for present employees
-            attendance.total_hours = 8
+            attendance.status = 'Pending'
+            attendance.regular_hours = 0  # No hours assigned for pending status
+            attendance.total_hours = 0
             attendance.overtime_hours = 0
             attendance.remarks = 'Auto-generated attendance record'
 
