@@ -2984,4 +2984,29 @@ def working_hours_edit(working_hours_id):
     """Edit working hours configuration"""
     working_hours = WorkingHours.query.get_or_404(working_hours_id)
     
-    if request.metho
+    if request.method == 'POST':
+        try:
+            # Update fields from form safely
+            name = request.form.get('name')
+            if name is not None:
+                working_hours.name = name
+
+            hours_per_day = request.form.get('hours_per_day')
+            if hours_per_day:
+                working_hours.hours_per_day = float(hours_per_day)
+
+            hours_per_week = request.form.get('hours_per_week')
+            if hours_per_week:
+                working_hours.hours_per_week = float(hours_per_week)
+
+            working_hours.description = request.form.get('description')
+
+            db.session.add(working_hours)
+            db.session.commit()
+            flash('Working hours configuration updated successfully', 'success')
+            return redirect(url_for('working_hours_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating working hours: {str(e)}', 'error')
+
+    return render_template('masters/working_hours/form.html', working_hours=working_hours)
