@@ -2799,7 +2799,13 @@ def api_attendance_check():
 # Master Data Management Routes
 
 # Role Management Routes
-@app.route('/masters/roles')
+# Each Flask route must have a unique endpoint name. If two view functions
+# share the same Python function name or you inadvertently register the same
+# endpoint twice, Flask raises an AssertionError: "View function mapping is
+# overwriting an existing endpoint function: <endpoint>". To avoid this you
+# can either rename the function or provide an explicit endpoint name in the
+# decorator. We use an explicit endpoint here to guarantee uniqueness.
+@app.route('/masters/roles', endpoint='masters_role_list')
 @require_role(['Super Admin', 'Admin'])
 def role_list():
     """List all roles"""
