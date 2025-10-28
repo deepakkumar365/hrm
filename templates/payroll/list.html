@@ -38,7 +38,7 @@
                 </div>
                 {% endif %}
             </div>
-            
+
             <hr class="mt-0 mb-3">
 
             <!-- Filters -->
@@ -122,29 +122,33 @@
                         {% endif %}
                     </div>
                 </div>
-                
+
                 <div class="row text-center border-top pt-2">
-                    <div class="col-4">
+                    <div class="col-3">
                         <small class="text-muted d-block">Gross Pay</small>
                         <strong>{{ payroll.gross_pay | currency }}</strong>
                     </div>
-                    <div class="col-4">
-                        <small class="text-muted d-block">CPF</small>
+                    <div class="col-3">
+                        <small class="text-muted d-block">CPF (Emp)</small>
                         <strong>{{ payroll.employee_cpf | currency }}</strong>
                     </div>
-                    <div class="col-4">
+                    <div class="col-3">
+                        <small class="text-muted d-block">CPF (Empr)</small>
+                        <strong>{{ payroll.employer_cpf | currency }}</strong>
+                    </div>
+                    <div class="col-3">
                         <small class="text-muted d-block">Period</small>
                         <strong>{{ payroll.pay_period_end.strftime('%m/%Y') }}</strong>
                     </div>
                 </div>
-                
+
                 <div class="mt-2">
                     <div class="btn-group w-100">
-                        <a href="{{ url_for('payroll_payslip', payroll_id=payroll.id) }}" 
+                        <a href="{{ url_for('payroll_payslip', payroll_id=payroll.id) }}"
                            class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-file-invoice me-1"></i>Payslip
                         </a>
-                        {% if (current_user.role.name if current_user.role else None) == 'Admin' and payroll.status == 'Draft' %}
+                        {% if (current_user.role.name if current_user.role else None) == 'Tenant Admin' and payroll.status == 'Draft' %}
                         <button class="btn btn-sm btn-outline-success" onclick="approvePayroll({{ payroll.id }})">
                             <i class="fas fa-check me-1"></i>Approve
                         </button>
@@ -167,6 +171,7 @@
                             <th>Pay Period</th>
                             <th>Gross Pay</th>
                             <th>CPF (Employee)</th>
+                            <th>CPF (Employer)</th>
                             <th>Net Pay</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -183,12 +188,13 @@
                             </td>
                             <td>
                                 <div>
-                                    {{ payroll.pay_period_start | date }} - 
+                                    {{ payroll.pay_period_start | date }} -
                                     <br>{{ payroll.pay_period_end | date }}
                                 </div>
                             </td>
                             <td class="text-success fw-semibold">{{ payroll.gross_pay | currency }}</td>
                             <td>{{ payroll.employee_cpf | currency }}</td>
+                            <td class="text-warning fw-semibold">{{ payroll.employer_cpf | currency }}</td>
                             <td class="text-success fw-bold">{{ payroll.net_pay | currency }}</td>
                             <td>
                                 {% if payroll.status == 'Approved' %}
@@ -211,7 +217,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('payroll_payslip', payroll_id=payroll.id) }}" 
+                                    <a href="{{ url_for('payroll_payslip', payroll_id=payroll.id) }}"
                                        class="btn btn-outline-primary" title="View Payslip">
                                         <i class="fas fa-file-invoice me-1"></i>Payslip
                                     </a>
@@ -254,7 +260,7 @@
                 </a>
             </li>
             {% endif %}
-            
+
             {% for page_num in payrolls.iter_pages() %}
                 {% if page_num %}
                     {% if page_num != payrolls.page %}
@@ -274,7 +280,7 @@
                 </li>
                 {% endif %}
             {% endfor %}
-            
+
             {% if payrolls.has_next %}
             <li class="page-item">
                 <a class="page-link" href="{{ url_for('payroll_list', page=payrolls.next_num, month=month, year=year) }}">

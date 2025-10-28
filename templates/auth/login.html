@@ -9,10 +9,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --auth-primary: #2C6705;
-    --auth-accent: #6E9A42;
-    --auth-bg: #F5F9F1;
-    --auth-muted: #4F6A2C;
+    --primary: #008080;
+    --secondary: #66b2b2;
+    --background: #f7fdfd;
+    --accent: #004d4d;
+    --text-primary: #1a1a1a;
+    --text-secondary: #5f5f5f;
+
+    /* For use in rgba() */
+    --primary-rgb: 0, 128, 128;
+    --secondary-rgb: 102, 178, 178;
+    --accent-rgb: 0, 77, 77;
 }
 
 /* Hide navbar and page container on login page */
@@ -27,7 +34,8 @@
 
 body {
     font-family: 'Inter', 'Segoe UI', sans-serif;
-    background-color: var(--auth-bg);
+    background-color: var(--background);
+    color: var(--text-primary);
     margin: 0;
     padding: 0;
     overflow-x: hidden;
@@ -46,9 +54,9 @@ body {
     width: min(1040px, 100%);
     max-height: calc(100vh - 1.5rem);
     border-radius: 20px;
-    background: var(--auth-bg);
-    box-shadow: 0 28px 48px -36px rgba(44, 103, 5, 0.45);
-    border: 1px solid rgba(44, 103, 5, 0.12);
+    background: #ffffff;
+    box-shadow: 0 28px 48px -36px rgba(var(--primary-rgb), 0.3);
+    border: 1px solid rgba(var(--primary-rgb), 0.15);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -62,7 +70,7 @@ body {
 }
 
 .auth-visual {
-    background: linear-gradient(135deg, rgba(44, 103, 5, 0.88), rgba(110, 154, 66, 0.72));
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     padding: clamp(1.5rem, 3vw, 2.5rem);
     display: flex;
     flex-direction: column;
@@ -90,7 +98,7 @@ body {
 .auth-photo {
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 18px 34px -26px rgba(14, 62, 5, 0.72);
+    box-shadow: 0 18px 34px -26px rgba(0, 0, 0, 0.4);
     margin-top: clamp(0.75rem, 2vw, 1.5rem);
     border: 1px solid rgba(255, 255, 255, 0.28);
     flex-shrink: 1;
@@ -117,50 +125,55 @@ body {
 
 .auth-title {
     font-weight: 700;
-    color: var(--auth-primary);
+    color: var(--primary);
     margin-bottom: 0.35rem;
 }
 
 .auth-subtitle {
-    color: var(--auth-muted);
+    color: var(--text-secondary);
     margin-bottom: 1.75rem;
 }
 
 .form-label {
     font-weight: 600;
-    color: var(--auth-primary);
+    color: var(--primary);
     margin-bottom: 0.45rem;
 }
 
 .form-control {
     border-radius: 12px;
-    border: 1px solid rgba(44, 103, 5, 0.22);
+    border: 1px solid rgba(var(--primary-rgb), 0.22);
     padding: 0.8rem 1rem;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    background: rgba(255, 255, 255, 0.92);
+    background: #fdfdfd;
 }
 
 .form-control::placeholder {
-    color: rgba(79, 106, 44, 0.58);
+    color: var(--text-secondary);
+    opacity: 0.7;
 }
 
 .form-control:focus {
-    border-color: rgba(44, 103, 5, 0.55);
-    box-shadow: 0 0 0 0.2rem rgba(110, 154, 66, 0.22);
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--secondary-rgb), 0.25);
 }
 
 .btn-auth-submit {
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--auth-primary), var(--auth-accent));
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     border: none;
     padding: 0.9rem;
     font-weight: 600;
     letter-spacing: 0.02em;
-    box-shadow: 0 16px 28px -22px rgba(44, 103, 5, 0.7);
+    color: white;
+    box-shadow: 0 12px 24px -18px rgba(var(--primary-rgb), 0.6);
+    transition: all 0.2s ease;
 }
 
 .btn-auth-submit:hover {
-    background: linear-gradient(135deg, #245704, #5C8A35);
+    background: linear-gradient(135deg, var(--accent), var(--primary));
+    box-shadow: 0 16px 32px -18px rgba(var(--primary-rgb), 0.7);
+    transform: translateY(-2px);
 }
 
 .form-footer {
@@ -169,16 +182,17 @@ body {
     align-items: center;
     margin-top: 1.25rem;
     font-size: 0.85rem;
-    color: rgba(79, 106, 44, 0.75);
+    color: var(--text-secondary);
 }
 
 .form-footer a {
-    color: var(--auth-accent);
+    color: var(--primary);
     font-weight: 600;
     text-decoration: none;
 }
 
 .form-footer a:hover {
+    color: var(--accent);
     text-decoration: underline;
 }
 

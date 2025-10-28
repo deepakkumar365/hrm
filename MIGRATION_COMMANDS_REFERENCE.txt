@@ -1,0 +1,599 @@
+================================================================================
+                    🔧 MIGRATION COMMANDS QUICK REFERENCE
+                              Copy & Paste Ready
+================================================================================
+
+All commands below are ready to copy and paste into your terminal.
+Navigate to: E:\Gobi\Pro\HRMS\hrm before running commands.
+
+================================================================================
+                        📋 ENVIRONMENT SETUP
+================================================================================
+
+Check current environment:
+──────────────────────────
+echo %ENVIRONMENT%
+echo %PROD_DATABASE_URL%
+echo %PROD_SESSION_SECRET%
+
+Set production environment (Windows PowerShell):
+──────────────────────────────────────────────────
+$env:ENVIRONMENT = "production"
+$env:PROD_DATABASE_URL = "postgresql://user:pass@host:5432/prod_db"
+$env:PROD_SESSION_SECRET = "your-secret-key"
+
+Set production environment (Linux/Mac):
+────────────────────────────────────────
+export ENVIRONMENT=production
+export PROD_DATABASE_URL="postgresql://user:pass@host:5432/prod_db"
+export PROD_SESSION_SECRET="your-secret-key"
+
+================================================================================
+                      🚀 MIGRATION EXECUTION COMMANDS
+================================================================================
+
+Navigate to HRMS directory (Windows):
+──────────────────────────────────────
+cd "E:\Gobi\Pro\HRMS\hrm"
+
+Navigate to HRMS directory (Linux/Mac):
+───────────────────────────────────────
+cd ~/path/to/hrm
+
+STEP 1: Pre-Migration Verification
+───────────────────────────────────
+python pre_migration_checklist.py
+
+Output expected: ✅ ALL CHECKS PASSED - READY FOR MIGRATION
+
+
+STEP 2: Backup Databases
+────────────────────────
+# Backup both databases
+python backup_database.py --mode full
+
+# Backup only development
+python backup_database.py --mode dev
+
+# Backup only production
+python backup_database.py --mode prod
+
+# List existing backups
+python backup_database.py --list
+
+# Cleanup old backups (keep 5 most recent)
+python backup_database.py --cleanup 5
+
+Output files: db_backups/dev_backup_*.sql or prod_backup_*.sql
+
+
+STEP 3: Execute Migration
+─────────────────────────
+# Full migration (RECOMMENDED - includes schema + data)
+python db_migration_to_prod.py --mode full
+
+# Schema only (for testing)
+python db_migration_to_prod.py --mode schema-only
+
+# Data only (if schema already exists)
+python db_migration_to_prod.py --mode data-only
+
+# Verify without migrating
+python db_migration_to_prod.py --verify-only
+
+Output: ✅ MIGRATION COMPLETED SUCCESSFULLY
+
+
+STEP 4: Verify Migration Success
+────────────────────────────────
+# Quick verification (recommended)
+python verify_prod_migration.py --quick
+
+# Detailed verification
+python verify_prod_migration.py --detailed
+
+# Statistics only
+python verify_prod_migration.py --stats
+
+Output: ✅ MIGRATION SUCCESSFUL
+
+
+STEP 5: Reset User Passwords
+────────────────────────────
+python prod_password_management.py
+
+Then select: 4 (Reset ALL users)
+Enter password: Noltrion@123
+
+
+STEP 6: Test Credentials
+────────────────────────
+python test_login_credentials.py
+
+Output: ✅ All users can login
+
+
+STEP 7: Start Application
+─────────────────────────
+# Windows PowerShell
+$env:ENVIRONMENT = "production"
+python main.py
+
+# Linux/Mac
+export ENVIRONMENT=production
+python main.py
+
+# Watch for output: [INFO] Running in PRODUCTION mode
+
+
+STEP 8: Test in Browser
+──────────────────────
+# Open in browser
+http://localhost:5000/login
+
+# Login with
+Username: superadmin
+Password: Noltrion@123
+
+================================================================================
+                      🛠️ DIAGNOSTIC COMMANDS
+================================================================================
+
+Check Python Version:
+─────────────────────
+python --version
+
+Check Required Packages:
+─────────────────────────
+pip list | findstr /i "sqlalchemy flask flask-sqlalchemy"
+
+Check Database Connection:
+──────────────────────────
+# Development database
+psql %DEV_DATABASE_URL% -c "SELECT 1"
+
+# Production database
+psql %PROD_DATABASE_URL% -c "SELECT 1"
+
+Check Database Tables:
+──────────────────────
+# View table count
+psql %PROD_DATABASE_URL% -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public'"
+
+# View all table names
+psql %PROD_DATABASE_URL% -c "\dt"
+
+Check Database Size:
+────────────────────
+psql %PROD_DATABASE_URL% -c "SELECT pg_size_pretty(pg_database_size(current_database()))"
+
+Check User Count:
+─────────────────
+psql %PROD_DATABASE_URL% -c "SELECT COUNT(*) FROM hrm_users"
+
+Check Organization Count:
+──────────────────────────
+psql %PROD_DATABASE_URL% -c "SELECT COUNT(*) FROM organization"
+
+View Application Logs:
+───────────────────────
+# Windows
+type E:\Gobi\Pro\HRMS\hrm\logs\app.log
+
+# Linux/Mac (show last 50 lines)
+tail -50 ~/path/to/hrm/logs/app.log
+
+# Linux/Mac (watch logs live)
+tail -f ~/path/to/hrm/logs/app.log
+
+================================================================================
+                      🔄 ROLLBACK PROCEDURES
+================================================================================
+
+Restore Production Database from Backup:
+─────────────────────────────────────────
+# Stop application first!
+
+# List available backups
+python backup_database.py --list
+
+# Restore (replace TIMESTAMP with actual backup file)
+psql %PROD_DATABASE_URL% < db_backups\prod_backup_YYYYMMDD_HHMMSS.sql
+
+# Verify restoration
+python verify_prod_migration.py --quick
+
+# Restart application
+python main.py
+
+
+Restore Development Database:
+──────────────────────────────
+psql %DEV_DATABASE_URL% < db_backups\dev_backup_YYYYMMDD_HHMMSS.sql
+
+
+Clear Production Database (Use with caution):
+───────────────────────────────────────────────
+psql %PROD_DATABASE_URL% -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
+# Then run migration again
+python db_migration_to_prod.py --mode full
+
+================================================================================
+                      🔐 PASSWORD MANAGEMENT COMMANDS
+================================================================================
+
+List All Users:
+────────────────
+python prod_password_management.py
+# Choose: 1
+
+
+Verify Specific User Password:
+───────────────────────────────
+python prod_password_management.py
+# Choose: 2
+# Enter username: superadmin
+
+
+Reset Specific User Password:
+──────────────────────────────
+python prod_password_management.py
+# Choose: 3
+# Enter username: superadmin
+# Enter new password: YourNewPassword123!
+
+
+Reset ALL Users to Same Password:
+──────────────────────────────────
+python prod_password_management.py
+# Choose: 4
+# Enter password: Noltrion@123
+# Confirm: yes
+
+
+Export User Credentials to JSON:
+─────────────────────────────────
+python prod_password_management.py
+# Choose: 5
+# File created: user_credentials_YYYYMMDD.json
+
+
+================================================================================
+                      🧪 TEST COMMANDS
+================================================================================
+
+Test All User Logins:
+──────────────────────
+python test_login_credentials.py
+
+Test Specific User:
+────────────────────
+python find_actual_passwords.py
+# Tests common password patterns
+
+
+Test Application Startup:
+──────────────────────────
+# Test in development mode
+python main.py
+
+# Test in production mode
+$env:ENVIRONMENT = "production"
+python main.py
+
+# Press CTRL+C to stop
+
+
+Syntax Check:
+──────────────
+python -m py_compile models.py
+python -m py_compile app.py
+python -m py_compile routes.py
+
+================================================================================
+                      📊 DATABASE INSPECTION COMMANDS
+================================================================================
+
+Count Records in Each Table:
+─────────────────────────────
+psql %PROD_DATABASE_URL% -c "
+SELECT schemaname, tablename, n_live_tup 
+FROM pg_stat_user_tables 
+ORDER BY schemaname, tablename;"
+
+Show Foreign Key Constraints:
+──────────────────────────────
+psql %PROD_DATABASE_URL% -c "
+SELECT constraint_name, table_name, column_name, foreign_table_name 
+FROM information_schema.table_constraints tc 
+JOIN information_schema.key_column_usage kcu 
+    ON tc.constraint_name = kcu.constraint_name 
+WHERE tc.constraint_type = 'FOREIGN KEY' 
+ORDER BY table_name;"
+
+Show All Indexes:
+──────────────────
+psql %PROD_DATABASE_URL% -c "
+SELECT indexname, tablename 
+FROM pg_indexes 
+WHERE schemaname = 'public' 
+ORDER BY tablename;"
+
+Check Table Relationships:
+──────────────────────────
+psql %PROD_DATABASE_URL% -c "
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_schema = 'public' 
+ORDER BY table_name;"
+
+================================================================================
+                      ⚙️ ADVANCED COMMANDS
+================================================================================
+
+Run Alembic Migration Directly:
+────────────────────────────────
+cd migrations
+alembic upgrade head
+cd ..
+
+
+Check Alembic Status:
+──────────────────────
+cd migrations
+alembic current
+cd ..
+
+
+Create Database Dump (Full):
+──────────────────────────────
+pg_dump -h localhost -U postgres -d prod_db > full_dump.sql
+
+Create Database Dump (Schema Only):
+────────────────────────────────────
+pg_dump -h localhost -U postgres -d prod_db --schema-only > schema_dump.sql
+
+Create Database Dump (Data Only):
+──────────────────────────────────
+pg_dump -h localhost -U postgres -d prod_db --data-only > data_dump.sql
+
+
+Restore from Dump:
+───────────────────
+psql -h localhost -U postgres -d prod_db < dump_file.sql
+
+
+Check Active Connections:
+──────────────────────────
+psql %PROD_DATABASE_URL% -c "
+SELECT datname, count(*) 
+FROM pg_stat_activity 
+GROUP BY datname;"
+
+Kill Idle Connections (Careful!):
+───────────────────────────────────
+psql %PROD_DATABASE_URL% -c "
+SELECT pg_terminate_backend(pid) 
+FROM pg_stat_activity 
+WHERE datname = current_database() 
+AND pid <> pg_backend_pid();"
+
+================================================================================
+                      🎯 FULL MIGRATION SEQUENCE (Copy & Run)
+================================================================================
+
+Complete migration in one batch:
+──────────────────────────────────
+
+Windows PowerShell:
+───────────────────
+cd "E:\Gobi\Pro\HRMS\hrm"
+python pre_migration_checklist.py
+python backup_database.py --mode full
+python db_migration_to_prod.py --mode full
+python verify_prod_migration.py --quick
+python prod_password_management.py
+$env:ENVIRONMENT = "production"
+python main.py
+
+Then in browser: http://localhost:5000/login
+Username: superadmin
+Password: Noltrion@123
+
+
+Linux/Mac:
+──────────
+cd ~/path/to/hrm
+python pre_migration_checklist.py
+python backup_database.py --mode full
+python db_migration_to_prod.py --mode full
+python verify_prod_migration.py --quick
+python prod_password_management.py
+export ENVIRONMENT=production
+python main.py
+
+Then in browser: http://localhost:5000/login
+Username: superadmin
+Password: Noltrion@123
+
+================================================================================
+                      📞 HELP COMMANDS
+================================================================================
+
+Get Help for Migration Tool:
+─────────────────────────────
+python db_migration_to_prod.py --help
+
+Get Help for Verification Tool:
+────────────────────────────────
+python verify_prod_migration.py --help
+
+Get Help for Backup Tool:
+──────────────────────────
+python backup_database.py --help
+
+Get Help for Checklist Tool:
+─────────────────────────────
+python pre_migration_checklist.py --help
+
+================================================================================
+                      ⏱️ COMMAND TIMINGS
+================================================================================
+
+Task                              Command                          Time
+────────────────────────────────────────────────────────────────────────
+Checklist                         pre_migration_checklist.py       2 min
+Backup                            backup_database.py               10 min
+Migration                         db_migration_to_prod.py          10 min
+Verification                      verify_prod_migration.py         2 min
+Password Reset                    prod_password_management.py      1 min
+Login Test                        test_login_credentials.py        2 min
+App Startup                       main.py                          1 min
+────────────────────────────────────────────────────────────────────────
+TOTAL TIME                                                         28 min
+
+Plus: Manual testing and buffer = ~60-90 minutes total
+
+================================================================================
+                      🚨 COMMON ISSUES & FIX COMMANDS
+================================================================================
+
+Issue: "DEV_DATABASE_URL not set"
+Fix: Update .env file with correct URL and run: python pre_migration_checklist.py
+
+
+Issue: "Connection refused"
+Fix: psql %PROD_DATABASE_URL% -c "SELECT 1"
+
+
+Issue: "Foreign key constraint failed"
+Fix: python verify_prod_migration.py --detailed
+
+
+Issue: "Users can't login"
+Fix: python prod_password_management.py  # Choose option 4
+
+
+Issue: "Application won't start"
+Fix: Check logs with: type E:\Gobi\Pro\HRMS\hrm\logs\app.log
+
+
+Issue: "Out of memory"
+Fix: python backup_database.py --cleanup 3  # Keep only 3 recent backups
+
+
+Issue: "Need to restart migration"
+Fix: Restore from backup, then: python db_migration_to_prod.py --mode full
+
+================================================================================
+                      💾 BACKUP & RESTORE COMMANDS
+================================================================================
+
+Quick Backup Both:
+───────────────────
+python backup_database.py --mode full
+
+List All Backups:
+──────────────────
+python backup_database.py --list
+
+Cleanup Backups (Keep 5):
+──────────────────────────
+python backup_database.py --cleanup 5
+
+Full Backup (Manual - Recommended):
+────────────────────────────────────
+$env:PGPASSWORD = "your_password"
+pg_dump -h host -U user prod_db > prod_backup_$(Get-Date -f 'yyyyMMdd_HHmmss').sql
+
+Restore from Backup:
+─────────────────────
+$env:PGPASSWORD = "your_password"
+psql -h host -U user prod_db < backup_file.sql
+
+================================================================================
+                      ✅ VERIFICATION CHECKLIST COMMANDS
+================================================================================
+
+Quick Status:
+──────────────
+python verify_prod_migration.py --quick
+
+Full Check:
+───────────
+python verify_prod_migration.py --detailed
+
+Database Stats:
+────────────────
+python verify_prod_migration.py --stats
+
+Manual Checks:
+───────────────
+# Check org count
+psql %PROD_DATABASE_URL% -c "SELECT COUNT(*) as orgs FROM organization"
+
+# Check role count
+psql %PROD_DATABASE_URL% -c "SELECT COUNT(*) as roles FROM role"
+
+# Check user count
+psql %PROD_DATABASE_URL% -c "SELECT COUNT(*) as users FROM hrm_users"
+
+# Check designation count
+psql %PROD_DATABASE_URL% -c "SELECT COUNT(*) as designations FROM designation"
+
+================================================================================
+                      🎓 LEARNING COMMANDS
+================================================================================
+
+Understand Your Database:
+──────────────────────────
+# Tables in development
+psql %DEV_DATABASE_URL% -c "\dt"
+
+# Tables in production
+psql %PROD_DATABASE_URL% -c "\dt"
+
+# Compare table sizes
+psql %DEV_DATABASE_URL% -c "SELECT tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) FROM pg_tables WHERE schemaname='public' ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC"
+
+Check Python Packages:
+───────────────────────
+pip show sqlalchemy
+pip show flask
+pip show flask-sqlalchemy
+pip show python-dotenv
+
+Test Your Environment:
+───────────────────────
+python -c "import sqlalchemy; print(sqlalchemy.__version__)"
+python -c "import flask; print(flask.__version__)"
+python -c "from dotenv import load_dotenv; print('dotenv OK')"
+
+================================================================================
+                          🎯 QUICK REFERENCE CARD
+================================================================================
+
+BEFORE MIGRATION:
+  1. cd "E:\Gobi\Pro\HRMS\hrm"
+  2. python pre_migration_checklist.py
+  3. python backup_database.py --mode full
+
+EXECUTE MIGRATION:
+  4. python db_migration_to_prod.py --mode full
+
+AFTER MIGRATION:
+  5. python verify_prod_migration.py --quick
+  6. python prod_password_management.py  (Option 4)
+  7. $env:ENVIRONMENT = "production"
+  8. python main.py
+
+TEST:
+  9. Browser: http://localhost:5000/login
+  10. Login: superadmin / Noltrion@123
+
+SUCCESS = All steps complete with no errors!
+
+================================================================================
+Version: 1.0 | Last Updated: 2024 | Status: READY FOR PRODUCTION
+================================================================================

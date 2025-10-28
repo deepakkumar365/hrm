@@ -26,44 +26,47 @@
         </div>
     </div>
 
-    <!-- Filters Section - Single View -->
+    <!-- Filters Section - Compact View -->
     <div class="attendance-filter-section">
         <form method="GET" class="attendance-filter-form">
-            <div class="filter-tabs">
-                <button type="button" class="filter-tab active" onclick="setDateFilter('today')">
-                    <i class="fas fa-calendar-day"></i>
-                    <span>Today</span>
+            <!-- Compact Filter Tabs -->
+            <div class="filter-tabs-compact">
+                <button type="button" class="filter-tab-compact {% if not date_range_filter or date_range_filter == 'today' %}active{% endif %}" onclick="setDateFilter('today')" data-filter="today">
+                    <i class="fas fa-calendar-day"></i> Today
                 </button>
-                <button type="button" class="filter-tab" onclick="setDateFilter('week')">
-                    <i class="fas fa-calendar-week"></i>
-                    <span>This Week</span>
+                <button type="button" class="filter-tab-compact {% if date_range_filter == 'week' %}active{% endif %}" onclick="setDateFilter('week')" data-filter="week">
+                    <i class="fas fa-calendar-week"></i> This Week
                 </button>
-                <button type="button" class="filter-tab" onclick="setDateFilter('month')">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>This Month</span>
+                <button type="button" class="filter-tab-compact {% if date_range_filter == 'month' %}active{% endif %}" onclick="setDateFilter('month')" data-filter="month">
+                    <i class="fas fa-calendar-alt"></i> This Month
                 </button>
-                <button type="button" class="filter-tab" onclick="setDateFilter('custom')">
-                    <i class="fas fa-calendar"></i>
-                    <span>Custom Range</span>
+                <button type="button" class="filter-tab-compact {% if date_range_filter == 'custom' %}active{% endif %}" onclick="setDateFilter('custom')" data-filter="custom">
+                    <i class="fas fa-calendar"></i> Custom Range
                 </button>
             </div>
 
-            <div class="filter-inputs">
-                <div class="filter-input-group">
-                    <label for="date_filter">
-                        <i class="fas fa-calendar"></i>
-                        Date
-                    </label>
-                    <input type="date" id="date_filter" name="date" class="form-control" value="{{ date_filter or '' }}">
+            <!-- Compact Filter Inputs in Single Row -->
+            <div class="filter-inputs-compact">
+                <input type="hidden" id="date_range_type" name="date_range" value="{{ date_range_filter or 'today' }}">
+                
+                <!-- Date Range Fields - Conditional Display -->
+                <div class="filter-input-group-compact" id="custom_date_fields" style="display: {% if date_range_filter == 'custom' %}flex{% else %}none{% endif %};">
+                    <div class="input-wrapper">
+                        <label for="start_date"><i class="fas fa-calendar-alt"></i> Start</label>
+                        <input type="date" id="start_date" name="start_date" class="form-control form-control-sm" value="{{ start_date or '' }}">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="end_date"><i class="fas fa-calendar-alt"></i> End</label>
+                        <input type="date" id="end_date" name="end_date" class="form-control form-control-sm" value="{{ end_date or '' }}">
+                    </div>
                 </div>
 
-                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] and employees %}
-                <div class="filter-input-group">
-                    <label for="employee_filter">
-                        <i class="fas fa-user"></i>
-                        Employee
-                    </label>
-                    <select id="employee_filter" name="employee" class="form-select">
+                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager'] %}
+                <!-- Employee Filter -->
+                {% if employees %}
+                <div class="filter-input-group-compact">
+                    <label for="employee_filter"><i class="fas fa-user"></i> Employee</label>
+                    <select id="employee_filter" name="employee" class="form-select form-select-sm">
                         <option value="">All Employees</option>
                         {% for emp in employees %}
                         <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
@@ -74,29 +77,116 @@
                 </div>
                 {% endif %}
 
-                <div class="filter-actions">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i>
-                        Apply Filter
+                <!-- Department Filter -->
+                {% if departments %}
+                <div class="filter-input-group-compact">
+                    <label for="department_filter"><i class="fas fa-building"></i> Department</label>
+                    <select id="department_filter" name="department" class="form-select form-select-sm">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept }}" {% if dept == department_filter %}selected{% endif %}>
+                            {{ dept }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <!-- Filter Actions -->
+                <div class="filter-actions-compact">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-search"></i> Apply
                     </button>
-                    <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-redo"></i>
-                        Reset
+                    <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-redo"></i> Reset
                     </a>
                 </div>
             </div>
         </form>
     </div>
 
-    <!-- Attendance Records - Enhanced Cards View -->
+    <!-- Attendance Summary Section - Moved to Top -->
+    {% if attendance_records.items and summary %}
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h3 class="card-title mb-0">
+                <i class="fas fa-chart-bar me-2"></i>
+                Attendance Summary
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="text-muted small mb-1">Total Records</div>
+                        <div class="fw-bold fs-4">{{ summary.total_records }}</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Present Days</div>
+                        <div class="fw-bold fs-4 text-success">{{ summary.present_days }}</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="text-center p-3 bg-danger bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Absent Days</div>
+                        <div class="fw-bold fs-4 text-danger">{{ summary.absent_days }}</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Late Days</div>
+                        <div class="fw-bold fs-4 text-warning">{{ summary.late_days }}</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="text-center p-3 bg-info bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Total Hours</div>
+                        <div class="fw-bold fs-4 text-info">{{ "%.1f"|format(summary.total_hours) }}h</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                        <div class="text-muted small mb-1">Overtime Hours</div>
+                        <div class="fw-bold fs-4 text-primary">{{ "%.1f"|format(summary.total_overtime) }}h</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Attendance Records - Enhanced Cards View with Employee Info -->
     <div class="attendance-records-container">
         {% for record in attendance_records.items %}
         <div class="attendance-record-card">
             <div class="attendance-card-header">
                 <div class="attendance-date-info">
-                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                    <h4 class="employee-name">{{ record.employee.first_name }} {{ record.employee.last_name }}</h4>
-                    <span class="employee-id">{{ record.employee.employee_id }}</span>
+                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager'] %}
+                    <!-- Employee Info with Photo -->
+                    <div class="employee-info-section">
+                        <div class="employee-avatar">
+                            {% if record.employee.profile_image_path %}
+                            <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}">
+                            {% else %}
+                            <div class="avatar-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="employee-details">
+                            <h4 class="employee-name">{{ record.employee.first_name }} {{ record.employee.last_name }}</h4>
+                            <span class="employee-id">{{ record.employee.employee_id }}</span>
+                            {% if record.employee.department %}
+                            <span class="employee-department"><i class="fas fa-building"></i> {{ record.employee.department }}</span>
+                            {% endif %}
+                            {% if record.employee.position %}
+                            <span class="employee-position"><i class="fas fa-briefcase"></i> {{ record.employee.position }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endif %}
                     <div class="record-date">
                         <i class="fas fa-calendar"></i>
@@ -238,48 +328,169 @@
     {% endif %}
 </div>
 
-<script>
-// Set default date filter to today on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const dateInput = document.querySelector('input[name="date"]');
-    
-    // Only set default if no date is already set
-    if (dateInput && !dateInput.value) {
-        const today = new Date().toISOString().split('T')[0];
-        dateInput.value = today;
-    }
-});
+<style>
+/* Compact Filter Styles */
+.filter-tabs-compact {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
 
-// Date filter functions
+.filter-tab-compact {
+    padding: 0.5rem 1rem;
+    border: 1px solid #dee2e6;
+    background: white;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-tab-compact:hover {
+    background: #f8f9fa;
+    border-color: #6c8f91;
+}
+
+.filter-tab-compact.active {
+    background: #6c8f91;
+    color: white;
+    border-color: #6c8f91;
+}
+
+.filter-inputs-compact {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-input-group-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 180px;
+}
+
+.filter-input-group-compact label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0;
+}
+
+.filter-input-group-compact .input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-actions-compact {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Employee Info Section in Cards */
+.employee-info-section {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.employee-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.employee-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #6c8f91, #7ba6aa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.employee-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.employee-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: #2c3e50;
+}
+
+.employee-id {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.employee-department,
+.employee-position {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.employee-department i,
+.employee-position i {
+    margin-right: 0.25rem;
+    color: #6c8f91;
+}
+</style>
+
+<script>
+// Date filter functions with conditional display
 function setDateFilter(type) {
-    const dateInput = document.getElementById('date_filter');
+    const customDateFields = document.getElementById('custom_date_fields');
+    const dateRangeInput = document.getElementById('date_range_type');
     const today = new Date();
     
     // Remove active class from all tabs
-    document.querySelectorAll('.filter-tab').forEach(tab => {
+    document.querySelectorAll('.filter-tab-compact').forEach(tab => {
         tab.classList.remove('active');
     });
     
     // Add active class to clicked tab
-    event.target.closest('.filter-tab').classList.add('active');
+    event.target.classList.add('active');
     
-    switch(type) {
-        case 'today':
-            dateInput.value = today.toISOString().split('T')[0];
-            break;
-        case 'week':
-            const weekStart = new Date(today);
-            weekStart.setDate(today.getDate() - today.getDay());
-            dateInput.value = weekStart.toISOString().split('T')[0];
-            break;
-        case 'month':
-            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-            dateInput.value = monthStart.toISOString().split('T')[0];
-            break;
-        case 'custom':
-            dateInput.focus();
-            break;
+    // Set date range type
+    dateRangeInput.value = type;
+    
+    // Show/hide custom date fields
+    if (type === 'custom') {
+        customDateFields.style.display = 'flex';
+        document.getElementById('start_date').focus();
+    } else {
+        customDateFields.style.display = 'none';
     }
 }
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const dateRangeType = document.getElementById('date_range_type').value;
+    const customDateFields = document.getElementById('custom_date_fields');
+    
+    // Show custom fields if custom range is selected
+    if (dateRangeType === 'custom') {
+        customDateFields.style.display = 'flex';
+    }
+});
 </script>
 {% endblock %}

@@ -33,10 +33,10 @@
                             <th>Name</th>
                             <th>Email</th>
                             <th>Department</th>
-                            <th>Role</th>
-                            <th>Join Date</th>
-                            <th>Exit Date</th>
-                            <th>Reporting Manager</th>
+                            <th>Position</th>
+                            <th>Hire Date</th>
+                            <th>Termination Date</th>
+                            <th>Manager</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -47,34 +47,34 @@
                                 <td>{{ emp.employee_id or 'N/A' }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        {% if emp.profile_image %}
-                                        <img src="{{ url_for('static', filename='uploads/profiles/' + emp.profile_image) }}" 
+                                        {% if emp.profile_image_path %}
+                                        <img src="{{ url_for('static', filename=emp.profile_image_path) }}" 
                                              alt="{{ emp.first_name }}" 
                                              class="rounded-circle me-2" 
                                              style="width: 32px; height: 32px; object-fit: cover;">
                                         {% else %}
                                         <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
                                              style="width: 32px; height: 32px; font-size: 14px;">
-                                            {{ emp.first_name[0] }}{{ emp.last_name[0] }}
+                                            {{ emp.first_name[0] if emp.first_name else 'N' }}{{ emp.last_name[0] if emp.last_name else 'A' }}
                                         </div>
                                         {% endif %}
                                         <span>{{ emp.first_name }} {{ emp.last_name }}</span>
                                     </div>
                                 </td>
                                 <td>{{ emp.email or 'N/A' }}</td>
-                                <td>{{ emp.department.name if emp.department else 'N/A' }}</td>
-                                <td>{{ emp.role.name if emp.role else 'N/A' }}</td>
-                                <td>{{ emp.join_date.strftime('%d %b %Y') if emp.join_date else 'N/A' }}</td>
+                                <td>{{ emp.department or 'N/A' }}</td>
+                                <td>{{ emp.position or 'N/A' }}</td>
+                                <td>{{ emp.hire_date.strftime('%d %b %Y') if emp.hire_date else 'N/A' }}</td>
                                 <td>
-                                    {% if emp.exit_date %}
-                                        <span class="badge bg-danger">{{ emp.exit_date.strftime('%d %b %Y') }}</span>
+                                    {% if emp.termination_date %}
+                                        <span class="badge bg-danger">{{ emp.termination_date.strftime('%d %b %Y') }}</span>
                                     {% else %}
                                         <span class="badge bg-success">Active</span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if emp.reporting_manager %}
-                                        {{ emp.reporting_manager.first_name }} {{ emp.reporting_manager.last_name }}
+                                    {% if emp.manager %}
+                                        {{ emp.manager.first_name }} {{ emp.manager.last_name }}
                                     {% else %}
                                         N/A
                                     {% endif %}
@@ -114,7 +114,7 @@
                         <strong>Inactive:</strong> {{ employees|rejectattr('is_active')|list|length }}
                     </div>
                     <div class="col-md-3">
-                        <strong>With Exit Date:</strong> {{ employees|selectattr('exit_date')|list|length }}
+                        <strong>With Termination Date:</strong> {{ employees|selectattr('termination_date')|list|length }}
                     </div>
                 </div>
             </div>

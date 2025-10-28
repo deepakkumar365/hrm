@@ -17,7 +17,7 @@
                         </ol>
                     </nav>
                 </div>
-                {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
+                {% if (current_user.role.name if current_user.role else None) == 'Tenant Admin' %}
                 <div class="btn-group">
                     <a href="{{ url_for('employee_add') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>Add Employee
@@ -39,7 +39,7 @@
                 <div class="card-body">
                     <div class="row g-2">
                         <div class="col-md-6">
-                            <input type="text" name="search" class="form-control" 
+                            <input type="text" name="search" class="form-control"
                                    placeholder="Search employees..." value="{{ search }}">
                         </div>
                         <div class="col-md-4">
@@ -72,7 +72,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
                         <h6 class="mb-1">
-                            <a href="{{ url_for('employee_view', employee_id=employee.id) }}" 
+                            <a href="{{ url_for('employee_view', employee_id=employee.id) }}"
                                class="text-decoration-none">
                                 {{ employee.first_name }} {{ employee.last_name }}
                             </a>
@@ -99,7 +99,7 @@
                                 <li><a class="dropdown-item" href="{{ url_for('employee_view', employee_id=employee.id) }}">
                                     <i class="fas fa-eye me-1"></i>View Details
                                 </a></li>
-                                {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin'] %}
+                                {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'Super Admin'] %}
                                 <li><a class="dropdown-item" href="{{ url_for('employee_edit', employee_id=employee.id) }}">
                                     <i class="fas fa-edit me-1"></i>Edit
                                 </a></li>
@@ -126,7 +126,7 @@
                     <thead>
                         <tr>
                             <th>
-                                <a href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                <a href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
                                    class="text-decoration-none text-dark">
                                     Employee ID
                                     {% if sort_by == 'employee_id' %}
@@ -135,7 +135,7 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                <a href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
                                    class="text-decoration-none text-dark">
                                     Name
                                     {% if sort_by == 'first_name' %}
@@ -145,7 +145,7 @@
                             </th>
                             {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
                             <th>
-                                <a href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                <a href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
                                    class="text-decoration-none text-dark">
                                     Tenant Name
                                     {% if sort_by == 'tenant_name' %}
@@ -154,7 +154,7 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                <a href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
                                    class="text-decoration-none text-dark">
                                     Company Name
                                     {% if sort_by == 'company_name' %}
@@ -164,7 +164,7 @@
                             </th>
                             {% endif %}
                             <th>
-                                <a href="?sort_by=position&sort_order={{ 'desc' if sort_by == 'position' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                <a href="?sort_by=position&sort_order={{ 'desc' if sort_by == 'position' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
                                    class="text-decoration-none text-dark">
                                     Position
                                     {% if sort_by == 'position' %}
@@ -173,7 +173,7 @@
                                 </a>
                             </th>
                             <th>
-                                <a href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}" 
+                                <a href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
                                    class="text-decoration-none text-dark">
                                     Department
                                     {% if sort_by == 'department' %}
@@ -191,7 +191,7 @@
                         <tr>
                             <td>{{ employee.employee_id }}</td>
                             <td>
-                                <a href="{{ url_for('employee_view', employee_id=employee.id) }}" 
+                                <a href="{{ url_for('employee_view', employee_id=employee.id) }}"
                                    class="text-decoration-none">
                                     {{ employee.first_name }} {{ employee.last_name }}
                                 </a>
@@ -214,16 +214,16 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('employee_view', employee_id=employee.id) }}" 
+                                    <a href="{{ url_for('employee_view', employee_id=employee.id) }}"
                                        class="btn btn-outline-primary" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin'] %}
-                                    <a href="{{ url_for('employee_edit', employee_id=employee.id) }}" 
+                                    {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'Super Admin'] %}
+                                    <a href="{{ url_for('employee_edit', employee_id=employee.id) }}"
                                        class="btn btn-outline-secondary" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button onclick="resetPassword({{ employee.id }}, '{{ employee.first_name }} {{ employee.last_name }}')" 
+                                    <button onclick="resetPassword({{ employee.id }}, '{{ employee.first_name }} {{ employee.last_name }}')"
                                             class="btn btn-outline-warning" title="Reset Password">
                                         <i class="fas fa-key"></i>
                                     </button>
@@ -243,7 +243,7 @@
         <i class="fas fa-users fa-3x text-muted mb-3"></i>
         <h5 class="text-muted">No employees found</h5>
         <p class="text-muted">Try adjusting your search criteria</p>
-        {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
+        {% if (current_user.role.name if current_user.role else None) == 'Tenant Admin' %}
         <a href="{{ url_for('employee_add') }}" class="btn btn-primary">
             <i class="fas fa-plus me-1"></i>Add First Employee
         </a>
@@ -262,7 +262,7 @@
                 </a>
             </li>
             {% endif %}
-            
+
             {% for page_num in employees.iter_pages() %}
                 {% if page_num %}
                     {% if page_num != employees.page %}
@@ -282,7 +282,7 @@
                 </li>
                 {% endif %}
             {% endfor %}
-            
+
             {% if employees.has_next %}
             <li class="page-item">
                 <a class="page-link" href="{{ url_for('employee_list', page=employees.next_num, search=search, department=department) }}">
@@ -330,21 +330,21 @@ let currentEmployeeName = null;
 function resetPassword(employeeId, employeeName) {
     currentEmployeeId = employeeId;
     currentEmployeeName = employeeName;
-    
+
     document.getElementById('employeeNameDisplay').textContent = employeeName;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
     modal.show();
 }
 
 document.getElementById('confirmResetBtn').addEventListener('click', function() {
     if (!currentEmployeeId) return;
-    
+
     const btn = this;
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Resetting...';
-    
+
     fetch(`/employees/${currentEmployeeId}/reset-password`, {
         method: 'POST',
         headers: {
@@ -355,10 +355,10 @@ document.getElementById('confirmResetBtn').addEventListener('click', function() 
     .then(data => {
         btn.disabled = false;
         btn.innerHTML = originalText;
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
         modal.hide();
-        
+
         if (data.success) {
             // Show success message
             const alertDiv = document.createElement('div');
@@ -371,7 +371,7 @@ document.getElementById('confirmResetBtn').addEventListener('click', function() 
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             document.body.appendChild(alertDiv);
-            
+
             setTimeout(() => {
                 alertDiv.remove();
             }, 10000);
@@ -386,7 +386,7 @@ document.getElementById('confirmResetBtn').addEventListener('click', function() 
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             document.body.appendChild(alertDiv);
-            
+
             setTimeout(() => {
                 alertDiv.remove();
             }, 5000);
@@ -395,10 +395,10 @@ document.getElementById('confirmResetBtn').addEventListener('click', function() 
     .catch(error => {
         btn.disabled = false;
         btn.innerHTML = originalText;
-        
+
         const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
         modal.hide();
-        
+
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
         alertDiv.style.zIndex = '9999';
@@ -408,7 +408,7 @@ document.getElementById('confirmResetBtn').addEventListener('click', function() 
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         document.body.appendChild(alertDiv);
-        
+
         setTimeout(() => {
             alertDiv.remove();
         }, 5000);

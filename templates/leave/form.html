@@ -23,184 +23,148 @@
         </div>
     </div>
 
-    <form method="POST" class="leave-request-form needs-validation" novalidate>
-        <div class="leave-form-container">
-            <!-- Main Form Section -->
-            <div class="leave-form-main">
-                <div class="leave-form-section">
-                    <h3 class="section-heading">
-                        <i class="fas fa-info-circle"></i>
-                        Leave Details
-                    </h3>
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <label for="leave_type" class="form-label">Leave Type *</label>
-                        <select class="form-select" id="leave_type" name="leave_type" required>
-                            <option value="">Select Leave Type</option>
-                            <option value="Annual Leave" {% if (form_data and form_data.get('leave_type') == 'Annual Leave') or (leave and leave.leave_type == 'Annual Leave' and not form_data) %}selected{% endif %}>Annual Leave</option>
-                            <option value="Medical Leave" {% if (form_data and form_data.get('leave_type') == 'Medical Leave') or (leave and leave.leave_type == 'Medical Leave' and not form_data) %}selected{% endif %}>Medical Leave</option>
-                            <option value="Maternity Leave" {% if (form_data and form_data.get('leave_type') == 'Maternity Leave') or (leave and leave.leave_type == 'Maternity Leave' and not form_data) %}selected{% endif %}>Maternity Leave</option>
-                            <option value="Paternity Leave" {% if (form_data and form_data.get('leave_type') == 'Paternity Leave') or (leave and leave.leave_type == 'Paternity Leave' and not form_data) %}selected{% endif %}>Paternity Leave</option>
-                            <option value="Compassionate Leave" {% if (form_data and form_data.get('leave_type') == 'Compassionate Leave') or (leave and leave.leave_type == 'Compassionate Leave' and not form_data) %}selected{% endif %}>Compassionate Leave</option>
-                            <option value="Childcare Leave" {% if (form_data and form_data.get('leave_type') == 'Childcare Leave') or (leave and leave.leave_type == 'Childcare Leave' and not form_data) %}selected{% endif %}>Childcare Leave</option>
-                            <option value="Emergency Leave" {% if (form_data and form_data.get('leave_type') == 'Emergency Leave') or (leave and leave.leave_type == 'Emergency Leave' and not form_data) %}selected{% endif %}>Emergency Leave</option>
-                            <option value="Study Leave" {% if (form_data and form_data.get('leave_type') == 'Study Leave') or (leave and leave.leave_type == 'Study Leave' and not form_data) %}selected{% endif %}>Study Leave</option>
-                            <option value="Unpaid Leave" {% if (form_data and form_data.get('leave_type') == 'Unpaid Leave') or (leave and leave.leave_type == 'Unpaid Leave' and not form_data) %}selected{% endif %}>Unpaid Leave</option>
-                        </select>
-                        <div class="invalid-feedback">Please select a leave type.</div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Available Balance</label>
-                        <div class="form-control d-flex align-items-center justify-content-between" style="background: var(--grey-50); border-color: var(--grey-200);">
-                            <span class="fw-semibold" style="color: var(--primary-green);" id="balanceDisplay">Select leave type</span>
-                            <i class="fas fa-chart-pie" style="color: var(--primary-green);"></i>
+    <form method="POST" enctype="multipart/form-data" class="leave-request-form needs-validation" novalidate>
+        <div class="leave-form-compact">
+            <!-- Section 1: Leave Details & Period (Side by Side) -->
+            <div class="card mb-3">
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <!-- Left: Leave Details -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Leave Details</h6>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label for="leave_type" class="form-label small">Leave Type *</label>
+                                    <select class="form-select form-select-sm" id="leave_type" name="leave_type" required>
+                                        <option value="">Select Leave Type</option>
+                                        <option value="Annual Leave" {% if (form_data and form_data.get('leave_type') == 'Annual Leave') or (leave and leave.leave_type == 'Annual Leave' and not form_data) %}selected{% endif %}>Annual Leave</option>
+                                        <option value="Casual Leave" {% if (form_data and form_data.get('leave_type') == 'Casual Leave') or (leave and leave.leave_type == 'Casual Leave' and not form_data) %}selected{% endif %}>Casual Leave</option>
+                                        <option value="Medical Leave" {% if (form_data and form_data.get('leave_type') == 'Medical Leave') or (leave and leave.leave_type == 'Medical Leave' and not form_data) %}selected{% endif %}>Medical Leave</option>
+                                        <option value="Maternity Leave" {% if (form_data and form_data.get('leave_type') == 'Maternity Leave') or (leave and leave.leave_type == 'Maternity Leave' and not form_data) %}selected{% endif %}>Maternity Leave</option>
+                                        <option value="Paternity Leave" {% if (form_data and form_data.get('leave_type') == 'Paternity Leave') or (leave and leave.leave_type == 'Paternity Leave' and not form_data) %}selected{% endif %}>Paternity Leave</option>
+                                        <option value="Compassionate Leave" {% if (form_data and form_data.get('leave_type') == 'Compassionate Leave') or (leave and leave.leave_type == 'Compassionate Leave' and not form_data) %}selected{% endif %}>Compassionate Leave</option>
+                                        <option value="Childcare Leave" {% if (form_data and form_data.get('leave_type') == 'Childcare Leave') or (leave and leave.leave_type == 'Childcare Leave' and not form_data) %}selected{% endif %}>Childcare Leave</option>
+                                        <option value="Emergency Leave" {% if (form_data and form_data.get('leave_type') == 'Emergency Leave') or (leave and leave.leave_type == 'Emergency Leave' and not form_data) %}selected{% endif %}>Emergency Leave</option>
+                                        <option value="Study Leave" {% if (form_data and form_data.get('leave_type') == 'Study Leave') or (leave and leave.leave_type == 'Study Leave' and not form_data) %}selected{% endif %}>Study Leave</option>
+                                        <option value="Unpaid Leave" {% if (form_data and form_data.get('leave_type') == 'Unpaid Leave') or (leave and leave.leave_type == 'Unpaid Leave' and not form_data) %}selected{% endif %}>Unpaid Leave</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Available Balance</label>
+                                    <div class="form-control form-control-sm bg-light" id="balanceDisplay">Select type</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="start_date" class="form-label small">Start Date *</label>
+                                    <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ form_data.get('start_date') if form_data else (leave.start_date.strftime('%Y-%m-%d') if leave else '') }}" required onclick="this.showPicker()">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="end_date" class="form-label small">End Date *</label>
+                                    <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ form_data.get('end_date') if form_data else (leave.end_date.strftime('%Y-%m-%d') if leave else '') }}" required onclick="this.showPicker()">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Half Day</label>
+                                    <div class="form-check form-switch mt-1">
+                                        <input class="form-check-input" type="checkbox" id="halfDay">
+                                        <label class="form-check-label small" for="halfDay">Yes</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Right: Leave Period Summary -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Leave Period</h6>
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <div class="text-center p-2 bg-light rounded">
+                                        <small class="text-muted d-block">Total Days</small>
+                                        <strong id="totalDays" class="fs-5">0</strong>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-center p-2 bg-light rounded">
+                                        <small class="text-muted d-block">Working Days</small>
+                                        <strong id="workingDays" class="fs-5">0</strong>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-center p-2 bg-success bg-opacity-10 rounded">
+                                        <small class="text-muted d-block">Balance</small>
+                                        <strong id="summaryBalance" class="fs-5 text-success">—</strong>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-                <div class="leave-form-section">
-                    <h3 class="section-heading">
-                        <i class="fas fa-calendar-alt"></i>
-                        Leave Period
-                    </h3>
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <label for="start_date" class="form-label">Start Date *</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ form_data.get('start_date') if form_data else (leave.start_date.strftime('%Y-%m-%d') if leave else '') }}" required>
-                        <div class="invalid-feedback">Please select a start date.</div>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="end_date" class="form-label">End Date *</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ form_data.get('end_date') if form_data else (leave.end_date.strftime('%Y-%m-%d') if leave else '') }}" required>
-                        <div class="invalid-feedback">Please select an end date.</div>
-                    </div>
-                </div>
-
-                <div class="leave-timeline">
-                    <div class="item">
-                        <span>Total Days</span>
-                        <strong id="totalDays">0</strong>
-                    </div>
-                    <div class="item">
-                        <span>Working Days</span>
-                        <strong id="workingDays">0</strong>
-                    </div>
-                    <div class="item">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="halfDay">
-                            <label class="form-check-label" for="halfDay">Half Day leave</label>
+            <!-- Section 2: Reason & Contact (Side by Side) -->
+            <div class="card mb-3">
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <!-- Left: Reason & Documentation -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3"><i class="fas fa-file-alt me-2"></i>Reason & Documentation</h6>
+                            <div class="mb-2">
+                                <label for="reason" class="form-label small">Reason for Leave</label>
+                                <textarea class="form-control form-control-sm" id="reason" name="reason" rows="2" placeholder="Brief context">{{ form_data.get('reason') if form_data else (leave.reason if leave else '') }}</textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label for="attachment" class="form-label small">
+                                    <i class="fas fa-paperclip me-1"></i>Attach Document (Optional)
+                                </label>
+                                <input type="file" class="form-control form-control-sm" id="attachment" name="attachment" accept=".pdf,.jpg,.jpeg,.png">
+                                <small class="form-text text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
+                            </div>
+                            <div class="alert alert-warning py-2 px-3 mb-0">
+                                <small><i class="fas fa-info-circle me-1"></i><strong>Guidelines:</strong> Annual leave: 2 weeks advance. Medical leave >3 days: MC required.</small>
+                            </div>
                         </div>
-                        <small class="text-muted">Use for partial-day requests</small>
+                        <!-- Right: Contact & Coverage -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3"><i class="fas fa-phone-alt me-2"></i>Contact & Coverage</h6>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label for="contact_phone" class="form-label small">Emergency Contact</label>
+                                    <input type="tel" class="form-control form-control-sm" id="contact_phone" name="contact_phone" placeholder="+65 XXXX XXXX">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Contactable</label>
+                                    <div class="form-check form-switch mt-1">
+                                        <input class="form-check-input" type="checkbox" id="contactable" checked>
+                                        <label class="form-check-label small" for="contactable">Available for urgent matters</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label for="coverage_notes" class="form-label small">Handover Notes</label>
+                                    <textarea class="form-control form-control-sm" id="coverage_notes" name="coverage_notes" rows="2" placeholder="Task coverage details"></textarea>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-                <div class="leave-form-section">
-                    <h3 class="section-heading">
-                        <i class="fas fa-file-alt"></i>
-                        Reason & Documentation
-                    </h3>
-                <div class="mb-4">
-                    <label for="reason" class="form-label">Reason for Leave</label>
-                    <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="Provide brief context or supporting details">{{ form_data.get('reason') if form_data else (leave.reason if leave else '') }}</textarea>
-                    <small class="text-muted d-block mt-2">
-                        <i class="fas fa-lightbulb"></i>
-                        Be specific for medical or emergency leaves.
-                    </small>
-                </div>
-                <div class="alert alert-warning">
-                    <h6 class="fw-semibold mb-2">
-                        <i class="fas fa-info-circle"></i>
-                        Guidelines
-                    </h6>
-                    <ul class="mb-0 ps-3">
-                        <li>Submit annual leave at least two weeks in advance.</li>
-                        <li>Medical leave longer than 3 days requires a medical certificate.</li>
-                        <li>Emergency leave should be notified as soon as possible.</li>
-                    </ul>
                 </div>
             </div>
 
-                <div class="leave-form-section">
-                    <h3 class="section-heading">
-                        <i class="fas fa-phone-alt"></i>
-                        Contact & Coverage
-                    </h3>
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <label for="contact_phone" class="form-label">Emergency Contact Number</label>
-                        <input type="tel" class="form-control" id="contact_phone" name="contact_phone" placeholder="+65 XXXX XXXX">
-                        <small class="text-muted">For urgent communication while away.</small>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Contact Preference</label>
-                        <div class="form-check form-switch mt-2">
-                            <input class="form-check-input" type="checkbox" id="contactable" checked>
-                            <label class="form-check-label" for="contactable">Available for urgent matters</label>
+            <!-- Section 3: Request Summary (Bottom) -->
+            <div class="card">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Request Summary</h6>
+                            <small class="text-muted">
+                                <span id="summaryType">—</span> | 
+                                <span id="summaryPeriod">—</span> | 
+                                <span id="summaryDays">0</span> days
+                            </small>
                         </div>
-                    </div>
-                    <div class="col-12">
-                        <label for="coverage_notes" class="form-label">Handover Notes</label>
-                        <textarea class="form-control" id="coverage_notes" name="coverage_notes" rows="3" placeholder="Outline task coverage, handover details, and key contacts"></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-            </div>
-
-            <!-- Sidebar Summary -->
-            <div class="leave-form-sidebar">
-                <div class="leave-summary-card">
-                    <div class="summary-header">
-                        <h3 class="summary-title">Request Summary</h3>
-                        <span class="badge bg-primary">Draft</span>
-                    </div>
-
-                    <div class="summary-balance-card">
-                        <div class="balance-icon">
-                            <i class="fas fa-leaf"></i>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('leave_list') }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-sm btn-primary" id="submitBtn">
+                                <i class="fas fa-paper-plane"></i> Submit Request
+                            </button>
                         </div>
-                        <div class="balance-info">
-                            <div class="balance-value" id="summaryBalance">—</div>
-                            <div class="balance-label">Leave Balance</div>
-                        </div>
-                    </div>
-
-                    <div class="summary-details">
-                        <div class="summary-item">
-                            <span class="summary-label">Leave Type</span>
-                            <strong class="summary-value" id="summaryType">—</strong>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Period</span>
-                            <strong class="summary-value" id="summaryPeriod">—</strong>
-                        </div>
-                        <div class="summary-item">
-                            <span class="summary-label">Days Requested</span>
-                            <strong class="summary-value" id="summaryDays">0</strong>
-                        </div>
-                    </div>
-
-                    <div class="summary-info-box">
-                        <div class="info-icon">
-                            <i class="fas fa-info-circle"></i>
-                        </div>
-                        <div class="info-content">
-                            <h6 class="info-title">Approval Workflow</h6>
-                            <p class="info-text">Your manager will review within 2 business days. Track status under "Leave Requests".</p>
-                        </div>
-                    </div>
-
-                    <div class="summary-actions">
-                        <a href="{{ url_for('leave_list') }}" class="btn btn-outline-secondary btn-block">
-                            <i class="fas fa-times"></i>
-                            Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
-                            <i class="fas fa-paper-plane"></i>
-                            Submit Request
-                        </button>
                     </div>
                 </div>
             </div>

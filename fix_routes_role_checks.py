@@ -3,9 +3,11 @@ Script to fix all role checks in routes.py to use current_user.role.name
 """
 
 import re
+import os
 
 def fix_routes_file():
-    file_path = 'E:/Gobi/Pro/HRMS/hrm/routes.py'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(script_dir, 'routes.py')
     
     print("\n" + "="*60)
     print("🔧 FIXING ROLE CHECKS IN ROUTES.PY")

@@ -48,12 +48,6 @@ class User(db.Model, UserMixin):
     def role_name(self):
         return self.role.name if self.role else None
 
-# OAuth table removed - no longer using Replit Auth
-
-
-# =====================================================
-# TENANT & COMPANY MODELS (Multi-tenant Hierarchy)
-# =====================================================
 
 class Tenant(db.Model):
     """Top-level tenant entity for multi-tenant HRMS"""
@@ -63,32 +57,30 @@ class Tenant(db.Model):
         Index('idx_hrm_tenant_is_active', 'is_active'),
         Index('idx_hrm_tenant_created_at', 'created_at'),
     )
-    
+
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = db.Column(db.String(255), unique=True, nullable=False)
     code = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    
-    # Country and Currency fields (CR: Super Admin - Tenant Master)
-    country_code = db.Column(db.String(10), nullable=True)  # e.g., 'SG', 'US', 'IN'
-    currency_code = db.Column(db.String(10), nullable=True)  # e.g., 'SGD', 'USD', 'INR'
-    
-    # Audit fields
+
+    country_code = db.Column(db.String(10), nullable=True)
+    currency_code = db.Column(db.String(10), nullable=True)
+
     created_by = db.Column(db.String(100), nullable=False, default='system')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     modified_by = db.Column(db.String(100))
     modified_at = db.Column(db.DateTime)
-    
-    # Relationships
+
     companies = db.relationship('Company', back_populates='tenant', cascade='all, delete-orphan')
     organizations = db.relationship('Organization', back_populates='tenant')
     payment_configs = db.relationship('TenantPaymentConfig', back_populates='tenant', cascade='all, delete-orphan')
     documents = db.relationship('TenantDocument', back_populates='tenant', cascade='all, delete-orphan')
-    
+    configuration = db.relationship('TenantConfiguration', uselist=False, backref='tenant_obj', foreign_keys='TenantConfiguration.tenant_id')
+
     def __repr__(self):
         return f'<Tenant {self.name} ({self.code})>'
-    
+
     def to_dict(self):
         return {
             'id': str(self.id),
@@ -115,39 +107,35 @@ class Company(db.Model):
         Index('idx_hrm_company_created_at', 'created_at'),
         UniqueConstraint('tenant_id', 'code', name='uq_company_tenant_code'),
     )
-    
+
     id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     code = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text)
-    
-    # Company details
+
     address = db.Column(db.Text)
-    uen = db.Column(db.String(50))  # Unique Entity Number (Singapore)
+    uen = db.Column(db.String(50))
     registration_number = db.Column(db.String(100))
     tax_id = db.Column(db.String(50))
     phone = db.Column(db.String(20))
     email = db.Column(db.String(255))
     website = db.Column(db.String(255))
     logo_path = db.Column(db.String(255))
-    
-    # Status
+
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    
-    # Audit fields
+
     created_by = db.Column(db.String(100), nullable=False, default='system')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     modified_by = db.Column(db.String(100))
     modified_at = db.Column(db.DateTime)
-    
-    # Relationships
+
     tenant = db.relationship('Tenant', back_populates='companies')
     employees = db.relationship('Employee', back_populates='company')
-    
+
     def __repr__(self):
         return f'<Company {self.name} ({self.code})>'
-    
+
     def to_dict(self):
         return {
             'id': str(self.id),
@@ -177,33 +165,28 @@ class TenantPaymentConfig(db.Model):
     __table_args__ = (
         Index('idx_hrm_tenant_payment_tenant_id', 'tenant_id'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
-    
-    # Payment Type: 'Fixed' or 'User-Based'
+
     payment_type = db.Column(db.String(20), nullable=False, default='Fixed')
-    
-    # Fixed Payment Fields
+
     implementation_charges = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     monthly_charges = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     other_charges = db.Column(db.Numeric(10, 2), nullable=True, default=0)
-    
-    # Payment Collection Frequency: 'Monthly', 'Quarterly', 'Half-Yearly', 'Yearly'
+
     frequency = db.Column(db.String(20), nullable=False, default='Monthly')
-    
-    # Audit fields
+
     created_by = db.Column(db.String(100), nullable=False, default='system')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
     modified_by = db.Column(db.String(100))
     modified_at = db.Column(db.DateTime)
-    
-    # Relationships
+
     tenant = db.relationship('Tenant', back_populates='payment_configs')
-    
+
     def __repr__(self):
         return f'<TenantPaymentConfig {self.tenant_id} - {self.payment_type}>'
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -226,24 +209,22 @@ class TenantDocument(db.Model):
     __table_args__ = (
         Index('idx_hrm_tenant_documents_tenant_id', 'tenant_id'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
     file_name = db.Column(db.String(255), nullable=False)
-    file_path = db.Column(db.String(500), nullable=False)  # Relative path under static/uploads/
-    file_type = db.Column(db.String(50), nullable=True)  # e.g., 'Contract', 'Agreement', 'License'
-    file_size = db.Column(db.Integer, nullable=True)  # File size in bytes
-    
-    # Audit fields
+    file_path = db.Column(db.String(500), nullable=False)
+    file_type = db.Column(db.String(50), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)
+
     uploaded_by = db.Column(db.String(100), nullable=False)
     upload_date = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    
-    # Relationships
+
     tenant = db.relationship('Tenant', back_populates='documents')
-    
+
     def __repr__(self):
         return f'<TenantDocument {self.file_name} for Tenant {self.tenant_id}>'
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -263,7 +244,7 @@ class Employee(db.Model):
     employee_id = db.Column(db.String(20), unique=True, nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    father_name = db.Column(db.String(100))  # NEW: For team info display
+    father_name = db.Column(db.String(100))
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone = db.Column(db.String(20))
     nric = db.Column(db.String(20), unique=True, nullable=False)
@@ -272,59 +253,53 @@ class Employee(db.Model):
     nationality = db.Column(db.String(50))
     address = db.Column(db.Text)
     postal_code = db.Column(db.String(10))
-    location = db.Column(db.String(100))  # NEW: Work location for team display
-    profile_image_path = db.Column(db.String(255))  # Relative path under static/
-    timezone = db.Column(db.String(50), default='UTC')  # NEW: For attendance timezone handling
+    location = db.Column(db.String(100))
+    profile_image_path = db.Column(db.String(255))
+    timezone = db.Column(db.String(50), default='UTC')
 
-    # Employment details
     position = db.Column(db.String(100), nullable=False)
+    designation_id = db.Column(db.Integer, db.ForeignKey('hrm_designation.id'), nullable=True)
     department = db.Column(db.String(100))
     hire_date = db.Column(db.Date, nullable=False)
-    employment_type = db.Column(db.String(20))  # Full-time, Part-time, Contract
-    work_permit_type = db.Column(db.String(30))  # Citizen, PR, Work Permit, S Pass, EP
-    work_permit_number = db.Column(db.String(50))  # NEW: Work permit number
+    employment_type = db.Column(db.String(20))
+    work_permit_type = db.Column(db.String(30))
+    work_permit_number = db.Column(db.String(50))
     work_permit_expiry = db.Column(db.Date)
 
-    # Salary details
     basic_salary = db.Column(db.Numeric(10, 2), nullable=False)
     allowances = db.Column(db.Numeric(10, 2), default=0)
     hourly_rate = db.Column(db.Numeric(8, 2))
 
-    # CPF details
     cpf_account = db.Column(db.String(20))
     employee_cpf_rate = db.Column(db.Numeric(5, 2), default=20.00)
     employer_cpf_rate = db.Column(db.Numeric(5, 2), default=17.00)
 
-    # Bank details
     bank_name = db.Column(db.String(100))
     bank_account = db.Column(db.String(30))
     account_holder_name = db.Column(db.String(100))
-    swift_code = db.Column(db.String(11))  # 8 or 11 characters
-    ifsc_code = db.Column(db.String(11))   # 11 characters
+    swift_code = db.Column(db.String(11))
+    ifsc_code = db.Column(db.String(11))
 
-    # Status
     is_active = db.Column(db.Boolean, default=True)
     termination_date = db.Column(db.Date)
 
-    # Foreign key to User for system access
     user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
     manager_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='SET NULL'), nullable=True)
-    
-    # NEW: Company hierarchy link
+
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
 
-    # Master data relationships
     working_hours_id = db.Column(db.Integer, db.ForeignKey('hrm_working_hours.id'), nullable=True)
     work_schedule_id = db.Column(db.Integer, db.ForeignKey('hrm_work_schedules.id'), nullable=True)
+    
+    # Overtime Configuration
+    overtime_group_id = db.Column(db.String(50), nullable=True)  # Group mapping for overtime (e.g., "Group 1", "Group 2", etc.)
 
-    # Audit fields
     created_at = db.Column(db.DateTime, default=datetime.now)
     modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     created_by = db.Column(db.String(100), default='system')
     modified_by = db.Column(db.String(100))
 
-    # Relationships
     user = db.relationship('User', back_populates='employee_profile')
     organization = db.relationship('Organization', back_populates='org_employees')
     company = db.relationship('Company', back_populates='employees')
@@ -337,6 +312,7 @@ class Employee(db.Model):
     )
     working_hours = db.relationship('WorkingHours', backref='employees')
     work_schedule = db.relationship('WorkSchedule', backref='employees')
+    designation = db.relationship('Designation', backref='employees')
     leaves = db.relationship('Leave', back_populates='employee')
     claims = db.relationship('Claim', back_populates='employee')
     appraisals = db.relationship('Appraisal', back_populates='employee')
@@ -363,25 +339,23 @@ class EmployeeDocument(db.Model):
         Index('ix_hrm_employee_documents_document_type', 'document_type'),
         Index('ix_hrm_employee_documents_year_month', 'year', 'month'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
-    document_type = db.Column(db.String(50), nullable=False)  # Offer Letter, Appraisal Letter, Salary Slip
-    file_path = db.Column(db.String(255), nullable=False)  # Relative path under static/
+    document_type = db.Column(db.String(50), nullable=False)
+    file_path = db.Column(db.String(255), nullable=False)
     issue_date = db.Column(db.Date, nullable=False)
-    month = db.Column(db.Integer, nullable=True)  # For salary slips (1-12)
-    year = db.Column(db.Integer, nullable=True)   # For salary slips
+    month = db.Column(db.Integer, nullable=True)
+    year = db.Column(db.Integer, nullable=True)
     description = db.Column(db.Text, nullable=True)
-    
-    # Audit fields
+
     uploaded_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    # Relationships
+
     employee = db.relationship('Employee', back_populates='documents')
     uploader = db.relationship('User', foreign_keys=[uploaded_by])
-    
+
     def __repr__(self):
         return f'<EmployeeDocument {self.document_type} for Employee {self.employee_id}>'
 
@@ -392,21 +366,19 @@ class EmployeeBankInfo(db.Model):
     __table_args__ = (
         Index('ix_hrm_employee_bank_info_employee_id', 'employee_id'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False, unique=True)
     bank_account_name = db.Column(db.String(100), nullable=True)
     bank_account_number = db.Column(db.String(30), nullable=True)
     bank_code = db.Column(db.String(20), nullable=True)
     paynow_no = db.Column(db.String(20), nullable=True)
-    
-    # Audit fields
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    # Relationships
+
     employee = db.relationship('Employee', backref=db.backref('bank_info', uselist=False))
-    
+
     def __repr__(self):
         return f'<EmployeeBankInfo for Employee {self.employee_id}>'
 
@@ -417,48 +389,45 @@ class PayrollConfiguration(db.Model):
     __table_args__ = (
         Index('ix_hrm_payroll_config_employee_id', 'employee_id'),
     )
-    
+
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False, unique=True)
-    
-    # Allowances (can be customized per employee)
+
     allowance_1_name = db.Column(db.String(100), default='Transport Allowance')
     allowance_1_amount = db.Column(db.Numeric(10, 2), default=0)
-    
+
     allowance_2_name = db.Column(db.String(100), default='Housing Allowance')
     allowance_2_amount = db.Column(db.Numeric(10, 2), default=0)
-    
+
     allowance_3_name = db.Column(db.String(100), default='Meal Allowance')
     allowance_3_amount = db.Column(db.Numeric(10, 2), default=0)
-    
+
     allowance_4_name = db.Column(db.String(100), default='Other Allowance')
     allowance_4_amount = db.Column(db.Numeric(10, 2), default=0)
-    
-    # Overtime rate per hour (overrides employee.hourly_rate if set)
+
+    levy_allowance_name = db.Column(db.String(100), default='Levy Allowance')
+    levy_allowance_amount = db.Column(db.Numeric(10, 2), default=0)
+
     ot_rate_per_hour = db.Column(db.Numeric(8, 2), nullable=True)
-    
-    # NEW: CPF and Net Salary fields
+
     employer_cpf = db.Column(db.Numeric(10, 2), default=0)
     employee_cpf = db.Column(db.Numeric(10, 2), default=0)
     net_salary = db.Column(db.Numeric(10, 2), default=0)
     remarks = db.Column(db.Text, nullable=True)
-    
-    # Audit fields
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     updated_by = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
-    
-    # Relationships
+
     employee = db.relationship('Employee', backref=db.backref('payroll_config', uselist=False))
     updated_by_user = db.relationship('User')
-    
+
     def get_total_allowances(self):
-        """Calculate total allowances"""
         return (self.allowance_1_amount or 0) + (self.allowance_2_amount or 0) + \
-               (self.allowance_3_amount or 0) + (self.allowance_4_amount or 0)
-    
+               (self.allowance_3_amount or 0) + (self.allowance_4_amount or 0) + \
+               (self.levy_allowance_amount or 0)
+
     def get_effective_ot_rate(self):
-        """Get effective OT rate (from config or employee hourly rate)"""
         return self.ot_rate_per_hour or self.employee.hourly_rate or 0
 
 
@@ -468,34 +437,31 @@ class Payroll(db.Model):
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     pay_period_start = db.Column(db.Date, nullable=False)
     pay_period_end = db.Column(db.Date, nullable=False)
-    
-    # Earnings
+
     basic_pay = db.Column(db.Numeric(10, 2), nullable=False)
     overtime_pay = db.Column(db.Numeric(10, 2), default=0)
     allowances = db.Column(db.Numeric(10, 2), default=0)
     bonuses = db.Column(db.Numeric(10, 2), default=0)
     gross_pay = db.Column(db.Numeric(10, 2), nullable=False)
-    
-    # Deductions
+
     employee_cpf = db.Column(db.Numeric(10, 2), default=0)
     employer_cpf = db.Column(db.Numeric(10, 2), default=0)
     income_tax = db.Column(db.Numeric(10, 2), default=0)
     other_deductions = db.Column(db.Numeric(10, 2), default=0)
-    
-    # Net pay
+
     net_pay = db.Column(db.Numeric(10, 2), nullable=False)
-    
-    # Work details
+
     days_worked = db.Column(db.Integer, default=0)
     overtime_hours = db.Column(db.Numeric(5, 2), default=0)
     leave_days = db.Column(db.Integer, default=0)
-    
-    # Status
-    status = db.Column(db.String(20), default='Draft')  # Draft, Approved, Paid
+    absent_days = db.Column(db.Integer, default=0)
+    lop_days = db.Column(db.Integer, default=0)
+    lop_deduction = db.Column(db.Numeric(10, 2), default=0)
+
+    status = db.Column(db.String(20), default='Draft')
     generated_by = db.Column(db.Integer, db.ForeignKey(User.id))
     generated_at = db.Column(db.DateTime, default=datetime.now)
-    
-    # Relationships
+
     employee = db.relationship('Employee', backref='payrolls')
     generated_by_user = db.relationship('User')
 
@@ -504,63 +470,57 @@ class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
-    
-    # Time tracking
+
     clock_in = db.Column(db.Time)
     clock_out = db.Column(db.Time)
     break_start = db.Column(db.Time)
     break_end = db.Column(db.Time)
-    
-    # Hours calculation
+
     regular_hours = db.Column(db.Numeric(5, 2), default=0)
     overtime_hours = db.Column(db.Numeric(5, 2), default=0)
     total_hours = db.Column(db.Numeric(5, 2), default=0)
-    
-    # NEW: Overtime tracking
+
     has_overtime = db.Column(db.Boolean, default=False)
     overtime_approved = db.Column(db.Boolean, nullable=True)
     overtime_approved_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
     overtime_approved_at = db.Column(db.DateTime, nullable=True)
-    
-    # Status
-    status = db.Column(db.String(20), default='Present')  # Present, Absent, Late, Half-day
+
+    status = db.Column(db.String(20), default='Pending')
     remarks = db.Column(db.Text)
     
-    # Location tracking for mobile
+    lop = db.Column(db.Boolean, default=False)  # Loss of Pay
+
     location_lat = db.Column(db.String(20))
     location_lng = db.Column(db.String(20))
-    
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    # Relationships
+
     employee = db.relationship('Employee', backref='attendances')
     overtime_approver = db.relationship('User', foreign_keys=[overtime_approved_by])
-    
+
     __table_args__ = (UniqueConstraint('employee_id', 'date'),)
 
 class Leave(db.Model):
     __tablename__ = 'hrm_leave'
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
-    leave_type = db.Column(db.String(30), nullable=False)  # Annual, Medical, Maternity, etc.
+    leave_type = db.Column(db.String(30), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     days_requested = db.Column(db.Integer, nullable=False)
-    
+
     reason = db.Column(db.Text)
-    status = db.Column(db.String(20), default='Pending')  # Pending, Approved, Rejected
-    
-    # Approval workflow
+    status = db.Column(db.String(20), default='Pending')
+
     requested_by = db.Column(db.Integer, db.ForeignKey(User.id))
     approved_by = db.Column(db.Integer, db.ForeignKey(User.id))
     approved_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.Text)
-    
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    # Relationships
+
     employee = db.relationship('Employee', back_populates='leaves')
     requested_by_user = db.relationship('User', foreign_keys=[requested_by])
     approved_by_user = db.relationship('User', foreign_keys=[approved_by])
@@ -569,24 +529,22 @@ class Claim(db.Model):
     __tablename__ = 'hrm_claim'
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
-    claim_type = db.Column(db.String(30), nullable=False)  # Medical, Transport, etc.
+    claim_type = db.Column(db.String(30), nullable=False)
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     claim_date = db.Column(db.Date, nullable=False)
-    
+
     description = db.Column(db.Text)
     receipt_number = db.Column(db.String(50))
-    status = db.Column(db.String(20), default='Pending')  # Pending, Approved, Rejected, Paid
-    
-    # Approval workflow
+    status = db.Column(db.String(20), default='Pending')
+
     submitted_by = db.Column(db.Integer, db.ForeignKey(User.id))
     approved_by = db.Column(db.Integer, db.ForeignKey(User.id))
     approved_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.Text)
-    
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    # Relationships
+
     employee = db.relationship('Employee', back_populates='claims')
     submitted_by_user = db.relationship('User', foreign_keys=[submitted_by])
     approved_by_user = db.relationship('User', foreign_keys=[approved_by])
@@ -597,82 +555,71 @@ class Appraisal(db.Model):
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     review_period_start = db.Column(db.Date, nullable=False)
     review_period_end = db.Column(db.Date, nullable=False)
-    
-    # Ratings (1-5 scale)
+
     performance_rating = db.Column(db.Integer)
     goals_achievement = db.Column(db.Integer)
     teamwork_rating = db.Column(db.Integer)
     communication_rating = db.Column(db.Integer)
     overall_rating = db.Column(db.Numeric(3, 2))
-    
-    # Feedback
+
     self_review = db.Column(db.Text)
     manager_feedback = db.Column(db.Text)
     development_goals = db.Column(db.Text)
     training_recommendations = db.Column(db.Text)
-    
-    # Status
-    status = db.Column(db.String(20), default='Draft')  # Draft, Submitted, Completed
-    
-    # Workflow
+
+    status = db.Column(db.String(20), default='Draft')
+
     reviewed_by = db.Column(db.Integer, db.ForeignKey(User.id))
     completed_at = db.Column(db.DateTime)
-    
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    # Relationships
+
     employee = db.relationship('Employee', back_populates='appraisals')
     reviewed_by_user = db.relationship('User')
 
 class ComplianceReport(db.Model):
     __tablename__ = 'hrm_compliance_report'
     id = db.Column(db.Integer, primary_key=True)
-    report_type = db.Column(db.String(20), nullable=False)  # CPF, AIS, OED, IRAS
+    report_type = db.Column(db.String(20), nullable=False)
     period_month = db.Column(db.Integer, nullable=False)
     period_year = db.Column(db.Integer, nullable=False)
-    
+
     file_path = db.Column(db.String(255))
     file_name = db.Column(db.String(100))
-    status = db.Column(db.String(20), default='Generated')  # Generated, Submitted
-    
+    status = db.Column(db.String(20), default='Generated')
+
     total_employees = db.Column(db.Integer)
     total_amount = db.Column(db.Numeric(12, 2))
-    
+
     generated_by = db.Column(db.Integer, db.ForeignKey(User.id))
     generated_at = db.Column(db.DateTime, default=datetime.now)
     submitted_at = db.Column(db.DateTime)
-    
-    # Relationships
+
     generated_by_user = db.relationship('User')
 
     def __repr__(self):
         return f'<ComplianceReport {self.report_type} for {self.period_year}-{self.period_month:02d}>'
 
 
-# Master Data Models
 class Organization(db.Model):
     __tablename__ = 'organization'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), unique=True, nullable=False)
     address = db.Column(db.Text, nullable=True)
-    uen = db.Column(db.String(50), nullable=True)  # Unique Entity Number
-    logo_path = db.Column(db.String(255), nullable=True)  # Relative path under static/
-    
-    # NEW: Tenant hierarchy link
+    uen = db.Column(db.String(50), nullable=True)
+    logo_path = db.Column(db.String(255), nullable=True)
+
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='SET NULL'), nullable=True)
-    
-    # Audit fields
+
     created_at = db.Column(db.DateTime, default=datetime.now)
     modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     created_by = db.Column(db.String(100), default='system')
     modified_by = db.Column(db.String(100))
 
-    # Relationships
     tenant = db.relationship('Tenant', back_populates='organizations')
     users = db.relationship('User', back_populates='organization', cascade='all, delete-orphan')
     org_employees = db.relationship('Employee', back_populates='organization', cascade='all, delete-orphan')
-    # Renamed from 'employees' to 'org_employees' to avoid backref conflict
 
     def __repr__(self):
         return f'<Organization {self.name}>'
@@ -703,8 +650,7 @@ class Department(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-    
-    # Relationship
+
     manager = db.relationship('Employee', foreign_keys=[manager_id])
 
     def __repr__(self):
@@ -715,9 +661,9 @@ class WorkingHours(db.Model):
     """Master data for working hours configuration"""
     __tablename__ = 'hrm_working_hours'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "Standard 9-6", "Shift A"
-    hours_per_day = db.Column(db.Numeric(4, 2), nullable=False)  # e.g., 8.00, 8.50
-    hours_per_week = db.Column(db.Numeric(4, 2), nullable=False)  # e.g., 40.00, 44.00
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    hours_per_day = db.Column(db.Numeric(4, 2), nullable=False)
+    hours_per_week = db.Column(db.Numeric(4, 2), nullable=False)
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -731,10 +677,10 @@ class WorkSchedule(db.Model):
     """Master data for work start/end times"""
     __tablename__ = 'hrm_work_schedules'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., "Standard Hours", "Early Shift"
-    start_time = db.Column(db.Time, nullable=False)  # e.g., 09:00:00
-    end_time = db.Column(db.Time, nullable=False)    # e.g., 18:00:00
-    break_duration = db.Column(db.Integer, default=60)  # break duration in minutes
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    start_time = db.Column(db.Time, nullable=False)
+    end_time = db.Column(db.Time, nullable=False)
+    break_duration = db.Column(db.Integer, default=60)
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -742,3 +688,193 @@ class WorkSchedule(db.Model):
 
     def __repr__(self):
         return f'<WorkSchedule {self.name}: {self.start_time}-{self.end_time}>'
+
+
+class Designation(db.Model):
+    """Master data for job designations/positions"""
+    __tablename__ = 'hrm_designation'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_by = db.Column(db.String(100), default='system')
+    modified_by = db.Column(db.String(100))
+
+    def __repr__(self):
+        return f'<Designation {self.name}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class UserRoleMapping(db.Model):
+    """Maps users to multiple roles and companies for flexible access control"""
+    __tablename__ = 'hrm_user_role_mapping'
+    __table_args__ = (
+        Index('idx_user_role_mapping_user_id', 'user_id'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='CASCADE'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_by = db.Column(db.String(100), default='system')
+
+    user = db.relationship('User', backref='role_mappings')
+    role = db.relationship('Role')
+    company = db.relationship('Company')
+
+    def __repr__(self):
+        return f'<UserRoleMapping user_id={self.user_id} role_id={self.role_id}>'
+
+
+class RoleAccessControl(db.Model):
+    """Controls which roles have access to which modules, menus, and sub-menus"""
+    __tablename__ = 'hrm_role_access_control'
+    __table_args__ = (
+        Index('idx_role_access_module_menu', 'module_name', 'menu_name'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    module_name = db.Column(db.String(100), nullable=False)
+    menu_name = db.Column(db.String(100), nullable=False)
+    sub_menu_name = db.Column(db.String(100), nullable=True)
+
+    super_admin_access = db.Column(db.String(20), default='Editable')
+    tenant_admin_access = db.Column(db.String(20), default='Hidden')
+    hr_manager_access = db.Column(db.String(20), default='Hidden')
+    employee_access = db.Column(db.String(20), default='Hidden')
+
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_by = db.Column(db.String(100), default='system')
+    updated_by = db.Column(db.String(100))
+
+    def __repr__(self):
+        return f'<RoleAccessControl {self.module_name}.{self.menu_name}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'module_name': self.module_name,
+            'menu_name': self.menu_name,
+            'sub_menu_name': self.sub_menu_name,
+            'super_admin_access': self.super_admin_access,
+            'tenant_admin_access': self.tenant_admin_access,
+            'hr_manager_access': self.hr_manager_access,
+            'employee_access': self.employee_access,
+        }
+
+
+class AuditLog(db.Model):
+    """Audit log for tracking all access control and system changes"""
+    __tablename__ = 'hrm_audit_log'
+    __table_args__ = (
+        Index('idx_audit_log_user_id', 'user_id'),
+        Index('idx_audit_log_action', 'action'),
+        Index('idx_audit_log_created_at', 'created_at'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
+    action = db.Column(db.String(100), nullable=False)
+    resource_type = db.Column(db.String(100), nullable=False)
+    resource_id = db.Column(db.String(100), nullable=False)
+    changes = db.Column(db.Text)
+    status = db.Column(db.String(20), default='Success')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    user = db.relationship('User', backref='audit_logs')
+
+    def __repr__(self):
+        return f'<AuditLog {self.action} on {self.resource_type}:{self.resource_id}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'action': self.action,
+            'resource_type': self.resource_type,
+            'resource_id': self.resource_id,
+            'changes': self.changes,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class TenantConfiguration(db.Model):
+    """Tenant-level configuration settings for advanced features"""
+    __tablename__ = 'hrm_tenant_configuration'
+    __table_args__ = (
+        Index('idx_tenant_config_tenant_id', 'tenant_id'),
+        UniqueConstraint('tenant_id', name='uq_tenant_config_tenant'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
+
+    # Payslip Logo Configuration
+    payslip_logo_path = db.Column(db.String(255), nullable=True)
+    payslip_logo_filename = db.Column(db.String(255), nullable=True)
+    payslip_logo_uploaded_by = db.Column(db.String(100), nullable=True)
+    payslip_logo_uploaded_at = db.Column(db.DateTime, nullable=True)
+
+    # Employee ID Configuration
+    employee_id_prefix = db.Column(db.String(50), default='EMP')
+    employee_id_company_code = db.Column(db.String(20), nullable=True)
+    employee_id_format = db.Column(db.String(100), default='prefix-company-number')  # e.g., "EMP-ACME-0001"
+    employee_id_separator = db.Column(db.String(5), default='-')
+    employee_id_next_number = db.Column(db.Integer, default=1)
+    employee_id_pad_length = db.Column(db.Integer, default=4)  # Number of zeros to pad (e.g., 0001)
+    employee_id_suffix = db.Column(db.String(50), nullable=True)
+
+    # Overtime Configuration
+    overtime_enabled = db.Column(db.Boolean, default=True)
+    overtime_calculation_method = db.Column(db.String(20), default='By User')  # By User, By Designation, By Group
+    overtime_group_type = db.Column(db.String(50), nullable=True)  # Group 1, Group 2, etc.
+
+    # Overtime Charges
+    general_overtime_rate = db.Column(db.Numeric(5, 2), default=1.5)  # Multiplier or percentage
+    holiday_overtime_rate = db.Column(db.Numeric(5, 2), default=2.0)
+    weekend_overtime_rate = db.Column(db.Numeric(5, 2), default=1.5)
+
+    # Metadata
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    updated_by = db.Column(db.String(100), nullable=True)
+
+    tenant = db.relationship('Tenant', foreign_keys=[tenant_id], overlaps="configuration,tenant_obj")
+
+    def __repr__(self):
+        return f'<TenantConfiguration {self.tenant_id}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'tenant_id': str(self.tenant_id),
+            'payslip_logo_path': self.payslip_logo_path,
+            'employee_id_prefix': self.employee_id_prefix,
+            'employee_id_company_code': self.employee_id_company_code,
+            'employee_id_format': self.employee_id_format,
+            'employee_id_separator': self.employee_id_separator,
+            'employee_id_next_number': self.employee_id_next_number,
+            'employee_id_pad_length': self.employee_id_pad_length,
+            'employee_id_suffix': self.employee_id_suffix,
+            'overtime_enabled': self.overtime_enabled,
+            'overtime_calculation_method': self.overtime_calculation_method,
+            'overtime_group_type': self.overtime_group_type,
+            'general_overtime_rate': float(self.general_overtime_rate),
+            'holiday_overtime_rate': float(self.holiday_overtime_rate),
+            'weekend_overtime_rate': float(self.weekend_overtime_rate),
+        }

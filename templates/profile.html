@@ -185,7 +185,7 @@
 <style>
 /* Profile Page Styling */
 .profile-page-hr {
-    background-color: #f8f9fa;
+    background-color: #f8fafb;
     padding: 2rem 0;
     min-height: calc(100vh - var(--header-height, 64px));
 }
@@ -208,11 +208,11 @@
     height: 120px;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid var(--primary-green, #2D6A4F);
+    border: 3px solid #008080;
     margin: 0 auto;
     position: relative;
-    background: #f8f9fa;
-    box-shadow: 0 4px 12px rgba(45, 106, 79, 0.15);
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 128, 128, 0.15);
     flex-shrink: 0; /* Prevent shrinking */
     max-width: 120px;
     max-height: 120px;
@@ -256,7 +256,7 @@
     bottom: 0.25rem;
     right: 0.25rem;
     background-color: #ffffff;
-    border: 2px solid var(--primary-green, #2D6A4F);
+    border: 2px solid #008080;
     border-radius: 50%;
     width: 32px;
     height: 32px;
@@ -269,7 +269,7 @@
 }
 
 .profile-edit-photo:hover {
-    background-color: var(--primary-green, #2D6A4F);
+    background-color: #008080;
     color: #ffffff;
     transform: scale(1.1);
 }
@@ -333,7 +333,7 @@
     top: 2rem;
     bottom: -1rem;
     width: 2px;
-    background-color: #e9ecef;
+    background-color: var(--bs-secondary, #A5C2C4);
 }
 
 .timeline-icon {
@@ -347,7 +347,7 @@
 }
 
 .card-header-green {
-    background: linear-gradient(135deg, var(--primary-green, #2D6A4F), var(--primary-green-light, #40916C));
+    background: linear-gradient(135deg, var(--primary-green, #6C8F91), var(--primary-green-light, #7BA6AA));
     color: white;
     border: none;
     padding: 1rem 1.5rem;
@@ -459,12 +459,12 @@
 
 /* Accessibility and Focus States */
 .profile-edit-photo:focus {
-    outline: 2px solid var(--primary-green, #2D6A4F);
+    outline: 2px solid var(--primary-green, #6C8F91);
     outline-offset: 2px;
 }
 
 .profile-page-hr .profile-image-container img:focus {
-    outline: 2px solid var(--primary-green, #2D6A4F);
+    outline: 2px solid var(--primary-green, #6C8F91);
     outline-offset: 2px;
 }
 
@@ -487,19 +487,19 @@
 
 /* Button Styling */
 .btn-outline-primary {
-    border-color: var(--primary-green, #2D6A4F);
-    color: var(--primary-green, #2D6A4F);
+    border-color: var(--primary-green, #6C8F91);
+    color: var(--primary-green, #6C8F91);
     font-weight: 500;
     transition: all 0.3s ease;
 }
 
 .btn-outline-primary:hover,
 .btn-outline-primary:focus {
-    background-color: var(--primary-green, #2D6A4F);
-    border-color: var(--primary-green, #2D6A4F);
+    background-color: var(--primary-green, #6C8F91);
+    border-color: var(--primary-green, #6C8F91);
     color: white;
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(45, 106, 79, 0.2);
+    box-shadow: 0 4px 8px rgba(108, 143, 145, 0.2);
 }
 
 .btn-outline-primary:active {
@@ -527,7 +527,7 @@
     }
     
     .card-header-green {
-        background: #f8f9fa !important;
+        background: #e8f4f5 !important;
         color: #333 !important;
     }
 }

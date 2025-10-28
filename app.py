@@ -47,11 +47,19 @@ else:
 app.secret_key = session_secret
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-logging.info(f"🌍 Running in {environment.upper()} mode")
+logging.info(f"[INFO] Running in {environment.upper()} mode")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     'pool_pre_ping': True,
     "pool_recycle": 300,
 }
+
+# Session configuration for security
+from datetime import timedelta, date
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=2)  # Session expires after 2 hours
+app.config["SESSION_COOKIE_SECURE"] = environment == "production"  # HTTPS only in production
+app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent JavaScript access to session cookie
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
+app.config["SESSION_REFRESH_EACH_REQUEST"] = False  # Don't extend session on each request
 
 # File upload configuration
 app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 1 * 1024 * 1024))  # 1MB default
@@ -72,6 +80,15 @@ import models  # noqa: E402,F401
 
 # Add hasattr to Jinja2 global functions
 app.jinja_env.globals['hasattr'] = hasattr
+
+# Add date module to Jinja2 globals for template use
+app.jinja_env.globals['date'] = date
+
+# Add a helper function to get current year
+def get_current_year():
+    return date.today().year
+
+app.jinja_env.globals['get_current_year'] = get_current_year
 
 # Add custom Jinja2 filters
 def date_filter(value, format='%d/%m/%Y'):

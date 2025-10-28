@@ -11,10 +11,19 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
+login_manager.session_protection = 'strong'  # Protect against session hijacking
+login_manager.refresh_view = 'login'
+login_manager.needs_refresh_message = 'Please log in again to access this page.'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    """Load user from database by user_id stored in session"""
+    if user_id is None:
+        return None
+    try:
+        return User.query.get(int(user_id))
+    except (ValueError, TypeError):
+        return None
 
 def require_login(f):
     """Decorator to require login"""

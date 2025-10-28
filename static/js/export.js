@@ -113,7 +113,7 @@ function exportToPDF(tableId, filename = 'export.pdf') {
     printWindow.document.write('body { font-family: Arial, sans-serif; margin: 20px; }');
     printWindow.document.write('table { width: 100%; border-collapse: collapse; }');
     printWindow.document.write('th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }');
-    printWindow.document.write('th { background-color: #2D6A4F; color: white; }');
+    printWindow.document.write('th { background-color: #6C8F91; color: white; }');
     printWindow.document.write('tr:nth-child(even) { background-color: #f2f2f2; }');
     printWindow.document.write('@media print { body { margin: 0; } }');
     printWindow.document.write('</style>');

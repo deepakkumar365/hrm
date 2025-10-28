@@ -24,118 +24,167 @@
         </div>
     </div>
 
-    <!-- Key Metrics Grid -->
-    <div class="dashboard-grid mb-8">
+    <!-- Key Metrics Grid - Compact Version -->
+    <div class="dashboard-grid mb-4">
         <!-- Total Tenants -->
         <div class="col-span-3">
-            <div class="stat-card">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-sitemap"></i>
-                </div>
-                <div class="stat-card-value">{{ stats.total_tenants }}</div>
-                <div class="stat-card-label">Total Tenants</div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    {{ stats.active_tenants }} Active
+            <div class="stat-card" style="padding: 1rem;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon primary" style="width: 45px; height: 45px;">
+                        <i class="fas fa-sitemap"></i>
+                    </div>
+                    <div>
+                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{ stats.total_tenants }}</div>
+                        <div class="stat-card-label" style="font-size: 0.85rem;">Total Tenants</div>
+                        <div class="stat-card-change positive" style="font-size: 0.75rem;">
+                            {{ stats.active_tenants }} Active
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Total Companies -->
         <div class="col-span-3">
-            <div class="stat-card">
-                <div class="stat-card-icon success">
-                    <i class="fas fa-building"></i>
-                </div>
-                <div class="stat-card-value">{{ stats.total_companies }}</div>
-                <div class="stat-card-label">Total Companies</div>
-                <div class="stat-card-change">
-                    <i class="fas fa-info-circle"></i>
-                    Across all tenants
+            <div class="stat-card" style="padding: 1rem;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon success" style="width: 45px; height: 45px;">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div>
+                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{ stats.total_companies }}</div>
+                        <div class="stat-card-label" style="font-size: 0.85rem;">Total Companies</div>
+                        <div class="stat-card-change" style="font-size: 0.75rem;">
+                            Across all tenants
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Total Users -->
         <div class="col-span-3">
-            <div class="stat-card">
-                <div class="stat-card-icon warning">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div class="stat-card-value">{{ stats.total_users }}</div>
-                <div class="stat-card-label">Total Users</div>
-                <div class="stat-card-change">
-                    <i class="fas fa-user-check"></i>
-                    {{ stats.active_users }} Active
+            <div class="stat-card" style="padding: 1rem;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon warning" style="width: 45px; height: 45px;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{ stats.total_users }}</div>
+                        <div class="stat-card-label" style="font-size: 0.85rem;">Total Users</div>
+                        <div class="stat-card-change" style="font-size: 0.75rem;">
+                            {{ stats.active_users }} Active
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Monthly Revenue -->
         <div class="col-span-3">
-            <div class="stat-card">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-                <div class="stat-card-value">${{ "{:,.0f}".format(stats.monthly_revenue) }}</div>
-                <div class="stat-card-label">Monthly Revenue</div>
-                <div class="stat-card-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    To be collected
+            <div class="stat-card" style="padding: 1rem;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-card-icon primary" style="width: 45px; height: 45px;">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div>
+                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">${{ "{:,.0f}".format(stats.monthly_revenue) }}</div>
+                        <div class="stat-card-label" style="font-size: 0.85rem;">Monthly Revenue</div>
+                        <div class="stat-card-change positive" style="font-size: 0.75rem;">
+                            To be collected
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Charts and Analytics -->
+    <!-- Financial Summary and Tenant Overview -->
     <div class="dashboard-grid">
-        <!-- Users by Company Chart -->
+        <!-- Financial Summary - Equal Width with Recent Tenants -->
         <div class="col-span-6">
-            <div class="chart-card">
-                <div class="chart-card-header">
-                    <div>
-                        <h3 class="chart-card-title">Users by Company</h3>
-                        <p class="text-muted mb-0">Distribution of users across companies</p>
-                    </div>
-                    <div class="badge bg-primary">{{ stats.total_companies }} Companies</div>
+            <div class="card" style="height: 100%;">
+                <div class="card-header">
+                    <h3 class="card-title" style="font-size: 1.4rem;">💰 Financial Summary</h3>
                 </div>
-                <div class="chart-container">
-                    <canvas id="usersByCompanyChart"></canvas>
+                <div class="card-body">
+                    <!-- Revenue Overview -->
+                    <div class="mb-4 p-3 bg-light rounded">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-muted" style="font-size: 1.1rem;">Monthly Revenue</span>
+                            <span class="fw-bold text-success" style="font-size: 1.5rem;">${{ "{:,.2f}".format(stats.monthly_revenue) }}</span>
+                        </div>
+                        <div class="progress" style="height: 12px;">
+                            <div class="progress-bar bg-success" role="progressbar" 
+                                 style="width: {{ (stats.collected_revenue / stats.monthly_revenue * 100) if stats.monthly_revenue > 0 else 0 }}%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <span class="text-muted small">Collected: ${{ "{:,.2f}".format(stats.collected_revenue) }}</span>
+                            <span class="text-muted small">{{ "%.0f"|format((stats.collected_revenue / stats.monthly_revenue * 100) if stats.monthly_revenue > 0 else 0) }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Quarterly Revenue -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted" style="font-size: 1.05rem;">Quarterly Revenue</span>
+                            <span class="fw-bold" style="font-size: 1.3rem;">${{ "{:,.2f}".format(stats.quarterly_revenue) }}</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ (stats.quarterly_collected / stats.quarterly_revenue * 100) if stats.quarterly_revenue > 0 else 0 }}%"></div>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            ${{ "{:,.2f}".format(stats.quarterly_collected) }} collected
+                        </div>
+                    </div>
+
+                    <!-- Yearly Revenue -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted" style="font-size: 1.05rem;">Yearly Revenue</span>
+                            <span class="fw-bold" style="font-size: 1.3rem;">${{ "{:,.2f}".format(stats.yearly_revenue) }}</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ (stats.yearly_collected / stats.yearly_revenue * 100) if stats.yearly_revenue > 0 else 0 }}%"></div>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            ${{ "{:,.2f}".format(stats.yearly_collected) }} collected
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Payment Status -->
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-warning bg-opacity-10 rounded text-center">
+                                <div class="text-muted small mb-1">Pending Payments</div>
+                                <div class="fw-bold text-warning" style="font-size: 1.2rem;">${{ "{:,.2f}".format(stats.pending_payments) }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-danger bg-opacity-10 rounded text-center">
+                                <div class="text-muted small mb-1">Overdue</div>
+                                <div class="fw-bold text-danger" style="font-size: 1.2rem;">${{ "{:,.2f}".format(stats.overdue_payments) }}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Payslips by Month Chart -->
+        <!-- Tenant Overview - Equal Width with Financial Summary -->
         <div class="col-span-6">
-            <div class="chart-card">
-                <div class="chart-card-header">
-                    <div>
-                        <h3 class="chart-card-title">Payslips Generated</h3>
-                        <p class="text-muted mb-0">Monthly payslip generation trend</p>
-                    </div>
-                    <div class="badge bg-success">{{ stats.payslips_this_month }} This Month</div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="payslipsTrendChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tenant Overview and Financial Summary -->
-    <div class="dashboard-grid">
-        <!-- Tenant Overview -->
-        <div class="col-span-8">
-            <div class="card">
+            <div class="card" style="height: 100%;">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="card-title">Tenant Overview</h3>
+                        <h3 class="card-title" style="font-size: 1.4rem;">Recent Tenants</h3>
                         <a href="{{ url_for('tenant_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover mb-0">
                             <thead>
                                 <tr>
                                     <th>Tenant</th>
@@ -178,222 +227,11 @@
                 </div>
             </div>
         </div>
-
-        <!-- Financial Summary -->
-        <div class="col-span-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Financial Summary</h3>
-                </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">This Month</span>
-                            <span class="fw-bold text-success">${{ "{:,.2f}".format(stats.monthly_revenue) }}</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" role="progressbar" 
-                                 style="width: {{ (stats.collected_revenue / stats.monthly_revenue * 100) if stats.monthly_revenue > 0 else 0 }}%"></div>
-                        </div>
-                        <div class="text-muted small mt-1">
-                            ${{ "{:,.2f}".format(stats.collected_revenue) }} collected
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Quarterly</span>
-                            <span class="fw-bold">${{ "{:,.2f}".format(stats.quarterly_revenue) }}</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: 65%"></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Yearly</span>
-                            <span class="fw-bold">${{ "{:,.2f}".format(stats.yearly_revenue) }}</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-info" role="progressbar" style="width: 45%"></div>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted">Pending Payments</span>
-                        <span class="fw-bold text-warning">${{ "{:,.2f}".format(stats.pending_payments) }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Overdue</span>
-                        <span class="fw-bold text-danger">${{ "{:,.2f}".format(stats.overdue_payments) }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Recent Activity -->
-    <div class="dashboard-grid">
-        <div class="col-span-12">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Recent Activity</h3>
-                </div>
-                <div class="card-body">
-                    <div class="row g-4">
-                        {% for activity in recent_activities %}
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="stat-card-icon {{ activity.icon_class }}" style="width: 40px; height: 40px; font-size: 1rem;">
-                                    <i class="fas fa-{{ activity.icon }}"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-semibold">{{ activity.title }}</div>
-                                    <div class="text-muted small">{{ activity.description }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Users by Company Chart
-    const usersByCompanyCtx = document.getElementById('usersByCompanyChart');
-    if (usersByCompanyCtx) {
-        const companyLabels = {{ stats.company_labels|tojson(indent=0) if stats.company_labels else []|tojson(indent=0) }};
-        const companyData = {{ stats.company_user_counts|tojson(indent=0) if stats.company_user_counts else []|tojson(indent=0) }};
-
-        new Chart(usersByCompanyCtx, {
-            type: 'bar',
-            data: {
-                labels: companyLabels,
-                datasets: [{
-                    label: 'Users',
-                    data: companyData,
-                    backgroundColor: 'rgba(45, 106, 79, 0.8)',
-                    borderColor: 'var(--primary-green)',
-                    borderWidth: 1,
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        padding: 12,
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 13
-                        },
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        borderWidth: 1
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Payslips Trend Chart
-    const payslipsTrendCtx = document.getElementById('payslipsTrendChart');
-    if (payslipsTrendCtx) {
-        const monthLabels = {{ stats.payslip_months|tojson(indent=0) if stats.payslip_months else []|tojson(indent=0) }};
-        const payslipData = {{ stats.payslip_counts|tojson(indent=0) if stats.payslip_counts else []|tojson(indent=0) }};
-
-        new Chart(payslipsTrendCtx, {
-            type: 'line',
-            data: {
-                labels: monthLabels,
-                datasets: [{
-                    label: 'Payslips Generated',
-                    data: payslipData,
-                    tension: 0.4,
-                    fill: true,
-                    backgroundColor: 'rgba(82, 183, 136, 0.1)',
-                    borderColor: 'var(--accent-green)',
-                    borderWidth: 3,
-                    pointBackgroundColor: 'var(--accent-green)',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        padding: 12,
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 13
-                        },
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        borderWidth: 1
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-    }
-});
-</script>
+<!-- No additional scripts needed -->
 {% endblock %}
