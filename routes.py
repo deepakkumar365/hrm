@@ -266,6 +266,8 @@ def render_super_admin_dashboard():
     
     # Mock data for collected/pending (can be enhanced with actual payment tracking)
     collected_revenue = monthly_revenue * 0.7  # 70% collected
+    quarterly_collected = quarterly_revenue * 0.7  # 70% collected
+    yearly_collected = yearly_revenue * 0.7  # 70% collected
     pending_payments = monthly_revenue * 0.25  # 25% pending
     overdue_payments = monthly_revenue * 0.05  # 5% overdue
     
@@ -331,7 +333,9 @@ def render_super_admin_dashboard():
         'payslips_this_month': payslips_this_month,
         'monthly_revenue': monthly_revenue,
         'quarterly_revenue': quarterly_revenue,
+        'quarterly_collected': quarterly_collected,
         'yearly_revenue': yearly_revenue,
+        'yearly_collected': yearly_collected,
         'collected_revenue': collected_revenue,
         'pending_payments': pending_payments,
         'overdue_payments': overdue_payments
