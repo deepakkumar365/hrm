@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_payroll_enhancements'
-down_revision = None  # Will be set by Alembic
+down_revision = 'add_payroll_config'
 branch_labels = None
 depends_on = None
 

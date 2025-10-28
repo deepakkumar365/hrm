@@ -16,8 +16,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'add_enhancements_001'
-down_revision = 'remove_role_column'  # Previous migration
+revision = 'add_enhancements_fields'
+down_revision = 'remove_role_column'
 branch_labels = None
 depends_on = None
 

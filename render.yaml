@@ -13,6 +13,8 @@ services:
         generateValue: true
       - key: PROD_DATABASE_URL
         value: postgresql://noltrion_admin:1UzH1rVxlnimPf1qvyLEnuEeOnrybn7f@dpg-d3ii4fruibrs73cukdtg-a.oregon-postgres.render.com:5432/noltrion_hrm?sslmode=require
+      - key: AUTO_MIGRATE_ON_STARTUP
+        value: "true"
       - key: DEV_SESSION_SECRET
         sync: false
       - key: DEV_DATABASE_URL

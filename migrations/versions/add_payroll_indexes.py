@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_payroll_indexes'
-down_revision = '2be68655c2bb'
+down_revision = 'add_designation_to_employee'
 branch_labels = None
 depends_on = None
 

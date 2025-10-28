@@ -12,7 +12,7 @@ from sqlalchemy.engine.reflection import Inspector
 
 # revision identifiers, used by Alembic.
 revision = 'add_attendance_lop_payroll_fields'
-down_revision = 'add_payroll_enhancements'
+down_revision = 'add_payroll_indexes'
 branch_labels = None
 depends_on = None
 

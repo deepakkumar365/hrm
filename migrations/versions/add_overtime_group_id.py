@@ -14,8 +14,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'add_overtime_group_001'
-down_revision = None  # Set to previous migration ID when integrating
+revision = 'add_overtime_group_id'
+down_revision = 'add_tenant_configuration'
 branch_labels = None
 depends_on = None
 

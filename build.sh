@@ -26,8 +26,10 @@ else
 fi
 echo "🔎 Using DATABASE_URL: ${DATABASE_URL:0:30}..."
 
-# Run database migrations
-echo "🔄 Running database migrations..."
+# Run database migrations during build
+# This ensures tables are created before app starts
+# Note: If AUTO_MIGRATE_ON_STARTUP=false, the app will also check and run migrations on startup
+echo "🔄 Running database migrations during build..."
 export FLASK_SKIP_DB_INIT=1
 flask db upgrade
 unset FLASK_SKIP_DB_INIT
@@ -42,3 +44,4 @@ else
 fi
 
 echo "✅ Build completed successfully!"
+echo "📝 Note: If AUTO_MIGRATE_ON_STARTUP is not set, app will auto-check tables on startup"

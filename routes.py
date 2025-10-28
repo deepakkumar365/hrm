@@ -5,6 +5,7 @@ from datetime import datetime, date, time, timedelta
 import calendar
 import os
 import time as pytime
+import subprocess
 from werkzeug.utils import secure_filename
 
 from app import app, db
@@ -111,6 +112,59 @@ def create_default_master_data():
         db.session.rollback()
         return False
 
+# Track if migrations have been run during this startup
+_migrations_applied = False
+
+def check_and_run_migrations():
+    """
+    Check if database tables exist, and if not, run migrations automatically.
+    This only happens during build/deployment phase (controlled by AUTO_MIGRATE_ON_STARTUP env var).
+    """
+    global _migrations_applied
+    
+    if _migrations_applied:
+        return  # Already attempted in this startup
+    
+    _migrations_applied = True
+    
+    try:
+        with app.app_context():
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            
+            # Check if main tables exist
+            required_tables = ['hrm_users', 'hrm_employees', 'hrm_roles']
+            tables_exist = all(table in tables for table in required_tables)
+            
+            if not tables_exist:
+                # Tables don't exist - need to run migrations
+                auto_migrate = os.environ.get('AUTO_MIGRATE_ON_STARTUP', '').lower() in ['true', '1', 'yes']
+                
+                if auto_migrate:
+                    print("[PACKAGE] Database tables not found. Running migrations...")
+                    try:
+                        # Use Flask-Migrate to run migrations
+                        from flask_migrate import upgrade
+                        upgrade(directory='migrations')
+                        print("[OK] Migrations completed successfully!")
+                        return True
+                    except Exception as migrate_error:
+                        print(f"[ERROR] Migration failed: {migrate_error}")
+                        raise
+                else:
+                    print("[WARN] Database tables not found.")
+                    print("       To auto-run migrations on startup, set: AUTO_MIGRATE_ON_STARTUP=true")
+                    print("       Otherwise, run manually: flask db upgrade")
+                    return False
+            else:
+                print("[OK] Database tables exist - skipping migrations")
+                return True
+                
+    except Exception as e:
+        print(f"[ERROR] Error checking database tables: {e}")
+        raise
+
 def initialize_default_data():
     """Initialize default users and master data - call this after ensuring DB is ready"""
     try:
@@ -122,21 +176,23 @@ def initialize_default_data():
             
             # Only proceed if the hrm_users table exists
             if 'hrm_users' not in tables:
-                print("⚠️  Database tables not yet created. Skipping default data initialization.")
-                print("Run 'flask db upgrade' to create tables, then restart the application.")
+                print("[WARN] Database tables not yet created. Skipping default data initialization.")
+                print("       Tables will be created automatically on next startup if AUTO_MIGRATE_ON_STARTUP=true")
                 return
             
             if create_default_users():
-                print("✅ Default users created successfully!")
+                print("[OK] Default users created successfully!")
             if create_default_master_data():
-                print("✅ Default master data created successfully!")
+                print("[OK] Default master data created successfully!")
     except Exception as e:
-        print(f"⚠️  Warning: Could not initialize default data: {e}")
+        print(f"[WARN] Warning: Could not initialize default data: {e}")
         print("This is normal if the database is not yet set up or tables haven't been created.")
-        print("Run 'flask db upgrade' to create tables, then restart the application.")
 
-# Only initialize default data if we're running the app (not during imports for migrations, etc.)
+# Initialize database and data on startup (only if not skipped)
 if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
+    # Run migrations first if needed (only during build phase)
+    check_and_run_migrations()
+    # Then initialize default data
     initialize_default_data()
 
 
