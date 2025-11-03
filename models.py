@@ -48,6 +48,27 @@ class User(db.Model, UserMixin):
     def role_name(self):
         return self.role.name if self.role else None
 
+    @property
+    def get_first_name(self):
+        """Get first name from employee profile if available, fallback to user column"""
+        if self.employee_profile and self.employee_profile.first_name:
+            return self.employee_profile.first_name
+        return self.first_name
+
+    @property
+    def get_last_name(self):
+        """Get last name from employee profile if available, fallback to user column"""
+        if self.employee_profile and self.employee_profile.last_name:
+            return self.employee_profile.last_name
+        return self.last_name
+
+    @property
+    def full_name(self):
+        """Get full name from employee profile if available, fallback to user columns"""
+        first = self.get_first_name
+        last = self.get_last_name
+        return f"{first} {last}".strip()
+
 
 class Tenant(db.Model):
     """Top-level tenant entity for multi-tenant HRMS"""
@@ -245,7 +266,7 @@ class Employee(db.Model):
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
     father_name = db.Column(db.String(100))
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)
     phone = db.Column(db.String(20))
     nric = db.Column(db.String(20), unique=True, nullable=False)
     date_of_birth = db.Column(db.Date)
@@ -257,7 +278,7 @@ class Employee(db.Model):
     profile_image_path = db.Column(db.String(255))
     timezone = db.Column(db.String(50), default='UTC')
 
-    position = db.Column(db.String(100), nullable=False)
+    # Position field removed - use designation_id instead
     designation_id = db.Column(db.Integer, db.ForeignKey('hrm_designation.id'), nullable=True)
     department = db.Column(db.String(100))
     hire_date = db.Column(db.Date, nullable=False)
@@ -265,6 +286,12 @@ class Employee(db.Model):
     work_permit_type = db.Column(db.String(30))
     work_permit_number = db.Column(db.String(50))
     work_permit_expiry = db.Column(db.Date)
+
+    # Certifications & Pass Renewals
+    hazmat_expiry = db.Column(db.Date, nullable=True)
+    airport_pass_expiry = db.Column(db.Date, nullable=True)
+    psa_pass_number = db.Column(db.String(50), nullable=True)
+    psa_pass_expiry = db.Column(db.Date, nullable=True)
 
     basic_salary = db.Column(db.Numeric(10, 2), nullable=False)
     allowances = db.Column(db.Numeric(10, 2), default=0)
@@ -281,6 +308,7 @@ class Employee(db.Model):
     ifsc_code = db.Column(db.String(11))
 
     is_active = db.Column(db.Boolean, default=True)
+    is_manager = db.Column(db.Boolean, default=False)  # Flag to indicate if employee can be a reporting manager
     termination_date = db.Column(db.Date)
 
     user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)

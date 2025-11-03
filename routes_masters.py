@@ -203,7 +203,7 @@ def department_add():
             return redirect(url_for('department_add'))
     
     # Get all employees for manager selection
-    managers = Employee.query.filter_by(is_active=True).order_by(
+    managers = Employee.query.filter_by(is_active=True, is_manager=True).order_by(
         Employee.first_name, Employee.last_name
     ).all()
     
@@ -249,7 +249,7 @@ def department_edit(department_id):
             return redirect(url_for('department_edit', department_id=department_id))
     
     # Get all employees for manager selection
-    managers = Employee.query.filter_by(is_active=True).order_by(
+    managers = Employee.query.filter_by(is_active=True, is_manager=True).order_by(
         Employee.first_name, Employee.last_name
     ).all()
     

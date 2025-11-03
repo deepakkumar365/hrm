@@ -9,9 +9,9 @@ from werkzeug.utils import secure_filename
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
-from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal, 
+from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
-                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument)
+                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -59,7 +59,7 @@ def create_default_master_data():
             ]
             for role in roles:
                 db.session.add(role)
-        
+
         # Create default departments if none exist
         if Department.query.count() == 0:
             departments = [
@@ -72,38 +72,38 @@ def create_default_master_data():
             ]
             for dept in departments:
                 db.session.add(dept)
-        
+
         # Create default working hours if none exist
         if WorkingHours.query.count() == 0:
             working_hours = [
-                WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0, 
+                WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0,
                            description='Standard full-time working hours'),
-                WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0, 
+                WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0,
                            description='Half day part-time schedule'),
-                WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0, 
+                WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0,
                            description='Extended working hours with overtime'),
-                WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0, 
+                WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0,
                            description='Flexible working arrangement'),
             ]
             for wh in working_hours:
                 db.session.add(wh)
-        
+
         # Create default work schedules if none exist
         if WorkSchedule.query.count() == 0:
             from datetime import time
             schedules = [
-                WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0), 
+                WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0),
                            break_duration=60, description='Standard 9-to-6 schedule'),
-                WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0), 
+                WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0),
                            break_duration=60, description='Early morning shift'),
-                WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0), 
+                WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0),
                            break_duration=60, description='Afternoon to evening shift'),
-                WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0), 
+                WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0),
                            break_duration=60, description='Flexible timing schedule'),
             ]
             for schedule in schedules:
                 db.session.add(schedule)
-        
+
         db.session.commit()
         return True
     except Exception as e:
@@ -119,13 +119,13 @@ def initialize_default_data():
             from sqlalchemy import inspect
             inspector = inspect(db.engine)
             tables = inspector.get_table_names()
-            
+
             # Only proceed if the hrm_users table exists
             if 'hrm_users' not in tables:
                 print("⚠️  Database tables not yet created. Skipping default data initialization.")
                 print("Run 'flask db upgrade' to create tables, then restart the application.")
                 return
-            
+
             if create_default_users():
                 print("✅ Default users created successfully!")
             if create_default_master_data():
@@ -211,18 +211,18 @@ def render_super_admin_dashboard():
     from sqlalchemy import func, extract
     from datetime import datetime, timedelta
     from dateutil.relativedelta import relativedelta
-    
+
     # Get tenant statistics
     total_tenants = Tenant.query.count()
     active_tenants = Tenant.query.filter_by(is_active=True).count()
-    
+
     # Get company statistics
     total_companies = Company.query.count()
-    
+
     # Get user statistics
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
-    
+
     # Get users by company (top 10 companies)
     company_user_counts = db.session.query(
         Company.name,
@@ -231,10 +231,10 @@ def render_super_admin_dashboard():
      .group_by(Company.name)\
      .order_by(func.count(Employee.id).desc())\
      .limit(10).all()
-    
+
     company_labels = [c[0] for c in company_user_counts]
     company_counts = [c[1] for c in company_user_counts]
-    
+
     # Get payroll statistics (last 6 months)
     six_months_ago = datetime.now() - relativedelta(months=6)
     payslip_stats = db.session.query(
@@ -244,33 +244,33 @@ def render_super_admin_dashboard():
     ).filter(Payroll.pay_period_end >= six_months_ago)\
      .group_by('year', 'month')\
      .order_by('year', 'month').all()
-    
+
     payslip_months = []
     payslip_counts = []
     for stat in payslip_stats:
         month_name = datetime(int(stat.year), int(stat.month), 1).strftime('%b %Y')
         payslip_months.append(month_name)
         payslip_counts.append(stat.count)
-    
+
     # Get current month payslips
     current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     payslips_this_month = Payroll.query.filter(
         Payroll.pay_period_end >= current_month_start
     ).count()
-    
+
     # Calculate revenue from payment configurations
     payment_configs = TenantPaymentConfig.query.all()
     monthly_revenue = float(sum(config.monthly_charges or 0 for config in payment_configs))
     quarterly_revenue = monthly_revenue * 3
     yearly_revenue = monthly_revenue * 12
-    
+
     # Mock data for collected/pending (can be enhanced with actual payment tracking)
     collected_revenue = monthly_revenue * 0.7  # 70% collected
     quarterly_collected = quarterly_revenue * 0.7  # 70% collected
     yearly_collected = yearly_revenue * 0.7  # 70% collected
     pending_payments = monthly_revenue * 0.25  # 25% pending
     overdue_payments = monthly_revenue * 0.05  # 5% overdue
-    
+
     # Get recent tenants with their stats
     recent_tenants = []
     tenants = Tenant.query.order_by(Tenant.created_at.desc()).limit(5).all()
@@ -279,10 +279,10 @@ def render_super_admin_dashboard():
         user_count = db.session.query(func.count(Employee.id))\
             .join(Company, Employee.company_id == Company.id)\
             .filter(Company.tenant_id == tenant.id).scalar() or 0
-        
+
         payment_config = TenantPaymentConfig.query.filter_by(tenant_id=tenant.id).first()
         payment_type = payment_config.payment_type if payment_config else None
-        
+
         recent_tenants.append({
             'name': tenant.name,
             'code': tenant.code,
@@ -291,7 +291,7 @@ def render_super_admin_dashboard():
             'user_count': user_count,
             'payment_type': payment_type
         })
-    
+
     # Recent activities
     recent_activities = [
         {
@@ -319,7 +319,7 @@ def render_super_admin_dashboard():
             'description': 'Generated this month'
         }
     ]
-    
+
     stats = {
         'total_tenants': total_tenants,
         'active_tenants': active_tenants,
@@ -340,7 +340,7 @@ def render_super_admin_dashboard():
         'pending_payments': pending_payments,
         'overdue_payments': overdue_payments
     }
-    
+
     return render_template('super_admin_dashboard.html',
                          stats=stats,
                          recent_tenants=recent_tenants,
@@ -351,10 +351,10 @@ def render_super_admin_dashboard():
 @require_login
 def dashboard():
     """Main dashboard with HR metrics"""
-    
+
     # Check if user is Super Admin
     user_role_name = current_user.role.name if current_user.role else None
-    
+
     if user_role_name == 'Super Admin':
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
@@ -490,8 +490,8 @@ def employee_list():
         sort_column = Company.name
     elif sort_by == 'employee_id':
         sort_column = Employee.employee_id
-    elif sort_by == 'position':
-        sort_column = Employee.position
+    elif sort_by == 'designation':
+        sort_column = Employee.designation_id
     elif sort_by == 'department':
         sort_column = Employee.department
     else:
@@ -504,7 +504,7 @@ def employee_list():
 
     # Paginate the results
     pagination = query.paginate(page=page, per_page=20, error_out=False)
-    
+
     # Extract employee objects with company and tenant names
     employees_data = []
     for item in pagination.items:
@@ -512,7 +512,7 @@ def employee_list():
         employee.company_name = item[1]
         employee.tenant_name = item[2]
         employees_data.append(employee)
-    
+
     # Create a custom pagination object
     class CustomPagination:
         def __init__(self, items, pagination):
@@ -524,7 +524,7 @@ def employee_list():
             self.has_next = pagination.has_next
             self.prev_num = pagination.prev_num
             self.next_num = pagination.next_num
-            
+
         def iter_pages(self, left_edge=2, left_current=2, right_current=3, right_edge=2):
             last = 0
             for num in range(1, self.pages + 1):
@@ -535,7 +535,7 @@ def employee_list():
                         yield None
                     yield num
                     last = num
-    
+
     employees = CustomPagination(employees_data, pagination)
 
     # Get departments for filter
@@ -553,7 +553,7 @@ def employee_list():
 
 
 @app.route('/employees/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin','HR Manager','Tenant Admin'])
 def employee_add():
     """Add new employee"""
     if request.method == 'POST':
@@ -565,15 +565,17 @@ def employee_add():
                 # Load master data and preserve form data for re-rendering
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
+                return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
+                                       designations=designations,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
@@ -586,15 +588,18 @@ def employee_add():
                 # Load master data and preserve form data for re-rendering
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                # Position field removed - use designation_id instead
+                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
+                return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
+                                       designations=designations,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
@@ -603,17 +608,28 @@ def employee_add():
 
             # Create new employee
             employee = Employee()
-            employee.employee_id = generate_employee_id()
             employee.organization_id = current_user.organization_id
-            
+
             # Set company_id from form
             company_id = request.form.get('company_id')
             if company_id:
                 employee.company_id = company_id
-            
+
+            # Get employee_id from form (auto-generated by frontend)
+            # Format: <CompanyCode><ID> (e.g., ACME001)
+            employee_id_from_form = request.form.get('employee_id', '').strip()
+            if employee_id_from_form:
+                employee.employee_id = employee_id_from_form
+            else:
+                # Fallback if employee_id not provided in form
+                company = Company.query.get(company_id) if company_id else None
+                company_code = company.code if company else 'EMP'
+                employee.employee_id = generate_employee_id(company_code)
+
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
-            employee.email = request.form.get('email')
+            email = request.form.get('email', '').strip()
+            employee.email = email if email else None
             employee.phone = request.form.get('phone')
             employee.nric = nric
             employee.date_of_birth = parse_date(
@@ -622,15 +638,36 @@ def employee_add():
             employee.nationality = request.form.get('nationality')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            employee.position = request.form.get('position')
             employee.department = request.form.get('department')
+            # Position field removed - use designation_id instead
             employee.hire_date = parse_date(request.form.get('hire_date'))
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
+            
+            work_permit_number = request.form.get('work_permit_number')
+            if work_permit_number:
+                employee.work_permit_number = work_permit_number
 
             work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
+
+            # Handle certifications and pass renewals
+            hazmat_expiry = request.form.get('hazmat_expiry')
+            if hazmat_expiry:
+                employee.hazmat_expiry = parse_date(hazmat_expiry)
+
+            airport_pass_expiry = request.form.get('airport_pass_expiry')
+            if airport_pass_expiry:
+                employee.airport_pass_expiry = parse_date(airport_pass_expiry)
+
+            psa_pass_number = request.form.get('psa_pass_number')
+            if psa_pass_number:
+                employee.psa_pass_number = psa_pass_number
+
+            psa_pass_expiry = request.form.get('psa_pass_expiry')
+            if psa_pass_expiry:
+                employee.psa_pass_expiry = parse_date(psa_pass_expiry)
 
             employee.basic_salary = float(request.form.get('basic_salary', 0))
             employee.allowances = float(request.form.get('allowances', 0))
@@ -647,80 +684,69 @@ def employee_add():
             employee.ifsc_code = request.form.get('ifsc_code')
 
             # Handle master data relationships
+            designation_id = request.form.get('designation_id')
+            if designation_id:
+                employee.designation_id = int(designation_id)
+
             working_hours_id = request.form.get('working_hours_id')
             if working_hours_id:
                 employee.working_hours_id = int(working_hours_id)
-                
+
             work_schedule_id = request.form.get('work_schedule_id')
             if work_schedule_id:
                 employee.work_schedule_id = int(work_schedule_id)
-                
+
             manager_id = request.form.get('manager_id')
             if manager_id:
                 employee.manager_id = int(manager_id)
 
-            # Handle profile image upload (required on add)
-            file = request.files.get('profile_image')
-            if not file or not file.filename.strip():
-                flash('Profile image is required.', 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies)
-            if not _allowed_image(file.filename):
-                flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies)
+            # Set manager flag
+            employee.is_manager = bool(request.form.get('is_manager'))
 
-            # Save image with unique name based on employee_id and timestamp
-            original = secure_filename(file.filename)
-            ext = original.rsplit('.', 1)[1].lower()
-            unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
-            save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-            file.save(save_path)
-            employee.profile_image_path = f"uploads/employees/{unique_name}"
+            # Handle profile image upload (optional)
+            file = request.files.get('profile_image')
+            if file and file.filename.strip():
+                if not _allowed_image(file.filename):
+                    flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
+                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    return render_template('employees/form.html',
+                                           form_data=request.form,
+                                           roles=roles,
+                                           user_roles=user_roles,
+                                           designations=designations,
+                                           departments=departments,
+                                           working_hours=working_hours,
+                                           work_schedules=work_schedules,
+                                           managers=managers,
+                                           companies=companies)
+
+                # Save image with unique name based on employee_id and timestamp
+                original = secure_filename(file.filename)
+                ext = original.rsplit('.', 1)[1].lower()
+                unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
+                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                file.save(save_path)
+                employee.profile_image_path = f"uploads/employees/{unique_name}"
 
             db.session.add(employee)
             db.session.commit()
 
             # Create user account for the new employee
             try:
-                # Generate username from employee details
-                base_username = f"{employee.first_name.lower()}.{employee.last_name.lower()}"
-                username = base_username
-                counter = 1
+                # Generate username from employee_id (case sensitive)
+                username = employee.employee_id
                 
-                # Ensure unique username
-                while User.query.filter_by(username=username).first():
-                    username = f"{base_username}{counter}"
-                    counter += 1
-                
+                # Check if username already exists (should be unique)
+                if User.query.filter_by(username=username).first():
+                    raise ValueError(f"User account with username '{username}' already exists")
+
                 # Create user account
                 user = User()
                 user.username = username
@@ -728,7 +754,7 @@ def employee_add():
                 user.first_name = employee.first_name
                 user.last_name = employee.last_name
                 user.organization_id = current_user.organization_id
-                
+
                 # Get role from form selection
                 user_role_id = request.form.get('user_role_id')
                 if user_role_id:
@@ -738,33 +764,33 @@ def employee_add():
                     default_role = Role.query.filter(
                         (Role.name == 'User') | (Role.name == 'Employee')
                     ).filter_by(is_active=True).first()
-                    
+
                     if not default_role:
                         # If no default role found, get any active role
                         default_role = Role.query.filter_by(is_active=True).first()
-                    
+
                     if default_role:
                         user.role_id = default_role.id
                     else:
                         raise ValueError("No active roles found in the system. Please create roles first.")
-                
+
                 # Set default password for all new users
                 user.set_password(DEFAULT_USER_PASSWORD)
                 user.must_reset_password = True  # Force password change on first login
-                
+
                 db.session.add(user)
                 db.session.commit()
-                
+
                 # Link employee to user account
                 employee.user_id = user.id
                 db.session.commit()
-                
+
                 flash(f'Employee added successfully. Login credentials created - Username: {username}, Password: {DEFAULT_USER_PASSWORD}', 'success')
-                
+
             except Exception as user_error:
                 # Employee was created but user creation failed
                 flash(f'Employee added successfully, but user account creation failed: {str(user_error)}. Please create manually.', 'warning')
-            
+
             return redirect(url_for('employee_list'))
 
         except Exception as e:
@@ -773,15 +799,17 @@ def employee_add():
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
             user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+            designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-            managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+            managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
             companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-            return render_template('employees/form.html', 
+            return render_template('employees/form.html',
                                    form_data=request.form,
                                    roles=roles,
                                    user_roles=user_roles,
+                                   designations=designations,
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
@@ -792,17 +820,18 @@ def employee_add():
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
     user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-    managers = Employee.query.filter_by(is_active=True).filter(
-        Employee.position.ilike('%manager%')).all()
+    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
-    return render_template('employees/form.html', 
+    return render_template('employees/form.html',
                            managers=managers,
                            roles=roles,
                            user_roles=user_roles,
+                           designations=designations,
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
@@ -819,12 +848,14 @@ def employee_view(employee_id):
     if (current_user.role.name if current_user.role else None) == 'Employee':
         if not (hasattr(current_user, 'employee_profile')
                 and current_user.employee_profile.id == employee_id):
-            return render_template('403.html'), 403
+            flash('You do not have permission to view this employee.', 'error')
+            return redirect(url_for('dashboard'))
     elif (current_user.role.name if current_user.role else None) == 'Manager':
         if not (hasattr(current_user, 'employee_profile') and
                 (current_user.employee_profile.id == employee_id
                  or employee.manager_id == current_user.employee_profile.id)):
-            return render_template('403.html'), 403
+            flash('You do not have permission to view this employee.', 'error')
+            return redirect(url_for('dashboard'))
 
     # Get recent payslips
     recent_payslips = Payroll.query.filter_by(
@@ -850,9 +881,9 @@ def profile():
     if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
         flash('Profile not found. Please contact your administrator.', 'error')
         return redirect(url_for('dashboard'))
-    
+
     employee = current_user.employee_profile
-    
+
     # Get attendance stats
     today = date.today()
     first_day = today.replace(day=1)
@@ -927,28 +958,33 @@ def employee_edit(employee_id):
                 employee.company_id = company_id
             else:
                 employee.company_id = None
-            
+
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
-            employee.email = request.form.get('email')
+            email = request.form.get('email', '').strip()
+            employee.email = email if email else None
             employee.phone = request.form.get('phone')
             employee.nric = request.form.get('nric')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            employee.position = request.form.get('position')
             employee.department = request.form.get('department')
+            # Position field removed - use designation_id instead
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
             
+            work_permit_number = request.form.get('work_permit_number')
+            if work_permit_number:
+                employee.work_permit_number = work_permit_number
+
             # Handle additional personal fields
             employee.gender = request.form.get('gender')
             employee.nationality = request.form.get('nationality')
-            
+
             # Handle date fields
             hire_date = request.form.get('hire_date')
             if hire_date:
                 employee.hire_date = parse_date(hire_date)
-                
+
             date_of_birth = request.form.get('date_of_birth')
             if date_of_birth:
                 employee.date_of_birth = parse_date(date_of_birth)
@@ -956,6 +992,31 @@ def employee_edit(employee_id):
             work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
+
+            # Handle certifications and pass renewals
+            hazmat_expiry = request.form.get('hazmat_expiry')
+            if hazmat_expiry:
+                employee.hazmat_expiry = parse_date(hazmat_expiry)
+            else:
+                employee.hazmat_expiry = None
+
+            airport_pass_expiry = request.form.get('airport_pass_expiry')
+            if airport_pass_expiry:
+                employee.airport_pass_expiry = parse_date(airport_pass_expiry)
+            else:
+                employee.airport_pass_expiry = None
+
+            psa_pass_number = request.form.get('psa_pass_number')
+            if psa_pass_number:
+                employee.psa_pass_number = psa_pass_number
+            else:
+                employee.psa_pass_number = None
+
+            psa_pass_expiry = request.form.get('psa_pass_expiry')
+            if psa_pass_expiry:
+                employee.psa_pass_expiry = parse_date(psa_pass_expiry)
+            else:
+                employee.psa_pass_expiry = None
 
             employee.basic_salary = float(request.form.get('basic_salary', 0))
             employee.allowances = float(request.form.get('allowances', 0))
@@ -976,15 +1037,18 @@ def employee_edit(employee_id):
                 flash('Account Holder Name is required', 'error')
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                # Position field removed - use designation_id instead
+                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html', 
+                return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
                                        user_roles=user_roles,
+                                       designations=designations,
                                        departments=departments,
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
@@ -998,16 +1062,19 @@ def employee_edit(employee_id):
                     flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
                     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                     user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                    managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%')).all()
+                    # Position field removed - use designation_id instead
+                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                    return render_template('employees/form.html', 
+                    return render_template('employees/form.html',
                                            employee=employee,
                                            form_data=request.form,
                                            roles=roles,
                                            user_roles=user_roles,
+                                           designations=designations,
                                            departments=departments,
                                            working_hours=working_hours,
                                            work_schedules=work_schedules,
@@ -1029,24 +1096,33 @@ def employee_edit(employee_id):
                     pass
                 employee.profile_image_path = f"uploads/employees/{unique_name}"
 
-            # Handle master data relationships  
+            # Handle master data relationships
+            designation_id = request.form.get('designation_id')
+            if designation_id:
+                employee.designation_id = int(designation_id)
+            else:
+                employee.designation_id = None
+
             working_hours_id = request.form.get('working_hours_id')
             if working_hours_id:
                 employee.working_hours_id = int(working_hours_id)
             else:
                 employee.working_hours_id = None
-                
+
             work_schedule_id = request.form.get('work_schedule_id')
             if work_schedule_id:
                 employee.work_schedule_id = int(work_schedule_id)
             else:
                 employee.work_schedule_id = None
-                
+
             manager_id = request.form.get('manager_id')
             if manager_id:
                 employee.manager_id = int(manager_id)
             else:
                 employee.manager_id = None
+
+            # Set manager flag
+            employee.is_manager = bool(request.form.get('is_manager'))
 
             # Update user role if changed
             user_role_id = request.form.get('user_role_id')
@@ -1070,10 +1146,11 @@ def employee_edit(employee_id):
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
             user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+            designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-            managers = Employee.query.filter_by(is_active=True).filter(Employee.position.ilike('%manager%'), Employee.id != employee_id).all()
+            managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
             companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
             return render_template('employees/form.html',
                                    employee=employee,
@@ -1081,6 +1158,7 @@ def employee_edit(employee_id):
                                    managers=managers,
                                    roles=roles,
                                    user_roles=user_roles,
+                                   designations=designations,
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
@@ -1089,12 +1167,11 @@ def employee_edit(employee_id):
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
     user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-    managers = Employee.query.filter_by(is_active=True).filter(
-        Employee.position.ilike('%manager%'), Employee.id
-        != employee_id).all()
+    managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
     return render_template('employees/form.html',
@@ -1102,6 +1179,7 @@ def employee_edit(employee_id):
                            managers=managers,
                            roles=roles,
                            user_roles=user_roles,
+                           designations=designations,
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
@@ -1184,7 +1262,7 @@ def payroll_generate():
 
                 # Get payroll config
                 config = employee.payroll_config
-                
+
                 # Calculate allowances
                 total_allowances = 0
                 if config:
@@ -1238,11 +1316,11 @@ def payroll_generate():
                 generated_count += 1
 
             db.session.commit()
-            
+
             message = f'Generated payroll for {generated_count} employee(s)'
             if skipped_count > 0:
                 message += f'. Skipped {skipped_count} employee(s) with existing payroll.'
-            
+
             flash(message, 'success')
             return redirect(url_for('payroll_list'))
 
@@ -1254,8 +1332,8 @@ def payroll_generate():
     from datetime import datetime as dt
     current_month = dt.now().month
     current_year = dt.now().year
-    
-    return render_template('payroll/generate.html', 
+
+    return render_template('payroll/generate.html',
                          current_month=current_month,
                          current_year=current_year)
 
@@ -1266,10 +1344,10 @@ def payroll_config():
     """Payroll configuration page - manage employee salary allowances and OT rates"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
-    
+
     # Query active employees
     query = Employee.query.filter_by(is_active=True)
-    
+
     if search:
         query = query.filter(
             db.or_(
@@ -1278,23 +1356,23 @@ def payroll_config():
                 Employee.employee_id.ilike(f'%{search}%')
             )
         )
-    
+
     employees = query.order_by(Employee.employee_id).paginate(
         page=page, per_page=20, error_out=False
     )
-    
+
     # Get or create payroll configurations for each employee
     for employee in employees.items:
         if not employee.payroll_config:
             config = PayrollConfiguration(employee_id=employee.id)
             db.session.add(config)
-    
+
     try:
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         print(f"Error creating payroll configs: {e}")
-    
+
     return render_template('payroll/config.html', employees=employees, search=search)
 
 
@@ -1305,18 +1383,18 @@ def payroll_config_update():
     try:
         data = request.get_json()
         employee_id = data.get('employee_id')
-        
+
         employee = Employee.query.get_or_404(employee_id)
         config = employee.payroll_config
-        
+
         if not config:
             config = PayrollConfiguration(employee_id=employee_id)
             db.session.add(config)
-        
+
         # Update base salary (on Employee model)
         if 'basic_salary' in data:
             employee.basic_salary = float(data['basic_salary'])
-        
+
         # Update allowances
         if 'allowance_1_amount' in data:
             config.allowance_1_amount = float(data['allowance_1_amount']) if data['allowance_1_amount'] else 0
@@ -1326,22 +1404,22 @@ def payroll_config_update():
             config.allowance_3_amount = float(data['allowance_3_amount']) if data['allowance_3_amount'] else 0
         if 'allowance_4_amount' in data:
             config.allowance_4_amount = float(data['allowance_4_amount']) if data['allowance_4_amount'] else 0
-        
+
         # Update OT rate
         if 'ot_rate_per_hour' in data:
             config.ot_rate_per_hour = float(data['ot_rate_per_hour']) if data['ot_rate_per_hour'] else None
-        
+
         config.updated_by = current_user.id
         config.updated_at = datetime.now()
-        
+
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Payroll configuration updated successfully',
             'total_allowances': float(config.get_total_allowances())
         })
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({
@@ -1357,59 +1435,59 @@ def payroll_preview_api():
     try:
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
-        
+
         if not month or not year:
             return jsonify({
                 'success': False,
                 'message': 'Month and year are required'
             }), 400
-        
+
         # Calculate pay period
         from calendar import monthrange
         pay_period_start = date(year, month, 1)
         last_day = monthrange(year, month)[1]
         pay_period_end = date(year, month, last_day)
-        
+
         # Get all active employees
         employees = Employee.query.filter_by(is_active=True).all()
-        
+
         employee_data = []
         for emp in employees:
             # Get payroll config
             config = emp.payroll_config
-            
+
             # Calculate allowances
             allowance_1 = float(config.allowance_1_amount) if config else 0
             allowance_2 = float(config.allowance_2_amount) if config else 0
             allowance_3 = float(config.allowance_3_amount) if config else 0
             allowance_4 = float(config.allowance_4_amount) if config else 0
             total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
-            
+
             # Get attendance data for the month
             attendance_records = Attendance.query.filter_by(
                 employee_id=emp.id
             ).filter(
                 Attendance.date.between(pay_period_start, pay_period_end)
             ).all()
-            
+
             attendance_days = len(attendance_records)
             total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
-            
+
             # Calculate OT amount
             ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(emp.hourly_rate or 0)
             ot_amount = total_ot_hours * ot_rate
-            
+
             # Calculate gross salary
             basic_salary = float(emp.basic_salary)
             gross_salary = basic_salary + total_allowances + ot_amount
-            
+
             # Calculate CPF deductions (simplified - using employee rate)
             cpf_deduction = gross_salary * (float(emp.employee_cpf_rate) / 100)
-            
+
             # Calculate net salary
             total_deductions = cpf_deduction
             net_salary = gross_salary - total_deductions
-            
+
             employee_data.append({
                 'id': emp.id,
                 'employee_id': emp.employee_id,
@@ -1429,14 +1507,14 @@ def payroll_preview_api():
                 'total_deductions': total_deductions,
                 'net_salary': net_salary
             })
-        
+
         return jsonify({
             'success': True,
             'employees': employee_data,
             'month': month,
             'year': year
         })
-    
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -1454,12 +1532,14 @@ def payroll_payslip(payroll_id):
     if (current_user.role.name if current_user.role else None) == 'Employee':
         if not (hasattr(current_user, 'employee_profile')
                 and current_user.employee_profile.id == payroll.employee_id):
-            return render_template('403.html'), 403
+            flash('You do not have permission to view this payslip.', 'error')
+            return redirect(url_for('dashboard'))
     elif (current_user.role.name if current_user.role else None) == 'Manager':
         if not (hasattr(current_user, 'employee_profile')
                 and payroll.employee.manager_id
                 == current_user.employee_profile.id):
-            return render_template('403.html'), 403
+            flash('You do not have permission to view this payslip.', 'error')
+            return redirect(url_for('dashboard'))
     elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
         # Admin and Super Admin: Can view all payslips
         pass  # No restriction - they can see all
@@ -1467,10 +1547,10 @@ def payroll_payslip(payroll_id):
     # Prepare data for template
     employee = payroll.employee
     company = employee.organization
-    
+
     # Calculate pay date (end of pay period)
     pay_date = payroll.pay_period_end.strftime('%d %b %Y')
-    
+
     # Prepare earnings data
     earnings = {
         'regular_pay_rate': f"{float(employee.basic_salary):,.2f}",
@@ -1482,7 +1562,7 @@ def payroll_payslip(payroll_id):
         'vacation_pay': "0.00",  # Not in current model
         'others': f"{float(payroll.allowances + payroll.bonuses):,.2f}"
     }
-    
+
     # Prepare deductions data
     deductions = {
         'income_tax': f"{float(payroll.income_tax):,.2f}",
@@ -1491,22 +1571,22 @@ def payroll_payslip(payroll_id):
         'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
         'others': f"{float(payroll.other_deductions):,.2f}"
     }
-    
+
     # Prepare employee data
     employee_data = {
         'name': f"{employee.first_name} {employee.last_name}",
         'nric': employee.nric,
         'nationality': employee.nationality or 'N/A',
-        'designation': employee.position
+        'designation': employee.designation.name if employee.designation else 'N/A'
     }
-    
+
     # Prepare company data
     company_data = {
         'name': company.name,
         'address': company.address or 'N/A',
         'uen': company.uen or 'N/A'
     }
-    
+
     # Prepare payroll summary
     payroll_data = {
         'pay_date': pay_date,
@@ -1515,7 +1595,7 @@ def payroll_payslip(payroll_id):
         'net_pay': f"{float(payroll.net_pay):,.2f}"
     }
 
-    return render_template('payroll/payslip.html', 
+    return render_template('payroll/payslip.html',
                          payroll=payroll_data,
                          employee=employee_data,
                          company=company_data,
@@ -1528,7 +1608,7 @@ def payroll_payslip(payroll_id):
 def payroll_approve(payroll_id):
     """Approve payroll record"""
     payroll = Payroll.query.get_or_404(payroll_id)
-    
+
     try:
         if payroll.status == 'Draft':
             payroll.status = 'Approved'
@@ -1826,10 +1906,11 @@ def attendance_correct(attendance_id):
 
             # Add correction note
             correction_note = request.form.get('notes', '')
+            corrector_name = current_user.full_name  # Use property that gets name from employee profile
             if attendance.notes:
-                attendance.notes += f"\nCorrected by {current_user.first_name} {current_user.last_name}: {correction_note}"
+                attendance.notes += f"\nCorrected by {corrector_name}: {correction_note}"
             else:
-                attendance.notes = f"Corrected by {current_user.first_name} {current_user.last_name}: {correction_note}"
+                attendance.notes = f"Corrected by {corrector_name}: {correction_note}"
 
             db.session.commit()
             flash('Attendance record corrected successfully', 'success')
@@ -1917,23 +1998,23 @@ def attendance_bulk_manage():
     selected_date = request.args.get('date') or request.form.get('date')
     if not selected_date:
         selected_date = date.today().strftime('%Y-%m-%d')
-    
+
     try:
         filter_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
     except ValueError:
         flash('Invalid date format', 'error')
         filter_date = date.today()
         selected_date = filter_date.strftime('%Y-%m-%d')
-    
+
     if request.method == 'POST':
         try:
             # Get list of employee IDs marked as absent
             absent_employee_ids = request.form.getlist('absent_employees')
             absent_employee_ids = [int(emp_id) for emp_id in absent_employee_ids if emp_id.isdigit()]
-            
+
             # Get all employees based on role permissions
             employees_query = Employee.query.filter_by(is_active=True)
-            
+
             # Apply role-based filtering
             if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
                 # Manager: Can manage their team + themselves
@@ -1944,23 +2025,23 @@ def attendance_bulk_manage():
                         Employee.manager_id == manager_id
                     )
                 )
-            
+
             all_employees = employees_query.all()
-            
+
             # Ensure attendance records exist for all employees for this date
             create_daily_attendance_records(filter_date, all_employees)
-            
+
             # Update attendance status for all employees
             for employee in all_employees:
                 attendance = Attendance.query.filter_by(
                     employee_id=employee.id,
                     date=filter_date
                 ).first()
-                
+
                 if attendance:
                     if employee.id in absent_employee_ids:
                         attendance.status = 'Absent'
-                        attendance.remarks = f'Marked absent by {current_user.first_name} {current_user.last_name}'
+                        attendance.remarks = f'Marked absent by {current_user.full_name}'  # Use property that gets name from employee profile
                         # Clear time fields for absent employees
                         attendance.clock_in = None
                         attendance.clock_out = None
@@ -1976,21 +2057,21 @@ def attendance_bulk_manage():
                             attendance.regular_hours = 8
                             attendance.total_hours = 8
                             attendance.overtime_hours = 0
-            
+
             db.session.commit()
-            
+
             present_count = len(all_employees) - len(absent_employee_ids)
             absent_count = len(absent_employee_ids)
-            
+
             flash(f'Attendance updated for {filter_date.strftime("%B %d, %Y")}: {present_count} Present, {absent_count} Absent', 'success')
-            
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating attendance: {str(e)}', 'error')
-    
+
     # Get employees and their attendance for the selected date
     employees_query = Employee.query.filter_by(is_active=True)
-    
+
     # Apply role-based filtering for display
     if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         manager_id = current_user.employee_profile.id
@@ -2000,12 +2081,12 @@ def attendance_bulk_manage():
                 Employee.manager_id == manager_id
             )
         )
-    
+
     employees = employees_query.order_by(Employee.first_name, Employee.last_name).all()
-    
+
     # Ensure attendance records exist for all employees for this date
     create_daily_attendance_records(filter_date, employees)
-    
+
     # Get attendance records for the selected date
     attendance_records = {}
     for employee in employees:
@@ -2014,7 +2095,7 @@ def attendance_bulk_manage():
             date=filter_date
         ).first()
         attendance_records[employee.id] = attendance
-    
+
     return render_template('attendance/bulk_manage.html',
                          employees=employees,
                          attendance_records=attendance_records,
@@ -2027,7 +2108,7 @@ def create_daily_attendance_records(target_date, employees=None):
     """Create attendance records for all active employees for a specific date"""
     if employees is None:
         employees = Employee.query.filter_by(is_active=True).all()
-    
+
     created_count = 0
     for employee in employees:
         # Check if attendance record already exists
@@ -2035,7 +2116,7 @@ def create_daily_attendance_records(target_date, employees=None):
             employee_id=employee.id,
             date=target_date
         ).first()
-        
+
         if not existing:
             # Create new attendance record with default Present status
             attendance = Attendance()
@@ -2046,14 +2127,14 @@ def create_daily_attendance_records(target_date, employees=None):
             attendance.total_hours = 8
             attendance.overtime_hours = 0
             attendance.remarks = 'Auto-generated attendance record'
-            
+
             db.session.add(attendance)
             created_count += 1
-    
+
     if created_count > 0:
         db.session.commit()
         print(f"Created {created_count} attendance records for {target_date}")
-    
+
     return created_count
 
 
@@ -2074,23 +2155,23 @@ def attendance_auto_create():
             target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
         else:
             target_date = date.today()
-        
+
         # Get all active employees
         employees = Employee.query.filter_by(is_active=True).all()
-        
+
         # Create attendance records
         created_count = create_daily_attendance_records(target_date, employees)
-        
+
         if created_count > 0:
             flash(f'Successfully created attendance records for {created_count} employees on {target_date}', 'success')
         else:
             flash(f'Attendance records already exist for all employees on {target_date}', 'info')
-            
+
     except ValueError:
         flash('Invalid date format. Please use YYYY-MM-DD format.', 'error')
     except Exception as e:
         flash(f'Error creating attendance records: {str(e)}', 'error')
-        
+
     return redirect(url_for('attendance_bulk_manage'))
 
 
@@ -2101,29 +2182,29 @@ def api_attendance_auto_create():
         # Simple API key authentication (you should set this in environment variables)
         api_key = request.headers.get('X-API-Key') or request.form.get('api_key')
         expected_api_key = os.environ.get('ATTENDANCE_API_KEY', 'your-secret-api-key-here')
-        
+
         if api_key != expected_api_key:
             return {'error': 'Invalid API key'}, 401
-        
+
         target_date_str = request.form.get('date') or request.json.get('date') if request.is_json else None
         if target_date_str:
             target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
         else:
             target_date = date.today()
-        
+
         # Get all active employees
         employees = Employee.query.filter_by(is_active=True).all()
-        
+
         # Create attendance records
         created_count = create_daily_attendance_records(target_date, employees)
-        
+
         return {
             'success': True,
             'message': f'Created attendance records for {created_count} employees on {target_date}',
             'date': target_date.strftime('%Y-%m-%d'),
             'created_count': created_count
         }, 200
-            
+
     except ValueError:
         return {'error': 'Invalid date format. Please use YYYY-MM-DD format.'}, 400
     except Exception as e:
@@ -2422,12 +2503,12 @@ def compliance_generate(report_type):
                     record['employee_id'], record['name'],
                     record['passport_number'], record['work_permit_type'],
                     record['work_permit_expiry'], record['gross_salary'],
-                    record['nationality'], record['position']
+                    record['nationality'], record['designation']
                 ])
 
             headers = [
                 'Employee ID', 'Name', 'Passport/ID', 'Work Permit Type',
-                'Work Permit Expiry', 'Gross Salary', 'Nationality', 'Position'
+                'Work Permit Expiry', 'Gross Salary', 'Nationality', 'Designation'
             ]
 
             return export_to_csv(csv_data, filename, headers)
@@ -2497,14 +2578,14 @@ def export_employees():
     for emp in employees:
         csv_data.append([
             emp.employee_id, emp.first_name, emp.last_name, emp.email,
-            emp.nric, emp.position, emp.department,
+            emp.nric, emp.designation.name if emp.designation else '', emp.department,
             format_date(emp.hire_date), emp.employment_type,
             emp.work_permit_type,
             format_currency(emp.basic_salary)
         ])
 
     headers = [
-        'Employee ID', 'First Name', 'Last Name', 'Email', 'NRIC', 'Position',
+        'Employee ID', 'First Name', 'Last Name', 'Email', 'NRIC', 'Designation',
         'Department', 'Hire Date', 'Employment Type', 'Work Permit Type',
         'Basic Salary'
     ]

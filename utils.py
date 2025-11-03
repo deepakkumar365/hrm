@@ -88,10 +88,29 @@ def validate_nric(nric):
     
     return True
 
-def generate_employee_id():
-    """Generate unique employee ID"""
+def generate_employee_id(company_code=None, employee_db_id=None):
+    """
+    Generate employee ID in format: <CompanyCode><hrm_employee_id>
+    
+    Args:
+        company_code: Code of the company (e.g., 'ACME')
+        employee_db_id: ID from hrm_employee table (auto-incremented integer)
+    
+    Returns:
+        Formatted employee ID (e.g., 'ACME001') or None if company_code not provided
+    """
+    if not company_code:
+        # Fallback for backward compatibility if company code not available
+        from datetime import datetime
+        return f"EMP{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    
+    if employee_db_id:
+        # Format: CompanyCode + ID with zero-padding (e.g., ACME001)
+        return f"{company_code}{str(employee_db_id).zfill(3)}"
+    
+    # If only company_code provided, use timestamp for backward compatibility
     from datetime import datetime
-    return f"EMP{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    return f"{company_code}{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
 def check_permission(user, required_permission):
     """Check if user has required permission"""
