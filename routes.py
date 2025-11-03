@@ -1332,10 +1332,14 @@ def payroll_generate():
     from datetime import datetime as dt
     current_month = dt.now().month
     current_year = dt.now().year
+    
+    # Fetch active companies for dropdown
+    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
     return render_template('payroll/generate.html',
                          current_month=current_month,
-                         current_year=current_year)
+                         current_year=current_year,
+                         companies=companies)
 
 
 @app.route('/payroll/config')
