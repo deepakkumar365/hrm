@@ -31,7 +31,8 @@ def require_role(roles):
             
             user_role = current_user.role.name if current_user.role else None
             if user_role not in roles:
-                return render_template('403.html'), 403
+                flash('You do not have permission to access this operation!', 'error')
+                return redirect(request.referrer or url_for('dashboard'))
             
             return f(*args, **kwargs)
         return decorated_function

@@ -42,7 +42,17 @@ def require_role(allowed_roles):
             # Use role.name to compare with allowed roles (role is a relationship object)
             user_role = current_user.role.name if current_user.role else None
             if user_role not in allowed_roles:
-                return render_template("403.html"), 403
+                # For AJAX requests, return JSON error
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return {
+                        'success': False,
+                        'error': 'Access Denied',
+                        'message': 'You do not have permission to access this operation!'
+                    }, 403
+                
+                # For regular requests, show toaster notification and redirect back
+                flash('You do not have permission to access this operation!', 'error')
+                return redirect(request.referrer or url_for('dashboard'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -131,7 +141,6 @@ def create_default_users():
                 email='superadmin@hrm.com',
                 nric='S1234567A',
                 date_of_birth=date(1980, 1, 1),
-                position='Chief Executive',
                 department='Executive',
                 hire_date=date(2020, 1, 1),
                 employment_type='Full-time',
@@ -146,7 +155,6 @@ def create_default_users():
                 email='admin@hrm.com',
                 nric='S1234567B',
                 date_of_birth=date(1985, 1, 1),
-                position='System Administrator',
                 department='IT',
                 hire_date=date(2020, 1, 1),
                 employment_type='Full-time',
@@ -161,7 +169,6 @@ def create_default_users():
                 email='manager@hrm.com',
                 nric='S1234567C',
                 date_of_birth=date(1990, 1, 1),
-                position='HR Manager',
                 department='Human Resources',
                 hire_date=date(2020, 1, 1),
                 employment_type='Full-time',
@@ -176,7 +183,6 @@ def create_default_users():
                 email='user@hrm.com',
                 nric='S1234567D',
                 date_of_birth=date(1995, 1, 1),
-                position='Executive',
                 department='Operations',
                 hire_date=date(2020, 1, 1),
                 employment_type='Full-time',

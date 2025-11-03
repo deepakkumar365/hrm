@@ -248,7 +248,7 @@ class SingaporePayrollCalculator:
                     'work_permit_expiry': employee.work_permit_expiry,
                     'gross_salary': payroll.gross_pay,
                     'nationality': employee.nationality,
-                    'position': employee.position
+                    'designation': employee.designation.name if employee.designation else ''
                 }
                 oed_data.append(oed_record)
         

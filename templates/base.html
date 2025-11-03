@@ -443,8 +443,32 @@
             loader.classList.remove('show');
         }
 
-        // Hide loader when page loads
-        window.addEventListener('load', hideLoader);
+        // Improved loader hiding: Wait until browser is completely idle
+        function waitForPageComplete() {
+            if (document.readyState === 'complete') {
+                // Use Performance API to check if all resources are loaded
+                if (performance && performance.getEntriesByType) {
+                    // Wait a bit more for any pending requests
+                    setTimeout(hideLoader, 500);
+                } else {
+                    hideLoader();
+                }
+            } else {
+                // Check again soon
+                setTimeout(waitForPageComplete, 100);
+            }
+        }
+
+        // Start checking when page is ready
+        if (document.readyState === 'complete') {
+            waitForPageComplete();
+        } else {
+            document.addEventListener('readystatechange', function() {
+                if (document.readyState === 'complete') {
+                    waitForPageComplete();
+                }
+            });
+        }
 
         // Show loader on form submission
         document.querySelectorAll('form').forEach(form => {
@@ -500,15 +524,12 @@
             // Keep loader visible during navigation
         });
 
-        // Safety timeout: Hide loader after 30 seconds if still showing
-        setInterval(function() {
+        // Safety timeout: Hide loader after 60 seconds if still showing
+        setTimeout(function() {
             if (loader.classList.contains('show')) {
-                // Check if page is still loading
-                if (document.readyState === 'complete') {
-                    hideLoader();
-                }
+                hideLoader();
             }
-        }, 30000);
+        }, 60000);
     });
     </script>
 

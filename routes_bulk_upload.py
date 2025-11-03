@@ -51,7 +51,6 @@ def download_employee_template():
         ('Address', 'Full address'),
         ('Postal Code', 'e.g., 123456'),
         ('Company Code*', 'Required - Company code from system'),
-        ('Position*', 'Required - Job title'),
         ('User Role*', 'Required - Super Admin/Admin/HR Manager/Manager/User'),
         ('Department', 'Department name'),
         ('Manager Employee ID', 'Employee ID of reporting manager'),
@@ -126,7 +125,6 @@ def download_employee_template():
         '123 Main Street, Singapore',  # Address
         '123456',  # Postal Code
         'COMP001',  # Company Code
-        'Software Engineer',  # Position
         'User',  # User Role
         'Engineering',  # Department
         'EMP000',  # Manager Employee ID
@@ -260,28 +258,27 @@ def upload_employee_excel():
                 address = row[9] if len(row) > 9 else None
                 postal_code = row[10] if len(row) > 10 else None
                 company_code = row[11] if len(row) > 11 else None
-                position = row[12] if len(row) > 12 else None
-                user_role_name = row[13] if len(row) > 13 else 'User'
-                department = row[14] if len(row) > 14 else None
-                manager_employee_id = row[15] if len(row) > 15 else None
-                hire_date = row[16] if len(row) > 16 else None
-                employment_type = row[17] if len(row) > 17 else None
-                work_permit_type = row[18] if len(row) > 18 else None
-                work_permit_expiry = row[19] if len(row) > 19 else None
-                basic_salary = row[20] if len(row) > 20 else None
-                allowances = row[21] if len(row) > 21 else 0
-                hourly_rate = row[22] if len(row) > 22 else None
-                employee_cpf_rate = row[23] if len(row) > 23 else 20.00
-                employer_cpf_rate = row[24] if len(row) > 24 else 17.00
-                cpf_account = row[25] if len(row) > 25 else None
-                bank_name = row[26] if len(row) > 26 else None
-                bank_account = row[27] if len(row) > 27 else None
-                account_holder_name = row[28] if len(row) > 28 else None
-                working_hours_name = row[29] if len(row) > 29 else None
-                work_schedule_name = row[30] if len(row) > 30 else None
+                user_role_name = row[12] if len(row) > 12 else 'User'
+                department = row[13] if len(row) > 13 else None
+                manager_employee_id = row[14] if len(row) > 14 else None
+                hire_date = row[15] if len(row) > 15 else None
+                employment_type = row[16] if len(row) > 16 else None
+                work_permit_type = row[17] if len(row) > 17 else None
+                work_permit_expiry = row[18] if len(row) > 18 else None
+                basic_salary = row[19] if len(row) > 19 else None
+                allowances = row[20] if len(row) > 20 else 0
+                hourly_rate = row[21] if len(row) > 21 else None
+                employee_cpf_rate = row[22] if len(row) > 22 else 20.00
+                employer_cpf_rate = row[23] if len(row) > 23 else 17.00
+                cpf_account = row[24] if len(row) > 24 else None
+                bank_name = row[25] if len(row) > 25 else None
+                bank_account = row[26] if len(row) > 26 else None
+                account_holder_name = row[27] if len(row) > 27 else None
+                working_hours_name = row[28] if len(row) > 28 else None
+                work_schedule_name = row[29] if len(row) > 29 else None
                 
                 # Validate mandatory fields
-                if not all([first_name, last_name, email, nric, company_code, position, hire_date, employment_type, work_permit_type, basic_salary]):
+                if not all([first_name, last_name, email, nric, company_code, hire_date, employment_type, work_permit_type, basic_salary]):
                     errors.append(f"Row {row_num}: Missing mandatory fields")
                     error_count += 1
                     continue
@@ -361,7 +358,6 @@ def upload_employee_excel():
                     address=address,
                     postal_code=postal_code,
                     company_id=company.id,
-                    position=position,
                     department=department,
                     manager_id=manager_id,
                     hire_date=hire_date,
@@ -387,14 +383,12 @@ def upload_employee_excel():
                 db.session.add(employee)
                 db.session.flush()  # Get employee ID
                 
-                # Create user account
-                base_username = f"{first_name.lower()}.{last_name.lower()}"
-                username = base_username
-                counter = 1
+                # Create user account - use employee_id as username (case sensitive)
+                username = employee.employee_id
                 
-                while User.query.filter_by(username=username).first():
-                    username = f"{base_username}{counter}"
-                    counter += 1
+                # Check if username already exists
+                if User.query.filter_by(username=username).first():
+                    raise ValueError(f"User account with username '{username}' already exists")
                 
                 user = User(
                     username=username,

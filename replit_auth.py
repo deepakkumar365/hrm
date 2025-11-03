@@ -121,7 +121,8 @@ def make_replit_blueprint():
 
     @replit_bp.route("/error")
     def error():
-        return render_template("403.html"), 403
+        flash('You do not have permission to access this operation!', 'error')
+        return redirect(request.referrer or url_for('dashboard'))
 
     return replit_bp
 
@@ -200,7 +201,17 @@ def require_role(required_role):
         @require_login
         def decorated_function(*args, **kwargs):
             if current_user.role not in required_role:
-                return render_template("403.html"), 403
+                # For AJAX requests, return JSON error
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return {
+                        'success': False,
+                        'error': 'Access Denied',
+                        'message': 'You do not have permission to access this operation!'
+                    }, 403
+                
+                # For regular requests, show toaster notification and redirect back
+                flash('You do not have permission to access this operation!', 'error')
+                return redirect(request.referrer or url_for('dashboard'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator

@@ -5,6 +5,7 @@ from datetime import datetime, date, time, timedelta
 import calendar
 import os
 import time as pytime
+import subprocess
 from werkzeug.utils import secure_filename
 
 from app import app, db
@@ -111,10 +112,14 @@ def create_default_master_data():
         db.session.rollback()
         return False
 
+
+
 def initialize_default_data():
     """Initialize default users and master data - call this after ensuring DB is ready"""
     try:
         with app.app_context():
+<<<<<<< HEAD
+=======
             # Check if tables exist before trying to query them
             from sqlalchemy import inspect
             inspector = inspect(db.engine)
@@ -126,17 +131,18 @@ def initialize_default_data():
                 print("Run 'flask db upgrade' to create tables, then restart the application.")
                 return
 
+>>>>>>> development
             if create_default_users():
-                print("✅ Default users created successfully!")
+                print("[OK] Default users created successfully!")
             if create_default_master_data():
-                print("✅ Default master data created successfully!")
+                print("[OK] Default master data created successfully!")
     except Exception as e:
-        print(f"⚠️  Warning: Could not initialize default data: {e}")
+        print(f"[WARN] Warning: Could not initialize default data: {e}")
         print("This is normal if the database is not yet set up or tables haven't been created.")
-        print("Run 'flask db upgrade' to create tables, then restart the application.")
 
-# Only initialize default data if we're running the app (not during imports for migrations, etc.)
+# Initialize database and data on startup (only if not skipped)
 if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
+    # Initialize default data
     initialize_default_data()
 
 

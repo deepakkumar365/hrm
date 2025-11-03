@@ -624,7 +624,7 @@ def get_company_employees(company_id):
             'first_name': emp.first_name,
             'last_name': emp.last_name,
             'email': emp.email,
-            'position': emp.position,
+            'designation': emp.designation.name if emp.designation else '',
             'department': emp.department,
             'hire_date': emp.hire_date.isoformat() if emp.hire_date else None,
         } for emp in employees]

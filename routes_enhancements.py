@@ -123,7 +123,7 @@ def report_employee_history():
                     'employee_id': emp.employee_id,
                     'name': f"{emp.first_name} {emp.last_name}",
                     'email': emp.email,
-                    'position': emp.position,
+                    'designation': emp.designation.name if emp.designation else '',
                     'department': emp.department,
                     'hire_date': emp.hire_date,
                     'exit_date': emp.termination_date,
@@ -436,15 +436,55 @@ def update_payroll_config(config_id):
 # =====================================================
 
 @app.route('/employees/generate-id', methods=['GET'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager', 'Admin'])
 def generate_new_employee_id():
-    """Generate a new unique employee ID"""
+    """
+    Generate a new unique employee ID in format: <CompanyCode><NextID>
+    
+    Query parameters:
+        company_id: UUID of the company to generate ID for
+    
+    Returns:
+        JSON with generated employee_id or error message
+    """
     try:
         from utils import generate_employee_id
-        new_id = generate_employee_id()
+        from sqlalchemy import func
+        
+        company_id = request.args.get('company_id')
+        
+        if not company_id:
+            return jsonify({
+                'success': False,
+                'message': 'Company ID is required'
+            }), 400
+        
+        # Get the company
+        company = Company.query.get(company_id)
+        if not company:
+            return jsonify({
+                'success': False,
+                'message': 'Company not found'
+            }), 404
+        
+        # Get the next employee ID (max existing ID + 1)
+        max_employee_id = db.session.query(func.max(Employee.id)).scalar() or 0
+        next_employee_id = max_employee_id + 1
+        
+        # Generate formatted employee ID: CompanyCode + ID with zero-padding
+        new_id = generate_employee_id(
+            company_code=company.code,
+            employee_db_id=next_employee_id
+        )
+        
         return jsonify({
             'success': True,
-            'employee_id': new_id
+            'employee_id': new_id,
+            'company_code': company.code,
+            'next_id': next_employee_id
         })
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
