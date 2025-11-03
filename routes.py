@@ -643,7 +643,7 @@ def employee_add():
             employee.hire_date = parse_date(request.form.get('hire_date'))
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
-            
+
             work_permit_number = request.form.get('work_permit_number')
             if work_permit_number:
                 employee.work_permit_number = work_permit_number
@@ -742,7 +742,7 @@ def employee_add():
             try:
                 # Generate username from employee_id (case sensitive)
                 username = employee.employee_id
-                
+
                 # Check if username already exists (should be unique)
                 if User.query.filter_by(username=username).first():
                     raise ValueError(f"User account with username '{username}' already exists")
@@ -971,7 +971,7 @@ def employee_edit(employee_id):
             # Position field removed - use designation_id instead
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
-            
+
             work_permit_number = request.form.get('work_permit_number')
             if work_permit_number:
                 employee.work_permit_number = work_permit_number
@@ -1332,7 +1332,7 @@ def payroll_generate():
     from datetime import datetime as dt
     current_month = dt.now().month
     current_year = dt.now().year
-    
+
     # Fetch active companies for dropdown
     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
@@ -1996,7 +1996,7 @@ def attendance_incomplete():
 
 
 @app.route('/attendance/bulk', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def attendance_bulk_manage():
     """Bulk attendance management - mark employees as absent for a specific date"""
     selected_date = request.args.get('date') or request.form.get('date')
