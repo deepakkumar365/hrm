@@ -189,7 +189,7 @@
                                     <option value="">Select Reporting Manager</option>
                                     {% for manager in managers %}
                                     <option value="{{ manager.id }}" {% if (form_data and form_data.get('manager_id') == manager.id|string) or (employee and employee.manager_id and employee.manager_id|string == manager.id|string and not form_data) %}selected{% endif %}>
-                                        {{ manager.first_name }} {{ manager.last_name }} - {{ manager.position }}
+                                        {{ manager.first_name }} {{ manager.last_name }} - {{ manager.designation.name if manager.designation else '-' }}
                                     </option>
                                     {% endfor %}
                                 </select>

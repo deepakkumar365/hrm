@@ -83,7 +83,7 @@
                         <td>
                             <div>
                                 {{ employee.first_name }} {{ employee.last_name }}
-                                <br><small class="text-muted">{{ employee.position }}</small>
+                                <br><small class="text-muted">{{ employee.designation.name if employee.designation else '-' }}</small>
                             </div>
                         </td>
                         <td>

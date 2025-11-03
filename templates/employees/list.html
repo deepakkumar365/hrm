@@ -84,7 +84,7 @@
                             <small><strong>Company:</strong> {{ employee.company_name }}</small>
                         </p>
                         {% endif %}
-                        <p class="mb-1">{{ employee.position }}</p>
+                        <p class="mb-1">{{ employee.designation.name if employee.designation else '-' }}</p>
                         {% if employee.department %}
                         <span class="text-muted">{{ employee.department }}</span>
                         {% endif %}
@@ -164,10 +164,10 @@
                             </th>
                             {% endif %}
                             <th>
-                                <a href="?sort_by=position&sort_order={{ 'desc' if sort_by == 'position' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
+                                <a href="?sort_by=designation&sort_order={{ 'desc' if sort_by == 'designation' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
                                    class="text-decoration-none text-dark">
-                                    Position
-                                    {% if sort_by == 'position' %}
+                                    Designation
+                                    {% if sort_by == 'designation' %}
                                         <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
                                     {% endif %}
                                 </a>
@@ -200,7 +200,7 @@
                             <td>{{ employee.tenant_name }}</td>
                             <td>{{ employee.company_name }}</td>
                             {% endif %}
-                            <td>{{ employee.position }}</td>
+                            <td>{{ employee.designation.name if employee.designation else '-' }}</td>
                             <td>
                                 {% if employee.department %}
                                 {{ employee.department }}
