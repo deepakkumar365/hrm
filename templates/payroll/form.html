@@ -84,7 +84,7 @@
                                                     <div>
                                                         <h6 class="mb-1">{{ employee.first_name }} {{ employee.last_name }}</h6>
                                                         <p class="text-muted small mb-1">{{ employee.employee_id }}</p>
-                                                        <p class="mb-1">{{ employee.position }}</p>
+                                                        <p class="mb-1">{{ employee.designation.name if employee.designation else '-' }}</p>
                                                         <div class="d-flex gap-1 flex-wrap">
                                                             {% if employee.department %}
                                                             <span class="badge bg-secondary small">{{ employee.department }}</span>

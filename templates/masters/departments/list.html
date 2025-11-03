@@ -76,7 +76,7 @@
                             <td>
                                 {% if department.manager %}
                                     {{ department.manager.first_name }} {{ department.manager.last_name }}
-                                    <small class="text-muted d-block">{{ department.manager.position }}</small>
+                                    <small class="text-muted d-block">{{ department.manager.designation.name if department.manager.designation else '-' }}</small>
                                 {% else %}
                                     <span class="text-muted">No manager assigned</span>
                                 {% endif %}

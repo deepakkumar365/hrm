@@ -148,7 +148,7 @@
                                             {{ employee.first_name }} {{ employee.last_name }}
                                         </td>
                                         <td><small>{{ employee.department or '-' }}</small></td>
-                                        <td><small>{{ employee.designation or employee.position or '-' }}</small></td>
+                                        <td><small>{{ employee.designation.name if employee.designation else '-' }}</small></td>
                                         <td>
                                             <select class="form-select form-select-sm status-select"
                                                     name="status_{{ employee.id }}"
@@ -200,7 +200,7 @@
                                         <h6 class="mb-1">{{ employee.first_name }} {{ employee.last_name }}</h6>
                                         <p class="text-muted small mb-1">{{ employee.employee_id }}</p>
                                         <p class="mb-1"><small>{{ employee.department or '-' }}</small></p>
-                                        <p class="mb-1"><small>{{ employee.designation or employee.position or '-' }}</small></p>
+                                        <p class="mb-1"><small>{{ employee.designation.name if employee.designation else '-' }}</small></p>
                                         <div class="mt-2">
                                             <select class="form-select form-select-sm status-select"
                                                     name="status_{{ employee.id }}"

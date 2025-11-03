@@ -49,10 +49,10 @@
                 <!-- Name -->
                 <h3 class="team-member-name">{{ member.first_name }} {{ member.last_name }}</h3>
                 
-                <!-- Position/Team -->
+                <!-- Designation -->
                 <div class="team-member-role">
                     <i class="fas fa-briefcase"></i>
-                    <span>{{ member.position }}</span>
+                    <span>{{ member.designation.name if member.designation else '-' }}</span>
                 </div>
 
                 <!-- Department -->
