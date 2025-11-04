@@ -1,4 +1,4 @@
-from flask import session, render_template, request, redirect, url_for, flash, jsonify
+from flask import session, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import current_user
 from sqlalchemy import func, extract, and_, text
 from datetime import datetime, date, time, timedelta
@@ -6,6 +6,8 @@ import calendar
 import os
 import time as pytime
 from werkzeug.utils import secure_filename
+from io import BytesIO
+from weasyprint import HTML, CSS
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
@@ -1608,6 +1610,107 @@ def payroll_payslip(payroll_id):
                          company=company_data,
                          earnings=earnings,
                          deductions=deductions)
+
+
+@app.route('/payroll/<int:payroll_id>/download-pdf')
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_login
+def payroll_download_pdf(payroll_id):
+    """Download payslip as PDF"""
+    payroll = Payroll.query.get_or_404(payroll_id)
+
+    # Check permission
+    user_role = current_user.role.name if current_user.role else None
+
+    if user_role == 'Employee':
+        # Employees can only download their own payslips
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
+                and current_user.employee_profile.id == payroll.employee_id):
+            return jsonify({'error': 'Permission denied'}), 403
+    elif user_role in ['HR Manager', 'Admin', 'Super Admin']:
+        # HR Manager, Admin and Super Admin: Can download all payslips
+        pass
+    else:
+        return jsonify({'error': 'Permission denied'}), 403
+
+    try:
+        # Prepare data for template
+        employee = payroll.employee
+        company = employee.organization
+
+        # Calculate pay date (end of pay period)
+        pay_date = payroll.pay_period_end.strftime('%d %b %Y')
+
+        # Prepare employee data
+        employee_data = {
+            'name': f"{employee.first_name} {employee.last_name}",
+            'employee_id': employee.employee_id,
+            'designation': employee.designation.name if employee.designation else 'N/A',
+            'department': employee.department.name if employee.department else 'N/A',
+            'nric': employee.nric or 'N/A'
+        }
+
+        # Prepare earnings data
+        earnings = {
+            'regular_pay_rate': f"{float(employee.basic_salary):,.2f}",
+            'regular_pay_amount': f"{float(payroll.basic_pay):,.2f}",
+            'overtime_pay_rate': f"{float(employee.hourly_rate or 0):,.2f}" if employee.hourly_rate else "0.00",
+            'overtime_hours': f"{float(payroll.overtime_hours):,.2f}",
+            'overtime_amount': f"{float(payroll.overtime_pay):,.2f}",
+            'holiday_pay': "0.00",
+            'vacation_pay': "0.00",
+            'others': f"{float(payroll.allowances + payroll.bonuses):,.2f}"
+        }
+
+        # Prepare deductions data
+        deductions = {
+            'income_tax': f"{float(payroll.income_tax):,.2f}",
+            'medical': "0.00",
+            'life_insurance': "0.00",
+            'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
+            'others': f"{float(payroll.other_deductions):,.2f}"
+        }
+
+        # Prepare company data
+        company_data = {
+            'name': company.name,
+            'address': company.address or 'N/A',
+            'uen': company.uen or 'N/A'
+        }
+
+        # Prepare payroll summary
+        payroll_data = {
+            'pay_date': pay_date,
+            'total_earnings': f"{float(payroll.gross_pay):,.2f}",
+            'total_deductions': f"{float(payroll.employee_cpf + payroll.income_tax + payroll.other_deductions):,.2f}",
+            'net_pay': f"{float(payroll.net_pay):,.2f}"
+        }
+
+        # Render HTML
+        html_string = render_template('payroll/payslip.html',
+                                     payroll=payroll_data,
+                                     employee=employee_data,
+                                     company=company_data,
+                                     earnings=earnings,
+                                     deductions=deductions)
+
+        # Convert to PDF
+        pdf_bytes = HTML(string=html_string).write_pdf()
+        pdf_io = BytesIO(pdf_bytes)
+
+        # Create filename
+        filename = f"Payslip_{employee.first_name}_{employee.last_name}_{payroll.pay_period_end.strftime('%d_%b_%Y')}.pdf"
+        filename = secure_filename(filename.replace(' ', '_'))
+
+        return send_file(
+            pdf_io,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])

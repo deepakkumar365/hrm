@@ -493,42 +493,6 @@
     </style>
 </head>
 <body>
-<!-- Download Buttons (Only visible on screen, hidden on print) -->
-<div class="download-buttons" style="
-    margin-bottom: 20px;
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-">
-    <button onclick="window.print()" style="
-        padding: 10px 20px;
-        background: #008080;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background 0.3s;
-    " onmouseover="this.style.background='#006666'" onmouseout="this.style.background='#008080'">
-        🖨️ Print / Save as PDF
-    </button>
-    
-    <button onclick="downloadPDF()" style="
-        padding: 10px 20px;
-        background: #004d4d;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background 0.3s;
-    " onmouseover="this.style.background='#003333'" onmouseout="this.style.background='#004d4d'">
-        📥 Download PDF
-    </button>
-</div>
 
 <div class="payslip-container">
 
@@ -676,24 +640,5 @@
 
 </div>
 
-<script>
-function downloadPDF() {
-    const employeeName = "{{ employee.name }}".replace(/[^a-zA-Z0-9_-]/g, '_');
-    const payDate = "{{ payroll.pay_date }}".replace(/\s+/g, '_');
-    const fileName = `Payslip_${employeeName}_${payDate}.pdf`;
-    
-    // Open print dialog with file name
-    const originalTitle = document.title;
-    document.title = fileName;
-    
-    // Trigger print to PDF
-    window.print();
-    
-    // Restore original title after short delay
-    setTimeout(() => {
-        document.title = originalTitle;
-    }, 500);
-}
-</script>
 </body>
 </html>

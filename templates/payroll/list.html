@@ -151,6 +151,10 @@
                            class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-file-invoice me-1"></i>Payslip
                         </a>
+                        <a href="{{ url_for('payroll_download_pdf', payroll_id=payroll.id) }}"
+                           class="btn btn-sm btn-outline-danger" title="Download as PDF" download>
+                            <i class="fas fa-file-pdf"></i>
+                        </a>
                         {% if (current_user.role.name if current_user.role else None) == 'Tenant Admin' and payroll.status == 'Draft' %}
                         <button class="btn btn-sm btn-outline-success" onclick="approvePayroll({{ payroll.id }})">
                             <i class="fas fa-check me-1"></i>Approve
@@ -223,6 +227,10 @@
                                     <a href="{{ url_for('payroll_payslip', payroll_id=payroll.id) }}"
                                        class="btn btn-outline-primary" title="View Payslip">
                                         <i class="fas fa-file-invoice me-1"></i>Payslip
+                                    </a>
+                                    <a href="{{ url_for('payroll_download_pdf', payroll_id=payroll.id) }}"
+                                       class="btn btn-outline-danger" title="Download as PDF" download>
+                                        <i class="fas fa-file-pdf"></i>
                                     </a>
                                     {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin'] and payroll.status == 'Draft' %}
                                     <button class="btn btn-outline-success" onclick="approvePayroll({{ payroll.id }})" title="Approve Payroll">
@@ -327,21 +335,27 @@ function approvePayroll(payrollId) {
 }
 
 function bulkDownloadPayslips() {
-    const payslipLinks = document.querySelectorAll('a[href*="/payroll/"][href*="/payslip"]');
+    const pdfButtons = document.querySelectorAll('a[href*="/payroll/"][href*="/download-pdf"]');
     
-    if (payslipLinks.length === 0) {
+    if (pdfButtons.length === 0) {
         alert('No payslips found on this page');
         return;
     }
     
-    const confirmDownload = confirm(`Download ${payslipLinks.length} payslip(s)? They will open in print dialog.`);
+    const confirmDownload = confirm(`Download ${pdfButtons.length} payslip(s)?`);
     if (!confirmDownload) return;
     
-    // Open each payslip in a new window for printing/saving
-    payslipLinks.forEach((link, index) => {
+    // Trigger download for each payslip
+    pdfButtons.forEach((link, index) => {
         setTimeout(() => {
-            window.open(link.href, `_blank_${index}`);
-        }, index * 500); // Stagger opening to prevent browser blocking
+            // Create a temporary link and click it to trigger download
+            const a = document.createElement('a');
+            a.href = link.href;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }, index * 500); // Stagger downloads to prevent browser blocking
     });
 }
 </script>
