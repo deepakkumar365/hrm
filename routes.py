@@ -7,7 +7,15 @@ import os
 import time as pytime
 from werkzeug.utils import secure_filename
 from io import BytesIO
-from weasyprint import HTML, CSS
+import logging
+
+# Lazy import WeasyPrint to handle deployment environments
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
+    logging.warning("WeasyPrint not available - PDF download will be disabled")
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
@@ -1617,6 +1625,11 @@ def payroll_payslip(payroll_id):
 @require_login
 def payroll_download_pdf(payroll_id):
     """Download payslip as PDF"""
+    
+    # Check if WeasyPrint is available
+    if not WEASYPRINT_AVAILABLE:
+        return jsonify({'error': 'PDF generation is not available in this environment. Please contact administrator.'}), 503
+    
     payroll = Payroll.query.get_or_404(payroll_id)
 
     # Check permission
@@ -1694,8 +1707,13 @@ def payroll_download_pdf(payroll_id):
                                      earnings=earnings,
                                      deductions=deductions)
 
-        # Convert to PDF
-        pdf_bytes = HTML(string=html_string).write_pdf()
+        # Convert to PDF with error handling
+        try:
+            pdf_bytes = HTML(string=html_string).write_pdf()
+        except Exception as pdf_error:
+            logging.error(f"PDF generation failed for payroll {payroll_id}: {str(pdf_error)}")
+            return jsonify({'error': f'PDF generation failed: {str(pdf_error)}'}), 500
+        
         pdf_io = BytesIO(pdf_bytes)
 
         # Create filename
@@ -1710,7 +1728,8 @@ def payroll_download_pdf(payroll_id):
         )
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logging.error(f"Payroll PDF download failed: {str(e)}")
+        return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
 
 @app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])
