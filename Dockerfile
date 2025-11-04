@@ -4,21 +4,8 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including WeasyPrint requirements
-# Install build tools and runtime dependencies for WeasyPrint and other packages
+# Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    g++ \
-    python3-dev \
-    pkg-config \
-    libcairo2 \
-    libcairo2-dev \
-    libpango-1.0-0 \
-    libpango1.0-dev \
-    libpango-gobject-0 \
-    libffi-dev \
-    shared-mime-info \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
