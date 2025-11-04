@@ -1528,26 +1528,28 @@ def payroll_preview_api():
 
 
 @app.route('/payroll/<int:payroll_id>/payslip')
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 @require_login
 def payroll_payslip(payroll_id):
     """View/download payslip"""
     payroll = Payroll.query.get_or_404(payroll_id)
 
     # Check permission
-    if (current_user.role.name if current_user.role else None) == 'Employee':
+    user_role = current_user.role.name if current_user.role else None
+
+    if user_role == 'Employee':
+        # Employees can only view their own payslips
         if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
                 and current_user.employee_profile.id == payroll.employee_id):
             flash('You do not have permission to view this payslip.', 'error')
             return redirect(url_for('dashboard'))
-    elif (current_user.role.name if current_user.role else None) == 'HR Manager':
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
-                and payroll.employee.manager_id
-                == current_user.employee_profile.id):
-            flash('You do not have permission to view this payslip.', 'error')
-            return redirect(url_for('dashboard'))
-    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
-        # Admin and Super Admin: Can view all payslips
+    elif user_role in ['HR Manager', 'Admin', 'Super Admin']:
+        # HR Manager, Admin and Super Admin: Can view all payslips
         pass  # No restriction - they can see all
+    else:
+        # Any other role cannot view payslips
+        flash('You do not have permission to view this payslip.', 'error')
+        return redirect(url_for('dashboard'))
 
     # Prepare data for template
     employee = payroll.employee
