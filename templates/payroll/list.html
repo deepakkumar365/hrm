@@ -17,11 +17,14 @@
                         </ol>
                     </nav>
                 </div>
-                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin'] %}
+                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager'] %}
                 <div class="btn-group">
                     <a href="{{ url_for('payroll_generate') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>Generate Payroll
                     </a>
+                    <button type="button" class="btn btn-outline-info" onclick="bulkDownloadPayslips()" title="Download all payslips as PDFs">
+                        <i class="fas fa-download me-1"></i>Download Payslips
+                    </button>
                     <div class="btn-group">
                         <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fas fa-file-export me-1"></i>Export
@@ -321,6 +324,25 @@ function approvePayroll(payrollId) {
             alert('Error approving payroll');
         });
     }
+}
+
+function bulkDownloadPayslips() {
+    const payslipLinks = document.querySelectorAll('a[href*="/payroll/"][href*="/payslip"]');
+    
+    if (payslipLinks.length === 0) {
+        alert('No payslips found on this page');
+        return;
+    }
+    
+    const confirmDownload = confirm(`Download ${payslipLinks.length} payslip(s)? They will open in print dialog.`);
+    if (!confirmDownload) return;
+    
+    // Open each payslip in a new window for printing/saving
+    payslipLinks.forEach((link, index) => {
+        setTimeout(() => {
+            window.open(link.href, `_blank_${index}`);
+        }, index * 500); // Stagger opening to prevent browser blocking
+    });
 }
 </script>
 {% endblock %}

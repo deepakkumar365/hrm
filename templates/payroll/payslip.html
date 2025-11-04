@@ -334,17 +334,135 @@
             letter-spacing: 1px;
         }
 
-        /* Print Styles */
+        /* Print Styles - Single Page Optimization */
         @media print {
             body {
                 background: #FFFFFF;
                 padding: 0;
+                margin: 0;
             }
 
             .payslip-container {
                 box-shadow: none;
                 border-radius: 0;
                 max-width: 100%;
+                width: 100%;
+                margin: 0;
+                page-break-after: avoid;
+            }
+
+            .company-header {
+                padding: 15px 20px;
+            }
+
+            .company-name {
+                font-size: 18px;
+                margin-bottom: 4px;
+            }
+
+            .company-address {
+                font-size: 11px;
+                margin: 2px 0;
+            }
+
+            .company-uen {
+                font-size: 10px;
+                margin-top: 4px;
+            }
+
+            .slip-title-section {
+                padding: 12px 20px;
+            }
+
+            .slip-title {
+                font-size: 20px;
+                margin-bottom: 2px;
+            }
+
+            .slip-subtitle {
+                font-size: 10px;
+            }
+
+            .content-area {
+                padding: 15px 20px;
+            }
+
+            .info-section,
+            .pay-section,
+            .summary-section {
+                margin-bottom: 10px;
+                page-break-inside: avoid;
+            }
+
+            .info-section {
+                padding: 12px;
+            }
+
+            .info-table td {
+                font-size: 11px;
+                padding: 6px 4px;
+            }
+
+            .info-table .label {
+                width: 150px;
+            }
+
+            .pay-section {
+                padding: 0;
+            }
+
+            .pay-table th {
+                font-size: 11px;
+                padding: 8px 6px;
+            }
+
+            .pay-table td {
+                font-size: 11px;
+                padding: 6px;
+            }
+
+            .pay-table tbody tr:hover {
+                background: #FFFFFF;
+            }
+
+            .totals-row td {
+                font-size: 12px;
+                padding: 8px 6px;
+            }
+
+            .summary-section {
+                padding: 12px;
+            }
+
+            .summary-table {
+                max-width: 350px;
+            }
+
+            .summary-table td {
+                font-size: 12px;
+                padding: 6px 4px;
+            }
+
+            .netpay-row td {
+                font-size: 14px;
+                padding: 10px 8px;
+            }
+
+            .footer-wave {
+                padding: 12px 20px;
+            }
+
+            .footer-note {
+                font-size: 10px;
+                margin-bottom: 4px;
+            }
+
+            .footer-logo {
+                font-size: 9px;
+            }
+
+            .download-buttons {
+                display: none;
             }
         }
 
@@ -375,6 +493,43 @@
     </style>
 </head>
 <body>
+<!-- Download Buttons (Only visible on screen, hidden on print) -->
+<div class="download-buttons" style="
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+">
+    <button onclick="window.print()" style="
+        padding: 10px 20px;
+        background: #008080;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    " onmouseover="this.style.background='#006666'" onmouseout="this.style.background='#008080'">
+        🖨️ Print / Save as PDF
+    </button>
+    
+    <button onclick="downloadPDF()" style="
+        padding: 10px 20px;
+        background: #004d4d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    " onmouseover="this.style.background='#003333'" onmouseout="this.style.background='#004d4d'">
+        📥 Download PDF
+    </button>
+</div>
+
 <div class="payslip-container">
 
     <!-- Company Header Bar -->
@@ -515,10 +670,30 @@
             This is a system-generated document. Hence, signature is not needed!
         </div>
         <div class="footer-logo">
-            HRMS Payroll System
+            Nexar Private Limited
         </div>
     </div>
 
 </div>
+
+<script>
+function downloadPDF() {
+    const employeeName = "{{ employee.name }}".replace(/[^a-zA-Z0-9_-]/g, '_');
+    const payDate = "{{ payroll.pay_date }}".replace(/\s+/g, '_');
+    const fileName = `Payslip_${employeeName}_${payDate}.pdf`;
+    
+    // Open print dialog with file name
+    const originalTitle = document.title;
+    document.title = fileName;
+    
+    // Trigger print to PDF
+    window.print();
+    
+    // Restore original title after short delay
+    setTimeout(() => {
+        document.title = originalTitle;
+    }, 500);
+}
+</script>
 </body>
 </html>
