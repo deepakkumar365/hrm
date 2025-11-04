@@ -404,19 +404,20 @@ def dashboard():
 
     elif user_role_name == 'HR Manager':
         # Team member activities
-        team_leaves = Leave.query.join(Employee).filter(
-            Employee.manager_id == current_user.employee_profile.id,
-            Leave.status == 'Pending').order_by(
-                Leave.created_at.desc()).limit(5).all()
+        if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            team_leaves = Leave.query.join(Employee).filter(
+                Employee.manager_id == current_user.employee_profile.id,
+                Leave.status == 'Pending').order_by(
+                    Leave.created_at.desc()).limit(5).all()
 
-        for leave in team_leaves:
-            recent_activities.append({
-                'type': 'team_leave',
-                'employee':
-                f"{leave.employee.first_name} {leave.employee.last_name}",
-                'details': f"{leave.leave_type} leave request",
-                'date': leave.created_at
-            })
+            for leave in team_leaves:
+                recent_activities.append({
+                    'type': 'team_leave',
+                    'employee':
+                    f"{leave.employee.first_name} {leave.employee.last_name}",
+                    'details': f"{leave.leave_type} leave request",
+                    'date': leave.created_at
+                })
 
     else:  # Employee
         # Own recent activities
