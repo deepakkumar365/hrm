@@ -10,12 +10,12 @@ from io import BytesIO
 import logging
 
 # Lazy import WeasyPrint to handle deployment environments
+WEASYPRINT_AVAILABLE = False
 try:
     from weasyprint import HTML, CSS
     WEASYPRINT_AVAILABLE = True
-except ImportError:
-    WEASYPRINT_AVAILABLE = False
-    logging.warning("WeasyPrint not available - PDF download will be disabled")
+except Exception as e:
+    logging.warning(f"WeasyPrint not available ({type(e).__name__}): Will use HTML view instead for PDF generation")
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
@@ -1621,14 +1621,10 @@ def payroll_payslip(payroll_id):
 
 
 @app.route('/payroll/<int:payroll_id>/download-pdf')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager', 'Employee'])
 @require_login
 def payroll_download_pdf(payroll_id):
-    """Download payslip as PDF"""
-    
-    # Check if WeasyPrint is available
-    if not WEASYPRINT_AVAILABLE:
-        return jsonify({'error': 'PDF generation is not available in this environment. Please contact administrator.'}), 503
+    """Download payslip as PDF (or view as printable HTML)"""
     
     payroll = Payroll.query.get_or_404(payroll_id)
 
@@ -1705,27 +1701,39 @@ def payroll_download_pdf(payroll_id):
                                      employee=employee_data,
                                      company=company_data,
                                      earnings=earnings,
-                                     deductions=deductions)
+                                     deductions=deductions,
+                                     is_printable=True)
 
-        # Convert to PDF with error handling
-        try:
-            pdf_bytes = HTML(string=html_string).write_pdf()
-        except Exception as pdf_error:
-            logging.error(f"PDF generation failed for payroll {payroll_id}: {str(pdf_error)}")
-            return jsonify({'error': f'PDF generation failed: {str(pdf_error)}'}), 500
+        # If WeasyPrint is available, convert to PDF
+        if WEASYPRINT_AVAILABLE:
+            try:
+                pdf_bytes = HTML(string=html_string).write_pdf()
+                pdf_io = BytesIO(pdf_bytes)
+
+                # Create filename
+                filename = f"Payslip_{employee.first_name}_{employee.last_name}_{payroll.pay_period_end.strftime('%d_%b_%Y')}.pdf"
+                filename = secure_filename(filename.replace(' ', '_'))
+
+                return send_file(
+                    pdf_io,
+                    mimetype='application/pdf',
+                    as_attachment=True,
+                    download_name=filename
+                )
+            except Exception as pdf_error:
+                logging.error(f"PDF generation failed for payroll {payroll_id}: {str(pdf_error)}")
+                # Fall back to HTML view
+                logging.info(f"Falling back to HTML view for payroll {payroll_id}")
         
-        pdf_io = BytesIO(pdf_bytes)
-
-        # Create filename
-        filename = f"Payslip_{employee.first_name}_{employee.last_name}_{payroll.pay_period_end.strftime('%d_%b_%Y')}.pdf"
-        filename = secure_filename(filename.replace(' ', '_'))
-
-        return send_file(
-            pdf_io,
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=filename
-        )
+        # If WeasyPrint is not available or failed, return printable HTML
+        # User can print to PDF using Ctrl+P or browser print menu
+        return render_template('payroll/payslip_print.html',
+                             payroll=payroll_data,
+                             employee=employee_data,
+                             company=company_data,
+                             earnings=earnings,
+                             deductions=deductions,
+                             can_print=True)
 
     except Exception as e:
         logging.error(f"Payroll PDF download failed: {str(e)}")
