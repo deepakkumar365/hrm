@@ -99,7 +99,7 @@
                                 <li><a class="dropdown-item" href="{{ url_for('employee_view', employee_id=employee.id) }}">
                                     <i class="fas fa-eye me-1"></i>View Details
                                 </a></li>
-                                {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'Super Admin'] %}
+                                {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'Super Admin','HR Manager'] %}
                                 <li><a class="dropdown-item" href="{{ url_for('employee_edit', employee_id=employee.id) }}">
                                     <i class="fas fa-edit me-1"></i>Edit
                                 </a></li>

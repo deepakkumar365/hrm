@@ -956,7 +956,7 @@ def profile():
 
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin','HR Manager'])
 def employee_edit(employee_id):
     """Edit employee details"""
     employee = Employee.query.get_or_404(employee_id)
@@ -1625,7 +1625,7 @@ def payroll_payslip(payroll_id):
 @require_login
 def payroll_download_pdf(payroll_id):
     """Download payslip as PDF (or view as printable HTML)"""
-    
+
     payroll = Payroll.query.get_or_404(payroll_id)
 
     # Check permission
@@ -1724,7 +1724,7 @@ def payroll_download_pdf(payroll_id):
                 logging.error(f"PDF generation failed for payroll {payroll_id}: {str(pdf_error)}")
                 # Fall back to HTML view
                 logging.info(f"Falling back to HTML view for payroll {payroll_id}")
-        
+
         # If WeasyPrint is not available or failed, return printable HTML
         # User can print to PDF using Ctrl+P or browser print menu
         return render_template('payroll/payslip_print.html',
