@@ -1526,6 +1526,113 @@ def payroll_preview_api():
         }), 500
 
 
+@app.route('/api/payroll/save-row', methods=['POST'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+def payroll_save_row():
+    """API endpoint to save individual payroll row data"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('employee_id'):
+            return jsonify({
+                'success': False,
+                'message': 'Employee ID is required'
+            }), 400
+        
+        month = int(data.get('month'))
+        year = int(data.get('year'))
+        employee_id = int(data.get('employee_id'))
+        
+        # Calculate pay period
+        from calendar import monthrange
+        pay_period_start = date(year, month, 1)
+        last_day = monthrange(year, month)[1]
+        pay_period_end = date(year, month, last_day)
+        
+        # Check if payroll record already exists
+        payroll = Payroll.query.filter_by(
+            employee_id=employee_id,
+            pay_period_start=pay_period_start,
+            pay_period_end=pay_period_end
+        ).first()
+        
+        # If not exists, create new one
+        if not payroll:
+            employee = Employee.query.get(employee_id)
+            if not employee:
+                return jsonify({
+                    'success': False,
+                    'message': 'Employee not found'
+                }), 404
+            
+            payroll = Payroll()
+            payroll.employee_id = employee_id
+            payroll.pay_period_start = pay_period_start
+            payroll.pay_period_end = pay_period_end
+            payroll.generated_by = current_user.id
+            payroll.status = 'Draft'
+        
+        # Update fields from the request
+        if 'basic_pay' in data:
+            payroll.basic_pay = float(data['basic_pay'])
+        if 'overtime_pay' in data:
+            payroll.overtime_pay = float(data['overtime_pay'])
+        if 'allowances' in data:
+            payroll.allowances = float(data['allowances'])
+        if 'bonuses' in data:
+            payroll.bonuses = float(data['bonuses'])
+        if 'overtime_hours' in data:
+            payroll.overtime_hours = float(data['overtime_hours'])
+        if 'days_worked' in data:
+            payroll.days_worked = int(data['days_worked'])
+        if 'absent_days' in data:
+            payroll.absent_days = int(data['absent_days'])
+        if 'leave_days' in data:
+            payroll.leave_days = int(data['leave_days'])
+        if 'lop_days' in data:
+            payroll.lop_days = int(data['lop_days'])
+        if 'lop_deduction' in data:
+            payroll.lop_deduction = float(data['lop_deduction'])
+        if 'employee_cpf' in data:
+            payroll.employee_cpf = float(data['employee_cpf'])
+        if 'employer_cpf' in data:
+            payroll.employer_cpf = float(data['employer_cpf'])
+        if 'income_tax' in data:
+            payroll.income_tax = float(data['income_tax'])
+        if 'other_deductions' in data:
+            payroll.other_deductions = float(data['other_deductions'])
+        
+        # Recalculate gross_pay and net_pay
+        payroll.gross_pay = (float(payroll.basic_pay or 0) + 
+                            float(payroll.allowances or 0) + 
+                            float(payroll.bonuses or 0) + 
+                            float(payroll.overtime_pay or 0) - 
+                            float(payroll.lop_deduction or 0))
+        
+        payroll.net_pay = (float(payroll.gross_pay) - 
+                          float(payroll.employee_cpf or 0) - 
+                          float(payroll.income_tax or 0) - 
+                          float(payroll.other_deductions or 0))
+        
+        db.session.add(payroll)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payroll record saved successfully',
+            'payroll_id': payroll.id,
+            'gross_pay': float(payroll.gross_pay),
+            'net_pay': float(payroll.net_pay)
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error saving payroll: {str(e)}'
+        }), 500
+
+
 @app.route('/payroll/<int:payroll_id>/payslip')
 @require_login
 def payroll_payslip(payroll_id):
@@ -1630,19 +1737,60 @@ def payroll_approve(payroll_id):
 @require_login
 def attendance_list():
     """List attendance records"""
+    from datetime import timedelta
+    
     page = request.args.get('page', 1, type=int)
-    date_filter = request.args.get('date', type=str)
+    date_range_filter = request.args.get('date_range', 'today', type=str)
+    start_date_str = request.args.get('start_date', type=str)
+    end_date_str = request.args.get('end_date', type=str)
     employee_filter = request.args.get('employee', type=int)
+    department_filter = request.args.get('department', type=str)
+    company_filter = request.args.get('company', type=str)
+
+    # Calculate date range based on filter type
+    today = date.today()
+    start_date = None
+    end_date = None
+
+    if date_range_filter == 'custom':
+        # Use provided dates
+        if start_date_str:
+            start_date = parse_date(start_date_str)
+        if end_date_str:
+            end_date = parse_date(end_date_str)
+        # Auto-swap if reversed
+        if start_date and end_date and start_date > end_date:
+            start_date, end_date = end_date, start_date
+    elif date_range_filter == 'week':
+        # This week (Monday to Sunday)
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(days=6)
+    elif date_range_filter == 'month':
+        # This month
+        start_date = today.replace(day=1)
+        if today.month == 12:
+            end_date = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            end_date = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+    else:  # default to 'today'
+        start_date = today
+        end_date = today
+        date_range_filter = 'today'
 
     query = Attendance.query.join(Employee)
 
-    if date_filter:
-        filter_date = parse_date(date_filter)
-        if filter_date:
-            query = query.filter(Attendance.date == filter_date)
+    # Apply date range filter
+    if start_date and end_date:
+        query = query.filter(Attendance.date.between(start_date, end_date))
 
     if employee_filter:
         query = query.filter(Attendance.employee_id == employee_filter)
+
+    if department_filter:
+        query = query.filter(Employee.department == department_filter)
+
+    if company_filter:
+        query = query.join(Company).filter(Company.name == company_filter)
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
@@ -1666,30 +1814,81 @@ def attendance_list():
         # Super Admin: Can see all attendance records
         pass
 
+    # Calculate summary statistics
+    summary = None
+    if query.first():
+        total_records = query.count()
+        present_days = query.filter(Attendance.status == 'Present').count()
+        absent_days = query.filter(Attendance.status == 'Absent').count()
+        late_days = query.filter(Attendance.status == 'Late').count()
+        
+        # Calculate total hours
+        records = query.all()
+        total_hours = sum(r.total_hours if r.total_hours else 0 for r in records)
+        total_overtime = sum(r.overtime_hours if r.overtime_hours else 0 for r in records)
+        
+        summary = {
+            'total_records': total_records,
+            'present_days': present_days,
+            'absent_days': absent_days,
+            'late_days': late_days,
+            'total_hours': total_hours,
+            'total_overtime': total_overtime
+        }
+
     attendance_records = query.order_by(Attendance.date.desc()).paginate(
         page=page, per_page=20, error_out=False)
 
     # Get employees for filter dropdown based on role
     employees = []
-    if (current_user.role.name if current_user.role else None) == 'Super Admin':
-        # Super Admin can filter by all employees
-        employees = Employee.query.filter_by(is_active=True).order_by(
-            Employee.first_name).all()
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        # Manager can filter by themselves and their team
-        manager_id = current_user.employee_profile.id
-        employees = Employee.query.filter(
-            db.or_(
-                Employee.id == manager_id,
-                Employee.manager_id == manager_id
-            )
-        ).filter_by(is_active=True).order_by(Employee.first_name).all()
+    if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager']:
+        if (current_user.role.name if current_user.role else None) == 'Super Admin':
+            # Super Admin can filter by all employees
+            employees = Employee.query.filter_by(is_active=True).order_by(
+                Employee.first_name).all()
+        elif (current_user.role.name if current_user.role else None) in ['Admin', 'HR Manager']:
+            # Admin/HR Manager can see all employees
+            employees = Employee.query.filter_by(is_active=True).order_by(
+                Employee.first_name).all()
+        elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            # Manager can filter by themselves and their team
+            manager_id = current_user.employee_profile.id
+            employees = Employee.query.filter(
+                db.or_(
+                    Employee.id == manager_id,
+                    Employee.manager_id == manager_id
+                )
+            ).filter_by(is_active=True).order_by(Employee.first_name).all()
+
+    # Get departments for filter
+    departments = []
+    if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager']:
+        departments = db.session.query(Employee.department).filter(
+            Employee.department.isnot(None),
+            Employee.is_active == True
+        ).distinct().order_by(Employee.department).all()
+        departments = [d[0] for d in departments if d[0]]
+
+    # Get companies for filter
+    companies = []
+    if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager']:
+        companies = db.session.query(Company.name).filter(
+            Company.is_active == True
+        ).distinct().order_by(Company.name).all()
+        companies = [c[0] for c in companies if c[0]]
 
     return render_template('attendance/list.html',
                            attendance_records=attendance_records,
                            employees=employees,
-                           date_filter=date_filter,
-                           employee_filter=employee_filter)
+                           departments=departments,
+                           companies=companies,
+                           date_range_filter=date_range_filter,
+                           start_date=start_date.strftime('%Y-%m-%d') if start_date else '',
+                           end_date=end_date.strftime('%Y-%m-%d') if end_date else '',
+                           employee_filter=employee_filter,
+                           department_filter=department_filter,
+                           company_filter=company_filter,
+                           summary=summary)
 
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])
@@ -1998,17 +2197,34 @@ def attendance_incomplete():
 @app.route('/attendance/bulk', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin', 'HR Manager'])
 def attendance_bulk_manage():
-    """Bulk attendance management - mark employees as absent for a specific date"""
-    selected_date = request.args.get('date') or request.form.get('date')
-    if not selected_date:
-        selected_date = date.today().strftime('%Y-%m-%d')
+    """Bulk attendance management - mark employees as absent for a date range"""
+    # Get filter parameters
+    start_date_str = request.args.get('start_date') or request.form.get('start_date')
+    end_date_str = request.args.get('end_date') or request.form.get('end_date')
+    company_id = request.args.get('company_id') or request.form.get('company_id')
+    employee_search = request.args.get('employee_search') or request.form.get('employee_search', '').strip()
+
+    # Set default dates if not provided
+    if not start_date_str:
+        start_date_str = date.today().strftime('%Y-%m-%d')
+    if not end_date_str:
+        end_date_str = date.today().strftime('%Y-%m-%d')
 
     try:
-        filter_date = datetime.strptime(selected_date, '%Y-%m-%d').date()
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        
+        # Ensure start_date is not after end_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+            start_date_str = start_date.strftime('%Y-%m-%d')
+            end_date_str = end_date.strftime('%Y-%m-%d')
     except ValueError:
         flash('Invalid date format', 'error')
-        filter_date = date.today()
-        selected_date = filter_date.strftime('%Y-%m-%d')
+        start_date = date.today()
+        end_date = date.today()
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        end_date_str = end_date.strftime('%Y-%m-%d')
 
     if request.method == 'POST':
         try:
@@ -2016,12 +2232,19 @@ def attendance_bulk_manage():
             absent_employee_ids = request.form.getlist('absent_employees')
             absent_employee_ids = [int(emp_id) for emp_id in absent_employee_ids if emp_id.isdigit()]
 
-            # Get all employees based on role permissions
+            # Get all employees based on role permissions and filters
             employees_query = Employee.query.filter_by(is_active=True)
+
+            # Apply company filter
+            if company_id and company_id != '':
+                try:
+                    company_id = int(company_id)
+                    employees_query = employees_query.filter_by(company_id=company_id)
+                except (ValueError, TypeError):
+                    pass
 
             # Apply role-based filtering
             if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-                # Manager: Can manage their team + themselves
                 manager_id = current_user.employee_profile.id
                 employees_query = employees_query.filter(
                     db.or_(
@@ -2032,49 +2255,77 @@ def attendance_bulk_manage():
 
             all_employees = employees_query.all()
 
-            # Ensure attendance records exist for all employees for this date
-            create_daily_attendance_records(filter_date, all_employees)
+            # Update attendance for each date in the range
+            total_updates = 0
+            for current_date in [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]:
+                # Skip weekends if needed (optional, customize as per business logic)
+                # if current_date.weekday() >= 5:  # 5=Saturday, 6=Sunday
+                #     continue
 
-            # Update attendance status for all employees
-            for employee in all_employees:
-                attendance = Attendance.query.filter_by(
-                    employee_id=employee.id,
-                    date=filter_date
-                ).first()
+                # Ensure attendance records exist for all employees for this date
+                create_daily_attendance_records(current_date, all_employees)
 
-                if attendance:
-                    if employee.id in absent_employee_ids:
-                        attendance.status = 'Absent'
-                        attendance.remarks = f'Marked absent by {current_user.full_name}'  # Use property that gets name from employee profile
-                        # Clear time fields for absent employees
-                        attendance.clock_in = None
-                        attendance.clock_out = None
-                        attendance.break_start = None
-                        attendance.break_end = None
-                        attendance.regular_hours = 0
-                        attendance.overtime_hours = 0
-                        attendance.total_hours = 0
-                    else:
-                        attendance.status = 'Present'
-                        # For present employees, set default 8 hours if not manually clocked
-                        if not attendance.clock_in and not attendance.clock_out:
-                            attendance.regular_hours = 8
-                            attendance.total_hours = 8
+                # Update attendance status for all employees
+                for employee in all_employees:
+                    attendance = Attendance.query.filter_by(
+                        employee_id=employee.id,
+                        date=current_date
+                    ).first()
+
+                    if attendance:
+                        if employee.id in absent_employee_ids:
+                            attendance.status = 'Absent'
+                            attendance.remarks = f'Marked absent by {current_user.full_name}'
+                            # Clear time fields for absent employees
+                            attendance.clock_in = None
+                            attendance.clock_out = None
+                            attendance.break_start = None
+                            attendance.break_end = None
+                            attendance.regular_hours = 0
                             attendance.overtime_hours = 0
+                            attendance.total_hours = 0
+                        else:
+                            attendance.status = 'Present'
+                            # For present employees, set default 8 hours if not manually clocked
+                            if not attendance.clock_in and not attendance.clock_out:
+                                attendance.regular_hours = 8
+                                attendance.total_hours = 8
+                                attendance.overtime_hours = 0
+                        total_updates += 1
 
             db.session.commit()
 
-            present_count = len(all_employees) - len(absent_employee_ids)
-            absent_count = len(absent_employee_ids)
+            present_count = total_updates - (len(absent_employee_ids) * ((end_date - start_date).days + 1))
+            absent_count = len(absent_employee_ids) * ((end_date - start_date).days + 1)
+            date_range_str = f"{start_date.strftime('%b %d')} to {end_date.strftime('%b %d, %Y')}" if start_date != end_date else start_date.strftime('%B %d, %Y')
 
-            flash(f'Attendance updated for {filter_date.strftime("%B %d, %Y")}: {present_count} Present, {absent_count} Absent', 'success')
+            flash(f'Attendance updated for {date_range_str}: {present_count} Present records, {absent_count} Absent records', 'success')
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating attendance: {str(e)}', 'error')
 
-    # Get employees and their attendance for the selected date
+    # Get employees and their attendance for the selected date range
     employees_query = Employee.query.filter_by(is_active=True)
+
+    # Apply company filter
+    if company_id and company_id != '':
+        try:
+            company_id = int(company_id)
+            employees_query = employees_query.filter_by(company_id=company_id)
+        except (ValueError, TypeError):
+            company_id = None
+
+    # Apply employee search filter (by name or employee_id)
+    if employee_search:
+        search_term = f"%{employee_search}%"
+        employees_query = employees_query.filter(
+            db.or_(
+                Employee.first_name.ilike(search_term),
+                Employee.last_name.ilike(search_term),
+                Employee.employee_id.ilike(search_term)
+            )
+        )
 
     # Apply role-based filtering for display
     if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
@@ -2088,23 +2339,32 @@ def attendance_bulk_manage():
 
     employees = employees_query.order_by(Employee.first_name, Employee.last_name).all()
 
-    # Ensure attendance records exist for all employees for this date
-    create_daily_attendance_records(filter_date, employees)
+    # Ensure attendance records exist for all employees for the date range
+    for current_date in [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]:
+        create_daily_attendance_records(current_date, employees)
 
-    # Get attendance records for the selected date
+    # Get attendance records for the first day of the range (for display)
     attendance_records = {}
     for employee in employees:
         attendance = Attendance.query.filter_by(
             employee_id=employee.id,
-            date=filter_date
+            date=start_date
         ).first()
         attendance_records[employee.id] = attendance
+
+    # Get list of companies for the filter dropdown
+    companies = Company.query.order_by(Company.name).all()
 
     return render_template('attendance/bulk_manage.html',
                          employees=employees,
                          attendance_records=attendance_records,
-                         selected_date=selected_date,
-                         filter_date=filter_date,
+                         start_date=start_date_str,
+                         end_date=end_date_str,
+                         start_date_obj=start_date,
+                         end_date_obj=end_date,
+                         company_id=company_id,
+                         employee_search=employee_search,
+                         companies=companies,
                          date=date)
 
 

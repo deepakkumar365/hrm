@@ -3,494 +3,588 @@
 {% block title %}Attendance Records - Noltrion{% endblock %}
 
 {% block content %}
-<div class="dashboard-wrapper">
-    <!-- Header -->
-    <div class="dashboard-header">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
-            <div>
-                <h1 class="dashboard-title">Attendance Records</h1>
-                <p class="dashboard-subtitle">Track and manage your attendance history</p>
-            </div>
-            <div class="d-flex gap-3 flex-wrap">
-                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                <a href="{{ url_for('attendance_bulk_manage') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-users"></i>
-                    Bulk Management
-                </a>
-                {% endif %}
-                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-clock"></i>
-                    Mark Attendance
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filters Section - Compact View -->
-    <div class="attendance-filter-section">
-        <form method="GET" class="attendance-filter-form">
-            <!-- Compact Filter Tabs -->
-            <div class="filter-tabs-compact">
-                <button type="button" class="filter-tab-compact {% if not date_range_filter or date_range_filter == 'today' %}active{% endif %}" onclick="setDateFilter('today')" data-filter="today">
-                    <i class="fas fa-calendar-day"></i> Today
-                </button>
-                <button type="button" class="filter-tab-compact {% if date_range_filter == 'week' %}active{% endif %}" onclick="setDateFilter('week')" data-filter="week">
-                    <i class="fas fa-calendar-week"></i> This Week
-                </button>
-                <button type="button" class="filter-tab-compact {% if date_range_filter == 'month' %}active{% endif %}" onclick="setDateFilter('month')" data-filter="month">
-                    <i class="fas fa-calendar-alt"></i> This Month
-                </button>
-                <button type="button" class="filter-tab-compact {% if date_range_filter == 'custom' %}active{% endif %}" onclick="setDateFilter('custom')" data-filter="custom">
-                    <i class="fas fa-calendar"></i> Custom Range
-                </button>
-            </div>
-
-            <!-- Compact Filter Inputs in Single Row -->
-            <div class="filter-inputs-compact">
-                <input type="hidden" id="date_range_type" name="date_range" value="{{ date_range_filter or 'today' }}">
-                
-                <!-- Date Range Fields - Conditional Display -->
-                <div class="filter-input-group-compact" id="custom_date_fields" style="display: {% if date_range_filter == 'custom' %}flex{% else %}none{% endif %};">
-                    <div class="input-wrapper">
-                        <label for="start_date"><i class="fas fa-calendar-alt"></i> Start</label>
-                        <input type="date" id="start_date" name="start_date" class="form-control form-control-sm" value="{{ start_date or '' }}">
-                    </div>
-                    <div class="input-wrapper">
-                        <label for="end_date"><i class="fas fa-calendar-alt"></i> End</label>
-                        <input type="date" id="end_date" name="end_date" class="form-control form-control-sm" value="{{ end_date or '' }}">
-                    </div>
+<div class="container-fluid">
+    <!-- Header with Navigation and Actions -->
+    <div class="row mb-2">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <!-- Breadcrumb Navigation -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item">Attendance</li>
+                            <li class="breadcrumb-item active" aria-current="page">Records</li>
+                        </ol>
+                    </nav>
                 </div>
-
-                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager'] %}
-                <!-- Employee Filter -->
-                {% if employees %}
-                <div class="filter-input-group-compact">
-                    <label for="employee_filter"><i class="fas fa-user"></i> Employee</label>
-                    <select id="employee_filter" name="employee" class="form-select form-select-sm">
-                        <option value="">All Employees</option>
-                        {% for emp in employees %}
-                        <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
-                            {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-
-                <!-- Department Filter -->
-                {% if departments %}
-                <div class="filter-input-group-compact">
-                    <label for="department_filter"><i class="fas fa-building"></i> Department</label>
-                    <select id="department_filter" name="department" class="form-select form-select-sm">
-                        <option value="">All Departments</option>
-                        {% for dept in departments %}
-                        <option value="{{ dept }}" {% if dept == department_filter %}selected{% endif %}>
-                            {{ dept }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-                {% endif %}
-
-                <!-- Filter Actions -->
-                <div class="filter-actions-compact">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search"></i> Apply
-                    </button>
-                    <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-redo"></i> Reset
+                <div class="btn-group gap-2">
+                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
+                    <a href="{{ url_for('attendance_bulk_manage') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-users me-1"></i>Bulk Upload
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
+                        <i class="fas fa-clock me-1"></i>Mark Attendance
                     </a>
                 </div>
             </div>
-        </form>
-    </div>
+            
+            <hr class="mt-0 mb-3">
 
-    <!-- Attendance Summary Section - Moved to Top -->
-    {% if attendance_records.items and summary %}
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <h3 class="card-title mb-0">
-                <i class="fas fa-chart-bar me-2"></i>
-                Attendance Summary
-            </h3>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-light rounded">
-                        <div class="text-muted small mb-1">Total Records</div>
-                        <div class="fw-bold fs-4">{{ summary.total_records }}</div>
-                    </div>
+            <!-- Filter Section -->
+            <form method="GET" class="filter-card mb-3" id="attendance_filter_form">
+                <div class="card-header">
+                    <i class="fas fa-filter me-2"></i>Filters
                 </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-success bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Present Days</div>
-                        <div class="fw-bold fs-4 text-success">{{ summary.present_days }}</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-danger bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Absent Days</div>
-                        <div class="fw-bold fs-4 text-danger">{{ summary.absent_days }}</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Late Days</div>
-                        <div class="fw-bold fs-4 text-warning">{{ summary.late_days }}</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-info bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Total Hours</div>
-                        <div class="fw-bold fs-4 text-info">{{ "%.1f"|format(summary.total_hours) }}h</div>
-                    </div>
-                </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Overtime Hours</div>
-                        <div class="fw-bold fs-4 text-primary">{{ "%.1f"|format(summary.total_overtime) }}h</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
+                <div class="card-body">
+                    <!-- Filter Row 1: Organization & Department -->
+                    <div class="row g-3 mb-3">
+                        {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager'] %}
+                        <!-- Company Filter -->
+                        {% if companies %}
+                        <div class="col-md-3">
+                            <label class="form-label small mb-2">
+                                <i class="fas fa-building me-1" style="color: #6c757d;"></i>Company
+                            </label>
+                            <select id="company_filter" name="company" class="form-select">
+                                <option value="">All Companies</option>
+                                {% for company in companies %}
+                                <option value="{{ company }}" {% if company == company_filter %}selected{% endif %}>{{ company }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
 
-    <!-- Attendance Records - Enhanced Cards View with Employee Info -->
-    <div class="attendance-records-container">
-        {% for record in attendance_records.items %}
-        <div class="attendance-record-card">
-            <div class="attendance-card-header">
-                <div class="attendance-date-info">
-                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager'] %}
-                    <!-- Employee Info with Photo -->
-                    <div class="employee-info-section">
-                        <div class="employee-avatar">
-                            {% if record.employee.profile_image_path %}
-                            <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}">
-                            {% else %}
-                            <div class="avatar-placeholder">
-                                <i class="fas fa-user"></i>
+                        <!-- Department Filter -->
+                        {% if departments %}
+                        <div class="col-md-3">
+                            <label class="form-label small mb-2">
+                                <i class="fas fa-sitemap me-1" style="color: #6c757d;"></i>Department
+                            </label>
+                            <select id="department_filter" name="department" class="form-select">
+                                <option value="">All Departments</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept }}" {% if dept == department_filter %}selected{% endif %}>{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
+                        <!-- Employee Filter -->
+                        {% if employees %}
+                        <div class="col-md-3">
+                            <label class="form-label small mb-2">
+                                <i class="fas fa-user me-1" style="color: #6c757d;"></i>Employee
+                            </label>
+                            <select id="employee_filter" name="employee" class="form-select">
+                                <option value="">All Employees</option>
+                                {% for emp in employees %}
+                                <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
+                                    {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Filter Row 2: Date Range -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label small mb-2">
+                                <i class="fas fa-calendar me-1" style="color: #6c757d;"></i>Date Range
+                            </label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="date_range" id="date_today" value="today"
+                                       {% if date_range_filter == 'today' or not date_range_filter %}checked{% endif %} onchange="handleDateRangeChange('today')">
+                                <label class="btn btn-outline-primary" for="date_today">
+                                    <i class="fas fa-calendar-day"></i> Today
+                                </label>
+
+                                <input type="radio" class="btn-check" name="date_range" id="date_week" value="week"
+                                       {% if date_range_filter == 'week' %}checked{% endif %} onchange="handleDateRangeChange('week')">
+                                <label class="btn btn-outline-primary" for="date_week">
+                                    <i class="fas fa-calendar-week"></i> This Week
+                                </label>
+
+                                <input type="radio" class="btn-check" name="date_range" id="date_month" value="month"
+                                       {% if date_range_filter == 'month' %}checked{% endif %} onchange="handleDateRangeChange('month')">
+                                <label class="btn btn-outline-primary" for="date_month">
+                                    <i class="fas fa-calendar-alt"></i> This Month
+                                </label>
+
+                                <input type="radio" class="btn-check" name="date_range" id="date_custom" value="custom"
+                                       {% if date_range_filter == 'custom' %}checked{% endif %} onchange="handleDateRangeChange('custom')">
+                                <label class="btn btn-outline-primary" for="date_custom">
+                                    <i class="fas fa-calendar"></i> Custom
+                                </label>
                             </div>
-                            {% endif %}
-                        </div>
-                        <div class="employee-details">
-                            <h4 class="employee-name">{{ record.employee.first_name }} {{ record.employee.last_name }}</h4>
-                            <span class="employee-id">{{ record.employee.employee_id }}</span>
-                            {% if record.employee.department %}
-                            <span class="employee-department"><i class="fas fa-building"></i> {{ record.employee.department }}</span>
-                            {% endif %}
-                            {% if record.employee.position %}
-                            <span class="employee-position"><i class="fas fa-briefcase"></i> {{ record.employee.position }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    <div class="record-date">
-                        <i class="fas fa-calendar"></i>
-                        <span>{{ record.date.strftime('%A, %B %d, %Y') if record.date else '-' }}</span>
-                    </div>
-                </div>
-                <div class="attendance-status-badge">
-                    <span class="status-badge status-{{ record.status|lower }}">
-                        <i class="fas fa-{{ 'check-circle' if record.status == 'Present' else 'times-circle' if record.status == 'Absent' else 'clock' if record.status == 'Late' else 'question-circle' }}"></i>
-                        {{ record.status }}
-                    </span>
-                    {% if record.overtime_hours > 0 %}
-                    <span class="overtime-badge">
-                        <i class="fas fa-plus-circle"></i>
-                        {{ record.overtime_hours }}h OT
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="attendance-card-body">
-                <div class="attendance-time-grid">
-                    <div class="time-item clock-in">
-                        <div class="time-icon">
-                            <i class="fas fa-sign-in-alt"></i>
-                        </div>
-                        <div class="time-details">
-                            <span class="time-label">Clock In</span>
-                            <span class="time-value">{{ record.clock_in.strftime('%I:%M %p') if record.clock_in else '-' }}</span>
                         </div>
                     </div>
 
-                    <div class="time-item clock-out">
-                        <div class="time-icon">
-                            <i class="fas fa-sign-out-alt"></i>
+                    <!-- Custom Date Range (Shown only when Custom is selected) -->
+                    <div class="row g-3 mb-3" id="custom_date_fields" style="display: {% if date_range_filter == 'custom' %}flex{% else %}none{% endif %};">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label small">From</label>
+                            <input type="date" id="start_date" name="start_date" class="form-control"
+                                   value="{{ start_date or '' }}">
                         </div>
-                        <div class="time-details">
-                            <span class="time-label">Clock Out</span>
-                            <span class="time-value">{{ record.clock_out.strftime('%I:%M %p') if record.clock_out else '-' }}</span>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label small">To</label>
+                            <input type="date" id="end_date" name="end_date" class="form-control"
+                                   value="{{ end_date or '' }}">
                         </div>
                     </div>
 
-                    <div class="time-item break-time">
-                        <div class="time-icon">
-                            <i class="fas fa-coffee"></i>
+                    <!-- Filter Actions -->
+                    <div class="row g-2">
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>Apply Filters
+                            </button>
                         </div>
-                        <div class="time-details">
-                            <span class="time-label">Break Time</span>
-                            <span class="time-value">
-                                {% if record.break_start and record.break_end %}
-                                {{ record.break_start.strftime('%I:%M') }} - {{ record.break_end.strftime('%I:%M %p') }}
-                                {% elif record.break_start %}
-                                <span class="text-warning">On Break</span>
-                                {% else %}
-                                -
+                        <div class="col-auto">
+                            <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-redo me-1"></i>Reset
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Active Filters Summary -->
+                    {% if date_range_filter or company_filter or department_filter or employee_filter %}
+                    <div class="row g-2 mt-3 pt-3 border-top">
+                        <div class="col-12">
+                            <small class="text-muted d-block mb-2">
+                                <i class="fas fa-tag me-1"></i>Active Filters:
+                            </small>
+                            <div>
+                                {% if date_range_filter == 'today' %}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-calendar-day me-1"></i>Today
+                                    <button type="button" class="btn-close btn-close-white ms-1 p-0" onclick="clearFilter('date_range')" style="width: auto; opacity: 0.7;"></button>
+                                </span>
+                                {% elif date_range_filter == 'week' %}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-calendar-week me-1"></i>This Week
+                                    <button type="button" class="btn-close btn-close-white ms-1 p-0" onclick="clearFilter('date_range')" style="width: auto; opacity: 0.7;"></button>
+                                </span>
+                                {% elif date_range_filter == 'month' %}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-calendar-alt me-1"></i>This Month
+                                    <button type="button" class="btn-close btn-close-white ms-1 p-0" onclick="clearFilter('date_range')" style="width: auto; opacity: 0.7;"></button>
+                                </span>
+                                {% elif date_range_filter == 'custom' %}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-calendar me-1"></i>{{ start_date }} to {{ end_date }}
+                                    <button type="button" class="btn-close btn-close-white ms-1 p-0" onclick="clearFilter('date_range')" style="width: auto; opacity: 0.7;"></button>
+                                </span>
                                 {% endif %}
-                            </span>
+                                
+                                {% if company_filter %}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-building me-1"></i>{{ company_filter }}
+                                    <button type="button" class="btn-close btn-close-white ms-1 p-0" onclick="clearFilter('company')" style="width: auto; opacity: 0.7;"></button>
+                                </span>
+                                {% endif %}
+                                
+                                {% if department_filter %}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-sitemap me-1"></i>{{ department_filter }}
+                                    <button type="button" class="btn-close btn-close-white ms-1 p-0" onclick="clearFilter('department')" style="width: auto; opacity: 0.7;"></button>
+                                </span>
+                                {% endif %}
+                                
+                                {% if employee_filter %}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="fas fa-user me-1"></i>{{ employee_filter }}
+                                    <button type="button" class="btn-close btn-close-white ms-1 p-0" onclick="clearFilter('employee')" style="width: auto; opacity: 0.7;"></button>
+                                </span>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
 
-                    <div class="time-item total-hours">
-                        <div class="time-icon">
-                            <i class="fas fa-hourglass-half"></i>
-                        </div>
-                        <div class="time-details">
-                            <span class="time-label">Total Hours</span>
-                            <span class="time-value highlight">{{ record.total_hours or 0 }}h</span>
+    <!-- Summary Statistics -->
+    {% if attendance_records.items and summary %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <button class="btn btn-link w-100 text-start card-header text-dark text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#summaryStats">
+                    <i class="fas fa-chart-line me-2"></i>Summary Statistics
+                    <i class="fas fa-chevron-down float-end"></i>
+                </button>
+                <div class="collapse show" id="summaryStats">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-2 col-sm-4">
+                                <div class="text-center">
+                                    <small class="text-muted d-block mb-1">Total Records</small>
+                                    <strong class="display-6">{{ summary.total_records }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-4">
+                                <div class="text-center">
+                                    <small class="text-success d-block mb-1">Present</small>
+                                    <strong class="display-6 text-success">{{ summary.present_days }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-4">
+                                <div class="text-center">
+                                    <small class="text-danger d-block mb-1">Absent</small>
+                                    <strong class="display-6 text-danger">{{ summary.absent_days }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-4">
+                                <div class="text-center">
+                                    <small class="text-warning d-block mb-1">Late</small>
+                                    <strong class="display-6 text-warning">{{ summary.late_days }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-4">
+                                <div class="text-center">
+                                    <small class="text-info d-block mb-1">Total Hours</small>
+                                    <strong class="display-6 text-info">{{ "%.1f"|format(summary.total_hours) }}h</strong>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-4">
+                                <div class="text-center">
+                                    <small class="text-primary d-block mb-1">Overtime</small>
+                                    <strong class="display-6 text-primary">{{ "%.1f"|format(summary.total_overtime) }}h</strong>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
-                {% if record.remarks %}
-                <div class="attendance-remarks">
-                    <i class="fas fa-comment-alt"></i>
-                    <span>{{ record.remarks }}</span>
+    <!-- Attendance Records Table -->
+    <div class="row">
+        <div class="col-12">
+            {% if attendance_records.items %}
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 15%;">
+                                    <i class="fas fa-calendar me-1"></i>Date
+                                </th>
+                                <th style="width: 25%;">
+                                    <i class="fas fa-user me-1"></i>Employee
+                                </th>
+                                <th style="width: 12%;">
+                                    <i class="fas fa-check-circle me-1"></i>Status
+                                </th>
+                                <th style="width: 12%;">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Clock In
+                                </th>
+                                <th style="width: 12%;">
+                                    <i class="fas fa-sign-out-alt me-1"></i>Clock Out
+                                </th>
+                                <th style="width: 12%;">
+                                    <i class="fas fa-hourglass me-1"></i>Hours
+                                </th>
+                                <th style="width: 12%;">
+                                    <i class="fas fa-clock me-1"></i>OT Hours
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in attendance_records.items %}
+                            <tr class="align-middle">
+                                <td>
+                                    <div class="small">
+                                        <strong>{{ record.date.strftime('%d %b %Y') if record.date else '-' }}</strong>
+                                        <br>
+                                        <span class="text-muted">{{ record.date.strftime('%A') if record.date else '' }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager'] %}
+                                    <div class="d-flex align-items-center gap-2">
+                                        {% if record.employee.profile_image_path %}
+                                        <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                                        {% else %}
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px;">
+                                            <i class="fas fa-user fa-sm"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div class="small">
+                                            <div class="fw-semibold">{{ record.employee.first_name }} {{ record.employee.last_name }}</div>
+                                            <div class="text-muted">{{ record.employee.employee_id }}</div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="small fw-semibold">{{ record.employee.first_name }} {{ record.employee.last_name }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if record.status == 'Present' else 'danger' if record.status == 'Absent' else 'warning' if record.status == 'Late' else 'secondary' }}">
+                                        <i class="fas fa-{{ 'check-circle' if record.status == 'Present' else 'times-circle' if record.status == 'Absent' else 'clock' if record.status == 'Late' else 'question-circle' }} me-1"></i>
+                                        {{ record.status }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ record.clock_in.strftime('%H:%M') if record.clock_in else '-' }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ record.clock_out.strftime('%H:%M') if record.clock_out else '-' }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark">{{ record.total_hours or 0 }}h</span>
+                                </td>
+                                <td class="text-center">
+                                    {% if record.overtime_hours > 0 %}
+                                    <span class="badge bg-info">{{ record.overtime_hours }}h</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if attendance_records.pages > 1 %}
+                <div class="card-footer">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0 justify-content-center">
+                            {% if attendance_records.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('attendance_list', page=attendance_records.prev_num) }}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in attendance_records.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != attendance_records.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('attendance_list', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if attendance_records.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('attendance_list', page=attendance_records.next_num) }}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
                 </div>
                 {% endif %}
             </div>
-        </div>
-        {% endfor %}
-    </div>
 
-    {% if not attendance_records.items %}
-    <!-- Empty State -->
-    <div class="empty-state-container">
-        <div class="empty-state-icon">
-            <i class="fas fa-calendar-times"></i>
+            {% else %}
+            <!-- Empty State -->
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-times fa-3x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted">No Attendance Records Found</h5>
+                    <p class="text-muted mb-3">Try adjusting your filters or mark new attendance records</p>
+                    <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
+                        <i class="fas fa-clock me-1"></i>Mark Attendance
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
-        <h3 class="empty-state-title">No Attendance Records Found</h3>
-        <p class="empty-state-text">Try adjusting your search criteria or mark your attendance for today</p>
-        <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-lg">
-            <i class="fas fa-clock"></i>
-            Mark Attendance Now
-        </a>
     </div>
-    {% endif %}
-
-    <!-- Pagination -->
-    {% if attendance_records.pages > 1 %}
-    <nav aria-label="Attendance pagination" class="mt-4">
-        <ul class="pagination justify-content-center">
-            {% if attendance_records.has_prev %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('attendance_list', page=attendance_records.prev_num, date=date_filter, employee=employee_filter) }}">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>
-            {% endif %}
-            
-            {% for page_num in attendance_records.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num != attendance_records.page %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('attendance_list', page=page_num, date=date_filter, employee=employee_filter) }}">
-                            {{ page_num }}
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ page_num }}</span>
-                    </li>
-                    {% endif %}
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-                {% endif %}
-            {% endfor %}
-            
-            {% if attendance_records.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('attendance_list', page=attendance_records.next_num, date=date_filter, employee=employee_filter) }}">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
-</div>
+</div>  <!-- Close container-fluid -->
 
 <style>
-/* Compact Filter Styles */
-.filter-tabs-compact {
-    display: flex;
-    gap: 0.5rem;
+/* Filter Card */
+.filter-card {
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     margin-bottom: 1rem;
-    flex-wrap: wrap;
 }
 
-.filter-tab-compact {
-    padding: 0.5rem 1rem;
-    border: 1px solid #dee2e6;
-    background: white;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
+.filter-card .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem;
+    font-weight: 600;
+    color: #495057;
 }
 
-.filter-tab-compact:hover {
-    background: #f8f9fa;
-    border-color: #6c8f91;
+.filter-card .card-body {
+    padding: 1.5rem;
 }
 
-.filter-tab-compact.active {
-    background: #6c8f91;
-    color: white;
-    border-color: #6c8f91;
-}
-
-.filter-inputs-compact {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    align-items: flex-end;
-}
-
-.filter-input-group-compact {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 180px;
-}
-
-.filter-input-group-compact label {
-    font-size: 0.875rem;
+/* Form Labels */
+.form-label {
     font-weight: 500;
     color: #495057;
-    margin-bottom: 0;
 }
 
-.filter-input-group-compact .input-wrapper {
+/* Date Range Button Group */
+.btn-group {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    gap: 0;
 }
 
-.filter-actions-compact {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* Employee Info Section in Cards */
-.employee-info-section {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.employee-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.employee-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #6c8f91, #7ba6aa);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.5rem;
-}
-
-.employee-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.employee-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0;
-    color: #2c3e50;
-}
-
-.employee-id {
-    font-size: 0.875rem;
-    color: #6c757d;
+.btn-group .btn {
+    flex: 1;
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 1rem;
     font-weight: 500;
 }
 
-.employee-department,
-.employee-position {
-    font-size: 0.8rem;
-    color: #6c757d;
+.btn-group .btn-check:checked + .btn-outline-primary {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
 }
 
-.employee-department i,
-.employee-position i {
-    margin-right: 0.25rem;
-    color: #6c8f91;
+.btn-group .btn-outline-primary {
+    color: #0d6efd;
+}
+
+.btn-group .btn-outline-primary:hover {
+    background-color: #f0f7ff;
+}
+
+/* Badge Styles */
+.badge {
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .filter-card .card-body {
+        padding: 1rem;
+    }
+
+    .row.g-3 {
+        --bs-gutter-y: 1rem;
+    }
+
+    .btn-group {
+        flex-wrap: wrap;
+    }
+
+    .btn-group .btn {
+        flex: 0 1 calc(50% - 0.5rem);
+    }
 }
 </style>
 
 <script>
-// Date filter functions with conditional display
-function setDateFilter(type) {
+// Handle date range change
+function handleDateRangeChange(type) {
     const customDateFields = document.getElementById('custom_date_fields');
-    const dateRangeInput = document.getElementById('date_range_type');
-    const today = new Date();
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
     
-    // Remove active class from all tabs
-    document.querySelectorAll('.filter-tab-compact').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Add active class to clicked tab
-    event.target.classList.add('active');
-    
-    // Set date range type
-    dateRangeInput.value = type;
-    
-    // Show/hide custom date fields
     if (type === 'custom') {
         customDateFields.style.display = 'flex';
-        document.getElementById('start_date').focus();
+        startDateInput.focus();
     } else {
         customDateFields.style.display = 'none';
+        startDateInput.value = '';
+        endDateInput.value = '';
+        
+        // Auto-submit form when preset range is selected
+        setTimeout(() => {
+            document.getElementById('attendance_filter_form').submit();
+        }, 100);
     }
+}
+
+// Clear individual filter
+function clearFilter(filterType) {
+    const form = document.getElementById('attendance_filter_form');
+    
+    switch(filterType) {
+        case 'date_range':
+            document.getElementById('date_today').checked = true;
+            document.getElementById('start_date').value = '';
+            document.getElementById('end_date').value = '';
+            document.getElementById('custom_date_fields').style.display = 'none';
+            break;
+        case 'company':
+            document.getElementById('company_filter').value = '';
+            break;
+        case 'department':
+            document.getElementById('department_filter').value = '';
+            break;
+        case 'employee':
+            document.getElementById('employee_filter').value = '';
+            break;
+    }
+    
+    // Submit the form
+    setTimeout(() => {
+        form.submit();
+    }, 100);
 }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const dateRangeType = document.getElementById('date_range_type').value;
     const customDateFields = document.getElementById('custom_date_fields');
+    const dateRangeRadios = document.querySelectorAll('input[name="date_range"]');
     
-    // Show custom fields if custom range is selected
-    if (dateRangeType === 'custom') {
+    // Show/hide custom date fields based on selection
+    dateRangeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            handleDateRangeChange(this.value);
+        });
+    });
+    
+    // Check if custom is selected on page load
+    const checkedRadio = document.querySelector('input[name="date_range"]:checked');
+    if (checkedRadio && checkedRadio.value === 'custom') {
         customDateFields.style.display = 'flex';
     }
+
+    // Form submission handler for custom dates
+    document.getElementById('attendance_filter_form').addEventListener('submit', function(e) {
+        const checkedRadio = document.querySelector('input[name="date_range"]:checked');
+        
+        if (checkedRadio && checkedRadio.value === 'custom') {
+            const startDate = document.getElementById('start_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            if (!startDate || !endDate) {
+                e.preventDefault();
+                alert('Please enter both start and end dates');
+                return false;
+            }
+        }
+    });
 });
 </script>
 {% endblock %}

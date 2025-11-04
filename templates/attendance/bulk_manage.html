@@ -26,37 +26,66 @@
 
             <hr class="mt-0 mb-3">
 
-            <!-- Date Selection and Actions -->
+            <!-- Date Selection and Filters -->
             <div class="card filter-card mb-4">
             <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="fas fa-calendar-alt me-2"></i>Date Selection & Actions
+                    <i class="fas fa-filter me-2"></i>Filters & Date Range
                 </h6>
             </div>
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label for="date" class="form-label">Select Date</label>
-                        <input type="date" id="date" name="date" class="form-control"
-                               value="{{ selected_date }}" max="{{ date.today() }}" required>
+                    <div class="col-md-2">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" id="start_date" name="start_date" class="form-control"
+                               value="{{ start_date }}" max="{{ date.today() }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" id="end_date" name="end_date" class="form-control"
+                               value="{{ end_date }}" max="{{ date.today() }}" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="company_id" class="form-label">Company</label>
+                        <select id="company_id" name="company_id" class="form-select">
+                            <option value="">-- All Companies --</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}" {% if company_id == company.id %}selected{% endif %}>
+                                {{ company.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="employee_search" class="form-label">Employee Name/ID</label>
+                        <input type="text" id="employee_search" name="employee_search" class="form-control"
+                               placeholder="Search name or ID..." value="{{ employee_search }}">
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-1"></i>Load Date
+                            <i class="fas fa-search me-1"></i>Apply Filters
                         </button>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12">
                         <div class="d-flex align-items-center date-info">
                             <div class="me-3">
-                                <i class="fas fa-calendar-day text-primary fa-lg"></i>
+                                <i class="fas fa-calendar-range text-primary fa-lg"></i>
                             </div>
-                            <div>
-                                <h6 class="mb-0">{{ filter_date.strftime('%B %d, %Y') }}</h6>
-                                <small class="text-muted">{{ employees|length }} employee{{ 's' if employees|length != 1 else '' }} • {{ filter_date.strftime('%A') }}</small>
+                            <div class="flex-grow-1">
+                                {% if start_date_obj == end_date_obj %}
+                                    <h6 class="mb-0">{{ start_date_obj.strftime('%B %d, %Y') }}</h6>
+                                    <small class="text-muted">{{ start_date_obj.strftime('%A') }}</small>
+                                {% else %}
+                                    <h6 class="mb-0">{{ start_date_obj.strftime('%B %d') }} to {{ end_date_obj.strftime('%B %d, %Y') }}</h6>
+                                    <small class="text-muted">{{ ((end_date_obj - start_date_obj).days + 1) }} day{{ 's' if ((end_date_obj - start_date_obj).days + 1) != 1 else '' }}</small>
+                                {% endif %}
+                            </div>
+                            <div class="text-end ms-3">
+                                <small class="text-muted d-block">{{ employees|length }} employee{{ 's' if employees|length != 1 else '' }} found</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-12">
                         <div class="d-flex gap-2 justify-content-end">
                             <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAll(false)"
                                     title="Mark all employees as present">
@@ -76,12 +105,15 @@
         <!-- Bulk Attendance Management Form -->
         <div class="card mb-4">
             <form method="POST">
-                <input type="hidden" name="date" value="{{ selected_date }}">
+                <input type="hidden" name="start_date" value="{{ start_date }}">
+                <input type="hidden" name="end_date" value="{{ end_date }}">
+                <input type="hidden" name="company_id" value="{{ company_id or '' }}">
+                <input type="hidden" name="employee_search" value="{{ employee_search }}">
 
                 <div class="card-header" style="padding-top: 1rem; padding-bottom: 1rem;">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h5 class="mb-0" style="font-weight: 600; font-size: 1rem;">
-                            <i class="fas fa-users me-2"></i>Employee Attendance - {{ filter_date.strftime('%B %d, %Y') }}
+                            <i class="fas fa-users me-2"></i>Employee Attendance{% if start_date_obj == end_date_obj %} - {{ start_date_obj.strftime('%B %d, %Y') }}{% else %} - {{ start_date_obj.strftime('%b %d') }} to {{ end_date_obj.strftime('%b %d, %Y') }}{% endif %}
                         </h5>
                     </div>
 
@@ -252,7 +284,11 @@
                         <div class="text-muted">
                             <small>
                                 <i class="fas fa-info-circle me-1"></i>
-                                Changes will be saved for {{ filter_date.strftime('%B %d, %Y') }}
+                                {% if start_date_obj == end_date_obj %}
+                                    Changes will be saved for {{ start_date_obj.strftime('%B %d, %Y') }}
+                                {% else %}
+                                    Changes will be saved for {{ ((end_date_obj - start_date_obj).days + 1) }} day(s) from {{ start_date_obj.strftime('%B %d') }} to {{ end_date_obj.strftime('%B %d, %Y') }}
+                                {% endif %}
                             </small>
                         </div>
                         <button type="submit" class="btn btn-primary btn-sm">

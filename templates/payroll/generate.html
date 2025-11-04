@@ -145,13 +145,22 @@
 
         <!-- Action Buttons -->
         <div class="row mt-4">
-            <div class="col-12 text-end">
-                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times me-1"></i>Cancel
-                </a>
-                <button type="submit" class="btn btn-success" id="generateBtn" disabled>
-                    <i class="fas fa-check me-1"></i>Generate Payslips
-                </button>
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <button type="button" class="btn btn-info" id="saveAllBtn" onclick="saveAllUnsavedRows()" style="display: none;">
+                            <i class="fas fa-save me-1"></i>Save All Unsaved Changes
+                        </button>
+                    </div>
+                    <div class="btn-group gap-2">
+                        <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success" id="generateBtn" disabled>
+                            <i class="fas fa-check me-1"></i>Generate Payslips
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
@@ -246,7 +255,7 @@ function renderEmployeeTable() {
         const attendanceBgClass = lowAttendance ? 'table-warning' : '';
         
         return `
-        <tr class="${attendanceBgClass}">
+        <tr class="payroll-row ${attendanceBgClass}" data-emp-id="${emp.id}" data-status="saved">
             <td>
                 <input type="checkbox" class="form-check-input employee-checkbox"
                        name="employees" value="${emp.id}"
@@ -258,35 +267,68 @@ function renderEmployeeTable() {
                     <br><small class="text-muted">${emp.employee_id}</small>
                 </div>
             </td>
-            <td>$${parseFloat(emp.basic_salary).toFixed(2)}</td>
-            <td>$${parseFloat(emp.allowance_1 || 0).toFixed(2)}</td>
-            <td>$${parseFloat(emp.allowance_2 || 0).toFixed(2)}</td>
-            <td>$${parseFloat(emp.allowance_3 || 0).toFixed(2)}</td>
-            <td>$${parseFloat(emp.allowance_4 || 0).toFixed(2)}</td>
-            <td>$${parseFloat(emp.levy_allowance || 0).toFixed(2)}</td>
-            <td>${parseFloat(emp.ot_hours || 0).toFixed(2)}</td>
-            <td>$${parseFloat(emp.ot_amount || 0).toFixed(2)}</td>
-            <td class="${lowAttendance ? 'text-danger fw-bold' : ''}">
-                ${emp.attendance_days || 0}
+            <td class="editable-cell" onclick="editCell(this, 'basic_salary', ${emp.id})">
+                $<span class="cell-value">${parseFloat(emp.basic_salary).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.basic_salary}">
             </td>
-            <td>${emp.absent_days || 0}</td>
-            <td>${emp.lop_days || 0}</td>
+            <td class="editable-cell" onclick="editCell(this, 'allowance_1', ${emp.id})">
+                $<span class="cell-value">${parseFloat(emp.allowance_1 || 0).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.allowance_1 || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'allowance_2', ${emp.id})">
+                $<span class="cell-value">${parseFloat(emp.allowance_2 || 0).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.allowance_2 || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'allowance_3', ${emp.id})">
+                $<span class="cell-value">${parseFloat(emp.allowance_3 || 0).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.allowance_3 || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'allowance_4', ${emp.id})">
+                $<span class="cell-value">${parseFloat(emp.allowance_4 || 0).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.allowance_4 || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'levy_allowance', ${emp.id})">
+                $<span class="cell-value">${parseFloat(emp.levy_allowance || 0).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.levy_allowance || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'ot_hours', ${emp.id})">
+                <span class="cell-value">${parseFloat(emp.ot_hours || 0).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.ot_hours || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'ot_amount', ${emp.id})">
+                $<span class="cell-value">${parseFloat(emp.ot_amount || 0).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.ot_amount || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'attendance_days', ${emp.id})">
+                <span class="cell-value ${lowAttendance ? 'text-danger fw-bold' : ''}">${emp.attendance_days || 0}</span>
+                <input type="hidden" class="cell-field" value="${emp.attendance_days || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'absent_days', ${emp.id})">
+                <span class="cell-value">${emp.absent_days || 0}</span>
+                <input type="hidden" class="cell-field" value="${emp.absent_days || 0}">
+            </td>
+            <td class="editable-cell" onclick="editCell(this, 'lop_days', ${emp.id})">
+                <span class="cell-value">${emp.lop_days || 0}</span>
+                <input type="hidden" class="cell-field" value="${emp.lop_days || 0}">
+            </td>
             <td class="text-center">
                 <button class="btn btn-sm btn-outline-info" onclick="showCalendarModal(${emp.id}, '${emp.name}')">
                     <i class="fas fa-calendar"></i>
                 </button>
             </td>
-            <td>
-                <input type="number" class="form-control form-control-sm other-deductions-input" 
-                       value="${parseFloat(emp.other_deductions || 0).toFixed(2)}"
-                       step="0.01" min="0"
-                       onchange="updateEmployeeDeductions(this, ${emp.id})"
-                       placeholder="0.00"
-                       style="width: 100%;">
+            <td class="editable-cell" onclick="editCell(this, 'other_deductions', ${emp.id})">
+                $<span class="cell-value">${parseFloat(emp.other_deductions || 0).toFixed(2)}</span>
+                <input type="hidden" class="cell-field" value="${emp.other_deductions || 0}">
             </td>
-            <td>$${parseFloat(emp.total_deductions || 0).toFixed(2)}</td>
+            <td>$<span class="total-deductions-${emp.id}">${parseFloat(emp.total_deductions || 0).toFixed(2)}</span></td>
             <td class="text-end">
-                <strong class="text-success net-salary-${emp.id}">$${parseFloat(emp.net_salary).toFixed(2)}</strong>
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                    <strong class="text-success net-salary-${emp.id}">$${parseFloat(emp.net_salary).toFixed(2)}</strong>
+                    <button class="btn btn-sm btn-primary save-row-btn" onclick="savePayrollRow(${emp.id})" style="display: none;">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <span class="badge bg-info unsaved-badge" style="display: none;">Unsaved</span>
+                </div>
             </td>
         </tr>
     `;
@@ -491,6 +533,301 @@ function renderAttendanceCalendar(calendar, month, year) {
     
     document.getElementById('calendarContent').innerHTML = calendarHtml;
 }
+
+// Inline Editing Functions
+let editingCell = null;
+let cellEditsTracker = {}; // Track edits: { empId: { fieldName: value } }
+
+function editCell(cellElement, fieldName, empId) {
+    // Don't edit if already editing
+    if (editingCell && editingCell !== cellElement) {
+        saveEditingCell();
+    }
+    
+    if (editingCell === cellElement) return; // Already editing this cell
+    
+    editingCell = cellElement;
+    cellElement.classList.add('editing');
+    
+    const valueSpan = cellElement.querySelector('.cell-value');
+    const hiddenInput = cellElement.querySelector('.cell-field');
+    const currentValue = hiddenInput.value;
+    
+    // Determine input type
+    let inputType = 'number';
+    if (fieldName.includes('days') || fieldName === 'attendance_days' || fieldName === 'absent_days' || fieldName === 'lop_days') {
+        inputType = 'number';
+    }
+    
+    // Create editable input
+    const input = document.createElement('input');
+    input.type = inputType;
+    input.className = 'form-control form-control-sm';
+    input.value = currentValue;
+    input.step = inputType === 'number' && fieldName.includes('days') ? '1' : '0.01';
+    input.min = '0';
+    input.style.width = '100%';
+    
+    // Replace span with input
+    valueSpan.style.display = 'none';
+    cellElement.insertBefore(input, valueSpan);
+    input.focus();
+    input.select();
+    
+    // Save on blur
+    input.addEventListener('blur', () => saveEditingCell(empId, fieldName));
+    
+    // Save on Enter, cancel on Escape
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            saveEditingCell(empId, fieldName);
+        } else if (e.key === 'Escape') {
+            cancelEditingCell();
+        }
+    });
+}
+
+function saveEditingCell(empId, fieldName) {
+    if (!editingCell) return;
+    
+    const valueSpan = editingCell.querySelector('.cell-value');
+    const hiddenInput = editingCell.querySelector('.cell-field');
+    const input = editingCell.querySelector('input');
+    
+    if (input && empId && fieldName) {
+        const newValue = input.value;
+        const oldValue = hiddenInput.value;
+        
+        if (newValue !== oldValue) {
+            // Update data
+            const emp = employeeData.find(e => e.id === empId);
+            if (emp) {
+                // Map field names to employee data properties
+                const fieldMap = {
+                    'basic_salary': 'basic_salary',
+                    'allowance_1': 'allowance_1',
+                    'allowance_2': 'allowance_2',
+                    'allowance_3': 'allowance_3',
+                    'allowance_4': 'allowance_4',
+                    'levy_allowance': 'levy_allowance',
+                    'ot_hours': 'ot_hours',
+                    'ot_amount': 'ot_amount',
+                    'attendance_days': 'attendance_days',
+                    'absent_days': 'absent_days',
+                    'lop_days': 'lop_days',
+                    'other_deductions': 'other_deductions'
+                };
+                
+                const dataField = fieldMap[fieldName];
+                emp[dataField] = parseFloat(newValue) || 0;
+                
+                // Recalculate totals
+                recalculatePayroll(empId);
+                
+                // Mark row as unsaved
+                markRowAsUnsaved(empId);
+            }
+            
+            // Update displayed value
+            valueSpan.textContent = parseFloat(newValue).toFixed(2);
+            hiddenInput.value = newValue;
+        }
+    }
+    
+    // Restore display
+    if (input) input.remove();
+    if (valueSpan) valueSpan.style.display = 'inline';
+    editingCell.classList.remove('editing');
+    editingCell = null;
+}
+
+function cancelEditingCell() {
+    if (editingCell) {
+        const valueSpan = editingCell.querySelector('.cell-value');
+        const input = editingCell.querySelector('input');
+        if (input) input.remove();
+        if (valueSpan) valueSpan.style.display = 'inline';
+        editingCell.classList.remove('editing');
+        editingCell = null;
+    }
+}
+
+function recalculatePayroll(empId) {
+    const emp = employeeData.find(e => e.id === empId);
+    if (!emp) return;
+    
+    // Recalculate totals
+    const totalAllowances = (emp.allowance_1 || 0) + (emp.allowance_2 || 0) + (emp.allowance_3 || 0) + (emp.allowance_4 || 0) + (emp.levy_allowance || 0);
+    const grossSalary = parseFloat(emp.basic_salary || 0) + totalAllowances + parseFloat(emp.ot_amount || 0);
+    const cpfDeduction = emp.cpf_deduction || 0;
+    const totalDeductions = cpfDeduction + parseFloat(emp.other_deductions || 0);
+    const netSalary = grossSalary - totalDeductions;
+    
+    // Update displayed values
+    emp.gross_salary = grossSalary;
+    emp.total_deductions = totalDeductions;
+    emp.net_salary = netSalary;
+    
+    // Update table display
+    const row = document.querySelector(`tr[data-emp-id="${empId}"]`);
+    if (row) {
+        row.querySelector(`.total-deductions-${empId}`).textContent = totalDeductions.toFixed(2);
+        row.querySelector(`.net-salary-${empId}`).textContent = `$${netSalary.toFixed(2)}`;
+    }
+}
+
+function markRowAsUnsaved(empId) {
+    const row = document.querySelector(`tr[data-emp-id="${empId}"]`);
+    if (row) {
+        row.dataset.status = 'unsaved';
+        row.classList.add('table-active');
+        const saveBtn = row.querySelector('.save-row-btn');
+        const badge = row.querySelector('.unsaved-badge');
+        if (saveBtn) saveBtn.style.display = 'inline-block';
+        if (badge) badge.style.display = 'inline-block';
+    }
+    
+    // Show Save All button
+    const unsavedRows = document.querySelectorAll('tr[data-status="unsaved"]');
+    const saveAllBtn = document.getElementById('saveAllBtn');
+    if (saveAllBtn) {
+        saveAllBtn.style.display = unsavedRows.length > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function markRowAsSaved(empId) {
+    const row = document.querySelector(`tr[data-emp-id="${empId}"]`);
+    if (row) {
+        row.dataset.status = 'saved';
+        row.classList.remove('table-active');
+        const saveBtn = row.querySelector('.save-row-btn');
+        const badge = row.querySelector('.unsaved-badge');
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (badge) badge.style.display = 'none';
+    }
+    
+    // Hide Save All button if no unsaved rows remain
+    const unsavedRows = document.querySelectorAll('tr[data-status="unsaved"]');
+    const saveAllBtn = document.getElementById('saveAllBtn');
+    if (saveAllBtn) {
+        saveAllBtn.style.display = unsavedRows.length > 0 ? 'inline-block' : 'none';
+    }
+}
+
+function savePayrollRow(empId) {
+    const emp = employeeData.find(e => e.id === empId);
+    if (!emp) {
+        alert('Employee not found');
+        return;
+    }
+    
+    const month = parseInt(document.getElementById('month').value);
+    const year = parseInt(document.getElementById('year').value);
+    
+    if (!month || !year) {
+        alert('Please select month and year first');
+        return;
+    }
+    
+    const saveBtn = document.querySelector(`tr[data-emp-id="${empId}"] .save-row-btn`);
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveBtn.disabled = true;
+    
+    const payrollData = {
+        employee_id: empId,
+        month: month,
+        year: year,
+        basic_pay: emp.basic_salary,
+        allowances: (emp.allowance_1 || 0) + (emp.allowance_2 || 0) + (emp.allowance_3 || 0) + (emp.allowance_4 || 0) + (emp.levy_allowance || 0),
+        overtime_hours: emp.ot_hours || 0,
+        overtime_pay: emp.ot_amount || 0,
+        days_worked: emp.attendance_days || 0,
+        absent_days: emp.absent_days || 0,
+        lop_days: emp.lop_days || 0,
+        other_deductions: emp.other_deductions || 0,
+        employee_cpf: emp.cpf_deduction || 0,
+        bonuses: 0,
+        income_tax: 0,
+        employer_cpf: 0,
+        lop_deduction: 0
+    };
+    
+    fetch('/api/payroll/save-row', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payrollData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update employee data with calculated values
+            emp.gross_salary = data.gross_pay;
+            emp.net_salary = data.net_pay;
+            
+            markRowAsSaved(empId);
+            
+            // Show success message
+            const row = document.querySelector(`tr[data-emp-id="${empId}"]`);
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-success';
+            badge.textContent = 'Saved!';
+            row.querySelector('td:last-child').appendChild(badge);
+            
+            setTimeout(() => {
+                badge.remove();
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }, 2000);
+        } else {
+            alert('Error: ' + data.message);
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        alert('Error saving payroll: ' + error.message);
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    });
+}
+
+// Save all unsaved rows
+function saveAllUnsavedRows() {
+    const unsavedRows = document.querySelectorAll('tr[data-status="unsaved"]');
+    if (unsavedRows.length === 0) {
+        alert('No unsaved changes');
+        return;
+    }
+    
+    if (confirm(`Save changes for ${unsavedRows.length} employee(s)?`)) {
+        unsavedRows.forEach(row => {
+            const empId = parseInt(row.dataset.empId);
+            savePayrollRow(empId);
+        });
+    }
+}
+
+// Add CSS for inline editing
+const style = document.createElement('style');
+style.textContent = `
+    .editable-cell {
+        cursor: pointer;
+        position: relative;
+    }
+    .editable-cell:hover {
+        background-color: #f0f0f0;
+    }
+    .editable-cell.editing {
+        background-color: #fff3cd;
+    }
+    tr.table-active {
+        background-color: #fff3cd !important;
+    }
+`;
+document.head.appendChild(style);
 
 // Form submission
 document.getElementById('payrollForm').addEventListener('submit', function(e) {
