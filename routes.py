@@ -402,7 +402,7 @@ def dashboard():
                 'date': leave.created_at
             })
 
-    elif user_role_name == 'Manager':
+    elif user_role_name == 'HR Manager':
         # Team member activities
         team_leaves = Leave.query.join(Employee).filter(
             Employee.manager_id == current_user.employee_profile.id,
@@ -478,7 +478,7 @@ def employee_list():
         query = query.filter(Employee.department == department)
 
     # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                   'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -850,7 +850,7 @@ def employee_view(employee_id):
                 and current_user.employee_profile.id == employee_id):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
-    elif (current_user.role.name if current_user.role else None) == 'Manager':
+    elif (current_user.role.name if current_user.role else None) == 'HR Manager':
         if not (hasattr(current_user, 'employee_profile') and
                 (current_user.employee_profile.id == employee_id
                  or employee.manager_id == current_user.employee_profile.id)):
@@ -1188,7 +1188,7 @@ def employee_edit(employee_id):
 
 # Payroll Management Routes
 @app.route('/payroll')
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def payroll_list():
     """List payroll records"""
     page = request.args.get('page', 1, type=int)
@@ -1203,7 +1203,7 @@ def payroll_list():
             extract('year', Payroll.pay_period_end) == year)
 
     # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                   'employee_profile'):
         # Manager: Their own payroll + their team's payroll
         manager_id = current_user.employee_profile.id
@@ -1538,7 +1538,7 @@ def payroll_payslip(payroll_id):
                 and current_user.employee_profile.id == payroll.employee_id):
             flash('You do not have permission to view this payslip.', 'error')
             return redirect(url_for('dashboard'))
-    elif (current_user.role.name if current_user.role else None) == 'Manager':
+    elif (current_user.role.name if current_user.role else None) == 'HR Manager':
         if not (hasattr(current_user, 'employee_profile')
                 and payroll.employee.manager_id
                 == current_user.employee_profile.id):
@@ -1649,7 +1649,7 @@ def attendance_list():
         # Employee: Only their own attendance
         employee_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == employee_id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager: Their own attendance + their team's attendance
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -1675,7 +1675,7 @@ def attendance_list():
         # Super Admin can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager can filter by themselves and their team
         manager_id = current_user.employee_profile.id
         employees = Employee.query.filter(
@@ -1860,13 +1860,13 @@ def attendance_mark():
 
 
 @app.route('/attendance/correct/<int:attendance_id>', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def attendance_correct(attendance_id):
     """Correct incomplete attendance records (Manager only)"""
     attendance = Attendance.query.get_or_404(attendance_id)
 
     # Check if manager can access this employee's record
-    if (current_user.role.name if current_user.role else None) == 'Manager':
+    if (current_user.role.name if current_user.role else None) == 'HR Manager':
         if not hasattr(current_user, 'employee_profile') or \
            attendance.employee.manager_id != current_user.employee_profile.id:
             flash('Access denied', 'error')
@@ -1973,7 +1973,7 @@ def auto_complete_incomplete_attendance():
 
 
 @app.route('/attendance/incomplete')
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def attendance_incomplete():
     """View incomplete attendance records that need correction"""
     # Find incomplete attendance records from the last 7 days
@@ -1984,7 +1984,7 @@ def attendance_incomplete():
         Attendance.clock_out.is_(None)).join(Employee)
 
     # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                   'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -2020,7 +2020,7 @@ def attendance_bulk_manage():
             employees_query = Employee.query.filter_by(is_active=True)
 
             # Apply role-based filtering
-            if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
                 # Manager: Can manage their team + themselves
                 manager_id = current_user.employee_profile.id
                 employees_query = employees_query.filter(
@@ -2077,7 +2077,7 @@ def attendance_bulk_manage():
     employees_query = Employee.query.filter_by(is_active=True)
 
     # Apply role-based filtering for display
-    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         manager_id = current_user.employee_profile.id
         employees_query = employees_query.filter(
             db.or_(
@@ -2237,7 +2237,7 @@ def claims_list():
                                                    'employee_profile'):
         query = query.filter(
             Claim.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+    elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                     'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -2288,7 +2288,7 @@ def claims_submit():
 
 
 @app.route('/claims/<int:claim_id>/approve', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def claims_approve(claim_id):
     """Approve/reject claim"""
     claim = Claim.query.get_or_404(claim_id)
@@ -2332,7 +2332,7 @@ def appraisal_list():
                                                    'employee_profile'):
         query = query.filter(
             Appraisal.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+    elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                     'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -2344,7 +2344,7 @@ def appraisal_list():
 
 
 @app.route('/appraisal/create', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def appraisal_create():
     """Create new appraisal"""
     if request.method == 'POST':
@@ -2393,7 +2393,7 @@ def appraisal_create():
 
     # Get employees for appraisal
     employees = Employee.query.filter_by(is_active=True)
-    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                   'employee_profile'):
         employees = employees.filter(
             Employee.manager_id == current_user.employee_profile.id)
@@ -2562,7 +2562,7 @@ def update_user_role(user_id):
     user = User.query.get_or_404(user_id)
     new_role = request.form.get('role')
 
-    if new_role in ['Super Admin', 'Admin', 'Manager', 'User']:
+    if new_role in ['Super Admin', 'Admin', 'HR Manager', 'User']:
         user.role = new_role
         db.session.commit()
         flash(f'User role updated to {new_role}', 'success')
@@ -2573,7 +2573,7 @@ def update_user_role(user_id):
 
 
 @app.route('/export/employees')
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def export_employees():
     """Export employees to CSV"""
     employees = Employee.query.filter_by(is_active=True).all()
