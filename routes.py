@@ -480,7 +480,7 @@ def employee_list():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                  'employee_profile'):
+                                                  'employee_profile') and current_user.employee_profile:
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
 
@@ -847,12 +847,12 @@ def employee_view(employee_id):
 
     # Check permission
     if (current_user.role.name if current_user.role else None) == 'Employee':
-        if not (hasattr(current_user, 'employee_profile')
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
                 and current_user.employee_profile.id == employee_id):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
     elif (current_user.role.name if current_user.role else None) == 'HR Manager':
-        if not (hasattr(current_user, 'employee_profile') and
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and
                 (current_user.employee_profile.id == employee_id
                  or employee.manager_id == current_user.employee_profile.id)):
             flash('You do not have permission to view this employee.', 'error')
@@ -1205,7 +1205,7 @@ def payroll_list():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                  'employee_profile'):
+                                                  'employee_profile') and current_user.employee_profile:
         # Manager: Their own payroll + their team's payroll
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -1535,12 +1535,12 @@ def payroll_payslip(payroll_id):
 
     # Check permission
     if (current_user.role.name if current_user.role else None) == 'Employee':
-        if not (hasattr(current_user, 'employee_profile')
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
                 and current_user.employee_profile.id == payroll.employee_id):
             flash('You do not have permission to view this payslip.', 'error')
             return redirect(url_for('dashboard'))
     elif (current_user.role.name if current_user.role else None) == 'HR Manager':
-        if not (hasattr(current_user, 'employee_profile')
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
                 and payroll.employee.manager_id
                 == current_user.employee_profile.id):
             flash('You do not have permission to view this payslip.', 'error')
@@ -1868,7 +1868,7 @@ def attendance_correct(attendance_id):
 
     # Check if manager can access this employee's record
     if (current_user.role.name if current_user.role else None) == 'HR Manager':
-        if not hasattr(current_user, 'employee_profile') or \
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile) or \
            attendance.employee.manager_id != current_user.employee_profile.id:
             flash('Access denied', 'error')
             return redirect(url_for('attendance_list'))
@@ -1986,7 +1986,7 @@ def attendance_incomplete():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                  'employee_profile'):
+                                                  'employee_profile') and current_user.employee_profile:
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
 
@@ -2235,11 +2235,11 @@ def claims_list():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
-                                                   'employee_profile'):
+                                                   'employee_profile') and current_user.employee_profile:
         query = query.filter(
             Claim.employee_id == current_user.employee_profile.id)
     elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                    'employee_profile'):
+                                                    'employee_profile') and current_user.employee_profile:
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
 
@@ -2330,11 +2330,11 @@ def appraisal_list():
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
-                                                   'employee_profile'):
+                                                   'employee_profile') and current_user.employee_profile:
         query = query.filter(
             Appraisal.employee_id == current_user.employee_profile.id)
     elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                    'employee_profile'):
+                                                    'employee_profile') and current_user.employee_profile:
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
 
@@ -2395,7 +2395,7 @@ def appraisal_create():
     # Get employees for appraisal
     employees = Employee.query.filter_by(is_active=True)
     if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                  'employee_profile'):
+                                                  'employee_profile') and current_user.employee_profile:
         employees = employees.filter(
             Employee.manager_id == current_user.employee_profile.id)
     employees = employees.order_by(Employee.first_name).all()
@@ -2603,7 +2603,7 @@ def export_employees():
 @require_login
 def api_attendance_check():
     """Check today's attendance status for mobile"""
-    if not hasattr(current_user, 'employee_profile'):
+    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
         return jsonify({'error': 'Employee profile not found'}), 400
 
     today = date.today()

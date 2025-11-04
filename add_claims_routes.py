@@ -16,7 +16,7 @@ def claims_list():
     
     # Filter by role/user
     current_role = current_user.role.name if current_user.role else None
-    if current_role == 'Employee' and hasattr(current_user, 'employee_profile'):
+    if current_role == 'Employee' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         query = query.filter(Claim.employee_id == current_user.employee_profile.id)
     elif current_role not in ['Super Admin', 'Admin', 'Manager']:
         flash('Unauthorized', 'error')
