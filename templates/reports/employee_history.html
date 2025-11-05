@@ -47,17 +47,18 @@
                                 <td>{{ emp.employee_id or 'N/A' }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        {% if emp.profile_image_path %}
-                                        <img src="{{ url_for('static', filename=emp.profile_image_path) }}" 
-                                             alt="{{ emp.first_name }}" 
-                                             class="rounded-circle me-2" 
-                                             style="width: 32px; height: 32px; object-fit: cover;">
-                                        {% else %}
-                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
-                                             style="width: 32px; height: 32px; font-size: 14px;">
-                                            {{ emp.first_name[0] if emp.first_name else 'N' }}{{ emp.last_name[0] if emp.last_name else 'A' }}
+                                        <div style="width: 32px; height: 32px; margin-right: 8px;">
+                                            {% if emp.profile_image_path %}
+                                            <img src="{{ url_for('static', filename=emp.profile_image_path) }}" 
+                                                 alt="{{ emp.first_name }}" 
+                                                 class="avatar-image"
+                                                 style="width: 32px; height: 32px;">
+                                            {% else %}
+                                            <div class="avatar-placeholder" style="font-size: 12px; border: 2px solid white;">
+                                                {{ emp.first_name[0] if emp.first_name else 'E' }}
+                                            </div>
+                                            {% endif %}
                                         </div>
-                                        {% endif %}
                                         <span>{{ emp.first_name }} {{ emp.last_name }}</span>
                                     </div>
                                 </td>

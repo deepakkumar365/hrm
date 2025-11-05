@@ -330,7 +330,8 @@ class HRMApp {
     // Form Enhancements
     enhanceForms() {
         // Add loading states to form submissions
-        document.querySelectorAll('form').forEach(form => {
+        // SKIP forms with needs-validation class (handled by FormValidationFramework)
+        document.querySelectorAll('form:not(.needs-validation)').forEach(form => {
             form.addEventListener('submit', (e) => {
                 const submitBtn = form.querySelector('button[type="submit"]');
                 if (submitBtn) {

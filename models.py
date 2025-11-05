@@ -268,7 +268,7 @@ class Employee(db.Model):
     father_name = db.Column(db.String(100))
     email = db.Column(db.String(120), unique=True, nullable=True)
     phone = db.Column(db.String(20))
-    nric = db.Column(db.String(20), unique=True, nullable=False)
+    nric = db.Column(db.String(20), unique=True, nullable=True)
     date_of_birth = db.Column(db.Date)
     gender = db.Column(db.String(10))
     nationality = db.Column(db.String(50))

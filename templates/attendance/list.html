@@ -169,10 +169,10 @@
                     <div class="employee-info-section">
                         <div class="employee-avatar">
                             {% if record.employee.profile_image_path %}
-                            <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}">
+                            <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}" class="avatar-image">
                             {% else %}
                             <div class="avatar-placeholder">
-                                <i class="fas fa-user"></i>
+                                {{ record.employee.first_name[0] if record.employee.first_name else 'E' }}
                             </div>
                             {% endif %}
                         </div>

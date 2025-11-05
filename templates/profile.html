@@ -14,12 +14,11 @@
                             {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.profile_image_path %}
                                 <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}" 
                                      alt="Profile photo of {{ current_user.first_name }} {{ current_user.last_name }}"
-                                     loading="lazy">
+                                     loading="lazy"
+                                     class="avatar-image">
                             {% else %}
-                                <div class="d-flex align-items-center justify-content-center w-100 h-100 bg-light" 
-                                     role="img" 
-                                     aria-label="Default profile avatar">
-                                    <i class="fas fa-user fa-3x text-muted" aria-hidden="true"></i>
+                                <div class="avatar-placeholder">
+                                    {{ current_user.first_name[0] if current_user.first_name else 'U' }}
                                 </div>
                             {% endif %}
                         </div>

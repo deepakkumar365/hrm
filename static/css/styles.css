@@ -1454,7 +1454,7 @@ a:hover {
 
 .team-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1rem;
 }
 
@@ -1473,7 +1473,7 @@ a:hover {
 }
 
 .team-card-header {
-    padding: 1rem;
+    padding: 0.75rem;
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     display: flex;
     justify-content: center;
@@ -1483,8 +1483,8 @@ a:hover {
 
 .team-member-avatar {
     position: relative;
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
 }
 
 .avatar-image {
@@ -1523,15 +1523,30 @@ a:hover {
 }
 
 .team-card-body {
-    padding: 0.75rem 0.75rem;
+    padding: 0.5rem 0.5rem;
     text-align: center;
 }
 
+.team-member-id {
+    font-size: var(--font-size-xs);
+    color: var(--primary);
+    margin-bottom: 0.25rem;
+    font-weight: var(--font-weight-semibold);
+}
+
+.team-member-id code {
+    background-color: rgba(0, 128, 128, 0.1);
+    color: var(--primary);
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: 'Monaco', 'Courier New', monospace;
+}
+
 .team-member-name {
-    font-size: var(--font-size-lg);
+    font-size: 0.95rem;
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .team-member-role {
@@ -1540,9 +1555,9 @@ a:hover {
     justify-content: center;
     gap: var(--spacing-2);
     color: var(--primary);
-    font-size: var(--font-size-sm);
+    font-size: 0.75rem;
     font-weight: var(--font-weight-medium);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .team-member-info {
@@ -1551,8 +1566,8 @@ a:hover {
     justify-content: center;
     gap: var(--spacing-2);
     color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
 }
 
 .team-member-info i {
@@ -1561,7 +1576,7 @@ a:hover {
 }
 
 .team-card-footer {
-    padding: 0.75rem;
+    padding: 0.5rem 0.5rem;
     background: var(--grey-50);
     border-top: 1px solid var(--border-color);
 }
@@ -1573,8 +1588,8 @@ a:hover {
 }
 
 .team-contact-btn {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: var(--radius-md);
     background: var(--white);
     border: 1px solid var(--border-color);
@@ -1585,6 +1600,7 @@ a:hover {
     transition: all var(--transition-fast);
     cursor: pointer;
     text-decoration: none;
+    font-size: 0.85rem;
 }
 
 .team-contact-btn:hover {
@@ -2683,4 +2699,165 @@ td > .spinner-border {
 .form-grid-item .profile-image-container img {
     border-radius: var(--radius-md);
     object-fit: cover;
+}
+
+/* ===== FORM VALIDATION FRAMEWORK STYLES ===== */
+
+/* Invalid field styling */
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: var(--danger);
+    border-width: 2px;
+    padding-left: calc(var(--spacing-3) - 1px);
+    padding-right: calc(var(--spacing-3) - 1px);
+}
+
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
+}
+
+/* Valid field styling */
+.form-control.is-valid,
+.form-select.is-valid {
+    border-color: var(--success);
+    border-width: 1px;
+}
+
+.form-control.is-valid:focus,
+.form-select.is-valid:focus {
+    border-color: var(--success);
+    box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.15);
+}
+
+/* Invalid feedback text */
+.invalid-feedback {
+    display: none;
+    width: 100%;
+    margin-top: var(--spacing-1);
+    font-size: var(--font-size-xs);
+    color: var(--danger);
+    font-weight: var(--font-weight-medium);
+}
+
+.form-control.is-invalid ~ .invalid-feedback,
+.form-select.is-invalid ~ .invalid-feedback {
+    display: block;
+}
+
+/* Valid feedback text */
+.valid-feedback {
+    display: none;
+    width: 100%;
+    margin-top: var(--spacing-1);
+    font-size: var(--font-size-xs);
+    color: var(--success);
+    font-weight: var(--font-weight-medium);
+}
+
+.form-control.is-valid ~ .valid-feedback,
+.form-select.is-valid ~ .valid-feedback {
+    display: block;
+}
+
+/* Validation error toaster notification */
+.validation-error-toast {
+    background: linear-gradient(135deg, var(--danger) 0%, rgba(229, 62, 62, 0.8) 100%) !important;
+}
+
+.validation-error-toast .toast-body {
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+
+.validation-error-toast strong {
+    display: block;
+    margin-bottom: var(--spacing-2);
+    font-weight: var(--font-weight-semibold);
+}
+
+.validation-error-toast .fa-exclamation-circle {
+    font-size: var(--font-size-lg);
+    margin-right: var(--spacing-2);
+}
+
+/* Form field group with validation state */
+.form-group {
+    margin-bottom: var(--spacing-4);
+}
+
+.form-group.has-error .form-control,
+.form-group.has-error .form-select {
+    border-color: var(--danger);
+}
+
+.form-group.has-success .form-control,
+.form-group.has-success .form-select {
+    border-color: var(--success);
+}
+
+/* Required field indicator */
+.form-label::after {
+    content: '';
+}
+
+.form-label.required::after {
+    content: ' *';
+    color: var(--danger);
+    font-weight: var(--font-weight-bold);
+    margin-left: 2px;
+}
+
+/* Submit button loading state */
+button[type="submit"]:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background-color: rgba(var(--primary-rgb), 0.7) !important;
+}
+
+/* Field error highlight on form submission */
+.was-validated .form-control.is-invalid,
+.was-validated .form-select.is-invalid {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
+}
+
+/* Textarea validation */
+textarea.form-control.is-invalid,
+textarea.form-control.is-valid {
+    border-width: 1px;
+}
+
+textarea.form-control.is-invalid:focus,
+textarea.form-control.is-valid:focus {
+    border-width: 1px;
+}
+
+/* Input group validation */
+.input-group .form-control.is-invalid,
+.input-group .form-select.is-invalid {
+    border-color: var(--danger);
+}
+
+.input-group .form-control.is-invalid:focus,
+.input-group .form-select.is-invalid:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.15);
+}
+
+/* Responsive validation messages */
+@media (max-width: 576px) {
+    .validation-error-toast .toast-body {
+        font-size: var(--font-size-xs);
+    }
+
+    .validation-error-toast .d-flex {
+        flex-direction: column;
+    }
+
+    .validation-error-toast .me-2 {
+        margin-right: 0 !important;
+        margin-bottom: var(--spacing-2);
+    }
 }

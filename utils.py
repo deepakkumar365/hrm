@@ -76,8 +76,12 @@ def get_current_month_dates():
     return start_date, end_date
 
 def validate_nric(nric):
-    """Basic NRIC validation for Singapore"""
-    if not nric or len(nric) != 9:
+    """Basic NRIC validation for Singapore - optional field"""
+    # Allow empty NRIC
+    if not nric:
+        return True
+    
+    if len(nric) != 9:
         return False
     
     if nric[0] not in ['S', 'T', 'F', 'G', 'M']:

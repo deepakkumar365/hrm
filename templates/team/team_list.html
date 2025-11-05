@@ -46,6 +46,11 @@
             </div>
 
             <div class="team-card-body">
+                <!-- Employee ID -->
+                <div class="team-member-id">
+                    <code>{{ member.employee_id }}</code>
+                </div>
+                
                 <!-- Name -->
                 <h3 class="team-member-name">{{ member.first_name }} {{ member.last_name }}</h3>
                 
@@ -115,10 +120,377 @@
     {% endif %}
 </div>
 
+<!-- Member Profile Modal -->
+<div id="memberModal" class="modal fade" tabindex="-1" aria-labelledby="memberModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content member-profile-modal">
+            <div class="modal-header member-modal-header">
+                <div class="d-flex align-items-center gap-3 w-100">
+                    <img id="memberPhoto" src="" alt="" class="member-modal-avatar">
+                    <div>
+                        <h5 id="memberModalLabel" class="mb-1 member-name-title"></h5>
+                        <p id="memberDesignation" class="mb-0 member-designation-title"></p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body member-modal-body" id="memberModalBody">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <div class="modal-footer member-modal-footer">
+                <a id="memberEmailBtn" href="#" class="btn btn-outline-primary btn-sm" title="Send Email">
+                    <i class="fas fa-envelope me-2"></i>Email
+                </a>
+                <a id="memberPhoneBtn" href="#" class="btn btn-outline-primary btn-sm" title="Call">
+                    <i class="fas fa-phone me-2"></i>Call
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm close-modal-btn" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Store modal instance globally to ensure proper cleanup
+let memberModalInstance = null;
+
 function showMemberDetails(memberId) {
-    // Placeholder for future implementation
-    alert('Member details view coming soon!');
+    // Close any existing modal instance first
+    if (memberModalInstance) {
+        memberModalInstance.hide();
+        memberModalInstance = null;
+    }
+    
+    const memberModalElement = document.getElementById('memberModal');
+    const modalBody = document.getElementById('memberModalBody');
+    
+    // Show loading state
+    modalBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
+    // Create new modal instance
+    memberModalInstance = new bootstrap.Modal(memberModalElement, {
+        backdrop: 'static',
+        keyboard: true,
+        focus: true
+    });
+    
+    // Fetch member profile data
+    fetch(`/team/member/${memberId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load profile');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Update modal header
+            document.getElementById('memberModalLabel').textContent = `${data.first_name} ${data.last_name}`;
+            document.getElementById('memberDesignation').textContent = data.designation;
+            
+            // Update photo
+            const photoUrl = data.photo_url ? `{{ url_for('static', filename='') }}${data.photo_url}` : '';
+            const photoImg = document.getElementById('memberPhoto');
+            if (photoUrl && data.photo_url) {
+                photoImg.src = photoUrl;
+                photoImg.style.display = 'block';
+            } else {
+                const firstLetter = data.first_name ? data.first_name[0].toUpperCase() : 'E';
+                photoImg.innerHTML = `<div class="avatar-placeholder" style="width: 100%; height: 100%; border: none; font-size: 2rem;">${firstLetter}</div>`;
+                photoImg.style.display = 'block';
+            }
+            
+            // Build profile HTML
+            let profileHTML = `
+                <div class="member-profile-content">
+                    <!-- Quick Info Section -->
+                    <div class="profile-section mb-4">
+                        <h6 class="section-title"><i class="fas fa-id-card me-2 text-primary"></i>Personal Information</h6>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label class="info-label">Employee ID</label>
+                                <div class="info-value"><code>${data.employee_id}</code></div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Gender</label>
+                                <div class="info-value">${data.gender}</div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Date of Birth</label>
+                                <div class="info-value">${data.date_of_birth}</div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Nationality</label>
+                                <div class="info-value">${data.nationality}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Section -->
+                    <div class="profile-section mb-4">
+                        <h6 class="section-title"><i class="fas fa-phone me-2 text-success"></i>Contact Information</h6>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label class="info-label">Email</label>
+                                <div class="info-value">${data.email_display}</div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Phone</label>
+                                <div class="info-value">${data.phone_display}</div>
+                            </div>
+                            <div class="info-item col-12">
+                                <label class="info-label">Address</label>
+                                <div class="info-value">${data.address}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Employment Information Section -->
+                    <div class="profile-section mb-4">
+                        <h6 class="section-title"><i class="fas fa-briefcase me-2 text-warning"></i>Employment Details</h6>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label class="info-label">Designation</label>
+                                <div class="info-value"><span class="badge bg-primary">${data.designation}</span></div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Department</label>
+                                <div class="info-value">${data.department}</div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Employment Type</label>
+                                <div class="info-value">${data.employment_type}</div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Location</label>
+                                <div class="info-value">${data.location}</div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Hire Date</label>
+                                <div class="info-value">${data.hire_date}</div>
+                            </div>
+                            <div class="info-item">
+                                <label class="info-label">Reporting Manager</label>
+                                <div class="info-value">${data.manager_name}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Badge -->
+                    <div class="profile-section">
+                        <h6 class="section-title"><i class="fas fa-heartbeat me-2 text-danger"></i>Status</h6>
+                        ${data.is_active ? '<span class="badge bg-success p-2"><i class="fas fa-check-circle me-1"></i>Active Employee</span>' : '<span class="badge bg-danger p-2"><i class="fas fa-times-circle me-1"></i>Inactive</span>'}
+                    </div>
+                </div>
+            `;
+            
+            modalBody.innerHTML = profileHTML;
+            
+            // Update contact buttons
+            document.getElementById('memberEmailBtn').href = data.email ? `mailto:${data.email}` : '#';
+            document.getElementById('memberEmailBtn').style.display = data.email ? 'inline-block' : 'none';
+            
+            document.getElementById('memberPhoneBtn').href = data.phone ? `tel:${data.phone}` : '#';
+            document.getElementById('memberPhoneBtn').style.display = data.phone ? 'inline-block' : 'none';
+            
+            // Show modal
+            memberModalInstance.show();
+        })
+        .catch(error => {
+            console.error('Error loading member profile:', error);
+            modalBody.innerHTML = `<div class="alert alert-danger" role="alert"><i class="fas fa-exclamation-circle me-2"></i>Error loading profile. Please try again.</div>`;
+            memberModalInstance.show();
+        });
 }
+
+// Clean up modal instance when it's hidden
+document.addEventListener('DOMContentLoaded', function() {
+    const memberModalElement = document.getElementById('memberModal');
+    memberModalElement.addEventListener('hidden.bs.modal', function() {
+        memberModalInstance = null;
+        // Enable scrolling on body
+        document.body.style.overflow = '';
+    });
+});
 </script>
+
+<style>
+/* Member Profile Modal Styling */
+.member-profile-modal {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.member-modal-header {
+    background: linear-gradient(135deg, #008080 0%, #006666 100%);
+    color: white;
+    border: none;
+    padding: 1.5rem;
+    border-radius: 1rem 1rem 0 0;
+}
+
+.member-modal-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid white;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.member-avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid white;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.member-name-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+}
+
+.member-designation-title {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.member-modal-body {
+    padding: 2rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.member-profile-content {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-section {
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.profile-section:last-child {
+    border-bottom: none;
+}
+
+.section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-item.col-12 {
+    grid-column: 1 / -1;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.5rem;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    color: #0f172a;
+    font-weight: 500;
+}
+
+.info-value code {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.member-modal-footer {
+    background-color: #f8fafb;
+    border-top: 1px solid #e9ecef;
+    padding: 1rem 1.5rem;
+}
+
+.close-modal-btn {
+    color: #495057;
+    border-color: #495057;
+    font-weight: 500;
+}
+
+.close-modal-btn:hover {
+    color: #fff;
+    background-color: #495057;
+    border-color: #495057;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .member-modal-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .member-modal-body {
+        padding: 1.5rem;
+    }
+}
+
+/* Modal scrollbar styling */
+.member-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.member-modal-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.member-modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.member-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+</style>
 {% endblock %}

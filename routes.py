@@ -9,13 +9,7 @@ from werkzeug.utils import secure_filename
 from io import BytesIO
 import logging
 
-# Lazy import WeasyPrint to handle deployment environments
-WEASYPRINT_AVAILABLE = False
-try:
-    from weasyprint import HTML, CSS
-    WEASYPRINT_AVAILABLE = True
-except Exception as e:
-    logging.warning(f"WeasyPrint not available ({type(e).__name__}): Will use HTML view instead for PDF generation")
+
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
@@ -462,8 +456,8 @@ def employee_list():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     department = request.args.get('department', '', type=str)
-    sort_by = request.args.get('sort_by', 'first_name', type=str)
-    sort_order = request.args.get('sort_order', 'asc', type=str)
+    sort_by = request.args.get('sort_by', 'id', type=str)
+    sort_order = request.args.get('sort_order', 'desc', type=str)
 
     # Join with Company and Tenant to get tenant_name and company_name
     query = db.session.query(
@@ -492,7 +486,7 @@ def employee_list():
     if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                   'employee_profile') and current_user.employee_profile:
         query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
+            Employee.organization_id == current_user.organization_id)
 
     # Sorting
     if sort_by == 'tenant_name':
@@ -505,6 +499,8 @@ def employee_list():
         sort_column = Employee.designation_id
     elif sort_by == 'department':
         sort_column = Employee.department
+    elif sort_by == 'id':
+        sort_column = Employee.id
     else:
         sort_column = Employee.first_name
 
@@ -569,9 +565,9 @@ def employee_add():
     """Add new employee"""
     if request.method == 'POST':
         try:
-            # Validate NRIC
+            # Validate NRIC (optional field)
             nric = request.form.get('nric', '').upper()
-            if not validate_nric(nric):
+            if nric and not validate_nric(nric):
                 flash('Invalid NRIC format', 'error')
                 # Load master data and preserve form data for re-rendering
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
@@ -593,8 +589,8 @@ def employee_add():
                                        managers=managers,
                                        companies=companies)
 
-            # Check for duplicate NRIC
-            if Employee.query.filter_by(nric=nric).first():
+            # Check for duplicate NRIC (only if NRIC is provided)
+            if nric and Employee.query.filter_by(nric=nric).first():
                 flash('Employee with this NRIC already exists', 'error')
                 # Load master data and preserve form data for re-rendering
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
@@ -975,7 +971,32 @@ def employee_edit(employee_id):
             email = request.form.get('email', '').strip()
             employee.email = email if email else None
             employee.phone = request.form.get('phone')
-            employee.nric = request.form.get('nric')
+            
+            # Validate NRIC (optional field)
+            nric = request.form.get('nric', '').upper()
+            if nric and not validate_nric(nric):
+                flash('Invalid NRIC format', 'error')
+                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                return render_template('employees/form.html',
+                                       form_data=request.form,
+                                       employee=employee,
+                                       roles=roles,
+                                       user_roles=user_roles,
+                                       designations=designations,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers,
+                                       companies=companies)
+            
+            employee.nric = nric if nric else None
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
             employee.department = request.form.get('department')
@@ -1704,28 +1725,7 @@ def payroll_download_pdf(payroll_id):
                                      deductions=deductions,
                                      is_printable=True)
 
-        # If WeasyPrint is available, convert to PDF
-        if WEASYPRINT_AVAILABLE:
-            try:
-                pdf_bytes = HTML(string=html_string).write_pdf()
-                pdf_io = BytesIO(pdf_bytes)
-
-                # Create filename
-                filename = f"Payslip_{employee.first_name}_{employee.last_name}_{payroll.pay_period_end.strftime('%d_%b_%Y')}.pdf"
-                filename = secure_filename(filename.replace(' ', '_'))
-
-                return send_file(
-                    pdf_io,
-                    mimetype='application/pdf',
-                    as_attachment=True,
-                    download_name=filename
-                )
-            except Exception as pdf_error:
-                logging.error(f"PDF generation failed for payroll {payroll_id}: {str(pdf_error)}")
-                # Fall back to HTML view
-                logging.info(f"Falling back to HTML view for payroll {payroll_id}")
-
-        # If WeasyPrint is not available or failed, return printable HTML
+        # Return printable HTML view
         # User can print to PDF using Ctrl+P or browser print menu
         return render_template('payroll/payslip_print.html',
                              payroll=payroll_data,
@@ -2120,7 +2120,7 @@ def attendance_incomplete():
     if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                   'employee_profile') and current_user.employee_profile:
         query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
+            Employee.organization_id == current_user.organization_id)
 
     incomplete_records = query.order_by(Attendance.date.desc()).all()
 

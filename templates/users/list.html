@@ -28,7 +28,13 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="profile-image-container me-2" style="width:32px;height:32px;">
-                                                <img src="{{ user.profile_image_url or 'data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"%23007bff\"/><text x=\"50\" y=\"60\" text-anchor=\"middle\" fill=\"white\" font-size=\"40\">👤</text></svg>' }}" alt="Profile">
+                                                {% if user.profile_image_url %}
+                                                <img src="{{ user.profile_image_url }}" alt="Profile" class="avatar-image">
+                                                {% else %}
+                                                <div class="avatar-placeholder" style="font-size: 14px; border: 2px solid white;">
+                                                    {{ user.first_name[0] if user.first_name else 'U' }}
+                                                </div>
+                                                {% endif %}
                                             </div>
                                             <div>
                                                 <strong>{{ user.first_name }} {{ user.last_name }}</strong>

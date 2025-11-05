@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from app import app, db
 from auth import require_login, require_role
-from models import Employee, EmployeeDocument, User, Organization
+from models import Employee, EmployeeDocument, User, Organization, Designation
 from utils import format_date
 
 
@@ -22,9 +22,9 @@ from utils import format_date
 @require_login
 def team_list():
     """
-    Display team members based on user role:
-    - User role: Shows peers (employees with the same manager)
-    - Manager role: Shows direct reports (employees who report to this manager)
+    Display team members based on user role and is_manager flag:
+    - Manager role OR is_manager=True: Shows direct reports (employees who report to this manager)
+    - User role (is_manager=False): Shows peers (employees with the same manager)
     """
     # Check if current user has employee profile
     if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
@@ -34,8 +34,8 @@ def team_list():
     current_employee = current_user.employee_profile
     user_role_name = current_user.role.name if current_user.role else None
     
-    # For Manager role: Show direct reports
-    if user_role_name == 'Manager':
+    # For Manager role OR employees flagged as is_manager: Show direct reports
+    if user_role_name == 'Manager' or current_employee.is_manager:
         # Get all employees who report directly to this manager
         team_members = Employee.query.filter(
             and_(
@@ -79,6 +79,62 @@ def team_list():
                              manager=manager,
                              current_employee=current_employee,
                              is_manager_view=False)
+
+
+@app.route('/team/member/<int:member_id>')
+@require_login
+def get_team_member_profile(member_id):
+    """Get team member profile details (JSON response for modal)"""
+    # Check if current user has employee profile
+    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+        return jsonify({'error': 'Employee profile not found'}), 403
+    
+    current_employee = current_user.employee_profile
+    
+    # Get the team member
+    member = Employee.query.get(member_id)
+    if not member:
+        return jsonify({'error': 'Team member not found'}), 404
+    
+    # Verify user has access to view this member (must be in their team)
+    user_role_name = current_user.role.name if current_user.role else None
+    is_manager = user_role_name == 'Manager' or current_employee.is_manager
+    
+    # Check if member is direct report or peer
+    if is_manager:
+        # Manager can see direct reports
+        if member.manager_id != current_employee.id:
+            return jsonify({'error': 'Access denied. Member is not in your team'}), 403
+    else:
+        # Non-manager can see peers with same manager
+        if member.manager_id != current_employee.manager_id or member.id == current_employee.id:
+            return jsonify({'error': 'Access denied. Member is not in your team'}), 403
+    
+    # Build member profile response
+    profile_data = {
+        'id': member.id,
+        'first_name': member.first_name,
+        'last_name': member.last_name,
+        'employee_id': member.employee_id,
+        'email': member.email,
+        'phone': member.phone,
+        'designation': member.designation.name if member.designation else 'Not Assigned',
+        'department': member.department or '-',
+        'location': member.location or '-',
+        'employment_type': member.employment_type or '-',
+        'hire_date': member.hire_date.strftime('%d %B %Y') if member.hire_date else '-',
+        'gender': member.gender or '-',
+        'date_of_birth': member.date_of_birth.strftime('%d %B %Y') if member.date_of_birth else '-',
+        'address': member.address or '-',
+        'nationality': member.nationality or '-',
+        'phone_display': member.phone or 'Not provided',
+        'email_display': member.email or 'Not provided',
+        'photo_url': f"static/uploads/photos/{member.profile_image_path}" if member.profile_image_path else None,
+        'manager_name': f"{member.manager.first_name} {member.manager.last_name}" if member.manager else 'No Manager',
+        'is_active': member.is_active
+    }
+    
+    return jsonify(profile_data)
 
 
 # =====================================================
