@@ -396,18 +396,6 @@
     }, false);
 })();
 
-// Auto-calculate hourly rate from basic salary
-document.getElementById('basic_salary').addEventListener('input', function() {
-    const basicSalary = parseFloat(this.value) || 0;
-    const hourlyRateField = document.getElementById('hourly_rate');
-
-    if (basicSalary > 0 && !hourlyRateField.value) {
-        // Assume 22 working days, 8 hours per day
-        const hourlyRate = (basicSalary / (22 * 8)).toFixed(2);
-        hourlyRateField.value = hourlyRate;
-    }
-});
-
 // Show/hide work permit expiry based on permit type
 document.getElementById('work_permit_type').addEventListener('change', function() {
     const expiryField = document.getElementById('work_permit_expiry');
