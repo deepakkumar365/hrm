@@ -1,267 +1,259 @@
 {% extends "base.html" %}
 
-{% block title %}Attendance Records - Noltrion{% endblock %}
+{% block title %}Attendance Records - Nexar{% endblock %}
 
 {% block content %}
-<div class="dashboard-wrapper">
-    <!-- Header -->
-    <div class="dashboard-header">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
-            <div>
-                <h1 class="dashboard-title">Attendance Records</h1>
-                <p class="dashboard-subtitle">Track and manage your attendance history</p>
-            </div>
-            <div class="d-flex gap-3 flex-wrap">
-                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                <a href="{{ url_for('attendance_bulk_manage') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-users"></i>
-                    Bulk Management
-                </a>
-                {% endif %}
-                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-clock"></i>
-                    Mark Attendance
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filters Section - Compact View -->
-    <div class="attendance-filter-section">
-        <form method="GET" class="attendance-filter-form">
-            <!-- Compact Filter Tabs -->
-            <div class="filter-tabs-compact">
-                <button type="button" class="filter-tab-compact {% if not date_range_filter or date_range_filter == 'today' %}active{% endif %}" onclick="setDateFilter('today')" data-filter="today">
-                    <i class="fas fa-calendar-day"></i> Today
-                </button>
-                <button type="button" class="filter-tab-compact {% if date_range_filter == 'week' %}active{% endif %}" onclick="setDateFilter('week')" data-filter="week">
-                    <i class="fas fa-calendar-week"></i> This Week
-                </button>
-                <button type="button" class="filter-tab-compact {% if date_range_filter == 'month' %}active{% endif %}" onclick="setDateFilter('month')" data-filter="month">
-                    <i class="fas fa-calendar-alt"></i> This Month
-                </button>
-                <button type="button" class="filter-tab-compact {% if date_range_filter == 'custom' %}active{% endif %}" onclick="setDateFilter('custom')" data-filter="custom">
-                    <i class="fas fa-calendar"></i> Custom Range
-                </button>
-            </div>
-
-            <!-- Compact Filter Inputs in Single Row -->
-            <div class="filter-inputs-compact">
-                <input type="hidden" id="date_range_type" name="date_range" value="{{ date_range_filter or 'today' }}">
-                
-                <!-- Date Range Fields - Conditional Display -->
-                <div class="filter-input-group-compact" id="custom_date_fields" style="display: {% if date_range_filter == 'custom' %}flex{% else %}none{% endif %};">
-                    <div class="input-wrapper">
-                        <label for="start_date"><i class="fas fa-calendar-alt"></i> Start</label>
-                        <input type="date" id="start_date" name="start_date" class="form-control form-control-sm" value="{{ start_date or '' }}">
-                    </div>
-                    <div class="input-wrapper">
-                        <label for="end_date"><i class="fas fa-calendar-alt"></i> End</label>
-                        <input type="date" id="end_date" name="end_date" class="form-control form-control-sm" value="{{ end_date or '' }}">
-                    </div>
+<div class="container-fluid">
+    <!-- Header with breadcrumb and actions -->
+    <div class="row mb-1">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <!-- Breadcrumb navigation -->
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item">Attendance</li>
+                            <li class="breadcrumb-item active" aria-current="page">Attendance Records</li>
+                        </ol>
+                    </nav>
                 </div>
-
-                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager'] %}
-                <!-- Employee Filter -->
-                {% if employees %}
-                <div class="filter-input-group-compact">
-                    <label for="employee_filter"><i class="fas fa-user"></i> Employee</label>
-                    <select id="employee_filter" name="employee" class="form-select form-select-sm">
-                        <option value="">All Employees</option>
-                        {% for emp in employees %}
-                        <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
-                            {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-
-                <!-- Department Filter -->
-                {% if departments %}
-                <div class="filter-input-group-compact">
-                    <label for="department_filter"><i class="fas fa-building"></i> Department</label>
-                    <select id="department_filter" name="department" class="form-select form-select-sm">
-                        <option value="">All Departments</option>
-                        {% for dept in departments %}
-                        <option value="{{ dept }}" {% if dept == department_filter %}selected{% endif %}>
-                            {{ dept }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
-                {% endif %}
-
-                <!-- Filter Actions -->
-                <div class="filter-actions-compact">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search"></i> Apply
-                    </button>
-                    <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-redo"></i> Reset
+                <div class="btn-group">
+                    <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Mark Attendance
                     </a>
+                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
+                    <a href="{{ url_for('attendance_bulk_manage') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-users me-1"></i>Bulk Management
+                    </a>
+                    {% endif %}
                 </div>
             </div>
-        </form>
+
+            <hr class="mt-0 mb-1">
+
+            <!-- Filters -->
+            <form method="GET" class="filter-card">
+                <div class="card-header card-header-green">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label small">Date Range</label>
+                            <select id="date_range_dropdown" class="form-select" onchange="setDateFilterFromDropdown(this.value)">
+                                <option value="today" {% if not date_range_filter or date_range_filter == 'today' %}selected{% endif %}>Today</option>
+                                <option value="week" {% if date_range_filter == 'week' %}selected{% endif %}>This Week</option>
+                                <option value="month" {% if date_range_filter == 'month' %}selected{% endif %}>This Month</option>
+                                <option value="custom" {% if date_range_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Employee</label>
+                            <input type="text" name="employee" class="form-control" placeholder="Search employee..." value="{{ employee_filter or '' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">&nbsp;</label>
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-search me-1"></i>Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- Attendance Summary Section - Moved to Top -->
+
+    <!-- Attendance Summary Section -->
     {% if attendance_records.items and summary %}
-    <div class="card mb-4">
-        <div class="card-header bg-light">
-            <h3 class="card-title mb-0">
-                <i class="fas fa-chart-bar me-2"></i>
-                Attendance Summary
-            </h3>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-light rounded">
-                        <div class="text-muted small mb-1">Total Records</div>
-                        <div class="fw-bold fs-4">{{ summary.total_records }}</div>
-                    </div>
+    <div class="summary-section">
+        <h2 class="summary-title">
+            <i class="fas fa-chart-bar"></i>
+            Attendance Summary
+        </h2>
+        <div class="summary-cards">
+            <div class="summary-card card-total">
+                <div class="card-icon">
+                    <i class="fas fa-list-check"></i>
                 </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-success bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Present Days</div>
-                        <div class="fw-bold fs-4 text-success">{{ summary.present_days }}</div>
-                    </div>
+                <div class="card-content">
+                    <div class="card-value">{{ summary.total_records }}</div>
+                    <div class="card-label">Total Records</div>
                 </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-danger bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Absent Days</div>
-                        <div class="fw-bold fs-4 text-danger">{{ summary.absent_days }}</div>
-                    </div>
+            </div>
+            <div class="summary-card card-present">
+                <div class="card-icon">
+                    <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Late Days</div>
-                        <div class="fw-bold fs-4 text-warning">{{ summary.late_days }}</div>
-                    </div>
+                <div class="card-content">
+                    <div class="card-value">{{ summary.present_days }}</div>
+                    <div class="card-label">Present Days</div>
                 </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-info bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Total Hours</div>
-                        <div class="fw-bold fs-4 text-info">{{ "%.1f"|format(summary.total_hours) }}h</div>
-                    </div>
+            </div>
+            <div class="summary-card card-absent">
+                <div class="card-icon">
+                    <i class="fas fa-times-circle"></i>
                 </div>
-                <div class="col-md-2 col-sm-4 col-6">
-                    <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
-                        <div class="text-muted small mb-1">Overtime Hours</div>
-                        <div class="fw-bold fs-4 text-primary">{{ "%.1f"|format(summary.total_overtime) }}h</div>
-                    </div>
+                <div class="card-content">
+                    <div class="card-value">{{ summary.absent_days }}</div>
+                    <div class="card-label">Absent Days</div>
+                </div>
+            </div>
+            <div class="summary-card card-late">
+                <div class="card-icon">
+                    <i class="fas fa-hourglass-end"></i>
+                </div>
+                <div class="card-content">
+                    <div class="card-value">{{ summary.late_days }}</div>
+                    <div class="card-label">Late Days</div>
+                </div>
+            </div>
+            <div class="summary-card card-hours">
+                <div class="card-icon">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="card-content">
+                    <div class="card-value">{{ "%.1f"|format(summary.total_hours) }}h</div>
+                    <div class="card-label">Total Hours</div>
+                </div>
+            </div>
+            <div class="summary-card card-overtime">
+                <div class="card-icon">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <div class="card-content">
+                    <div class="card-value">{{ "%.1f"|format(summary.total_overtime) }}h</div>
+                    <div class="card-label">Overtime Hours</div>
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Attendance Records - Enhanced Cards View with Employee Info -->
-    <div class="attendance-records-container">
-        {% for record in attendance_records.items %}
-        <div class="attendance-record-card">
-            <div class="attendance-card-header">
-                <div class="attendance-date-info">
-                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager', 'Manager'] %}
-                    <!-- Employee Info with Photo -->
-                    <div class="employee-info-section">
-                        <div class="employee-avatar">
-                            {% if record.employee.profile_image_path %}
-                            <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}" class="avatar-image">
-                            {% else %}
-                            <div class="avatar-placeholder">
-                                {{ record.employee.first_name[0] if record.employee.first_name else 'E' }}
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="employee-details">
-                            <h4 class="employee-name">{{ record.employee.first_name }} {{ record.employee.last_name }}</h4>
-                            <span class="employee-id">{{ record.employee.employee_id }}</span>
-                            {% if record.employee.department %}
-                            <span class="employee-department"><i class="fas fa-building"></i> {{ record.employee.department }}</span>
-                            {% endif %}
-                            {% if record.employee.position %}
-                            <span class="employee-position"><i class="fas fa-briefcase"></i> {{ record.employee.position }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    <div class="record-date">
-                        <i class="fas fa-calendar"></i>
-                        <span>{{ record.date.strftime('%A, %B %d, %Y') if record.date else '-' }}</span>
-                    </div>
-                </div>
-                <div class="attendance-status-badge">
-                    <span class="status-badge status-{{ record.status|lower }}">
-                        <i class="fas fa-{{ 'check-circle' if record.status == 'Present' else 'times-circle' if record.status == 'Absent' else 'clock' if record.status == 'Late' else 'question-circle' }}"></i>
-                        {{ record.status }}
-                    </span>
-                    {% if record.overtime_hours > 0 %}
-                    <span class="overtime-badge">
-                        <i class="fas fa-plus-circle"></i>
-                        {{ record.overtime_hours }}h OT
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="attendance-card-body">
-                <div class="attendance-time-grid">
-                    <div class="time-item clock-in">
-                        <div class="time-icon">
-                            <i class="fas fa-sign-in-alt"></i>
-                        </div>
-                        <div class="time-details">
-                            <span class="time-label">Clock In</span>
-                            <span class="time-value">{{ record.clock_in.strftime('%I:%M %p') if record.clock_in else '-' }}</span>
-                        </div>
-                    </div>
-
-                    <div class="time-item clock-out">
-                        <div class="time-icon">
-                            <i class="fas fa-sign-out-alt"></i>
-                        </div>
-                        <div class="time-details">
-                            <span class="time-label">Clock Out</span>
-                            <span class="time-value">{{ record.clock_out.strftime('%I:%M %p') if record.clock_out else '-' }}</span>
-                        </div>
-                    </div>
-
-                    <div class="time-item break-time">
-                        <div class="time-icon">
-                            <i class="fas fa-coffee"></i>
-                        </div>
-                        <div class="time-details">
-                            <span class="time-label">Break Time</span>
-                            <span class="time-value">
-                                {% if record.break_start and record.break_end %}
-                                {{ record.break_start.strftime('%I:%M') }} - {{ record.break_end.strftime('%I:%M %p') }}
-                                {% elif record.break_start %}
-                                <span class="text-warning">On Break</span>
+    <!-- Attendance Records - Desktop Table View -->
+    <div class="d-none d-md-block">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Total Hours</th>
+                            <th>Overtime</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records.items %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if record.employee.profile_image_path %}
+                                    <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                    {% else %}
+                                    <div class="rounded-circle me-2 d-flex align-items-center justify-content-center bg-light text-muted" style="width: 32px; height: 32px; font-size: 12px;">
+                                        {{ record.employee.first_name[0] if record.employee.first_name else 'E' }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <div>{{ record.employee.first_name }} {{ record.employee.last_name }} ({{ record.employee.employee_id }})</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {{ record.date.strftime('%d %b %Y') if record.date else '-' }}
+                            </td>
+                            <td>
+                                {{ record.status }}
+                            </td>
+                            <td>
+                                {{ record.clock_in.strftime('%I:%M %p') if record.clock_in else '-' }}
+                            </td>
+                            <td>
+                                {{ record.clock_out.strftime('%I:%M %p') if record.clock_out else '-' }}
+                            </td>
+                            <td>
+                                {{ record.total_hours or 0 }}h
+                            </td>
+                            <td>
+                                {% if record.overtime_hours > 0 %}
+                                <span class="badge bg-info">{{ record.overtime_hours }}h</span>
                                 {% else %}
-                                -
+                                <span class="text-muted">-</span>
                                 {% endif %}
-                            </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary" title="View Details" onclick="viewAttendanceDetails({{ record.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Records - Mobile Cards View -->
+    <div class="d-md-none">
+        {% for record in attendance_records.items %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex align-items-center flex-grow-1">
+                        {% if record.employee.profile_image_path %}
+                        <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                        {% else %}
+                        <div class="rounded-circle me-2 d-flex align-items-center justify-content-center bg-light text-muted" style="width: 40px; height: 40px; font-size: 14px;">
+                            {{ record.employee.first_name[0] if record.employee.first_name else 'E' }}
+                        </div>
+                        {% endif %}
+                        <div>
+                            <div class="mb-0">{{ record.employee.first_name }} {{ record.employee.last_name }} ({{ record.employee.employee_id }})</div>
                         </div>
                     </div>
-
-                    <div class="time-item total-hours">
-                        <div class="time-icon">
-                            <i class="fas fa-hourglass-half"></i>
-                        </div>
-                        <div class="time-details">
-                            <span class="time-label">Total Hours</span>
-                            <span class="time-value highlight">{{ record.total_hours or 0 }}h</span>
-                        </div>
+                    <div>
+                        <span>{{ record.status }}</span>
+                    </div>
+                </div>
+                
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Date</small>
+                        <div>{{ record.date.strftime('%d %b %Y') if record.date else '-' }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Total Hours</small>
+                        <div>{{ record.total_hours or 0 }}h</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Clock In</small>
+                        <div>{{ record.clock_in.strftime('%I:%M %p') if record.clock_in else '-' }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Clock Out</small>
+                        <div>{{ record.clock_out.strftime('%I:%M %p') if record.clock_out else '-' }}</div>
                     </div>
                 </div>
 
-                {% if record.remarks %}
-                <div class="attendance-remarks">
-                    <i class="fas fa-comment-alt"></i>
-                    <span>{{ record.remarks }}</span>
+                {% if record.break_start and record.break_end or record.remarks or record.overtime_hours > 0 %}
+                <div class="border-top pt-2 small">
+                    {% if record.break_start and record.break_end %}
+                    <div class="mb-1"><i class="fas fa-coffee me-1"></i><span class="text-muted">Break: {{ record.break_start.strftime('%I:%M') }} - {{ record.break_end.strftime('%I:%M %p') }}</span></div>
+                    {% endif %}
+                    {% if record.overtime_hours > 0 %}
+                    <div class="mb-1"><i class="fas fa-plus-circle me-1"></i><span class="text-muted">Overtime: {{ record.overtime_hours }}h</span></div>
+                    {% endif %}
+                    {% if record.remarks %}
+                    <div><i class="fas fa-comment me-1"></i><span class="text-muted">{{ record.remarks }}</span></div>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -271,16 +263,22 @@
 
     {% if not attendance_records.items %}
     <!-- Empty State -->
-    <div class="empty-state-container">
-        <div class="empty-state-icon">
-            <i class="fas fa-calendar-times"></i>
+    <div class="empty-state">
+        <div class="empty-state-illustration">
+            <i class="fas fa-inbox"></i>
         </div>
-        <h3 class="empty-state-title">No Attendance Records Found</h3>
-        <p class="empty-state-text">Try adjusting your search criteria or mark your attendance for today</p>
-        <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-lg">
-            <i class="fas fa-clock"></i>
-            Mark Attendance Now
-        </a>
+        <h3 class="empty-state-title">No Attendance Records</h3>
+        <p class="empty-state-message">There are no attendance records matching your filters. Try adjusting your date range or filters.</p>
+        <div class="empty-state-actions">
+            <a href="{{ url_for('attendance_mark') }}" class="btn-empty-primary">
+                <i class="fas fa-plus-circle"></i>
+                Mark Attendance
+            </a>
+            <a href="{{ url_for('attendance_list') }}" class="btn-empty-secondary">
+                <i class="fas fa-sync"></i>
+                Clear Filters
+            </a>
+        </div>
     </div>
     {% endif %}
 
@@ -295,7 +293,7 @@
                 </a>
             </li>
             {% endif %}
-            
+
             {% for page_num in attendance_records.iter_pages() %}
                 {% if page_num %}
                     {% if page_num != attendance_records.page %}
@@ -315,7 +313,7 @@
                 </li>
                 {% endif %}
             {% endfor %}
-            
+
             {% if attendance_records.has_next %}
             <li class="page-item">
                 <a class="page-link" href="{{ url_for('attendance_list', page=attendance_records.next_num, date=date_filter, employee=employee_filter) }}">
@@ -329,168 +327,468 @@
 </div>
 
 <style>
-/* Compact Filter Styles */
-.filter-tabs-compact {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-}
-
-.filter-tab-compact {
-    padding: 0.5rem 1rem;
-    border: 1px solid #dee2e6;
-    background: white;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.filter-tab-compact:hover {
-    background: #f8f9fa;
-    border-color: #6c8f91;
-}
-
-.filter-tab-compact.active {
-    background: #6c8f91;
+/* Filter Card Header */
+.card-header-teal {
+    background-color: #008080;
     color: white;
-    border-color: #6c8f91;
+    font-weight: 600;
 }
 
-.filter-inputs-compact {
+/* ==================== SUMMARY CARDS ==================== */
+.summary-section {
+    margin-bottom: 2rem;
+}
+
+.summary-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 1.2rem 0;
     display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    align-items: flex-end;
-}
-
-.filter-input-group-compact {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    min-width: 180px;
-}
-
-.filter-input-group-compact label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #495057;
-    margin-bottom: 0;
-}
-
-.filter-input-group-compact .input-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.filter-actions-compact {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* Employee Info Section in Cards */
-.employee-info-section {
-    display: flex;
-    gap: 1rem;
     align-items: center;
-    margin-bottom: 0.75rem;
+    gap: 0.6rem;
 }
 
-.employee-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    overflow: hidden;
+.summary-title i {
+    color: #008080;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.2rem;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #008080;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
     flex-shrink: 0;
 }
 
-.employee-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.card-total .card-icon {
+    background-color: #d1ebe8;
+    color: #008080;
 }
 
-.avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #6c8f91, #7ba6aa);
+.card-total {
+    border-left-color: #008080;
+}
+
+.card-present .card-icon {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.card-present {
+    border-left-color: #28a745;
+}
+
+.card-absent .card-icon {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.card-absent {
+    border-left-color: #dc3545;
+}
+
+.card-late .card-icon {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+
+.card-late {
+    border-left-color: #ffc107;
+}
+
+.card-hours .card-icon {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.card-hours {
+    border-left-color: #17a2b8;
+}
+
+.card-overtime .card-icon {
+    background-color: #cfe2ff;
+    color: #084298;
+}
+
+.card-overtime {
+    border-left-color: #0d6efd;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.card-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.card-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* ==================== TABLE STYLES ==================== */
+.card {
+    background: white;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #f0f1f5 100%);
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.5rem;
+}
+
+.card-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.card-title i {
+    color: #008080;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table {
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+    font-weight: 700;
+    color: #495057;
+    padding: 1rem;
+    vertical-align: middle;
+    font-size: 0.9rem;
+}
+
+.table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-color: #f0f1f5;
+    color: #495057;
+}
+
+.table tbody tr {
+    transition: all 0.3s ease;
+    border-bottom: 1px solid #f0f1f5;
+}
+
+.table tbody tr:hover {
+    background-color: #d1ebe8;
+}
+
+/* Employee Info in Table */
+.employee-table-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.table-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e9ecef;
+    flex-shrink: 0;
+}
+
+.table-avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.5rem;
+    font-weight: bold;
+    font-size: 0.9rem;
+    flex-shrink: 0;
 }
 
-.employee-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.employee-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0;
+.emp-name {
+    font-weight: 700;
     color: #2c3e50;
+    font-size: 0.95rem;
 }
 
-.employee-id {
-    font-size: 0.875rem;
-    color: #6c757d;
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-badge.status-present {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-badge.status-absent {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.status-badge.status-late {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+
+/* Overtime Badge */
+.overtime-badge-table {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.85rem;
+    background-color: #cfe2ff;
+    color: #084298;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.fw-500 {
     font-weight: 500;
 }
 
-.employee-department,
-.employee-position {
-    font-size: 0.8rem;
-    color: #6c757d;
+/* ==================== EMPTY STATE ==================== */
+.empty-state {
+    background: white;
+    border-radius: 12px;
+    padding: 4rem 2rem;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.employee-department i,
-.employee-position i {
-    margin-right: 0.25rem;
-    color: #6c8f91;
+.empty-state-illustration {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, #d1ebe8 0%, #b3d9d3 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #008080;
+}
+
+.empty-state-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin: 0 0 0.8rem 0;
+}
+
+.empty-state-message {
+    font-size: 1rem;
+    color: #6c757d;
+    margin: 0 0 1.5rem 0;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.empty-state-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-empty-primary,
+.btn-empty-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-empty-primary {
+    background-color: #008080;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 128, 128, 0.3);
+}
+
+.btn-empty-primary:hover {
+    background-color: #006666;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 128, 128, 0.4);
+}
+
+.btn-empty-secondary {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1.5px solid #dee2e6;
+}
+
+.btn-empty-secondary:hover {
+    background-color: #dee2e6;
+    border-color: #adb5bd;
+    transform: translateY(-2px);
+}
+
+/* ==================== PAGINATION ==================== */
+.pagination {
+    margin-top: 2rem;
+}
+
+.page-link {
+    color: #008080;
+    border-color: #e9ecef;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.page-link:hover {
+    color: white;
+    background-color: #008080;
+    border-color: #008080;
+}
+
+.page-item.active .page-link {
+    background-color: #008080;
+    border-color: #008080;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+    }
+
+    .summary-card {
+        padding: 1rem;
+    }
+
+    .table {
+        font-size: 0.85rem;
+    }
+
+    .table thead th,
+    .table tbody td {
+        padding: 0.6rem;
+    }
+
+    .table thead th {
+        font-size: 0.8rem;
+    }
+
+    .emp-name {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .card-value {
+        font-size: 1.5rem;
+    }
+
+    .table {
+        font-size: 0.8rem;
+    }
+
+    .table thead th,
+    .table tbody td {
+        padding: 0.4rem;
+    }
+
+    .empty-state {
+        padding: 2rem 1rem;
+    }
+
+    .empty-state-illustration {
+        width: 80px;
+        height: 80px;
+        font-size: 2.5rem;
+    }
+
+    .empty-state-title {
+        font-size: 1.2rem;
+    }
 }
 </style>
 
 <script>
-// Date filter functions with conditional display
-function setDateFilter(type) {
-    const customDateFields = document.getElementById('custom_date_fields');
-    const dateRangeInput = document.getElementById('date_range_type');
-    const today = new Date();
-    
-    // Remove active class from all tabs
-    document.querySelectorAll('.filter-tab-compact').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Add active class to clicked tab
-    event.target.classList.add('active');
-    
-    // Set date range type
-    dateRangeInput.value = type;
-    
-    // Show/hide custom date fields
-    if (type === 'custom') {
-        customDateFields.style.display = 'flex';
-        document.getElementById('start_date').focus();
-    } else {
-        customDateFields.style.display = 'none';
-    }
+// Date filter dropdown handler
+function setDateFilterFromDropdown(type) {
+    // Auto-submit form on date range change
+    document.querySelector('.filter-card').submit();
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const dateRangeType = document.getElementById('date_range_type').value;
-    const customDateFields = document.getElementById('custom_date_fields');
-    
-    // Show custom fields if custom range is selected
-    if (dateRangeType === 'custom') {
-        customDateFields.style.display = 'flex';
-    }
-});
+// View attendance details
+function viewAttendanceDetails(recordId) {
+    // You can implement a modal or redirect to detail page
+    // For now, this is a placeholder
+    console.log('Viewing attendance record:', recordId);
+    // Example: redirect to detail page if available
+    // window.location.href = `/attendance/${recordId}`;
+}
 </script>
 {% endblock %}

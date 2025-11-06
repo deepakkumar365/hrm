@@ -22,9 +22,9 @@ with app.app_context():
     db.session.commit()
 
     # 2. Seed default organization
-    org = Organization.query.filter_by(name="Noltrion HQ").first()
+    org = Organization.query.filter_by(name="Nexar HQ").first()
     if not org:
-        org = Organization(name="Noltrion HQ")
+        org = Organization(name="Nexar HQ")
         db.session.add(org)
         db.session.commit()
 

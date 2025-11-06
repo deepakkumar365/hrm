@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ "Edit Employee" if employee else "Add Employee" }} - Noltrion{% endblock %}
+{% block title %}{{ "Edit Employee" if employee else "Add Employee" }} - Nexar{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -110,20 +110,6 @@
                             <div class="form-grid-item half-width">
                                 <label for="profile_image" class="form-label">Profile Image</label>
                                 <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*">
-                                {% if employee %}
-                                <div class="mb-3 mt-2">
-                                    <p class="text-muted mb-2"><small><i class="fas fa-image me-1"></i>Current Profile Image:</small></p>
-                                    <div class="profile-image-container" style="width:120px;height:120px;">
-                                        {% if employee.profile_image_path %}
-                                        <img src="{{ url_for('static', filename=employee.profile_image_path) }}" alt="Current profile image" class="avatar-image">
-                                        {% else %}
-                                        <div class="avatar-placeholder">
-                                            {{ employee.first_name[0] if employee.first_name else 'E' }}
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% endif %}
                             </div>
                             <div class="form-grid-item full-width">
                                 <label for="address" class="form-label">Address</label>

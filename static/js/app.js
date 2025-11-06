@@ -1,5 +1,5 @@
 /**
- * Noltrion - Mobile-First JavaScript
+ * Nexar - Mobile-First JavaScript
  * Progressive Web App functionality and mobile optimizations
  */
 
@@ -17,7 +17,7 @@ class HRMApp {
         this.initializeMobileOptimizations();
         this.setupAttendanceFeatures();
         this.initializeNotifications();
-        console.log('Noltrion initialized');
+        console.log('Nexar initialized');
     }
 
     setupEventListeners() {
