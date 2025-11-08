@@ -4,6 +4,8 @@ from flask import make_response
 import pandas as pd
 from datetime import datetime, date, timedelta
 import logging
+import phonenumbers
+from phonenumbers import NumberParseException
 
 def export_to_csv(data, filename, headers=None):
     """Export data to CSV and return as downloadable response"""
@@ -91,6 +93,66 @@ def validate_nric(nric):
         return False
     
     return True
+
+def validate_phone_number(phone_number, country_code):
+    """
+    Validate phone number based on country code.
+    
+    Args:
+        phone_number (str): Phone number to validate
+        country_code (str): ISO 3166-1 alpha-2 country code (e.g., 'SG', 'IN', 'AE')
+    
+    Returns:
+        dict: {
+            'is_valid': bool,
+            'error_message': str or None,
+            'formatted_number': str or None
+        }
+    """
+    if not phone_number or not phone_number.strip():
+        return {
+            'is_valid': True,
+            'error_message': None,
+            'formatted_number': None
+        }
+    
+    if not country_code or not country_code.strip():
+        return {
+            'is_valid': False,
+            'error_message': 'Company country is not configured. Please contact administrator.',
+            'formatted_number': None
+        }
+    
+    try:
+        parsed_number = phonenumbers.parse(phone_number, country_code.upper())
+        
+        if not phonenumbers.is_valid_number(parsed_number):
+            return {
+                'is_valid': False,
+                'error_message': f'Phone number is invalid for {country_code.upper()}.',
+                'formatted_number': None
+            }
+        
+        formatted = phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+        
+        return {
+            'is_valid': True,
+            'error_message': None,
+            'formatted_number': formatted
+        }
+    
+    except NumberParseException as e:
+        return {
+            'is_valid': False,
+            'error_message': f'Phone number format is invalid for {country_code.upper()}.',
+            'formatted_number': None
+        }
+    except Exception as e:
+        return {
+            'is_valid': False,
+            'error_message': 'Unable to validate phone number. Please check the format.',
+            'formatted_number': None
+        }
 
 def generate_employee_id(company_code=None, employee_db_id=None):
     """

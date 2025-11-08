@@ -215,6 +215,7 @@
                                 <label for="work_permit_type" class="form-label">Work Permit Type *</label>
                                 <select class="form-select" id="work_permit_type" name="work_permit_type" required>
                                     <option value="">Select Type</option>
+                                    <option value="Nil" {% if employee and employee.work_permit_type == 'Nil' %}selected{% endif %}>Nil</option>
                                     <option value="Citizen" {% if employee and employee.work_permit_type == 'Citizen' %}selected{% endif %}>Singapore Citizen</option>
                                     <option value="PR" {% if employee and employee.work_permit_type == 'PR' %}selected{% endif %}>Permanent Resident</option>
                                     <option value="Work Permit" {% if employee and employee.work_permit_type == 'Work Permit' %}selected{% endif %}>Work Permit</option>
@@ -223,12 +224,12 @@
                                 </select>
                             </div>
                             <div class="form-grid-item">
-                                <label for="work_permit_expiry" class="form-label">Work Permit Expiry</label>
+                                <label for="work_permit_expiry" class="form-label">Work Permit Expiry <span class="text-danger" id="work_permit_expiry_required">*</span></label>
                                 <input type="date" class="form-control" id="work_permit_expiry" name="work_permit_expiry"
                                        value="{{ employee.work_permit_expiry.strftime('%Y-%m-%d') if employee and employee.work_permit_expiry else '' }}">
                             </div>
                             <div class="form-grid-item">
-                                <label for="work_permit_number" class="form-label">Work Permit Number</label>
+                                <label for="work_permit_number" class="form-label">Work Permit Number <span class="text-danger" id="work_permit_number_required">*</span></label>
                                 <input type="text" class="form-control" id="work_permit_number" name="work_permit_number"
                                        value="{{ form_data.get('work_permit_number') if form_data else (employee.work_permit_number if employee else '') }}"
                                        placeholder="e.g., WP123456789">
@@ -382,17 +383,53 @@
     }, false);
 })();
 
-// Show/hide work permit expiry based on permit type
-document.getElementById('work_permit_type').addEventListener('change', function() {
-    const expiryField = document.getElementById('work_permit_expiry');
+function updateWorkPermitValidation() {
+    const workPermitType = document.getElementById('work_permit_type');
+    const workPermitNumber = document.getElementById('work_permit_number');
+    const workPermitExpiry = document.getElementById('work_permit_expiry');
+    const numberRequiredSpan = document.getElementById('work_permit_number_required');
+    const expiryRequiredSpan = document.getElementById('work_permit_expiry_required');
+    
+    const permitTypeValue = workPermitType.value;
+    const nilType = ['Nil'];
     const citizenTypes = ['Citizen', 'PR'];
-
-    if (citizenTypes.includes(this.value)) {
-        expiryField.disabled = true;
-        expiryField.value = '';
+    
+    if (nilType.includes(permitTypeValue)) {
+        workPermitNumber.removeAttribute('required');
+        workPermitExpiry.removeAttribute('required');
+        workPermitNumber.disabled = true;
+        workPermitExpiry.disabled = true;
+        workPermitNumber.value = '';
+        workPermitExpiry.value = '';
+        numberRequiredSpan.style.display = 'none';
+        expiryRequiredSpan.style.display = 'none';
+        workPermitNumber.classList.remove('is-invalid');
+        workPermitExpiry.classList.remove('is-invalid');
+    } else if (citizenTypes.includes(permitTypeValue)) {
+        workPermitNumber.removeAttribute('required');
+        workPermitExpiry.removeAttribute('required');
+        workPermitNumber.disabled = true;
+        workPermitExpiry.disabled = true;
+        workPermitNumber.value = '';
+        workPermitExpiry.value = '';
+        numberRequiredSpan.style.display = 'none';
+        expiryRequiredSpan.style.display = 'none';
+        workPermitNumber.classList.remove('is-invalid');
+        workPermitExpiry.classList.remove('is-invalid');
     } else {
-        expiryField.disabled = false;
+        workPermitNumber.setAttribute('required', 'required');
+        workPermitExpiry.setAttribute('required', 'required');
+        workPermitNumber.disabled = false;
+        workPermitExpiry.disabled = false;
+        numberRequiredSpan.style.display = 'inline';
+        expiryRequiredSpan.style.display = 'inline';
     }
+}
+
+document.getElementById('work_permit_type').addEventListener('change', updateWorkPermitValidation);
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateWorkPermitValidation();
 });
 
 // Form submission - Show loading state and disable button
@@ -496,6 +533,130 @@ document.querySelector('form.needs-validation').addEventListener('submit', funct
   dob.addEventListener('blur', clampDate);
 })();
 </script>
+<script>
+// Phone number validation based on company country
+(function() {
+    const phoneInput = document.getElementById('phone');
+    const companySelect = document.getElementById('company_id');
+    
+    if (!phoneInput || !companySelect) return;
+
+    // Country-specific phone validation patterns
+    const countryPatterns = {
+        'SG': { pattern: /^(\+65|65)?[6-9]\d{7}$/, format: '+65 XXXX XXXX', name: 'Singapore' },
+        'IN': { pattern: /^(\+91|91)?[6-9]\d{9}$/, format: '+91 XXXXX XXXXX', name: 'India' },
+        'AE': { pattern: /^(\+971|971)?[5]\d{8}$/, format: '+971 5X XXX XXXX', name: 'UAE' },
+        'MY': { pattern: /^(\+60|60)?[1-9]\d{8,9}$/, format: '+60 1X XXXX XXXX', name: 'Malaysia' },
+        'US': { pattern: /^(\+1|1)?[2-9]\d{9}$/, format: '+1 (XXX) XXX XXXX', name: 'USA' },
+        'GB': { pattern: /^(\+44|44)?[0-9]{10}$/, format: '+44 XXXX XXXXXX', name: 'UK' }
+    };
+
+    // Cache for company country codes to avoid repeated API calls
+    const companyCountryCache = {};
+
+    function getCountryFromCompany(companyId) {
+        return new Promise((resolve) => {
+            if (companyCountryCache[companyId]) {
+                resolve(companyCountryCache[companyId]);
+                return;
+            }
+            // Try to get from data attribute first (if backend sets it)
+            const companyData = document.getElementById(`company-${companyId}`)?.dataset;
+            if (companyData?.country) {
+                companyCountryCache[companyId] = companyData.country;
+                resolve(companyData.country);
+                return;
+            }
+            // Fallback: assume company code to country mapping or get from API
+            // For now, return null which will trigger backend validation
+            resolve(null);
+        });
+    }
+
+    function validatePhoneFormat(value, country) {
+        if (!value || !value.trim()) return true;
+        const countryData = countryPatterns[country?.toUpperCase()];
+        if (!countryData) {
+            // If country not recognized, allow any format with at least 7 digits
+            return /^\+?[\d\s\-\(\)]{7,}$/.test(value);
+        }
+        return countryData.pattern.test(value.replace(/[\s\-\(\)]/g, ''));
+    }
+
+    function setPhoneInvalid(msg) {
+        phoneInput.classList.add('is-invalid');
+        phoneInput.classList.remove('is-valid');
+        let feedback = phoneInput.parentElement.querySelector('.invalid-feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.className = 'invalid-feedback d-block';
+            phoneInput.parentElement.appendChild(feedback);
+        }
+        feedback.textContent = msg;
+    }
+
+    function setPhoneValid() {
+        phoneInput.classList.remove('is-invalid');
+        phoneInput.classList.add('is-valid');
+        const feedback = phoneInput.parentElement.querySelector('.invalid-feedback');
+        if (feedback) feedback.textContent = '';
+    }
+
+    function clearPhoneValidation() {
+        phoneInput.classList.remove('is-invalid', 'is-valid');
+        const feedback = phoneInput.parentElement.querySelector('.invalid-feedback');
+        if (feedback) feedback.textContent = '';
+    }
+
+    // Validate on blur
+    phoneInput.addEventListener('blur', async function() {
+        const value = this.value.trim();
+        if (!value) {
+            clearPhoneValidation();
+            return;
+        }
+
+        const companyId = companySelect.value;
+        if (!companyId) {
+            setPhoneInvalid('Please select a company first to validate phone number.');
+            return;
+        }
+
+        const country = await getCountryFromCompany(companyId);
+        if (!country) {
+            // If country not found, validation will happen on backend
+            clearPhoneValidation();
+            return;
+        }
+
+        if (!validatePhoneFormat(value, country)) {
+            const countryData = countryPatterns[country.toUpperCase()];
+            const format = countryData ? `Format: ${countryData.format}` : 'Invalid format';
+            setPhoneInvalid(`Phone number is invalid for ${country.toUpperCase()}. ${format}`);
+            return;
+        }
+
+        setPhoneValid();
+    });
+
+    // Clear validation on input
+    phoneInput.addEventListener('input', function() {
+        if (!this.value.trim()) {
+            clearPhoneValidation();
+        }
+    });
+
+    // Re-validate when company changes
+    companySelect.addEventListener('change', function() {
+        if (phoneInput.value.trim()) {
+            phoneInput.dispatchEvent(new Event('blur'));
+        } else {
+            clearPhoneValidation();
+        }
+    });
+})();
+</script>
+
 <script>
 // Auto-generate Employee ID when company is selected
 {% if not employee %}

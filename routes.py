@@ -21,7 +21,7 @@ from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, check_permission,
-                   mobile_optimized_pagination, get_current_month_dates)
+                   mobile_optimized_pagination, get_current_month_dates, validate_phone_number)
 from constants import DEFAULT_USER_PASSWORD
 
 # Helper to validate image extension
@@ -613,12 +613,42 @@ def employee_add():
                                        managers=managers,
                                        companies=companies)
 
+            # Get company_id from form to retrieve country code for phone validation
+            company_id = request.form.get('company_id')
+            company = Company.query.get(company_id) if company_id else None
+            country_code = company.tenant.country_code if company and company.tenant else None
+
+            # Validate phone number (optional field)
+            phone = request.form.get('phone', '').strip()
+            if phone:
+                phone_validation = validate_phone_number(phone, country_code)
+                if not phone_validation['is_valid']:
+                    flash(phone_validation['error_message'], 'error')
+                    # Load master data and preserve form data for re-rendering
+                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    return render_template('employees/form.html',
+                                           form_data=request.form,
+                                           roles=roles,
+                                           user_roles=user_roles,
+                                           designations=designations,
+                                           departments=departments,
+                                           working_hours=working_hours,
+                                           work_schedules=work_schedules,
+                                           managers=managers,
+                                           companies=companies)
+
             # Create new employee
             employee = Employee()
             employee.organization_id = current_user.organization_id
 
             # Set company_id from form
-            company_id = request.form.get('company_id')
             if company_id:
                 employee.company_id = company_id
 
@@ -637,7 +667,7 @@ def employee_add():
             employee.last_name = request.form.get('last_name')
             email = request.form.get('email', '').strip()
             employee.email = email if email else None
-            employee.phone = request.form.get('phone')
+            employee.phone = phone if phone else None
             employee.nric = nric
             employee.date_of_birth = parse_date(
                 request.form.get('date_of_birth'))
@@ -651,11 +681,56 @@ def employee_add():
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
 
-            work_permit_number = request.form.get('work_permit_number')
+            work_permit_number = request.form.get('work_permit_number', '').strip()
+            work_permit_expiry = request.form.get('work_permit_expiry', '').strip()
+            permit_type = employee.work_permit_type
+
+            types_without_permit_fields = ['Nil', 'Citizen', 'PR']
+            if permit_type not in types_without_permit_fields:
+                if not work_permit_number:
+                    flash('Work Permit Number is required for this permit type', 'error')
+                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    return render_template('employees/form.html',
+                                           form_data=request.form,
+                                           roles=roles,
+                                           user_roles=user_roles,
+                                           designations=designations,
+                                           departments=departments,
+                                           working_hours=working_hours,
+                                           work_schedules=work_schedules,
+                                           managers=managers,
+                                           companies=companies)
+                if not work_permit_expiry:
+                    flash('Work Permit Expiry Date is required for this permit type', 'error')
+                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    return render_template('employees/form.html',
+                                           form_data=request.form,
+                                           roles=roles,
+                                           user_roles=user_roles,
+                                           designations=designations,
+                                           departments=departments,
+                                           working_hours=working_hours,
+                                           work_schedules=work_schedules,
+                                           managers=managers,
+                                           companies=companies)
+
             if work_permit_number:
                 employee.work_permit_number = work_permit_number
 
-            work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
 
@@ -966,11 +1041,41 @@ def employee_edit(employee_id):
             else:
                 employee.company_id = None
 
+            # Get country code from company's tenant for phone validation
+            company = Company.query.get(company_id) if company_id else None
+            country_code = company.tenant.country_code if company and company.tenant else None
+
+            # Validate phone number (optional field)
+            phone = request.form.get('phone', '').strip()
+            if phone:
+                phone_validation = validate_phone_number(phone, country_code)
+                if not phone_validation['is_valid']:
+                    flash(phone_validation['error_message'], 'error')
+                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    return render_template('employees/form.html',
+                                           form_data=request.form,
+                                           employee=employee,
+                                           roles=roles,
+                                           user_roles=user_roles,
+                                           designations=designations,
+                                           departments=departments,
+                                           working_hours=working_hours,
+                                           work_schedules=work_schedules,
+                                           managers=managers,
+                                           companies=companies)
+
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             email = request.form.get('email', '').strip()
             employee.email = email if email else None
-            employee.phone = request.form.get('phone')
+            employee.phone = phone if phone else None
             
             # Validate NRIC (optional field)
             nric = request.form.get('nric', '').upper()
