@@ -143,6 +143,9 @@ class Company(db.Model):
     email = db.Column(db.String(255))
     website = db.Column(db.String(255))
     logo_path = db.Column(db.String(255))
+    
+    # Payroll and Financial Configuration
+    currency_code = db.Column(db.String(10), nullable=False, default='SGD')  # e.g., SGD, USD, INR
 
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
@@ -172,12 +175,44 @@ class Company(db.Model):
             'email': self.email,
             'website': self.website,
             'logo_path': self.logo_path,
+            'currency_code': self.currency_code,
             'is_active': self.is_active,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'modified_by': self.modified_by,
             'modified_at': self.modified_at.isoformat() if self.modified_at else None,
         }
+
+
+class CompanyEmployeeIdConfig(db.Model):
+    """Track employee ID sequence per company"""
+    __tablename__ = 'hrm_company_employee_id_config'
+    __table_args__ = (
+        Index('idx_company_employee_id_config_company_id', 'company_id'),
+        UniqueConstraint('company_id', name='uq_company_id_config'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False, unique=True)
+    last_sequence_number = db.Column(db.Integer, default=0, nullable=False)
+    id_prefix = db.Column(db.String(10), nullable=False)  # e.g., 'ACME'
+    
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100))
+    modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    company = db.relationship('Company', backref=db.backref('employee_id_config', uselist=False, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<CompanyEmployeeIdConfig company_id={self.company_id} last_seq={self.last_sequence_number}>'
+
+    def get_next_employee_id(self):
+        """Get the next employee ID for this company"""
+        self.last_sequence_number += 1
+        self.modified_at = datetime.now()
+        db.session.commit()
+        return f"{self.id_prefix}{str(self.last_sequence_number).zfill(3)}"
 
 
 class TenantPaymentConfig(db.Model):

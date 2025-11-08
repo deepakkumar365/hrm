@@ -116,6 +116,47 @@ def generate_employee_id(company_code=None, employee_db_id=None):
     from datetime import datetime
     return f"{company_code}{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
+def get_company_employee_id(company_id, company_code, db_session):
+    """
+    Generate a company-specific employee ID using the CompanyEmployeeIdConfig table.
+    Each company has its own sequence starting from 1.
+    
+    Format: CompanyCode + Sequential Number (e.g., ACME001, ACME002, ACME003)
+    
+    Args:
+        company_id: UUID of the company
+        company_code: Code of the company (e.g., 'ACME')
+        db_session: SQLAlchemy database session
+    
+    Returns:
+        Formatted employee ID (e.g., 'ACME001')
+    
+    Raises:
+        ValueError: If company_code is not provided
+    """
+    if not company_code:
+        raise ValueError("Company code is required to generate employee ID")
+    
+    # Import here to avoid circular imports
+    from models import CompanyEmployeeIdConfig
+    
+    # Get or create the configuration for this company
+    config = CompanyEmployeeIdConfig.query.filter_by(company_id=company_id).first()
+    
+    if not config:
+        # Create new configuration entry for this company
+        config = CompanyEmployeeIdConfig(
+            company_id=company_id,
+            id_prefix=company_code,
+            last_sequence_number=0,
+            created_by='system'
+        )
+        db_session.add(config)
+        db_session.flush()  # Flush to ensure the config is created before we use it
+    
+    # Get the next employee ID
+    return config.get_next_employee_id()
+
 def check_permission(user, required_permission):
     """Check if user has required permission"""
     if not user or not user.is_authenticated:

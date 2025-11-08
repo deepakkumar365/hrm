@@ -63,6 +63,10 @@
                             <td>{{ company.uen or 'N/A' }}</td>
                         </tr>
                         <tr>
+                            <th>Currency Code (Payroll):</th>
+                            <td><span class="badge bg-info">{{ company.currency_code or 'SGD' }}</span></td>
+                        </tr>
+                        <tr>
                             <th>Status:</th>
                             <td>
                                 {% if company.is_active %}
@@ -239,6 +243,22 @@
                         <label for="editCompanyAddress" class="form-label">Address</label>
                         <textarea class="form-control" id="editCompanyAddress" rows="2"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label for="editCompanyCurrencyCode" class="form-label">Currency Code *</label>
+                        <select class="form-select" id="editCompanyCurrencyCode" required>
+                            <option value="">Select Currency</option>
+                            <option value="SGD">SGD - Singapore Dollar</option>
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="INR">INR - Indian Rupee</option>
+                            <option value="MYR">MYR - Malaysian Ringgit</option>
+                            <option value="THB">THB - Thai Baht</option>
+                            <option value="IDR">IDR - Indonesian Rupiah</option>
+                            <option value="PHP">PHP - Philippine Peso</option>
+                            <option value="VND">VND - Vietnamese Dong</option>
+                        </select>
+                    </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="editCompanyActive">
                         <label class="form-check-label" for="editCompanyActive">Active</label>
@@ -273,6 +293,7 @@ function editCompany(companyId) {
                 document.getElementById('editCompanyEmail').value = company.email || '';
                 document.getElementById('editCompanyWebsite').value = company.website || '';
                 document.getElementById('editCompanyAddress').value = company.address || '';
+                document.getElementById('editCompanyCurrencyCode').value = company.currency_code || 'SGD';
                 document.getElementById('editCompanyActive').checked = company.is_active;
                 
                 // Show modal
@@ -300,6 +321,7 @@ function updateCompany() {
         email: document.getElementById('editCompanyEmail').value,
         website: document.getElementById('editCompanyWebsite').value,
         address: document.getElementById('editCompanyAddress').value,
+        currency_code: document.getElementById('editCompanyCurrencyCode').value,
         is_active: document.getElementById('editCompanyActive').checked
     };
 

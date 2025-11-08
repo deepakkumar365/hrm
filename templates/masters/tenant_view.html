@@ -181,6 +181,26 @@
                             <input type="url" class="form-control" id="companyWebsite">
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="companyCurrency" class="form-label">Currency Code * (for Payroll)</label>
+                            <select class="form-control" id="companyCurrency" required>
+                                <option value="">-- Select Currency --</option>
+                                <option value="SGD">SGD (Singapore Dollar)</option>
+                                <option value="USD">USD (US Dollar)</option>
+                                <option value="EUR">EUR (Euro)</option>
+                                <option value="GBP">GBP (British Pound)</option>
+                                <option value="INR">INR (Indian Rupee)</option>
+                                <option value="MYR">MYR (Malaysian Ringgit)</option>
+                                <option value="THB">THB (Thai Baht)</option>
+                                <option value="IDR">IDR (Indonesian Rupiah)</option>
+                                <option value="PHP">PHP (Philippine Peso)</option>
+                                <option value="VND">VND (Vietnamese Dong)</option>
+                            </select>
+                            <small class="text-muted">Used for all payroll calculations</small>
+                        </div>
+                        <div class="col-md-6"></div>
+                    </div>
                     <div class="mb-3">
                         <label for="companyAddress" class="form-label">Address</label>
                         <textarea class="form-control" id="companyAddress" rows="2"></textarea>
@@ -244,6 +264,26 @@
                             <input type="url" class="form-control" id="editCompanyWebsite">
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editCompanyCurrency" class="form-label">Currency Code * (for Payroll)</label>
+                            <select class="form-control" id="editCompanyCurrency" required>
+                                <option value="">-- Select Currency --</option>
+                                <option value="SGD">SGD (Singapore Dollar)</option>
+                                <option value="USD">USD (US Dollar)</option>
+                                <option value="EUR">EUR (Euro)</option>
+                                <option value="GBP">GBP (British Pound)</option>
+                                <option value="INR">INR (Indian Rupee)</option>
+                                <option value="MYR">MYR (Malaysian Ringgit)</option>
+                                <option value="THB">THB (Thai Baht)</option>
+                                <option value="IDR">IDR (Indonesian Rupiah)</option>
+                                <option value="PHP">PHP (Philippine Peso)</option>
+                                <option value="VND">VND (Vietnamese Dong)</option>
+                            </select>
+                            <small class="text-muted">Used for all payroll calculations</small>
+                        </div>
+                        <div class="col-md-6"></div>
+                    </div>
                     <div class="mb-3">
                         <label for="editCompanyAddress" class="form-label">Address</label>
                         <textarea class="form-control" id="editCompanyAddress" rows="2"></textarea>
@@ -273,6 +313,7 @@ function saveCompany() {
         phone: document.getElementById('companyPhone').value,
         email: document.getElementById('companyEmail').value,
         website: document.getElementById('companyWebsite').value,
+        currency_code: document.getElementById('companyCurrency').value,
         address: document.getElementById('companyAddress').value,
         is_active: document.getElementById('companyActive').checked
     };
@@ -319,6 +360,7 @@ function editCompany(companyId) {
                 document.getElementById('editCompanyPhone').value = company.phone || '';
                 document.getElementById('editCompanyEmail').value = company.email || '';
                 document.getElementById('editCompanyWebsite').value = company.website || '';
+                document.getElementById('editCompanyCurrency').value = company.currency_code || 'SGD';
                 document.getElementById('editCompanyAddress').value = company.address || '';
                 document.getElementById('editCompanyActive').checked = company.is_active;
                 
@@ -345,6 +387,7 @@ function updateCompany() {
         phone: document.getElementById('editCompanyPhone').value,
         email: document.getElementById('editCompanyEmail').value,
         website: document.getElementById('editCompanyWebsite').value,
+        currency_code: document.getElementById('editCompanyCurrency').value,
         address: document.getElementById('editCompanyAddress').value,
         is_active: document.getElementById('editCompanyActive').checked
     };

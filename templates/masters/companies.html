@@ -37,6 +37,7 @@
                                     <th>Tenant</th>
                                     <th>UEN</th>
                                     <th>Location</th>
+                                    <th>Currency</th>
                                     <th>Status</th>
                                     <th>Employees</th>
                                     <th>Actions</th>
@@ -50,6 +51,9 @@
                                     <td>{{ company.tenant.name if company.tenant else '-' }}</td>
                                     <td>{{ company.uen or '-' }}</td>
                                     <td>{{ company.address[:50] + '...' if company.address and company.address|length > 50 else (company.address or '-') }}</td>
+                                    <td>
+                                        <span>{{ company.currency_code }}</span>
+                                    </td>
                                     <td>
                                         {% if company.is_active %}
                                         <span class="badge bg-success">Active</span>
@@ -138,6 +142,22 @@
                         <label for="companyAddress" class="form-label">Address</label>
                         <textarea class="form-control" id="companyAddress" rows="2"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label for="companyCurrencyCode" class="form-label">Currency Code *</label>
+                        <select class="form-select" id="companyCurrencyCode" required>
+                            <option value="">Select Currency</option>
+                            <option value="SGD">SGD - Singapore Dollar</option>
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="INR">INR - Indian Rupee</option>
+                            <option value="MYR">MYR - Malaysian Ringgit</option>
+                            <option value="THB">THB - Thai Baht</option>
+                            <option value="IDR">IDR - Indonesian Rupiah</option>
+                            <option value="PHP">PHP - Philippine Peso</option>
+                            <option value="VND">VND - Vietnamese Dong</option>
+                        </select>
+                    </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="companyActive" checked>
                         <label class="form-check-label" for="companyActive">Active</label>
@@ -210,6 +230,22 @@
                         <label for="editCompanyAddress" class="form-label">Address</label>
                         <textarea class="form-control" id="editCompanyAddress" rows="2"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label for="editCompanyCurrencyCode" class="form-label">Currency Code *</label>
+                        <select class="form-select" id="editCompanyCurrencyCode" required>
+                            <option value="">Select Currency</option>
+                            <option value="SGD">SGD - Singapore Dollar</option>
+                            <option value="USD">USD - US Dollar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="INR">INR - Indian Rupee</option>
+                            <option value="MYR">MYR - Malaysian Ringgit</option>
+                            <option value="THB">THB - Thai Baht</option>
+                            <option value="IDR">IDR - Indonesian Rupiah</option>
+                            <option value="PHP">PHP - Philippine Peso</option>
+                            <option value="VND">VND - Vietnamese Dong</option>
+                        </select>
+                    </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="editCompanyActive">
                         <label class="form-check-label" for="editCompanyActive">Active</label>
@@ -236,6 +272,7 @@ function saveCompany() {
         email: document.getElementById('companyEmail').value,
         website: document.getElementById('companyWebsite').value,
         address: document.getElementById('companyAddress').value,
+        currency_code: document.getElementById('companyCurrencyCode').value,
         is_active: document.getElementById('companyActive').checked
     };
 
@@ -271,7 +308,7 @@ function editCompany(companyId) {
         .then(result => {
             if (result.success) {
                 const company = result.data;
-                
+
                 // Populate edit modal
                 document.getElementById('editCompanyId').value = company.id;
                 document.getElementById('editCompanyTenant').value = company.tenant_id;
@@ -283,8 +320,9 @@ function editCompany(companyId) {
                 document.getElementById('editCompanyEmail').value = company.email || '';
                 document.getElementById('editCompanyWebsite').value = company.website || '';
                 document.getElementById('editCompanyAddress').value = company.address || '';
+                document.getElementById('editCompanyCurrencyCode').value = company.currency_code || 'SGD';
                 document.getElementById('editCompanyActive').checked = company.is_active;
-                
+
                 // Show modal
                 const editModal = new bootstrap.Modal(document.getElementById('editCompanyModal'));
                 editModal.show();
@@ -299,7 +337,7 @@ function editCompany(companyId) {
 
 function updateCompany() {
     const companyId = document.getElementById('editCompanyId').value;
-    
+
     const data = {
         tenant_id: document.getElementById('editCompanyTenant').value,
         name: document.getElementById('editCompanyName').value,
@@ -310,6 +348,7 @@ function updateCompany() {
         email: document.getElementById('editCompanyEmail').value,
         website: document.getElementById('editCompanyWebsite').value,
         address: document.getElementById('editCompanyAddress').value,
+        currency_code: document.getElementById('editCompanyCurrencyCode').value,
         is_active: document.getElementById('editCompanyActive').checked
     };
 
