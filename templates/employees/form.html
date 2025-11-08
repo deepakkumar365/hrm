@@ -79,7 +79,7 @@
                                 <input type="text" class="form-control" id="nric" name="nric"
                                        value="{{ nric_val }}"
                                        placeholder="e.g., S1234567D or E12345678"
-                                       {% if employee %}readonly{% endif %}>
+                                       >
                             </div>
                             <div class="form-grid-item">
                                 <label for="date_of_birth" class="form-label">Date of Birth</label>
@@ -470,50 +470,6 @@ document.querySelector('form.needs-validation').addEventListener('submit', funct
         }
     }
 });
-</script>
-<script>
-// NRIC/Passport blur validation with sample messages
-(function() {
-  const nricInput = document.getElementById('nric');
-  if (!nricInput) return;
-  if (nricInput.hasAttribute('readonly')) return;
-  const invalidFeedback = nricInput.parentElement.querySelector('.invalid-feedback');
-  const sample = 'Sample: NRIC S1234567D; Passport E12345678.';
-  function isValid(value) {
-    const v = value.trim().toUpperCase();
-    const nric = /^[STFG]\d{7}[A-Z]$/.test(v);
-    const passport = /^[A-Z]\d{8}$/.test(v);
-    return nric || passport;
-  }
-  function setInvalid(msg) {
-    if (invalidFeedback) invalidFeedback.textContent = msg;
-    nricInput.classList.add('is-invalid');
-    nricInput.classList.remove('is-valid');
-  }
-  function setValid() {
-    nricInput.classList.remove('is-invalid');
-    nricInput.classList.add('is-valid');
-  }
-  nricInput.addEventListener('blur', function() {
-    const val = this.value.trim();
-    if (!val) {
-      // NRIC/Passport is optional - clear any validation styling
-      nricInput.classList.remove('is-invalid');
-      nricInput.classList.remove('is-valid');
-      if (invalidFeedback) invalidFeedback.textContent = '';
-      return;
-    }
-    if (!isValid(val)) {
-      setInvalid('Invalid NRIC/Passport format. ' + sample);
-      return;
-    }
-    setValid();
-  });
-  nricInput.addEventListener('input', function() {
-    const val = this.value.trim();
-    if (isValid(val)) setValid();
-  });
-})();
 </script>
 <script>
 // Date of Birth UX & restrictions

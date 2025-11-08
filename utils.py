@@ -82,19 +82,7 @@ def get_current_month_dates():
 
 def validate_nric(nric):
     """Basic NRIC validation for Singapore - optional field"""
-    # Allow empty NRIC
-    if not nric:
-        return True
-    
-    if len(nric) != 9:
-        return False
-    
-    if nric[0] not in ['S', 'T', 'F', 'G', 'M']:
-        return False
-    
-    if not nric[1:8].isdigit():
-        return False
-    
+    # Validation removed as per request.
     return True
 
 def validate_phone_number(phone_number, country_code):
