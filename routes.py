@@ -35,6 +35,14 @@ def _allowed_image(filename: str) -> bool:
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
 
+# A list of common timezones for dropdowns
+common_timezones = [
+    "UTC", "Asia/Singapore", "Asia/Kolkata", "Asia/Dubai", "Asia/Shanghai", 
+    "Asia/Tokyo", "Europe/London", "Europe/Paris", "Europe/Berlin", 
+    "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+    "Australia/Sydney", "Australia/Perth"
+]
+
 
 @app.route('/health')
 def health_check():
@@ -614,37 +622,6 @@ def employee_add():
                                        managers=managers,
                                        companies=companies)
 
-            # Get company_id from form to retrieve country code for phone validation
-            company_id = request.form.get('company_id')
-            company = Company.query.get(company_id) if company_id else None
-            country_code = company.tenant.country_code if company and company.tenant else None
-
-            # Validate phone number (optional field)
-            phone = request.form.get('phone', '').strip()
-            if phone:
-                phone_validation = validate_phone_number(phone, country_code)
-                if not phone_validation['is_valid']:
-                    flash(phone_validation['error_message'], 'error')
-                    # Load master data and preserve form data for re-rendering
-                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                    return render_template('employees/form.html',
-                                           form_data=request.form,
-                                           roles=roles,
-                                           user_roles=user_roles,
-                                           designations=designations,
-                                           departments=departments,
-                                           working_hours=working_hours,
-                                           work_schedules=work_schedules,
-                                           managers=managers,
-                                           companies=companies)
-
             # Create new employee
             employee = Employee()
             employee.organization_id = current_user.organization_id
@@ -667,6 +644,7 @@ def employee_add():
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             email = request.form.get('email', '').strip()
+            phone = request.form.get('phone', '').strip()
             employee.email = email if email else None
             employee.phone = phone if phone else None
             if nric:
@@ -814,6 +792,9 @@ def employee_add():
             if manager_id:
                 employee.manager_id = int(manager_id)
 
+            # Set timezone
+            employee.timezone = request.form.get('timezone') or 'UTC'
+
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
 
@@ -927,8 +908,8 @@ def employee_add():
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
-                                   managers=managers,
-                                   companies=companies)
+                                   managers=managers, companies=companies,
+                                   timezones=common_timezones)
 
     # Get managers for dropdown
     # Load master data for dropdowns
@@ -949,7 +930,8 @@ def employee_add():
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
-                           companies=companies)
+                           companies=companies,
+                           timezones=common_timezones)
 
 
 @app.route('/employees/<int:employee_id>')
@@ -985,7 +967,7 @@ def employee_view(employee_id):
                            employee=employee,
                            recent_payslips=recent_payslips,
                            recent_attendance=recent_attendance,
-                           today=date.today())
+                           today=date.today()) # Pass today's date to the template
 
 
 @app.route('/profile')
@@ -1055,7 +1037,11 @@ def profile():
     # of working_hours_list, working_hours_add, working_hours_edit and
     # working_hours_delete.
 
-    return redirect(url_for('profile'))
+    return render_template('employees/view.html', 
+                           employee=employee, 
+                           stats=stats, 
+                           activities=activities,
+                           today=date.today()) # Pass today's date to the template
 
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
@@ -1071,41 +1057,12 @@ def employee_edit(employee_id):
             if company_id:
                 employee.company_id = company_id
             else:
-                employee.company_id = None
-
-            # Get country code from company's tenant for phone validation
-            company = Company.query.get(company_id) if company_id else None
-            country_code = company.tenant.country_code if company and company.tenant else None
-
-            # Validate phone number (optional field)
-            phone = request.form.get('phone', '').strip()
-            if phone:
-                phone_validation = validate_phone_number(phone, country_code)
-                if not phone_validation['is_valid']:
-                    flash(phone_validation['error_message'], 'error')
-                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
-                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                    return render_template('employees/form.html',
-                                           form_data=request.form,
-                                           employee=employee,
-                                           roles=roles,
-                                           user_roles=user_roles,
-                                           designations=designations,
-                                           departments=departments,
-                                           working_hours=working_hours,
-                                           work_schedules=work_schedules,
-                                           managers=managers,
-                                           companies=companies)
+                employee.company_id = None            
 
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             email = request.form.get('email', '').strip()
+            phone = request.form.get('phone', '').strip()
             employee.email = email if email else None
             employee.phone = phone if phone else None
             
@@ -1252,29 +1209,6 @@ def employee_edit(employee_id):
             employee.swift_code = request.form.get('swift_code')
             employee.ifsc_code = request.form.get('ifsc_code')
 
-            # Validate mandatory banking field
-            if not (employee.account_holder_name and employee.account_holder_name.strip()):
-                flash('Account Holder Name is required', 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                # Position field removed - use designation_id instead
-                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html',
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       designations=designations,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies)
-
             # Optional profile image replace on edit
             file = request.files.get('profile_image')
             if file and file.filename.strip():
@@ -1341,6 +1275,9 @@ def employee_edit(employee_id):
             else:
                 employee.manager_id = None
 
+            # Set timezone
+            employee.timezone = request.form.get('timezone') or 'UTC'
+
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
 
@@ -1403,7 +1340,8 @@ def employee_edit(employee_id):
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
-                           companies=companies)
+                           companies=companies,
+                           timezones=common_timezones)
 
 
 # Payroll Management Routes

@@ -263,6 +263,17 @@
                                     {% endfor %}
                                 </select>
                             </div>
+                            <div class="form-grid-item">
+                                <label for="timezone" class="form-label">Timezone</label>
+                                <select class="form-select" id="timezone" name="timezone">
+                                    <option value="">Select Timezone</option>
+                                    {% for tz in timezones %}
+                                    <option value="{{ tz }}" {% if (form_data and form_data.get('timezone') == tz) or (employee and employee.timezone == tz and not form_data) %}selected{% endif %}>
+                                        {{ tz }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
 
                         </div>
                     </div>
@@ -540,129 +551,6 @@ document.querySelector('form.needs-validation').addEventListener('submit', funct
   // Enforce range on change/blur
   dob.addEventListener('change', clampDate);
   dob.addEventListener('blur', clampDate);
-})();
-</script>
-<script>
-// Phone number validation based on company country
-(function() {
-    const phoneInput = document.getElementById('phone');
-    const companySelect = document.getElementById('company_id');
-    
-    if (!phoneInput || !companySelect) return;
-
-    // Country-specific phone validation patterns
-    const countryPatterns = {
-        'SG': { pattern: /^(\+65|65)?[6-9]\d{7}$/, format: '+65 XXXX XXXX', name: 'Singapore' },
-        'IN': { pattern: /^(\+91|91)?[6-9]\d{9}$/, format: '+91 XXXXX XXXXX', name: 'India' },
-        'AE': { pattern: /^(\+971|971)?[5]\d{8}$/, format: '+971 5X XXX XXXX', name: 'UAE' },
-        'MY': { pattern: /^(\+60|60)?[1-9]\d{8,9}$/, format: '+60 1X XXXX XXXX', name: 'Malaysia' },
-        'US': { pattern: /^(\+1|1)?[2-9]\d{9}$/, format: '+1 (XXX) XXX XXXX', name: 'USA' },
-        'GB': { pattern: /^(\+44|44)?[0-9]{10}$/, format: '+44 XXXX XXXXXX', name: 'UK' }
-    };
-
-    // Cache for company country codes to avoid repeated API calls
-    const companyCountryCache = {};
-
-    function getCountryFromCompany(companyId) {
-        return new Promise((resolve) => {
-            if (companyCountryCache[companyId]) {
-                resolve(companyCountryCache[companyId]);
-                return;
-            }
-            // Try to get from data attribute first (if backend sets it)
-            const companyData = document.getElementById(`company-${companyId}`)?.dataset;
-            if (companyData?.country) {
-                companyCountryCache[companyId] = companyData.country;
-                resolve(companyData.country);
-                return;
-            }
-            // Fallback: assume company code to country mapping or get from API
-            // For now, return null which will trigger backend validation
-            resolve(null);
-        });
-    }
-
-    function validatePhoneFormat(value, country) {
-        if (!value || !value.trim()) return true;
-        const countryData = countryPatterns[country?.toUpperCase()];
-        if (!countryData) {
-            // If country not recognized, allow any format with at least 7 digits
-            return /^\+?[\d\s\-\(\)]{7,}$/.test(value);
-        }
-        return countryData.pattern.test(value.replace(/[\s\-\(\)]/g, ''));
-    }
-
-    function setPhoneInvalid(msg) {
-        phoneInput.classList.add('is-invalid');
-        phoneInput.classList.remove('is-valid');
-        let feedback = phoneInput.parentElement.querySelector('.invalid-feedback');
-        if (!feedback) {
-            feedback = document.createElement('div');
-            feedback.className = 'invalid-feedback d-block';
-            phoneInput.parentElement.appendChild(feedback);
-        }
-        feedback.textContent = msg;
-    }
-
-    function setPhoneValid() {
-        phoneInput.classList.remove('is-invalid');
-        phoneInput.classList.add('is-valid');
-        const feedback = phoneInput.parentElement.querySelector('.invalid-feedback');
-        if (feedback) feedback.textContent = '';
-    }
-
-    function clearPhoneValidation() {
-        phoneInput.classList.remove('is-invalid', 'is-valid');
-        const feedback = phoneInput.parentElement.querySelector('.invalid-feedback');
-        if (feedback) feedback.textContent = '';
-    }
-
-    // Validate on blur
-    phoneInput.addEventListener('blur', async function() {
-        const value = this.value.trim();
-        if (!value) {
-            clearPhoneValidation();
-            return;
-        }
-
-        const companyId = companySelect.value;
-        if (!companyId) {
-            setPhoneInvalid('Please select a company first to validate phone number.');
-            return;
-        }
-
-        const country = await getCountryFromCompany(companyId);
-        if (!country) {
-            // If country not found, validation will happen on backend
-            clearPhoneValidation();
-            return;
-        }
-
-        if (!validatePhoneFormat(value, country)) {
-            const countryData = countryPatterns[country.toUpperCase()];
-            const format = countryData ? `Format: ${countryData.format}` : 'Invalid format';
-            setPhoneInvalid(`Phone number is invalid for ${country.toUpperCase()}. ${format}`);
-            return;
-        }
-
-        setPhoneValid();
-    });
-
-    // Clear validation on input
-    phoneInput.addEventListener('input', function() {
-        if (!this.value.trim()) {
-            clearPhoneValidation();
-        }
-    });
-
-    // Re-validate when company changes
-    companySelect.addEventListener('change', function() {
-        if (phoneInput.value.trim()) {
-            phoneInput.dispatchEvent(new Event('blur'));
-        } else {
-            clearPhoneValidation();
-        }
-    });
 })();
 </script>
 
