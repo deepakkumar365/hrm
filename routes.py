@@ -751,19 +751,45 @@ def employee_add():
             if psa_pass_expiry:
                 employee.psa_pass_expiry = parse_date(psa_pass_expiry)
 
-            employee.basic_salary = float(request.form.get('basic_salary', 0))
-            employee.allowances = float(request.form.get('allowances', 0))
+            basic_salary = request.form.get('basic_salary', '').strip()
+            if basic_salary:
+                employee.basic_salary = float(basic_salary)
+            else:
+                employee.basic_salary = 0.0
+            
+            allowances = request.form.get('allowances', '').strip()
+            if allowances:
+                employee.allowances = float(allowances)
+            else:
+                employee.allowances = 0.0
 
             hourly_rate = request.form.get('hourly_rate')
             if hourly_rate:
                 employee.hourly_rate = float(hourly_rate)
 
-            employee.cpf_account = request.form.get('cpf_account')
-            employee.bank_name = request.form.get('bank_name')
-            employee.bank_account = request.form.get('bank_account')
-            employee.account_holder_name = request.form.get('account_holder_name')
-            employee.swift_code = request.form.get('swift_code')
-            employee.ifsc_code = request.form.get('ifsc_code')
+            cpf_account = request.form.get('cpf_account', '').strip()
+            if cpf_account:
+                employee.cpf_account = cpf_account
+            
+            bank_name = request.form.get('bank_name', '').strip()
+            if bank_name:
+                employee.bank_name = bank_name
+            
+            bank_account = request.form.get('bank_account', '').strip()
+            if bank_account:
+                employee.bank_account = bank_account
+            
+            account_holder_name = request.form.get('account_holder_name', '').strip()
+            if account_holder_name:
+                employee.account_holder_name = account_holder_name
+            
+            swift_code = request.form.get('swift_code', '').strip()
+            if swift_code:
+                employee.swift_code = swift_code
+            
+            ifsc_code = request.form.get('ifsc_code', '').strip()
+            if ifsc_code:
+                employee.ifsc_code = ifsc_code
 
             # Handle master data relationships
             designation_id = request.form.get('designation_id')
