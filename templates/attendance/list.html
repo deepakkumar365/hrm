@@ -25,6 +25,9 @@
                     <a href="{{ url_for('attendance_bulk_manage') }}" class="btn btn-outline-secondary">
                         <i class="fas fa-users me-1"></i>Bulk Management
                     </a>
+                    <a href="{{ url_for('attendance_calendar') }}" class="btn btn-outline-info">
+                        <i class="fas fa-calendar-alt me-1"></i>Calendar View
+                    </a>
                     {% endif %}
                 </div>
             </div>
@@ -274,7 +277,7 @@
                 <i class="fas fa-plus-circle"></i>
                 Mark Attendance
             </a>
-            <a href="{{ url_for('attendance_list') }}" class="btn-empty-secondary">
+            <a href="{{ url_for('attendance_list_view') }}" class="btn-empty-secondary">
                 <i class="fas fa-sync"></i>
                 Clear Filters
             </a>
@@ -288,7 +291,7 @@
         <ul class="pagination justify-content-center">
             {% if attendance_records.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('attendance_list', page=attendance_records.prev_num, date=date_filter, employee=employee_filter) }}">
+                <a class="page-link" href="{{ url_for('attendance_list_view', page=attendance_records.prev_num, date=date_filter, employee=employee_filter) }}">
                     <i class="fas fa-chevron-left"></i>
                 </a>
             </li>
@@ -298,7 +301,7 @@
                 {% if page_num %}
                     {% if page_num != attendance_records.page %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('attendance_list', page=page_num, date=date_filter, employee=employee_filter) }}">
+                        <a class="page-link" href="{{ url_for('attendance_list_view', page=page_num, date=date_filter, employee=employee_filter) }}">
                             {{ page_num }}
                         </a>
                     </li>
@@ -316,7 +319,7 @@
 
             {% if attendance_records.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('attendance_list', page=attendance_records.next_num, date=date_filter, employee=employee_filter) }}">
+                <a class="page-link" href="{{ url_for('attendance_list_view', page=attendance_records.next_num, date=date_filter, employee=employee_filter) }}">
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </li>

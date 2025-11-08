@@ -13,7 +13,7 @@
                 </h3>
                 <p class="text-muted mb-0" id="currentDateTime"></p>
                 <div class="mt-2">
-                    <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-primary btn-sm">
+                    <a href="{{ url_for('attendance_list_view') }}" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-list me-1"></i>View Attendance Records
                     </a>
                 </div>
@@ -178,7 +178,7 @@
                         <i class="fas fa-link me-2"></i>Quick Links
                     </h6>
                     <div class="d-grid gap-2">
-                        <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('attendance_list_view') }}" class="btn btn-outline-primary">
                             <i class="fas fa-list me-1"></i>View Attendance History
                         </a>
                         <a href="{{ url_for('leave_request') }}" class="btn btn-outline-warning">

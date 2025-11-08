@@ -141,9 +141,9 @@
                     </div>
                     <div class="quick-stat-content">
                         <span class="quick-stat-label">Today's Status</span>
-                        <span class="quick-stat-value">{{ stats.today_status if stats.today_status is defined else 'Present' }}</span>
+                        <span class="quick-stat-value">{{ stats.today_status if stats and stats.today_status is defined else 'Present' }}</span>
                     </div>
-                    <a href="{{ url_for('attendance_list') }}" class="quick-stat-action">
+                    <a href="{{ url_for('attendance_list_view') }}" class="quick-stat-action">
                         <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
@@ -257,7 +257,7 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-3">
-                        <a href="{{ url_for('attendance_list') }}" class="btn btn-outline-primary d-flex align-items-center gap-2">
+                        <a href="{{ url_for('attendance_list_view') }}" class="btn btn-outline-primary d-flex align-items-center gap-2">
                             <i class="fas fa-list"></i>
                             View Attendance Records
                         </a>

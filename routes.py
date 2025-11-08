@@ -1885,10 +1885,10 @@ def payroll_approve(payroll_id):
 
 
 # Attendance Management Routes
-@app.route('/attendance')
+@app.route('/attendance/list')
 @require_login
-def attendance_list():
-    """List attendance records"""
+def attendance_list_view():
+    """List attendance records (List View)"""
     page = request.args.get('page', 1, type=int)
     date_filter = request.args.get('date', type=str)
     employee_filter = request.args.get('employee', type=int)
@@ -1943,13 +1943,13 @@ def attendance_list():
                 Employee.manager_id == manager_id
             )
         ).filter_by(is_active=True).order_by(Employee.first_name).all()
-
+    
     return render_template('attendance/list.html',
                            attendance_records=attendance_records,
                            employees=employees,
                            date_filter=date_filter,
                            employee_filter=employee_filter)
-
+    
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])
 @require_login
@@ -2145,7 +2145,7 @@ def attendance_correct(attendance_id):
         if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile) or \
            attendance.employee.manager_id != current_user.employee_profile.id:
             flash('Access denied', 'error')
-            return redirect(url_for('attendance_list'))
+            return redirect(url_for('attendance_list_view'))
 
     if request.method == 'POST':
         try:
@@ -2193,7 +2193,7 @@ def attendance_correct(attendance_id):
 
             db.session.commit()
             flash('Attendance record corrected successfully', 'success')
-            return redirect(url_for('attendance_list'))
+            return redirect(url_for('attendance_list_view'))
 
         except Exception as e:
             db.session.rollback()
@@ -2452,6 +2452,106 @@ def attendance_auto_create():
         flash(f'Error creating attendance records: {str(e)}', 'error')
 
     return redirect(url_for('attendance_bulk_manage'))
+    
+@app.route('/attendance')
+@require_login
+def attendance_calendar():
+    """Render the attendance calendar view."""
+    # Default to the current user if not an admin
+    default_employee_id = ''
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        default_employee_id = current_user.employee_profile.id
+
+    # Get employees for filter dropdown if user has permission
+    employees = []
+    user_role = current_user.role.name if current_user.role else None
+
+    if user_role in ['Super Admin', 'Admin']:
+        employees = Employee.query.filter_by(is_active=True).order_by(Employee.first_name).all()
+    elif user_role == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        # HR Manager can see all employees in their organization
+        if current_user.employee_profile.organization_id:
+            employees = Employee.query.filter(
+                Employee.organization_id == current_user.employee_profile.organization_id,
+                Employee.is_active == True
+            ).order_by(Employee.first_name).all()
+    
+    return render_template('attendance/calendar.html', 
+                           employees=employees,
+                           default_employee_id=default_employee_id)
+
+
+@app.route('/api/attendance/calendar-data')
+@require_login
+def api_attendance_calendar_data():
+    """API endpoint to fetch attendance data for the calendar."""
+    try:
+        employee_id = request.args.get('employee_id', type=int)
+        start_str = request.args.get('start')
+        end_str = request.args.get('end')
+
+        if not employee_id:
+            return jsonify({'error': 'Employee ID is required'}), 400
+
+        # Permission check
+        user_role = current_user.role.name if current_user.role else None
+        if user_role in ['User', 'Employee']:
+            if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.id == employee_id):
+                return jsonify({'error': 'Permission denied'}), 403
+        elif user_role == 'HR Manager':
+            employee_to_view = Employee.query.get(employee_id)
+            if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and employee_to_view and employee_to_view.organization_id == current_user.employee_profile.organization_id):
+                 return jsonify({'error': 'Permission denied'}), 403
+
+        start_date = datetime.fromisoformat(start_str.split('T')[0]).date()
+        end_date = datetime.fromisoformat(end_str.split('T')[0]).date()
+
+        # Fetch attendance and approved leaves for the date range
+        attendance_records = Attendance.query.filter(
+            Attendance.employee_id == employee_id,
+            Attendance.date.between(start_date, end_date)
+        ).all()
+
+        leave_records = Leave.query.filter(
+            Leave.employee_id == employee_id,
+            Leave.status == 'Approved',
+            Leave.start_date <= end_date,
+            Leave.end_date >= start_date
+        ).all()
+
+        # Process data into a dictionary for quick lookup, prioritizing leaves over attendance
+        events_dict = {}
+
+        # First, add leave records
+        for leave in leave_records:
+            current_date = leave.start_date
+            while current_date <= leave.end_date:
+                if start_date <= current_date <= end_date:
+                    events_dict[current_date] = {
+                        'date': current_date.isoformat(),
+                        'status': 'Leave',
+                        'leave_type': leave.leave_type,
+                        'remarks': leave.reason or ''
+                    }
+                current_date += timedelta(days=1)
+
+        # Then, add attendance records, only if a leave is not already on that day
+        for record in attendance_records:
+            if record.date not in events_dict:
+                events_dict[record.date] = {
+                    'date': record.date.isoformat(),
+                    'status': record.status,
+                    'clock_in': record.clock_in.strftime('%H:%M') if record.clock_in else None,
+                    'clock_out': record.clock_out.strftime('%H:%M') if record.clock_out else None,
+                    'total_hours': f"{record.total_hours:.2f}" if record.total_hours is not None else '0.00',
+                    'remarks': record.remarks or record.notes or ''
+                }
+
+        return jsonify(list(events_dict.values()))
+
+    except Exception as e:
+        logging.error(f"Error fetching calendar data: {e}")
+        return jsonify({'error': 'An internal error occurred', 'details': str(e)}), 500
 
 
 @app.route('/api/attendance/auto-create', methods=['POST'])

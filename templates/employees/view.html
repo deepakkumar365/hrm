@@ -242,7 +242,7 @@
                         <a href="{{ url_for('leave_list', employee=employee.id) }}" class="btn btn-outline-warning">
                             <i class="fas fa-plane-departure me-1"></i>Leave History
                         </a>
-                        <a href="{{ url_for('attendance_list', employee=employee.id) }}" class="btn btn-outline-info">
+                        <a href="{{ url_for('attendance_list_view', employee=employee.id) }}" class="btn btn-outline-info">
                             <i class="fas fa-calendar-check me-1"></i>Attendance
                         </a>
                         {% endif %}
