@@ -89,18 +89,37 @@ def leave_list():
     try:
         query = Leave.query
         
-        # Filter by current user's leaves if they're an employee
-        if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-            query = query.filter_by(employee_id=current_user.employee_profile.id)
+        # Role-based filtering for leave requests
+        user_role = current_user.role.name if hasattr(current_user, 'role') and current_user.role else None
+        
+        if user_role in ['Admin', 'Super Admin']:
+            # Admins can see all leave requests
+            pass # No additional filtering needed
+        elif user_role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            # Managers see leave requests from their direct reports
+            manager_id = current_user.employee_profile.id
+            
+            # Get IDs of employees who report to this manager
+            team_employee_ids = [emp.id for emp in Employee.query.filter_by(manager_id=manager_id).all()]
+            
+            # Filter leaves for team members
+            query = query.filter(Leave.employee_id.in_(team_employee_ids))
+        elif hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            # Regular employees see only their own leave requests
+            employee_id = current_user.employee_profile.id
+            query = query.filter(Leave.employee_id == employee_id)
+        else:
+            # If user has no profile and is not an admin, show no leaves
+            return render_template('leave/list.html', leave_requests=None, status_filter=status_filter)
         
         # Filter by status if provided
         if status_filter:
             query = query.filter_by(status=status_filter)
         
         # Paginate results
-        leaves = query.order_by(Leave.created_at.desc()).paginate(page=page, per_page=10)
+        leave_requests = query.order_by(Leave.created_at.desc()).paginate(page=page, per_page=10)
         
-        return render_template('leave/list.html', leaves=leaves, status_filter=status_filter)
+        return render_template('leave/list.html', leave_requests=leave_requests, status_filter=status_filter)
     except Exception as e:
         logger.error(f"Error loading leave requests: {e}")
         flash("Error loading leave requests", "error")
@@ -132,20 +151,80 @@ def leave_detail(leave_id):
         return redirect(url_for('leave_list'))
 
 
+# Leave Request - Edit (Employee only, if pending)
+@app.route('/leave/<int:leave_id>/edit', methods=['GET', 'POST'])
+@require_login
+def leave_edit(leave_id):
+    """Edit a pending leave request"""
+    try:
+        leave = Leave.query.get_or_404(leave_id)
+
+        # Authorization check: Only the employee who created it can edit, and only if it's pending.
+        if not (hasattr(current_user, 'employee_profile') and
+                current_user.employee_profile and
+                current_user.employee_profile.id == leave.employee_id):
+            flash("You are not authorized to edit this leave request.", "error")
+            return redirect(url_for('leave_list'))
+
+        if leave.status != 'Pending':
+            flash("Only pending leave requests can be edited.", "error")
+            return redirect(url_for('leave_detail', leave_id=leave_id))
+
+        if request.method == 'POST':
+            leave.leave_type = request.form.get('leave_type')
+            leave.start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d').date()
+            leave.end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d').date()
+            leave.reason = request.form.get('reason', '')
+
+            # Validate dates
+            if leave.start_date > leave.end_date:
+                flash("Start date must be before or on the end date.", "error")
+                return render_template('leave/form.html', leave=leave)
+
+            # Recalculate days requested
+            days_requested = 0
+            current_date = leave.start_date
+            while current_date <= leave.end_date:
+                if current_date.weekday() < 5:  # Monday to Friday
+                    days_requested += 1
+                current_date += timedelta(days=1)
+            leave.days_requested = days_requested
+
+            db.session.commit()
+            flash("Leave request updated successfully.", "success")
+            return redirect(url_for('leave_list'))
+
+        # For GET request, show the form pre-filled with leave data
+        return render_template('leave/form.html', leave=leave)
+    except Exception as e:
+        logger.error(f"Error editing leave request: {e}")
+        flash("An error occurred while trying to edit the leave request.", "error")
+        return redirect(url_for('leave_list'))
+
 # Leave Request - Approve (Admin/Manager only)
 @app.route('/leave/<int:leave_id>/approve', methods=['POST'])
 @require_login
 def leave_approve(leave_id):
     """Approve a leave request"""
     
-    # Check authorization
-    if not (hasattr(current_user, 'role') and 
-            current_user.role in ['Manager', 'Admin', 'Super Admin']):
+    # Get user role and check authorization
+    user_role = current_user.role.name if hasattr(current_user, 'role') and current_user.role else None
+    if user_role not in ['Manager', 'Admin', 'Super Admin']:
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
         leave = Leave.query.get_or_404(leave_id)
         
+        # If user is a Manager, ensure they are the manager of the employee who requested leave
+        if user_role == 'Manager':
+            if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile):
+                return jsonify({'error': 'Manager has no employee profile'}), 403
+            
+            employee_requesting_leave = leave.employee
+            if not employee_requesting_leave or employee_requesting_leave.manager_id != current_user.employee_profile.id:
+                flash("You can only approve requests for your direct reports.", "error")
+                return redirect(url_for('leave_list'))
+
         if leave.status != 'Pending':
             return jsonify({'error': 'Can only approve pending requests'}), 400
         
@@ -169,14 +248,24 @@ def leave_approve(leave_id):
 def leave_reject(leave_id):
     """Reject a leave request"""
     
-    # Check authorization
-    if not (hasattr(current_user, 'role') and 
-            current_user.role in ['Manager', 'Admin', 'Super Admin']):
+    # Get user role and check authorization
+    user_role = current_user.role.name if hasattr(current_user, 'role') and current_user.role else None
+    if user_role not in ['Manager', 'Admin', 'Super Admin']:
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
         leave = Leave.query.get_or_404(leave_id)
         rejection_reason = request.form.get('rejection_reason', '')
+
+        # If user is a Manager, ensure they are the manager of the employee who requested leave
+        if user_role == 'Manager':
+            if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile):
+                return jsonify({'error': 'Manager has no employee profile'}), 403
+
+            employee_requesting_leave = leave.employee
+            if not employee_requesting_leave or employee_requesting_leave.manager_id != current_user.employee_profile.id:
+                flash("You can only reject requests for your direct reports.", "error")
+                return redirect(url_for('leave_list'))
         
         if leave.status != 'Pending':
             return jsonify({'error': 'Can only reject pending requests'}), 400

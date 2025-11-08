@@ -152,6 +152,19 @@ def initialize_default_data():
 if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
     initialize_default_data()
 
+@app.context_processor
+def inject_user_profile_info():
+    """
+    Injects user profile information into the context of all templates.
+    This makes `profile_image_path` and `user_full_name` available globally.
+    """
+    profile_image_path = None
+    user_full_name = None
+    if current_user.is_authenticated and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        profile_image_path = current_user.employee_profile.profile_image_path
+        user_full_name = f"{current_user.employee_profile.first_name} {current_user.employee_profile.last_name}"
+    
+    return dict(profile_image_path=profile_image_path, user_full_name=user_full_name)
 
 @app.before_request
 def make_session_permanent():
