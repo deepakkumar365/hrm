@@ -2112,18 +2112,26 @@ def attendance_mark():
 
     # Get today's attendance record
     today_attendance = None
+    employee_timezone = 'UTC'  # Default timezone
     if hasattr(current_user,
                'employee_profile') and current_user.employee_profile:
+        # Get employee's timezone and calculate their current date
+        employee_timezone = current_user.employee_profile.timezone or 'UTC'
+        from pytz import timezone, utc
+        employee_tz_obj = timezone(employee_timezone)
+        employee_today = datetime.now(utc).astimezone(employee_tz_obj).date()
+
         today_attendance = Attendance.query.filter_by(
             employee_id=current_user.employee_profile.id,
-            date=date.today()).first()
+            date=employee_today).first()
     else:
         flash(
             'You need an employee profile to mark attendance. Contact your administrator.',
             'warning')
 
     return render_template('attendance/form.html',
-                           today_attendance=today_attendance)
+                           today_attendance=today_attendance,
+                           employee_timezone=employee_timezone)
 
 
 @app.route('/attendance/correct/<int:attendance_id>', methods=['GET', 'POST'])
