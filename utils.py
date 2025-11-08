@@ -6,6 +6,8 @@ from datetime import datetime, date, timedelta
 import logging
 import phonenumbers
 from phonenumbers import NumberParseException
+from phonenumbers import PhoneNumberFormat
+
 
 def export_to_csv(data, filename, headers=None):
     """Export data to CSV and return as downloadable response"""
@@ -116,7 +118,7 @@ def validate_phone_number(phone_number, country_code):
             'formatted_number': None
         }
     
-    if not country_code or not country_code.strip():
+    if not country_code or not str(country_code).strip():
         return {
             'is_valid': False,
             'error_message': 'Company country is not configured. Please contact administrator.',
@@ -124,7 +126,7 @@ def validate_phone_number(phone_number, country_code):
         }
     
     try:
-        parsed_number = phonenumbers.parse(phone_number, country_code.upper())
+        parsed_number = phonenumbers.parse(phone_number, str(country_code).upper())
         
         if not phonenumbers.is_valid_number(parsed_number):
             return {
@@ -153,6 +155,37 @@ def validate_phone_number(phone_number, country_code):
             'error_message': 'Unable to validate phone number. Please check the format.',
             'formatted_number': None
         }
+
+def validate_and_format_phone(phone_string):
+    """
+    Validates a phone number string (expected in E.164 format) and returns
+    the formatted number or an error. This is ideal for backend validation.
+    
+    Args:
+        phone_string (str): The phone number, ideally starting with a '+'.
+        
+    Returns:
+        tuple: (is_valid, result)
+               If valid, result is the formatted E.164 number.
+               If invalid, result is an error message.
+    """
+    if not phone_string or not phone_string.strip():
+        return True, None # It's valid to have no phone number
+
+    try:
+        # The `None` for region tells the library to infer from the country code
+        number = phonenumbers.parse(phone_string, None)
+
+        if not phonenumbers.is_valid_number(number):
+            return False, "The provided phone number is not valid."
+
+        # Return the standardized E.164 format
+        formatted_number = phonenumbers.format_number(number, PhoneNumberFormat.E164)
+        return True, formatted_number
+
+    except NumberParseException:
+        return False, "The phone number could not be parsed. Please ensure it includes a country code (e.g., +1)."
+
 
 def generate_employee_id(company_code=None, employee_db_id=None):
     """

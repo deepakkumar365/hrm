@@ -64,13 +64,20 @@
                             </div>
                             <div class="form-grid-item">
                                 <label for="phone" class="form-label">Phone</label>
-                                <input type="tel" class="form-control" id="phone" name="phone"
-                                       value="{{ form_data.get('phone') if form_data else (employee.phone if employee else '') }}">
+                                <!-- This will be the visible, formatted input -->
+                                <input type="tel" class="form-control" id="phone_display">
+                                <!-- This hidden input will store the E.164 value for the form submission -->
+                                <input type="hidden" id="phone" name="phone"
+                                    value="{{ form_data.get('phone') if form_data else (employee.phone if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="nric" class="form-label">NRIC/Passport</label>
+                                {% set nric_val = form_data.get('nric') if form_data else (employee.nric if employee else '') %}
+                                {% if nric_val and nric_val.startswith('NO_NRIC_') %}
+                                    {% set nric_val = '' %}
+                                {% endif %}
                                 <input type="text" class="form-control" id="nric" name="nric"
-                                       value="{{ form_data.get('nric') if form_data else (employee.nric if employee else '') }}"
+                                       value="{{ nric_val }}"
                                        placeholder="e.g., S1234567D or E12345678"
                                        {% if employee %}readonly{% endif %}>
                             </div>

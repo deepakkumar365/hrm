@@ -1,6 +1,7 @@
 from flask import session, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import current_user
 from sqlalchemy import func, extract, and_, text
+import uuid
 from datetime import datetime, date, time, timedelta
 import calendar
 import os
@@ -668,7 +669,12 @@ def employee_add():
             email = request.form.get('email', '').strip()
             employee.email = email if email else None
             employee.phone = phone if phone else None
-            employee.nric = nric
+            if nric:
+                employee.nric = nric
+            else:
+                # Generate a unique placeholder if NRIC is empty to satisfy NOT NULL UNIQUE constraint
+                # This placeholder is not shown to the user.
+                employee.nric = f"NO_NRIC_{uuid.uuid4()}"
             employee.date_of_birth = parse_date(
                 request.form.get('date_of_birth'))
             employee.gender = request.form.get('gender')
@@ -959,9 +965,9 @@ def employee_view(employee_id):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
     elif (current_user.role.name if current_user.role else None) == 'HR Manager':
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and
-                (current_user.employee_profile.id == employee_id
-                 or employee.manager_id == current_user.employee_profile.id)):
+        # HR Manager can view any employee within the same organization.
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and 
+                employee.organization_id == current_user.employee_profile.organization_id):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
 
@@ -1126,8 +1132,8 @@ def employee_edit(employee_id):
                                        work_schedules=work_schedules,
                                        managers=managers,
                                        companies=companies)
-            
-            employee.nric = nric if nric else None
+
+            employee.nric = nric if nric else None # Set to None if empty
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
             employee.department = request.form.get('department')
