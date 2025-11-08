@@ -94,7 +94,7 @@ This document summarizes all UI/UX improvements implemented across Attendance Bu
 #### Changes Implemented:
 
 1. **New Leave Type Added (Line 41)**
-   - Added "Casual Leave" option to leave type dropdown
+   - Added "Casual Leave" option to the leave type dropdown.
    - Positioned between "Annual Leave" and "Medical Leave"
    - Available for all tenants and roles
 
@@ -142,7 +142,7 @@ This document summarizes all UI/UX improvements implemented across Attendance Bu
 - ✅ Sticky action buttons at bottom-right
 - ✅ Auto-responsive across all screen sizes
 - ✅ Calendar popup on date field click
-- ✅ Casual Leave option added
+- ✅ "Casual Leave" option added
 
 #### Removed Elements:
 - ❌ Old vertical sidebar (previously lines 166-220)
@@ -197,7 +197,7 @@ This document summarizes all UI/UX improvements implemented across Attendance Bu
 
 ### Leave Request Form:
 - [ ] Open Leave Request form
-- [ ] Verify "Casual Leave" appears in dropdown
+- [x] Verify "Casual Leave" appears in dropdown
 - [ ] Click Start Date field - verify calendar popup opens
 - [ ] Click End Date field - verify calendar popup opens
 - [ ] Verify entire form fits on screen without scrolling
@@ -326,7 +326,7 @@ The implementation is successful when:
 - ✅ Attendance bulk actions work with confirmation and success messages
 - ✅ Multiple employees can be selected and marked Present/Absent
 - ✅ Employee form accepts empty Account Holder Name without errors
-- ✅ Leave form displays Casual Leave option
+- ✅ Leave form displays "Casual Leave" option
 - ✅ Date fields open calendar popup on click
 - ✅ Leave form fits on single page without scrolling
 - ✅ All layouts are responsive across devices

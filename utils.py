@@ -4,6 +4,8 @@ from flask import make_response
 import pandas as pd
 from datetime import datetime, date, timedelta
 import logging
+from pytz import timezone, utc
+
 
 def export_to_csv(data, filename, headers=None):
     """Export data to CSV and return as downloadable response"""
@@ -77,20 +79,26 @@ def get_current_month_dates():
 
 def validate_nric(nric):
     """Basic NRIC validation for Singapore - optional field"""
-    # Allow empty NRIC
-    if not nric:
-        return True
-    
-    if len(nric) != 9:
-        return False
-    
-    if nric[0] not in ['S', 'T', 'F', 'G', 'M']:
-        return False
-    
-    if not nric[1:8].isdigit():
-        return False
-    
+    # Validation removed as per request.
     return True
+
+def validate_phone_number(phone_number, country_code):
+    """
+    Placeholder for phone number validation. Always returns valid.
+    """
+    # Phone number validation has been removed.
+    return {
+        'is_valid': True,
+        'error_message': None,
+        'formatted_number': phone_number
+    }
+
+def validate_and_format_phone(phone_string):
+    """
+    Placeholder for phone number validation. Always returns valid.
+    """
+    return True, phone_string
+
 
 def generate_employee_id(company_code=None, employee_db_id=None):
     """
@@ -198,3 +206,38 @@ class MobileDetector:
         ]
         
         return any(agent in str(user_agent) for agent in mobile_agents)
+
+def get_employee_local_time(employee, time_obj, event_date):
+    """
+    Convert a UTC time object to the employee's local timezone.
+
+    Args:
+        employee (Employee): The employee object with a timezone attribute.
+        time_obj (datetime.time): The time object stored in UTC.
+        event_date (datetime.date): The date of the event.
+
+    Returns:
+        str: Formatted time string in employee's local timezone, or empty string.
+    """
+    if not time_obj or not event_date:
+        return ""
+
+    try:
+        # Combine date and time to create a UTC datetime object
+        utc_dt = datetime.combine(event_date, time_obj, tzinfo=utc)
+
+        # Get employee's timezone, default to UTC
+        employee_tz_str = employee.timezone or 'UTC'
+        employee_tz = timezone(employee_tz_str)
+
+        # Convert UTC datetime to employee's local timezone
+        local_dt = utc_dt.astimezone(employee_tz)
+
+        # Format for display
+        return local_dt.strftime('%I:%M %p %Z')
+
+    except Exception as e:
+        # Log the error for debugging purposes
+        logging.error(f"Error converting time for employee {employee.id}: {e}")
+        # Fallback to UTC time if conversion fails
+        return time_obj.strftime('%I:%M %p UTC')

@@ -1,6 +1,7 @@
 from flask import session, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import current_user
 from sqlalchemy import func, extract, and_, text
+import uuid
 from datetime import datetime, date, time, timedelta
 import calendar
 import os
@@ -15,14 +16,13 @@ from app import app, db
 from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
-                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation,
-                    CompanyEmployeeIdConfig)
+                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, get_company_employee_id, check_permission,
-                   mobile_optimized_pagination, get_current_month_dates)
+                   mobile_optimized_pagination, get_current_month_dates, validate_phone_number)
 from constants import DEFAULT_USER_PASSWORD
 
 # Helper to validate image extension
@@ -34,6 +34,14 @@ def _allowed_image(filename: str) -> bool:
 
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
+
+# A list of common timezones for dropdowns
+common_timezones = [
+    "UTC", "Asia/Singapore", "Asia/Kolkata", "Asia/Dubai", "Asia/Shanghai", 
+    "Asia/Tokyo", "Europe/London", "Europe/Paris", "Europe/Berlin", 
+    "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+    "Australia/Sydney", "Australia/Perth"
+]
 
 
 @app.route('/health')
@@ -144,6 +152,19 @@ def initialize_default_data():
 if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
     initialize_default_data()
 
+@app.context_processor
+def inject_user_profile_info():
+    """
+    Injects user profile information into the context of all templates.
+    This makes `profile_image_path` and `user_full_name` available globally.
+    """
+    profile_image_path = None
+    user_full_name = None
+    if current_user.is_authenticated and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        profile_image_path = current_user.employee_profile.profile_image_path
+        user_full_name = f"{current_user.employee_profile.first_name} {current_user.employee_profile.last_name}"
+    
+    return dict(profile_image_path=profile_image_path, user_full_name=user_full_name)
 
 @app.before_request
 def make_session_permanent():
@@ -621,7 +642,6 @@ def employee_add():
             employee.organization_id = current_user.organization_id
 
             # Set company_id from form
-            company_id = request.form.get('company_id')
             if company_id:
                 employee.company_id = company_id
 
@@ -682,9 +702,9 @@ def employee_add():
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             email = request.form.get('email', '').strip()
-            employee.email = email if email else None
             phone = request.form.get('phone', '').strip()
-            employee.phone = phone if phone else None
+            employee.email = email if email else None
+            employee.phone = request.form.get('phone')
             employee.nric = nric
             employee.date_of_birth = parse_date(
                 request.form.get('date_of_birth'))
@@ -698,10 +718,10 @@ def employee_add():
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
 
-            work_permit_number = request.form.get('work_permit_number', '').strip()
-            employee.work_permit_number = work_permit_number if work_permit_number else None
+            work_permit_number = request.form.get('work_permit_number')
+            if work_permit_number:
+                employee.work_permit_number = work_permit_number
 
-            work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
 
@@ -721,11 +741,8 @@ def employee_add():
             if psa_pass_expiry:
                 employee.psa_pass_expiry = parse_date(psa_pass_expiry)
 
-            basic_salary = request.form.get('basic_salary', '').strip()
-            employee.basic_salary = float(basic_salary) if basic_salary else 0
-
-            allowances = request.form.get('allowances', '').strip()
-            employee.allowances = float(allowances) if allowances else 0
+            employee.basic_salary = float(request.form.get('basic_salary', 0))
+            employee.allowances = float(request.form.get('allowances', 0))
 
             hourly_rate = request.form.get('hourly_rate', '').strip()
             if hourly_rate:
@@ -733,18 +750,12 @@ def employee_add():
             else:
                 employee.hourly_rate = None
 
-            cpf_account = request.form.get('cpf_account', '').strip()
-            employee.cpf_account = cpf_account if cpf_account else None
-            bank_name = request.form.get('bank_name', '').strip()
-            employee.bank_name = bank_name if bank_name else None
-            bank_account = request.form.get('bank_account', '').strip()
-            employee.bank_account = bank_account if bank_account else None
-            account_holder_name = request.form.get('account_holder_name', '').strip()
-            employee.account_holder_name = account_holder_name if account_holder_name else None
-            swift_code = request.form.get('swift_code', '').strip()
-            employee.swift_code = swift_code if swift_code else None
-            ifsc_code = request.form.get('ifsc_code', '').strip()
-            employee.ifsc_code = ifsc_code if ifsc_code else None
+            employee.cpf_account = request.form.get('cpf_account')
+            employee.bank_name = request.form.get('bank_name')
+            employee.bank_account = request.form.get('bank_account')
+            employee.account_holder_name = request.form.get('account_holder_name')
+            employee.swift_code = request.form.get('swift_code')
+            employee.ifsc_code = request.form.get('ifsc_code')
 
             # Handle master data relationships
             designation_id = request.form.get('designation_id')
@@ -762,6 +773,9 @@ def employee_add():
             manager_id = request.form.get('manager_id')
             if manager_id:
                 employee.manager_id = int(manager_id)
+
+            # Set timezone
+            employee.timezone = request.form.get('timezone') or 'UTC'
 
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
@@ -876,8 +890,8 @@ def employee_add():
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
-                                   managers=managers,
-                                   companies=companies)
+                                   managers=managers, companies=companies,
+                                   timezones=common_timezones)
 
     # Get managers for dropdown
     # Load master data for dropdowns
@@ -898,8 +912,7 @@ def employee_add():
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
-                           companies=companies,
-                           current_user=current_user)
+                           companies=companies)
 
 
 @app.route('/employees/<int:employee_id>')
@@ -915,9 +928,9 @@ def employee_view(employee_id):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
     elif (current_user.role.name if current_user.role else None) == 'HR Manager':
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and
-                (current_user.employee_profile.id == employee_id
-                 or employee.manager_id == current_user.employee_profile.id)):
+        # HR Manager can view any employee within the same organization.
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and 
+                employee.organization_id == current_user.employee_profile.organization_id):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
 
@@ -935,7 +948,7 @@ def employee_view(employee_id):
                            employee=employee,
                            recent_payslips=recent_payslips,
                            recent_attendance=recent_attendance,
-                           today=date.today())
+                           today=date.today()) # Pass today's date to the template
 
 
 @app.route('/profile')
@@ -1005,7 +1018,11 @@ def profile():
     # of working_hours_list, working_hours_add, working_hours_edit and
     # working_hours_delete.
 
-    return redirect(url_for('profile'))
+    return render_template('employees/view.html', 
+                           employee=employee, 
+                           stats=stats, 
+                           activities=activities,
+                           today=date.today()) # Pass today's date to the template
 
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
@@ -1021,14 +1038,14 @@ def employee_edit(employee_id):
             if company_id:
                 employee.company_id = company_id
             else:
-                employee.company_id = None
+                employee.company_id = None            
 
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             email = request.form.get('email', '').strip()
-            employee.email = email if email else None
             phone = request.form.get('phone', '').strip()
-            employee.phone = phone if phone else None
+            employee.email = email if email else None
+            employee.phone = request.form.get('phone')
             
             # Validate NRIC (optional field)
             nric = request.form.get('nric', '').upper()
@@ -1054,8 +1071,8 @@ def employee_edit(employee_id):
                                        managers=managers,
                                        companies=companies,
                                        current_user=current_user)
-            
-            employee.nric = nric if nric else None
+
+            employee.nric = nric if nric else None # Set to None if empty
             address = request.form.get('address', '').strip()
             employee.address = address if address else None
             postal_code = request.form.get('postal_code', '').strip()
@@ -1065,8 +1082,9 @@ def employee_edit(employee_id):
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
 
-            work_permit_number = request.form.get('work_permit_number', '').strip()
-            employee.work_permit_number = work_permit_number if work_permit_number else None
+            work_permit_number = request.form.get('work_permit_number')
+            if work_permit_number:
+                employee.work_permit_number = work_permit_number
 
             # Handle additional personal fields
             employee.gender = request.form.get('gender')
@@ -1081,9 +1099,10 @@ def employee_edit(employee_id):
             if date_of_birth:
                 employee.date_of_birth = parse_date(date_of_birth)
 
-            work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
+            else:
+                employee.work_permit_expiry = None
 
             # Handle certifications and pass renewals
             hazmat_expiry = request.form.get('hazmat_expiry')
@@ -1119,18 +1138,35 @@ def employee_edit(employee_id):
             else:
                 employee.hourly_rate = None
 
-            cpf_account = request.form.get('cpf_account', '').strip()
-            employee.cpf_account = cpf_account if cpf_account else None
-            bank_name = request.form.get('bank_name', '').strip()
-            employee.bank_name = bank_name if bank_name else None
-            bank_account = request.form.get('bank_account', '').strip()
-            employee.bank_account = bank_account if bank_account else None
-            account_holder_name = request.form.get('account_holder_name', '').strip()
-            employee.account_holder_name = account_holder_name if account_holder_name else None
-            swift_code = request.form.get('swift_code', '').strip()
-            employee.swift_code = swift_code if swift_code else None
-            ifsc_code = request.form.get('ifsc_code', '').strip()
-            employee.ifsc_code = ifsc_code if ifsc_code else None
+            employee.cpf_account = request.form.get('cpf_account')
+            employee.bank_name = request.form.get('bank_name')
+            employee.bank_account = request.form.get('bank_account')
+            employee.account_holder_name = request.form.get('account_holder_name')
+            employee.swift_code = request.form.get('swift_code')
+            employee.ifsc_code = request.form.get('ifsc_code')
+
+            # Validate mandatory banking field
+            if not (employee.account_holder_name and employee.account_holder_name.strip()):
+                flash('Account Holder Name is required', 'error')
+                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                # Position field removed - use designation_id instead
+                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                return render_template('employees/form.html',
+                                       form_data=request.form,
+                                       roles=roles,
+                                       user_roles=user_roles,
+                                       designations=designations,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers,
+                                       companies=companies)
 
             # Optional profile image replace on edit
             file = request.files.get('profile_image')
@@ -1199,6 +1235,9 @@ def employee_edit(employee_id):
             else:
                 employee.manager_id = None
 
+            # Set timezone
+            employee.timezone = request.form.get('timezone') or 'UTC'
+
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
 
@@ -1262,8 +1301,7 @@ def employee_edit(employee_id):
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
-                           companies=companies,
-                           current_user=current_user)
+                           companies=companies)
 
 
 # Payroll Management Routes
@@ -1807,10 +1845,10 @@ def payroll_approve(payroll_id):
 
 
 # Attendance Management Routes
-@app.route('/attendance')
+@app.route('/attendance/list')
 @require_login
-def attendance_list():
-    """List attendance records"""
+def attendance_list_view():
+    """List attendance records (List View)"""
     page = request.args.get('page', 1, type=int)
     date_filter = request.args.get('date', type=str)
     employee_filter = request.args.get('employee', type=int)
@@ -1865,18 +1903,20 @@ def attendance_list():
                 Employee.manager_id == manager_id
             )
         ).filter_by(is_active=True).order_by(Employee.first_name).all()
-
+    
     return render_template('attendance/list.html',
                            attendance_records=attendance_records,
                            employees=employees,
                            date_filter=date_filter,
                            employee_filter=employee_filter)
-
+    
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])
 @require_login
 def attendance_mark():
     """Mark attendance (for employees)"""
+    from pytz import timezone, utc
+
     if request.method == 'POST':
         try:
             if not hasattr(
@@ -1885,8 +1925,14 @@ def attendance_mark():
                 flash('Employee profile required for attendance marking',
                       'error')
                 return redirect(url_for('dashboard'))
-
-            today = date.today()
+            
+            # Get employee's timezone, default to UTC
+            employee_tz_str = current_user.employee_profile.timezone or 'UTC'
+            employee_tz = timezone(employee_tz_str)
+            
+            # Get current time in UTC and employee's local date
+            now_utc = datetime.now(utc)
+            today = now_utc.astimezone(employee_tz).date()
             employee_id = current_user.employee_profile.id
 
             # Check if already marked today
@@ -1895,7 +1941,7 @@ def attendance_mark():
 
             action = request.form.get(
                 'action')  # clock_in, clock_out, break_start, break_end
-            current_time = datetime.now().time()
+            current_time = now_utc.time()
 
             if action == 'clock_in':
                 # Check for incomplete attendance from previous day(s)
@@ -2026,18 +2072,26 @@ def attendance_mark():
 
     # Get today's attendance record
     today_attendance = None
+    employee_timezone = 'UTC'  # Default timezone
     if hasattr(current_user,
                'employee_profile') and current_user.employee_profile:
+        # Get employee's timezone and calculate their current date
+        employee_timezone = current_user.employee_profile.timezone or 'UTC'
+        from pytz import timezone, utc
+        employee_tz_obj = timezone(employee_timezone)
+        employee_today = datetime.now(utc).astimezone(employee_tz_obj).date()
+
         today_attendance = Attendance.query.filter_by(
             employee_id=current_user.employee_profile.id,
-            date=date.today()).first()
+            date=employee_today).first()
     else:
         flash(
             'You need an employee profile to mark attendance. Contact your administrator.',
             'warning')
 
     return render_template('attendance/form.html',
-                           today_attendance=today_attendance)
+                           today_attendance=today_attendance,
+                           employee_timezone=employee_timezone)
 
 
 @app.route('/attendance/correct/<int:attendance_id>', methods=['GET', 'POST'])
@@ -2051,7 +2105,7 @@ def attendance_correct(attendance_id):
         if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile) or \
            attendance.employee.manager_id != current_user.employee_profile.id:
             flash('Access denied', 'error')
-            return redirect(url_for('attendance_list'))
+            return redirect(url_for('attendance_list_view'))
 
     if request.method == 'POST':
         try:
@@ -2099,7 +2153,7 @@ def attendance_correct(attendance_id):
 
             db.session.commit()
             flash('Attendance record corrected successfully', 'success')
-            return redirect(url_for('attendance_list'))
+            return redirect(url_for('attendance_list_view'))
 
         except Exception as e:
             db.session.rollback()
@@ -2358,6 +2412,106 @@ def attendance_auto_create():
         flash(f'Error creating attendance records: {str(e)}', 'error')
 
     return redirect(url_for('attendance_bulk_manage'))
+    
+@app.route('/attendance')
+@require_login
+def attendance_calendar():
+    """Render the attendance calendar view."""
+    # Default to the current user if not an admin
+    default_employee_id = ''
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        default_employee_id = current_user.employee_profile.id
+
+    # Get employees for filter dropdown if user has permission
+    employees = []
+    user_role = current_user.role.name if current_user.role else None
+
+    if user_role in ['Super Admin', 'Admin']:
+        employees = Employee.query.filter_by(is_active=True).order_by(Employee.first_name).all()
+    elif user_role == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        # HR Manager can see all employees in their organization
+        if current_user.employee_profile.organization_id:
+            employees = Employee.query.filter(
+                Employee.organization_id == current_user.employee_profile.organization_id,
+                Employee.is_active == True
+            ).order_by(Employee.first_name).all()
+    
+    return render_template('attendance/calendar.html', 
+                           employees=employees,
+                           default_employee_id=default_employee_id)
+
+
+@app.route('/api/attendance/calendar-data')
+@require_login
+def api_attendance_calendar_data():
+    """API endpoint to fetch attendance data for the calendar."""
+    try:
+        employee_id = request.args.get('employee_id', type=int)
+        start_str = request.args.get('start')
+        end_str = request.args.get('end')
+
+        if not employee_id:
+            return jsonify({'error': 'Employee ID is required'}), 400
+
+        # Permission check
+        user_role = current_user.role.name if current_user.role else None
+        if user_role in ['User', 'Employee']:
+            if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.id == employee_id):
+                return jsonify({'error': 'Permission denied'}), 403
+        elif user_role == 'HR Manager':
+            employee_to_view = Employee.query.get(employee_id)
+            if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and employee_to_view and employee_to_view.organization_id == current_user.employee_profile.organization_id):
+                 return jsonify({'error': 'Permission denied'}), 403
+
+        start_date = datetime.fromisoformat(start_str.split('T')[0]).date()
+        end_date = datetime.fromisoformat(end_str.split('T')[0]).date()
+
+        # Fetch attendance and approved leaves for the date range
+        attendance_records = Attendance.query.filter(
+            Attendance.employee_id == employee_id,
+            Attendance.date.between(start_date, end_date)
+        ).all()
+
+        leave_records = Leave.query.filter(
+            Leave.employee_id == employee_id,
+            Leave.status == 'Approved',
+            Leave.start_date <= end_date,
+            Leave.end_date >= start_date
+        ).all()
+
+        # Process data into a dictionary for quick lookup, prioritizing leaves over attendance
+        events_dict = {}
+
+        # First, add leave records
+        for leave in leave_records:
+            current_date = leave.start_date
+            while current_date <= leave.end_date:
+                if start_date <= current_date <= end_date:
+                    events_dict[current_date] = {
+                        'date': current_date.isoformat(),
+                        'status': 'Leave',
+                        'leave_type': leave.leave_type,
+                        'remarks': leave.reason or ''
+                    }
+                current_date += timedelta(days=1)
+
+        # Then, add attendance records, only if a leave is not already on that day
+        for record in attendance_records:
+            if record.date not in events_dict:
+                events_dict[record.date] = {
+                    'date': record.date.isoformat(),
+                    'status': record.status,
+                    'clock_in': record.clock_in.strftime('%H:%M') if record.clock_in else None,
+                    'clock_out': record.clock_out.strftime('%H:%M') if record.clock_out else None,
+                    'total_hours': f"{record.total_hours:.2f}" if record.total_hours is not None else '0.00',
+                    'remarks': record.remarks or record.notes or ''
+                }
+
+        return jsonify(list(events_dict.values()))
+
+    except Exception as e:
+        logging.error(f"Error fetching calendar data: {e}")
+        return jsonify({'error': 'An internal error occurred', 'details': str(e)}), 500
 
 
 @app.route('/api/attendance/auto-create', methods=['POST'])
