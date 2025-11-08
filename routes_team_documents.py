@@ -158,20 +158,21 @@ def documents_list():
     # Get all documents for the current employee
     documents = EmployeeDocument.query.filter_by(
         employee_id=current_employee.id
-    ).order_by(EmployeeDocument.issue_date.desc()).all()
-    
-    # Separate documents by type
-    offer_letters = [doc for doc in documents if doc.document_type == 'Offer Letter']
-    appraisal_letters = [doc for doc in documents if doc.document_type == 'Appraisal Letter']
-    salary_slips = [doc for doc in documents if doc.document_type == 'Salary Slip']
-    
-    # Sort salary slips by year and month (most recent first)
-    salary_slips.sort(key=lambda x: (x.year or 0, x.month or 0), reverse=True)
-    
-    return render_template('documents/documents_list.html',
-                         offer_letters=offer_letters,
-                         appraisal_letters=appraisal_letters,
-                         salary_slips=salary_slips,
+    ).order_by(
+        # Sort by year and month for salary slips, then by issue date for all
+        db.case(
+            (EmployeeDocument.document_type == 'Salary Slip', EmployeeDocument.year),
+            else_=None
+        ).desc(),
+        db.case(
+            (EmployeeDocument.document_type == 'Salary Slip', EmployeeDocument.month),
+            else_=None
+        ).desc(),
+        EmployeeDocument.issue_date.desc()
+    ).all()
+
+    return render_template('documents/documents_tiles.html',
+                         documents=documents,
                          current_employee=current_employee)
 
 

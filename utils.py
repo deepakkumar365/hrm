@@ -4,6 +4,11 @@ from flask import make_response
 import pandas as pd
 from datetime import datetime, date, timedelta
 import logging
+import phonenumbers
+from phonenumbers import NumberParseException
+from pytz import timezone, utc
+from phonenumbers import PhoneNumberFormat
+
 
 def export_to_csv(data, filename, headers=None):
     """Export data to CSV and return as downloadable response"""
@@ -77,20 +82,99 @@ def get_current_month_dates():
 
 def validate_nric(nric):
     """Basic NRIC validation for Singapore - optional field"""
-    # Allow empty NRIC
-    if not nric:
-        return True
-    
-    if len(nric) != 9:
-        return False
-    
-    if nric[0] not in ['S', 'T', 'F', 'G', 'M']:
-        return False
-    
-    if not nric[1:8].isdigit():
-        return False
-    
+    # Validation removed as per request.
     return True
+
+def validate_phone_number(phone_number, country_code):
+    """
+    Validate phone number based on country code.
+    
+    Args:
+        phone_number (str): Phone number to validate
+        country_code (str): ISO 3166-1 alpha-2 country code (e.g., 'SG', 'IN', 'AE')
+    
+    Returns:
+        dict: {
+            'is_valid': bool,
+            'error_message': str or None,
+            'formatted_number': str or None
+        }
+    """
+    if not phone_number or not phone_number.strip():
+        return {
+            'is_valid': True,
+            'error_message': None,
+            'formatted_number': None
+        }
+    
+    if not country_code or not str(country_code).strip():
+        return {
+            'is_valid': False,
+            'error_message': 'Company country is not configured. Please contact administrator.',
+            'formatted_number': None
+        }
+    
+    try:
+        parsed_number = phonenumbers.parse(phone_number, str(country_code).upper())
+        
+        if not phonenumbers.is_valid_number(parsed_number):
+            return {
+                'is_valid': False,
+                'error_message': f'Phone number is invalid for {country_code.upper()}.',
+                'formatted_number': None
+            }
+        
+        formatted = phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+        
+        return {
+            'is_valid': True,
+            'error_message': None,
+            'formatted_number': formatted
+        }
+    
+    except NumberParseException as e:
+        return {
+            'is_valid': False,
+            'error_message': f'Phone number format is invalid for {country_code.upper()}.',
+            'formatted_number': None
+        }
+    except Exception as e:
+        return {
+            'is_valid': False,
+            'error_message': 'Unable to validate phone number. Please check the format.',
+            'formatted_number': None
+        }
+
+def validate_and_format_phone(phone_string):
+    """
+    Validates a phone number string (expected in E.164 format) and returns
+    the formatted number or an error. This is ideal for backend validation.
+    
+    Args:
+        phone_string (str): The phone number, ideally starting with a '+'.
+        
+    Returns:
+        tuple: (is_valid, result)
+               If valid, result is the formatted E.164 number.
+               If invalid, result is an error message.
+    """
+    if not phone_string or not phone_string.strip():
+        return True, None # It's valid to have no phone number
+
+    try:
+        # The `None` for region tells the library to infer from the country code
+        number = phonenumbers.parse(phone_string, None)
+
+        if not phonenumbers.is_valid_number(number):
+            return False, "The provided phone number is not valid."
+
+        # Return the standardized E.164 format
+        formatted_number = phonenumbers.format_number(number, PhoneNumberFormat.E164)
+        return True, formatted_number
+
+    except NumberParseException:
+        return False, "The phone number could not be parsed. Please ensure it includes a country code (e.g., +1)."
+
 
 def generate_employee_id(company_code=None, employee_db_id=None):
     """
@@ -157,3 +241,33 @@ class MobileDetector:
         ]
         
         return any(agent in str(user_agent) for agent in mobile_agents)
+
+def get_employee_local_time(employee, time_obj, event_date):
+    """
+    Convert a UTC time object to the employee's local timezone.
+
+    Args:
+        employee (Employee): The employee object with a timezone attribute.
+        time_obj (datetime.time): The time object stored in UTC.
+        event_date (datetime.date): The date of the event.
+
+    Returns:
+        str: Formatted time string in employee's local timezone, or empty string.
+    """
+    if not time_obj or not event_date:
+        return ""
+
+    try:
+        # Combine date and time to create a UTC datetime object
+        utc_dt = datetime.combine(event_date, time_obj, tzinfo=utc)
+
+        # Get employee's timezone, default to UTC
+        employee_tz_str = employee.timezone or 'UTC'
+        employee_tz = timezone(employee_tz_str)
+
+        # Convert to employee's local time and format it
+        local_dt = utc_dt.astimezone(employee_tz)
+        return local_dt.strftime('%I:%M %p')
+    except Exception:
+        # Fallback for invalid timezone or other errors
+        return time_obj.strftime('%H:%M:%S UTC')

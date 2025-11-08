@@ -98,6 +98,14 @@
                             <label class="form-label text-muted">Nationality</label>
                             <p class="fw-semibold">{{ employee.nationality or '-' }}</p>
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Father's Name</label>
+                            <p class="fw-semibold">{{ employee.father_name or '-' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Location</label>
+                            <p class="fw-semibold">{{ employee.location or '-' }}</p>
+                        </div>
                         {% if employee.address %}
                         <div class="col-12">
                             <label class="form-label text-muted">Address</label>
@@ -151,6 +159,14 @@
                             <p class="fw-semibold">
                                 <span class="badge bg-primary">{{ employee.work_permit_type }}</span>
                             </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Timezone</label>
+                            <p class="fw-semibold">{{ employee.timezone or 'UTC' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Overtime Group</label>
+                            <p class="fw-semibold">{{ employee.overtime_group_id or '-' }}</p>
                         </div>
                         {% if employee.work_permit_expiry %}
                         <div class="col-md-6">
@@ -226,7 +242,7 @@
                         <a href="{{ url_for('leave_list', employee=employee.id) }}" class="btn btn-outline-warning">
                             <i class="fas fa-plane-departure me-1"></i>Leave History
                         </a>
-                        <a href="{{ url_for('attendance_list', employee=employee.id) }}" class="btn btn-outline-info">
+                        <a href="{{ url_for('attendance_list_view', employee=employee.id) }}" class="btn btn-outline-info">
                             <i class="fas fa-calendar-check me-1"></i>Attendance
                         </a>
                         {% endif %}

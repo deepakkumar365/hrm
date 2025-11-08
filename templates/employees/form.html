@@ -64,15 +64,22 @@
                             </div>
                             <div class="form-grid-item">
                                 <label for="phone" class="form-label">Phone</label>
-                                <input type="tel" class="form-control" id="phone" name="phone"
-                                       value="{{ form_data.get('phone') if form_data else (employee.phone if employee else '') }}">
+                                <!-- This will be the visible, formatted input -->
+                                <input type="tel" class="form-control" id="phone_display">
+                                <!-- This hidden input will store the E.164 value for the form submission -->
+                                <input type="hidden" id="phone" name="phone"
+                                    value="{{ form_data.get('phone') if form_data else (employee.phone if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="nric" class="form-label">NRIC/Passport</label>
+                                {% set nric_val = form_data.get('nric') if form_data else (employee.nric if employee else '') %}
+                                {% if nric_val and nric_val.startswith('NO_NRIC_') %}
+                                    {% set nric_val = '' %}
+                                {% endif %}
                                 <input type="text" class="form-control" id="nric" name="nric"
-                                       value="{{ form_data.get('nric') if form_data else (employee.nric if employee else '') }}"
+                                       value="{{ nric_val }}"
                                        placeholder="e.g., S1234567D or E12345678"
-                                       {% if employee %}readonly{% endif %}>
+                                       >
                             </div>
                             <div class="form-grid-item">
                                 <label for="date_of_birth" class="form-label">Date of Birth</label>
@@ -215,6 +222,7 @@
                                 <label for="work_permit_type" class="form-label">Work Permit Type *</label>
                                 <select class="form-select" id="work_permit_type" name="work_permit_type" required>
                                     <option value="">Select Type</option>
+                                    <option value="Nil" {% if employee and employee.work_permit_type == 'Nil' %}selected{% endif %}>Nil</option>
                                     <option value="Citizen" {% if employee and employee.work_permit_type == 'Citizen' %}selected{% endif %}>Singapore Citizen</option>
                                     <option value="PR" {% if employee and employee.work_permit_type == 'PR' %}selected{% endif %}>Permanent Resident</option>
                                     <option value="Work Permit" {% if employee and employee.work_permit_type == 'Work Permit' %}selected{% endif %}>Work Permit</option>
@@ -223,12 +231,12 @@
                                 </select>
                             </div>
                             <div class="form-grid-item">
-                                <label for="work_permit_expiry" class="form-label">Work Permit Expiry</label>
+                                <label for="work_permit_expiry" class="form-label">Work Permit Expiry <span class="text-danger" id="work_permit_expiry_required">*</span></label>
                                 <input type="date" class="form-control" id="work_permit_expiry" name="work_permit_expiry"
                                        value="{{ employee.work_permit_expiry.strftime('%Y-%m-%d') if employee and employee.work_permit_expiry else '' }}">
                             </div>
                             <div class="form-grid-item">
-                                <label for="work_permit_number" class="form-label">Work Permit Number</label>
+                                <label for="work_permit_number" class="form-label">Work Permit Number <span class="text-danger" id="work_permit_number_required">*</span></label>
                                 <input type="text" class="form-control" id="work_permit_number" name="work_permit_number"
                                        value="{{ form_data.get('work_permit_number') if form_data else (employee.work_permit_number if employee else '') }}"
                                        placeholder="e.g., WP123456789">
@@ -255,11 +263,23 @@
                                     {% endfor %}
                                 </select>
                             </div>
+                            <div class="form-grid-item">
+                                <label for="timezone" class="form-label">Timezone</label>
+                                <select class="form-select" id="timezone" name="timezone">
+                                    <option value="">Select Timezone</option>
+                                    {% for tz in timezones %}
+                                    <option value="{{ tz }}" {% if (form_data and form_data.get('timezone') == tz) or (employee and employee.timezone == tz and not form_data) %}selected{% endif %}>
+                                        {{ tz }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
 
                         </div>
                     </div>
                 </div>
 
+                {% if employee %}
                 <div class="card mt-4">
                     <div class="card-header card-header-green">
                         <h5 class="mb-0">
@@ -308,6 +328,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
                 <div class="card mt-4">
                     <div class="card-header card-header-warning">
@@ -382,17 +403,53 @@
     }, false);
 })();
 
-// Show/hide work permit expiry based on permit type
-document.getElementById('work_permit_type').addEventListener('change', function() {
-    const expiryField = document.getElementById('work_permit_expiry');
+function updateWorkPermitValidation() {
+    const workPermitType = document.getElementById('work_permit_type');
+    const workPermitNumber = document.getElementById('work_permit_number');
+    const workPermitExpiry = document.getElementById('work_permit_expiry');
+    const numberRequiredSpan = document.getElementById('work_permit_number_required');
+    const expiryRequiredSpan = document.getElementById('work_permit_expiry_required');
+    
+    const permitTypeValue = workPermitType.value;
+    const nilType = ['Nil'];
     const citizenTypes = ['Citizen', 'PR'];
-
-    if (citizenTypes.includes(this.value)) {
-        expiryField.disabled = true;
-        expiryField.value = '';
+    
+    if (nilType.includes(permitTypeValue)) {
+        workPermitNumber.removeAttribute('required');
+        workPermitExpiry.removeAttribute('required');
+        workPermitNumber.disabled = true;
+        workPermitExpiry.disabled = true;
+        workPermitNumber.value = '';
+        workPermitExpiry.value = '';
+        numberRequiredSpan.style.display = 'none';
+        expiryRequiredSpan.style.display = 'none';
+        workPermitNumber.classList.remove('is-invalid');
+        workPermitExpiry.classList.remove('is-invalid');
+    } else if (citizenTypes.includes(permitTypeValue)) {
+        workPermitNumber.removeAttribute('required');
+        workPermitExpiry.removeAttribute('required');
+        workPermitNumber.disabled = true;
+        workPermitExpiry.disabled = true;
+        workPermitNumber.value = '';
+        workPermitExpiry.value = '';
+        numberRequiredSpan.style.display = 'none';
+        expiryRequiredSpan.style.display = 'none';
+        workPermitNumber.classList.remove('is-invalid');
+        workPermitExpiry.classList.remove('is-invalid');
     } else {
-        expiryField.disabled = false;
+        workPermitNumber.setAttribute('required', 'required');
+        workPermitExpiry.setAttribute('required', 'required');
+        workPermitNumber.disabled = false;
+        workPermitExpiry.disabled = false;
+        numberRequiredSpan.style.display = 'inline';
+        expiryRequiredSpan.style.display = 'inline';
     }
+}
+
+document.getElementById('work_permit_type').addEventListener('change', updateWorkPermitValidation);
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateWorkPermitValidation();
 });
 
 // Form submission - Show loading state and disable button
@@ -413,50 +470,6 @@ document.querySelector('form.needs-validation').addEventListener('submit', funct
         }
     }
 });
-</script>
-<script>
-// NRIC/Passport blur validation with sample messages
-(function() {
-  const nricInput = document.getElementById('nric');
-  if (!nricInput) return;
-  if (nricInput.hasAttribute('readonly')) return;
-  const invalidFeedback = nricInput.parentElement.querySelector('.invalid-feedback');
-  const sample = 'Sample: NRIC S1234567D; Passport E12345678.';
-  function isValid(value) {
-    const v = value.trim().toUpperCase();
-    const nric = /^[STFG]\d{7}[A-Z]$/.test(v);
-    const passport = /^[A-Z]\d{8}$/.test(v);
-    return nric || passport;
-  }
-  function setInvalid(msg) {
-    if (invalidFeedback) invalidFeedback.textContent = msg;
-    nricInput.classList.add('is-invalid');
-    nricInput.classList.remove('is-valid');
-  }
-  function setValid() {
-    nricInput.classList.remove('is-invalid');
-    nricInput.classList.add('is-valid');
-  }
-  nricInput.addEventListener('blur', function() {
-    const val = this.value.trim();
-    if (!val) {
-      // NRIC/Passport is optional - clear any validation styling
-      nricInput.classList.remove('is-invalid');
-      nricInput.classList.remove('is-valid');
-      if (invalidFeedback) invalidFeedback.textContent = '';
-      return;
-    }
-    if (!isValid(val)) {
-      setInvalid('Invalid NRIC/Passport format. ' + sample);
-      return;
-    }
-    setValid();
-  });
-  nricInput.addEventListener('input', function() {
-    const val = this.value.trim();
-    if (isValid(val)) setValid();
-  });
-})();
 </script>
 <script>
 // Date of Birth UX & restrictions
@@ -496,6 +509,7 @@ document.querySelector('form.needs-validation').addEventListener('submit', funct
   dob.addEventListener('blur', clampDate);
 })();
 </script>
+
 <script>
 // Auto-generate Employee ID when company is selected
 {% if not employee %}
