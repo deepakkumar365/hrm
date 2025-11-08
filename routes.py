@@ -16,7 +16,7 @@ from app import app, db
 from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
-                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation)
+                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation, Organization)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -2017,6 +2017,8 @@ def attendance_list():
 @require_login
 def attendance_mark():
     """Mark attendance (for employees)"""
+    from pytz import timezone, utc
+
     if request.method == 'POST':
         try:
             if not hasattr(
@@ -2025,8 +2027,14 @@ def attendance_mark():
                 flash('Employee profile required for attendance marking',
                       'error')
                 return redirect(url_for('dashboard'))
-
-            today = date.today()
+            
+            # Get employee's timezone, default to UTC
+            employee_tz_str = current_user.employee_profile.timezone or 'UTC'
+            employee_tz = timezone(employee_tz_str)
+            
+            # Get current time in UTC and employee's local date
+            now_utc = datetime.now(utc)
+            today = now_utc.astimezone(employee_tz).date()
             employee_id = current_user.employee_profile.id
 
             # Check if already marked today
@@ -2035,7 +2043,7 @@ def attendance_mark():
 
             action = request.form.get(
                 'action')  # clock_in, clock_out, break_start, break_end
-            current_time = datetime.now().time()
+            current_time = now_utc.time()
 
             if action == 'clock_in':
                 # Check for incomplete attendance from previous day(s)

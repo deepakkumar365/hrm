@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 import logging
 import phonenumbers
 from phonenumbers import NumberParseException
+from pytz import timezone, utc
 from phonenumbers import PhoneNumberFormat
 
 
@@ -252,3 +253,33 @@ class MobileDetector:
         ]
         
         return any(agent in str(user_agent) for agent in mobile_agents)
+
+def get_employee_local_time(employee, time_obj, event_date):
+    """
+    Convert a UTC time object to the employee's local timezone.
+
+    Args:
+        employee (Employee): The employee object with a timezone attribute.
+        time_obj (datetime.time): The time object stored in UTC.
+        event_date (datetime.date): The date of the event.
+
+    Returns:
+        str: Formatted time string in employee's local timezone, or empty string.
+    """
+    if not time_obj or not event_date:
+        return ""
+
+    try:
+        # Combine date and time to create a UTC datetime object
+        utc_dt = datetime.combine(event_date, time_obj, tzinfo=utc)
+
+        # Get employee's timezone, default to UTC
+        employee_tz_str = employee.timezone or 'UTC'
+        employee_tz = timezone(employee_tz_str)
+
+        # Convert to employee's local time and format it
+        local_dt = utc_dt.astimezone(employee_tz)
+        return local_dt.strftime('%I:%M %p')
+    except Exception:
+        # Fallback for invalid timezone or other errors
+        return time_obj.strftime('%H:%M:%S UTC')
