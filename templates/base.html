@@ -313,10 +313,12 @@
                                 {{ current_user.first_name or 'User' }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
+                                {% if current_user.role %}
                                 <li><span class="dropdown-item-text">
-                                    <small style="color: var(--grey-500);">{{ current_user.role.name if current_user.role else 'None' }}</small>
+                                    <small style="color: var(--grey-500);">{{ current_user.role.name }}</small>
                                 </span></li>
                                 <li><hr class="dropdown-divider"></li>
+                                {% endif %}
                                 {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile %}
                                 <li><a class="dropdown-item" href="{{ url_for('profile') }}">
                                     <i class="fas fa-user"></i>

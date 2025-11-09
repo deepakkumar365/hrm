@@ -21,7 +21,7 @@ from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date,
-                   validate_nric, generate_employee_id, get_company_employee_id, check_permission,
+                   validate_nric, validate_email, generate_employee_id, get_company_employee_id, check_permission,
                    mobile_optimized_pagination, get_current_month_dates, validate_phone_number)
 from constants import DEFAULT_USER_PASSWORD
 
@@ -581,12 +581,96 @@ def employee_list():
                            sort_order=sort_order)
 
 
+@app.route('/employees/export')
+@require_login
+def export_employees():
+    """Export employees list to CSV"""
+    try:
+        # Get search and filter parameters
+        search = request.args.get('search', '', type=str)
+        department = request.args.get('department', '', type=str)
+        
+        # Build query
+        query = db.session.query(Employee).filter(Employee.is_active == True)
+        
+        if search:
+            query = query.filter(
+                db.or_(Employee.first_name.ilike(f'%{search}%'),
+                       Employee.last_name.ilike(f'%{search}%'),
+                       Employee.employee_id.ilike(f'%{search}%'),
+                       Employee.email.ilike(f'%{search}%')))
+        
+        if department:
+            query = query.filter(Employee.department == department)
+        
+        # Role-based filtering
+        if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
+                                                      'employee_profile') and current_user.employee_profile:
+            query = query.filter(
+                Employee.organization_id == current_user.organization_id)
+        
+        employees = query.order_by(Employee.first_name).all()
+        
+        # Prepare data for CSV export
+        export_data = []
+        for emp in employees:
+            export_data.append({
+                'Employee ID': emp.employee_id or '',
+                'First Name': emp.first_name or '',
+                'Last Name': emp.last_name or '',
+                'Email': emp.email or '',
+                'Phone': emp.phone or '',
+                'Designation': emp.designation.name if emp.designation else '',
+                'Department': emp.department or '',
+                'Company': emp.company.name if emp.company else '',
+                'Hire Date': format_date(emp.hire_date) if emp.hire_date else '',
+                'NRIC': emp.nric or '',
+                'Status': 'Active' if emp.is_active else 'Inactive'
+            })
+        
+        # Export to CSV
+        return export_to_csv(export_data, 'employees.csv')
+        
+    except Exception as e:
+        print(f"Error exporting employees: {str(e)}")
+        flash(f'Error exporting employees: {str(e)}', 'error')
+        return redirect(url_for('employee_list'))
+
+
 @app.route('/employees/add', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin','HR Manager','Tenant Admin'])
 def employee_add():
     """Add new employee"""
     if request.method == 'POST':
         try:
+            # Validation: Check required fields
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            designation_id = request.form.get('designation_id', '').strip()
+            company_id = request.form.get('company_id', '').strip()
+            
+            if not first_name:
+                flash('First Name is required', 'error')
+                return redirect(url_for('employee_add'))
+            
+            if not last_name:
+                flash('Last Name is required', 'error')
+                return redirect(url_for('employee_add'))
+            
+            if not company_id:
+                flash('Company is required', 'error')
+                return redirect(url_for('employee_add'))
+            
+            if not designation_id:
+                flash('Designation is required', 'error')
+                return redirect(url_for('employee_add'))
+            
+            # Validation: Email format if provided
+            email = request.form.get('email', '').strip()
+            if email and not validate_email(email):
+                flash('Invalid email format', 'error')
+                return redirect(url_for('employee_add'))
+            
             # Validate NRIC (optional field)
             nric = request.form.get('nric', '').upper()
             if nric and not validate_nric(nric):
@@ -1025,6 +1109,45 @@ def profile():
                            today=date.today()) # Pass today's date to the template
 
 
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@require_login
+def profile_edit():
+    """Edit user's own profile information"""
+    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+        flash('Profile not found. Please contact your administrator.', 'error')
+        return redirect(url_for('profile'))
+    
+    employee = current_user.employee_profile
+    
+    if request.method == 'POST':
+        try:
+            # Update basic employee information
+            employee.first_name = request.form.get('first_name', '').strip()
+            employee.last_name = request.form.get('last_name', '').strip()
+            
+            # Update banking details (Account Holder Name is OPTIONAL)
+            employee.bank_name = request.form.get('bank_name', '').strip()
+            employee.bank_account = request.form.get('bank_account', '').strip()
+            employee.account_holder_name = request.form.get('account_holder_name', '').strip() or None
+            employee.swift_code = request.form.get('swift_code', '').strip()
+            employee.ifsc_code = request.form.get('ifsc_code', '').strip()
+            
+            # Update user information
+            current_user.first_name = employee.first_name
+            current_user.last_name = employee.last_name
+            
+            db.session.commit()
+            flash('Profile updated successfully!', 'success')
+            return redirect(url_for('profile'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating profile: {str(e)}', 'error')
+            return redirect(url_for('profile_edit'))
+    
+    # GET request - render the edit form
+    return render_template('profile_edit.html', employee=employee)
+
+
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin','HR Manager'])
 def employee_edit(employee_id):
@@ -1033,19 +1156,50 @@ def employee_edit(employee_id):
 
     if request.method == 'POST':
         try:
+            # Validation: Check required fields
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            designation_id = request.form.get('designation_id', '').strip()
+            company_id = request.form.get('company_id', '').strip()
+            
+            if not first_name:
+                flash('First Name is required', 'error')
+                return redirect(url_for('employee_edit', employee_id=employee_id))
+            
+            if not last_name:
+                flash('Last Name is required', 'error')
+                return redirect(url_for('employee_edit', employee_id=employee_id))
+            
+            if not company_id:
+                flash('Company is required', 'error')
+                return redirect(url_for('employee_edit', employee_id=employee_id))
+            
+            if not designation_id:
+                flash('Designation is required', 'error')
+                return redirect(url_for('employee_edit', employee_id=employee_id))
+            
+            # Validation: Email format if provided
+            email = request.form.get('email', '').strip()
+            if email and not validate_email(email):
+                flash('Invalid email format', 'error')
+                return redirect(url_for('employee_edit', employee_id=employee_id))
+            
+            # Update validated fields
+            employee.first_name = first_name
+            employee.last_name = last_name
+            employee.email = email if email else None
+            
             # Update company_id from form
-            company_id = request.form.get('company_id')
             if company_id:
                 employee.company_id = company_id
             else:
-                employee.company_id = None            
-
-            employee.first_name = request.form.get('first_name')
-            employee.last_name = request.form.get('last_name')
-            email = request.form.get('email', '').strip()
+                employee.company_id = None
+            
+            # Update designation_id
+            employee.designation_id = designation_id
+            
             phone = request.form.get('phone', '').strip()
-            employee.email = email if email else None
-            employee.phone = request.form.get('phone')
+            employee.phone = phone if phone else None
             
             # Validate NRIC (optional field)
             nric = request.form.get('nric', '').upper()
@@ -1099,6 +1253,7 @@ def employee_edit(employee_id):
             if date_of_birth:
                 employee.date_of_birth = parse_date(date_of_birth)
 
+            work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
             else:
@@ -1126,17 +1281,40 @@ def employee_edit(employee_id):
             else:
                 employee.psa_pass_expiry = None
 
+            # Validate and convert salary fields
             basic_salary = request.form.get('basic_salary', '').strip()
-            employee.basic_salary = float(basic_salary) if basic_salary else 0
+            try:
+                employee.basic_salary = float(basic_salary) if basic_salary else 0
+                if employee.basic_salary < 0:
+                    flash('Basic Salary cannot be negative', 'error')
+                    return redirect(url_for('employee_edit', employee_id=employee_id))
+            except ValueError:
+                flash('Invalid Basic Salary value', 'error')
+                return redirect(url_for('employee_edit', employee_id=employee_id))
 
             allowances = request.form.get('allowances', '').strip()
-            employee.allowances = float(allowances) if allowances else 0
+            try:
+                employee.allowances = float(allowances) if allowances else 0
+                if employee.allowances < 0:
+                    flash('Allowances cannot be negative', 'error')
+                    return redirect(url_for('employee_edit', employee_id=employee_id))
+            except ValueError:
+                flash('Invalid Allowances value', 'error')
+                return redirect(url_for('employee_edit', employee_id=employee_id))
 
             hourly_rate = request.form.get('hourly_rate', '').strip()
-            if hourly_rate:
-                employee.hourly_rate = float(hourly_rate)
-            else:
-                employee.hourly_rate = None
+            try:
+                if hourly_rate:
+                    hourly_rate_val = float(hourly_rate)
+                    if hourly_rate_val < 0:
+                        flash('Hourly Rate cannot be negative', 'error')
+                        return redirect(url_for('employee_edit', employee_id=employee_id))
+                    employee.hourly_rate = hourly_rate_val
+                else:
+                    employee.hourly_rate = None
+            except ValueError:
+                flash('Invalid Hourly Rate value', 'error')
+                return redirect(url_for('employee_edit', employee_id=employee_id))
 
             employee.cpf_account = request.form.get('cpf_account')
             employee.bank_name = request.form.get('bank_name')
@@ -1144,29 +1322,6 @@ def employee_edit(employee_id):
             employee.account_holder_name = request.form.get('account_holder_name')
             employee.swift_code = request.form.get('swift_code')
             employee.ifsc_code = request.form.get('ifsc_code')
-
-            # Validate mandatory banking field
-            if not (employee.account_holder_name and employee.account_holder_name.strip()):
-                flash('Account Holder Name is required', 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                # Position field removed - use designation_id instead
-                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                return render_template('employees/form.html',
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       designations=designations,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies)
 
             # Optional profile image replace on edit
             file = request.files.get('profile_image')
@@ -2698,27 +2853,10 @@ def appraisal_create():
                 request.form.get('goals_achievement', '0'))
             appraisal.teamwork_rating = int(
                 request.form.get('teamwork_rating', '0'))
-            appraisal.communication_rating = int(
-                request.form.get('communication_rating', '0'))
-
-            # Calculate overall rating
-            ratings = [
-                appraisal.performance_rating, appraisal.goals_achievement,
-                appraisal.teamwork_rating, appraisal.communication_rating
-            ]
-            appraisal.overall_rating = sum(ratings) / len(ratings)
-
-            appraisal.manager_feedback = request.form.get('manager_feedback')
-            appraisal.development_goals = request.form.get('development_goals')
-            appraisal.training_recommendations = request.form.get(
-                'training_recommendations')
-            appraisal.reviewed_by = current_user.id
-            appraisal.status = 'Completed'
-            appraisal.completed_at = datetime.now()
+            appraisal.comments = request.form.get('comments', '')
 
             db.session.add(appraisal)
             db.session.commit()
-
             flash('Appraisal created successfully', 'success')
             return redirect(url_for('appraisal_list'))
 
@@ -2726,254 +2864,53 @@ def appraisal_create():
             db.session.rollback()
             flash(f'Error creating appraisal: {str(e)}', 'error')
 
-    # Get employees for appraisal
-    employees = Employee.query.filter_by(is_active=True)
-    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                  'employee_profile') and current_user.employee_profile:
-        employees = employees.filter(
-            Employee.manager_id == current_user.employee_profile.id)
-    employees = employees.order_by(Employee.first_name).all()
-
-    return render_template('appraisal/form.html', employees=employees)
+    employees = Employee.query.order_by(Employee.first_name).all()
+    return render_template('appraisal/create.html', employees=employees)
 
 
-# Compliance and Reports
-@app.route('/compliance')
-@require_role(['Super Admin', 'Admin'])
-def compliance_dashboard():
-    """Compliance dashboard"""
+@app.route('/appraisal/<int:appraisal_id>/edit', methods=['GET', 'POST'])
+@require_login
+def appraisal_edit(appraisal_id):
+    """Edit appraisal"""
+    appraisal = Appraisal.query.get_or_404(appraisal_id)
 
-    # Get current month for defaults
-    current_month = datetime.now().month
-    current_year = datetime.now().year
+    if request.method == 'POST':
+        try:
+            appraisal.review_period_start = parse_date(
+                request.form.get('review_period_start'))
+            appraisal.review_period_end = parse_date(
+                request.form.get('review_period_end'))
+            appraisal.performance_rating = int(
+                request.form.get('performance_rating', '0'))
+            appraisal.goals_achievement = int(
+                request.form.get('goals_achievement', '0'))
+            appraisal.teamwork_rating = int(
+                request.form.get('teamwork_rating', '0'))
+            appraisal.comments = request.form.get('comments', '')
 
-    # Recent compliance reports
-    recent_reports = ComplianceReport.query.order_by(
-        ComplianceReport.generated_at.desc()).limit(10).all()
+            db.session.commit()
+            flash('Appraisal updated successfully', 'success')
+            return redirect(url_for('appraisal_list'))
 
-    # Upcoming deadlines (simplified)
-    deadlines = [{
-        'type':
-        'CPF Submission',
-        'date':
-        f"14/{current_month + 1 if current_month < 12 else 1}/{current_year if current_month < 12 else current_year + 1}"
-    }, {
-        'type': 'AIS Filing',
-        'date': f"31/03/{current_year + 1}"
-    }, {
-        'type':
-        'MOM OED',
-        'date':
-        f"15/{current_month + 1 if current_month < 12 else 1}/{current_year if current_month < 12 else current_year + 1}"
-    }]
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating appraisal: {str(e)}', 'error')
 
-    return render_template('compliance/dashboard.html',
-                           recent_reports=recent_reports,
-                           deadlines=deadlines,
-                           current_month=current_month,
-                           current_year=current_year)
+    return render_template('appraisal/edit.html', appraisal=appraisal)
 
 
-@app.route('/compliance/generate/<report_type>')
-@require_role(['Super Admin', 'Admin'])
-def compliance_generate(report_type):
-    """Generate compliance reports"""
-    month = request.args.get('month', datetime.now().month, type=int)
-    year = request.args.get('year', datetime.now().year, type=int)
+@app.route('/appraisal/<int:appraisal_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+def appraisal_delete(appraisal_id):
+    """Delete appraisal"""
+    appraisal = Appraisal.query.get_or_404(appraisal_id)
 
     try:
-        # Get payroll records for the period
-        payrolls = Payroll.query.filter(
-            extract('month', Payroll.pay_period_end) == month,
-            extract('year', Payroll.pay_period_end) == year,
-            Payroll.status == 'Approved').all()
-
-        if not payrolls:
-            flash('No approved payroll records found for the selected period',
-                  'warning')
-            return redirect(url_for('compliance_dashboard'))
-
-        if report_type == 'cpf':
-            data = payroll_calc.generate_cpf_file(payrolls, month, year)
-            filename = f"CPF_Submission_{year}_{month:02d}.csv"
-
-            # Prepare CSV data
-            csv_data = []
-            for record in data['records']:
-                csv_data.append([
-                    record['employee_id'], record['name'], record['nric'],
-                    record['cpf_account'], record['gross_salary'],
-                    record['employee_cpf'], record['employer_cpf'],
-                    record['total_cpf']
-                ])
-
-            headers = [
-                'Employee ID', 'Name', 'NRIC', 'CPF Account', 'Gross Salary',
-                'Employee CPF', 'Employer CPF', 'Total CPF'
-            ]
-
-            return export_to_csv(csv_data, filename, headers)
-
-        elif report_type == 'ais':
-            data = payroll_calc.generate_ais_file(payrolls, year)
-            filename = f"AIS_Report_{year}.csv"
-
-            csv_data = []
-            for record in data['records']:
-                csv_data.append([
-                    record['employee_id'], record['name'], record['nric'],
-                    record['annual_income'], record['employment_period']
-                ])
-
-            headers = [
-                'Employee ID', 'Name', 'NRIC', 'Annual Income',
-                'Employment Period'
-            ]
-
-            return export_to_csv(csv_data, filename, headers)
-
-        elif report_type == 'oed':
-            data = payroll_calc.generate_oed_file(payrolls, month, year)
-            filename = f"OED_Report_{year}_{month:02d}.csv"
-
-            csv_data = []
-            for record in data['records']:
-                csv_data.append([
-                    record['employee_id'], record['name'],
-                    record['passport_number'], record['work_permit_type'],
-                    record['work_permit_expiry'], record['gross_salary'],
-                    record['nationality'], record['designation']
-                ])
-
-            headers = [
-                'Employee ID', 'Name', 'Passport/ID', 'Work Permit Type',
-                'Work Permit Expiry', 'Gross Salary', 'Nationality', 'Designation'
-            ]
-
-            return export_to_csv(csv_data, filename, headers)
-
-        elif report_type == 'bank':
-            data = payroll_calc.generate_bank_file(payrolls)
-            filename = f"Bank_Transfer_{year}_{month:02d}.csv"
-
-            csv_data = []
-            for record in data['records']:
-                csv_data.append([
-                    record['employee_id'], record['name'],
-                    record['bank_account'], record['bank_name'],
-                    record['amount'], record['reference']
-                ])
-
-            headers = [
-                'Employee ID', 'Name', 'Bank Account', 'Bank Name', 'Amount',
-                'Reference'
-            ]
-
-            return export_to_csv(csv_data, filename, headers)
-
-        else:
-            flash('Invalid report type', 'error')
-            return redirect(url_for('compliance_dashboard'))
-
-    except Exception as e:
-        flash(f'Error generating {report_type.upper()} report: {str(e)}',
-              'error')
-        return redirect(url_for('compliance_dashboard'))
-
-
-# Export routes
-@app.route('/users')
-@require_role(['Super Admin', 'Admin'])
-def user_management():
-    """User management for admins"""
-    users = User.query.order_by(User.first_name).all()
-    return render_template('users/list.html', users=users)
-
-
-@app.route('/users/<user_id>/role', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def update_user_role(user_id):
-    """Update user role"""
-    user = User.query.get_or_404(user_id)
-    new_role = request.form.get('role')
-
-    if new_role in ['Super Admin', 'Admin', 'HR Manager', 'User']:
-        user.role = new_role
+        db.session.delete(appraisal)
         db.session.commit()
-        flash(f'User role updated to {new_role}', 'success')
-    else:
-        flash('Invalid role specified', 'error')
+        flash('Appraisal deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting appraisal: {str(e)}', 'error')
 
-    return redirect(url_for('user_management'))
-
-
-@app.route('/export/employees')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
-def export_employees():
-    """Export employees to CSV"""
-    employees = Employee.query.filter_by(is_active=True).all()
-
-    csv_data = []
-    for emp in employees:
-        csv_data.append([
-            emp.employee_id, emp.first_name, emp.last_name, emp.email,
-            emp.nric, emp.designation.name if emp.designation else '', emp.department,
-            format_date(emp.hire_date), emp.employment_type,
-            emp.work_permit_type,
-            format_currency(emp.basic_salary)
-        ])
-
-    headers = [
-        'Employee ID', 'First Name', 'Last Name', 'Email', 'NRIC', 'Designation',
-        'Department', 'Hire Date', 'Employment Type', 'Work Permit Type',
-        'Basic Salary'
-    ]
-
-    return export_to_csv(csv_data, 'employees_export.csv', headers)
-
-
-# Mobile API routes for PWA functionality
-@app.route('/api/attendance/check')
-@require_login
-def api_attendance_check():
-    """Check today's attendance status for mobile"""
-    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
-        return jsonify({'error': 'Employee profile not found'}), 400
-
-    today = date.today()
-    attendance = Attendance.query.filter_by(
-        employee_id=current_user.employee_profile.id, date=today).first()
-
-    if attendance:
-        return jsonify({
-            'clocked_in':
-            attendance.clock_in is not None,
-            'clocked_out':
-            attendance.clock_out is not None,
-            'on_break':
-            attendance.break_start is not None
-            and attendance.break_end is None,
-            'clock_in_time':
-            attendance.clock_in.strftime('%H:%M')
-            if attendance.clock_in else None,
-            'clock_out_time':
-            attendance.clock_out.strftime('%H:%M')
-            if attendance.clock_out else None
-        })
-    else:
-        return jsonify({
-            'clocked_in': False,
-            'clocked_out': False,
-            'on_break': False
-        })
-
-
-# Master Data Management Routes
-# Role routes moved to `routes_masters.py` to avoid duplicate endpoint
-# registrations. See `routes_masters.py` for the canonical implementations
-# of role_list, role_add, role_edit and role_delete.
-
-# Department routes moved to `routes_masters.py` to avoid duplicate endpoint
-# registrations. See `routes_masters.py` for the canonical implementations
-# of department_list, department_add, department_edit and department_delete.
-# Note: Working Hours Management Routes have been moved to routes_masters.py
+    return redirect(url_for('appraisal_list'))

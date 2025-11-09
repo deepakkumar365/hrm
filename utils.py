@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime, date, timedelta
 import logging
 from pytz import timezone, utc
+import re
 
 
 def export_to_csv(data, filename, headers=None):
@@ -98,6 +99,23 @@ def validate_and_format_phone(phone_string):
     Placeholder for phone number validation. Always returns valid.
     """
     return True, phone_string
+
+def validate_email(email):
+    """
+    Validate email format using regex pattern.
+    
+    Args:
+        email: Email string to validate
+    
+    Returns:
+        True if email is valid, False otherwise
+    """
+    if not email or not isinstance(email, str):
+        return False
+    
+    # Basic email validation regex
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(email_pattern, email.strip()))
 
 
 def generate_employee_id(company_code=None, employee_db_id=None):

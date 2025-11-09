@@ -69,16 +69,16 @@
                             <div class="form-grid-item">
                                 <label for="phone" class="form-label">Phone</label>
                                 <input type="tel" class="form-control" id="phone" name="phone"
-                                       value="{{ form_data.get('phone') if form_data else (employee.phone if employee else '') }}">
+                                       value="{{ form_data.get('phone') if form_data else (employee.phone or '' if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="nric" class="form-label">NRIC/Passport</label>
-                                {% set nric_val = form_data.get('nric') if form_data else (employee.nric if employee else '') %}
+                                {% set nric_val = form_data.get('nric') if form_data else (employee.nric or '' if employee else '') %}
                                 {% if nric_val and nric_val.startswith('NO_NRIC_') %}
                                     {% set nric_val = '' %}
                                 {% endif %}
                                 <input type="text" class="form-control" id="nric" name="nric"
-                                       value="{{ form_data.get('nric') if form_data else (employee.nric if employee else '') }}"
+                                       value="{{ form_data.get('nric') if form_data else (employee.nric or '' if employee else '') }}"
                                        placeholder="e.g., S1234567D or E12345678"
                                        {% if employee %}readonly{% endif %}>
                             </div>
@@ -234,7 +234,7 @@
                             <div class="form-grid-item">
                                 <label for="work_permit_expiry" class="form-label">Work Permit Expiry</label>
                                 <input type="date" class="form-control" id="work_permit_expiry" name="work_permit_expiry"
-                                       value="{{ employee.work_permit_expiry.strftime('%Y-%m-%d') if employee and employee.work_permit_expiry else '' }}" required>
+                                       value="{{ form_data.get('work_permit_expiry') if form_data else (employee.work_permit_expiry.strftime('%Y-%m-%d') if employee and employee.work_permit_expiry else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="work_permit_number" class="form-label">Work Permit Number</label>
@@ -345,12 +345,12 @@
                             <div class="form-grid-item">
                                 <label for="hazmat_expiry" class="form-label">HAZMAT Expiry Date</label>
                                 <input type="date" class="form-control" id="hazmat_expiry" name="hazmat_expiry"
-                                       value="{{ form_data.get('hazmat_expiry') if form_data else (employee.hazmat_expiry.strftime('%Y-%m-%d') if employee and employee.hazmat_expiry else '') }}">
+                                       value="{{ form_data.get('hazmat_expiry') if form_data else (employee.hazmat_expiry.strftime('%Y-%m-%d') if employee and employee.hazmat_expiry else '') | default('') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="airport_pass_expiry" class="form-label">Airport Pass Expiry Date</label>
                                 <input type="date" class="form-control" id="airport_pass_expiry" name="airport_pass_expiry"
-                                       value="{{ form_data.get('airport_pass_expiry') if form_data else (employee.airport_pass_expiry.strftime('%Y-%m-%d') if employee and employee.airport_pass_expiry else '') }}">
+                                       value="{{ form_data.get('airport_pass_expiry') if form_data else (employee.airport_pass_expiry.strftime('%Y-%m-%d') if employee and employee.airport_pass_expiry else '') | default('') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="psa_pass_number" class="form-label">PSA PASS NO</label>
@@ -361,7 +361,7 @@
                             <div class="form-grid-item">
                                 <label for="psa_pass_expiry" class="form-label">PSA PASS NO Expiry Date</label>
                                 <input type="date" class="form-control" id="psa_pass_expiry" name="psa_pass_expiry"
-                                       value="{{ form_data.get('psa_pass_expiry') if form_data else (employee.psa_pass_expiry.strftime('%Y-%m-%d') if employee and employee.psa_pass_expiry else '') }}">
+                                       value="{{ form_data.get('psa_pass_expiry') if form_data else (employee.psa_pass_expiry.strftime('%Y-%m-%d') if employee and employee.psa_pass_expiry else '') | default('') }}">
                             </div>
                         </div>
                     </div>
