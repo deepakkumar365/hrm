@@ -233,6 +233,10 @@ a:hover {
     position: relative;
 }
 
+.navbar-nav .nav-item.dropdown {
+    position: relative;
+}
+
 .navbar-nav .nav-link {
     font-family: var(--font-family);
     font-size: 0.875rem; /* 14px */
@@ -326,6 +330,32 @@ a:hover {
     font-size: 0.875rem; /* 14px */
 }
 
+/* Logout Icon Button */
+.navbar-nav .logout-icon-btn {
+    padding: var(--spacing-2) var(--spacing-3) !important;
+    font-size: 1rem; /* 16px - slightly larger than regular nav links */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    margin-right: var(--spacing-1);
+}
+
+.navbar-nav .logout-icon-btn:hover,
+.navbar-nav .logout-icon-btn:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: var(--white) !important;
+    transform: scale(1.1);
+}
+
+.navbar-nav .logout-icon-btn i {
+    font-size: 1rem;
+    color: var(--white);
+}
+
 /* Mobile Navigation Toggle */
 .navbar-toggler {
     border: none;
@@ -359,15 +389,32 @@ a:hover {
         box-shadow: 0 4px 16px rgba(0,0,0,0.12);
         border-radius: 0 0 12px 12px;
     }
-    .navbar-nav .nav-link,
-    .navbar-nav .dropdown-item {
+    .navbar-nav .nav-link {
         color: var(--text-white) !important;
     }
     .navbar-nav .dropdown-menu {
-        background: var(--secondary) !important;
-        color: var(--text-white) !important;
+        background: var(--white) !important;
+        color: var(--text-primary) !important;
         box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-        border: 1px solid var(--accent) !important;
+        border: 1px solid var(--border-color) !important;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        min-width: 200px;
+        display: none;
+        z-index: 1050;
+    }
+    /* Show dropdown when active */
+    .navbar-nav .dropdown-menu.show {
+        display: block !important;
+    }
+    .navbar-nav .dropdown-item {
+        color: var(--text-primary) !important;
+    }
+    .navbar-nav .dropdown-item:hover,
+    .navbar-nav .dropdown-item:focus {
+        background-color: var(--grey-100) !important;
+        color: var(--primary) !important;
     }
 }
 

@@ -297,8 +297,9 @@
                         <!-- End of Regular Admin/Manager/User Menus -->
                     </ul>
 
-                    <!-- Profile Dropdown -->
+                    <!-- Profile Dropdown + Logout Icon -->
                     <ul class="navbar-nav">
+                        <!-- Profile Dropdown -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <span class="profile-image-container">
@@ -330,6 +331,13 @@
                                     Logout
                                 </a></li>
                             </ul>
+                        </li>
+
+                        <!-- Direct Logout Icon -->
+                        <li class="nav-item">
+                            <a class="nav-link logout-icon-btn" href="{{ url_for('logout') }}" title="Logout">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </a>
                         </li>
                     </ul>
                 </div>

@@ -793,7 +793,7 @@ def employee_add():
             phone = request.form.get('phone', '').strip()
             employee.email = email if email else None
             employee.phone = request.form.get('phone')
-            employee.nric = nric
+            employee.nric = nric if nric else None
             employee.date_of_birth = parse_date(
                 request.form.get('date_of_birth'))
             employee.gender = request.form.get('gender')
@@ -2818,7 +2818,7 @@ def claims_approve(claim_id):
     return redirect(url_for('claims_list'))
 
 
-# Appraisal Management Routes
+# Appraisal Management Routes  
 @app.route('/appraisal')
 @require_login
 def appraisal_list():
@@ -2857,29 +2857,13 @@ def appraisal_create():
                 request.form.get('review_period_start'))
             appraisal.review_period_end = parse_date(
                 request.form.get('review_period_end'))
-            
-            # Ratings (convert to int with default 0)
-            appraisal.goals_achievement = int(request.form.get('goals_achievement', '0') or '0')
-            appraisal.teamwork_rating = int(request.form.get('teamwork_rating', '0') or '0')
-            appraisal.communication_rating = int(request.form.get('communication_rating', '0') or '0')
-            appraisal.overall_rating = int(request.form.get('overall_rating', '0') or '0')
-            
-            # Text fields
-            appraisal.self_review = (request.form.get('self_review') or '').strip() or None
-            appraisal.manager_feedback = (request.form.get('manager_feedback') or '').strip() or None
-            appraisal.development_goals = (request.form.get('development_goals') or '').strip() or None
-            appraisal.training_recommendations = (request.form.get('training_recommendations') or '').strip() or None
-            
+            appraisal.comments = request.form.get('comments')
             db.session.add(appraisal)
             db.session.commit()
-            
-            flash('Appraisal created successfully', 'success')
+            flash('Appraisal created successfully!', 'success')
             return redirect(url_for('appraisal_list'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error creating appraisal: {str(e)}', 'danger')
-            return redirect(url_for('appraisal_list'))
-    
-    # GET request - show form
+            flash(f'Error: {str(e)}', 'error')
     employees = Employee.query.all()
     return render_template('appraisal/create.html', employees=employees)
