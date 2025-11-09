@@ -643,6 +643,9 @@ def employee_add():
     """Add new employee"""
     if request.method == 'POST':
         try:
+            # Ensure we start with a clean transaction state
+            db.session.rollback()
+            
             # Validation: Check required fields
             first_name = request.form.get('first_name', '').strip()
             last_name = request.form.get('last_name', '').strip()
@@ -736,8 +739,9 @@ def employee_add():
                     # Use company-specific ID sequence
                     try:
                         employee.employee_id = get_company_employee_id(company_id, company.code, db.session)
-                    except Exception as e:
-                        # Fallback to old method if something goes wrong
+                    except Exception as id_error:
+                        # If ID generation fails, rollback and use fallback method
+                        db.session.rollback()
                         employee.employee_id = generate_employee_id(company.code)
                 else:
                     # Company not found
@@ -806,8 +810,11 @@ def employee_add():
             if work_permit_number:
                 employee.work_permit_number = work_permit_number
 
+            work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
+            else:
+                employee.work_permit_expiry = None
 
             # Handle certifications and pass renewals
             hazmat_expiry = request.form.get('hazmat_expiry')
@@ -1156,6 +1163,9 @@ def employee_edit(employee_id):
 
     if request.method == 'POST':
         try:
+            # Ensure we start with a clean transaction state
+            db.session.rollback()
+            
             # Validation: Check required fields
             first_name = request.form.get('first_name', '').strip()
             last_name = request.form.get('last_name', '').strip()
@@ -2847,70 +2857,29 @@ def appraisal_create():
                 request.form.get('review_period_start'))
             appraisal.review_period_end = parse_date(
                 request.form.get('review_period_end'))
-            appraisal.performance_rating = int(
-                request.form.get('performance_rating', '0'))
-            appraisal.goals_achievement = int(
-                request.form.get('goals_achievement', '0'))
-            appraisal.teamwork_rating = int(
-                request.form.get('teamwork_rating', '0'))
-            appraisal.comments = request.form.get('comments', '')
-
+            
+            # Ratings (convert to int with default 0)
+            appraisal.goals_achievement = int(request.form.get('goals_achievement', '0') or '0')
+            appraisal.teamwork_rating = int(request.form.get('teamwork_rating', '0') or '0')
+            appraisal.communication_rating = int(request.form.get('communication_rating', '0') or '0')
+            appraisal.overall_rating = int(request.form.get('overall_rating', '0') or '0')
+            
+            # Text fields
+            appraisal.self_review = (request.form.get('self_review') or '').strip() or None
+            appraisal.manager_feedback = (request.form.get('manager_feedback') or '').strip() or None
+            appraisal.development_goals = (request.form.get('development_goals') or '').strip() or None
+            appraisal.training_recommendations = (request.form.get('training_recommendations') or '').strip() or None
+            
             db.session.add(appraisal)
             db.session.commit()
+            
             flash('Appraisal created successfully', 'success')
             return redirect(url_for('appraisal_list'))
-
         except Exception as e:
             db.session.rollback()
-            flash(f'Error creating appraisal: {str(e)}', 'error')
-
-    employees = Employee.query.order_by(Employee.first_name).all()
-    return render_template('appraisal/create.html', employees=employees)
-
-
-@app.route('/appraisal/<int:appraisal_id>/edit', methods=['GET', 'POST'])
-@require_login
-def appraisal_edit(appraisal_id):
-    """Edit appraisal"""
-    appraisal = Appraisal.query.get_or_404(appraisal_id)
-
-    if request.method == 'POST':
-        try:
-            appraisal.review_period_start = parse_date(
-                request.form.get('review_period_start'))
-            appraisal.review_period_end = parse_date(
-                request.form.get('review_period_end'))
-            appraisal.performance_rating = int(
-                request.form.get('performance_rating', '0'))
-            appraisal.goals_achievement = int(
-                request.form.get('goals_achievement', '0'))
-            appraisal.teamwork_rating = int(
-                request.form.get('teamwork_rating', '0'))
-            appraisal.comments = request.form.get('comments', '')
-
-            db.session.commit()
-            flash('Appraisal updated successfully', 'success')
+            flash(f'Error creating appraisal: {str(e)}', 'danger')
             return redirect(url_for('appraisal_list'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating appraisal: {str(e)}', 'error')
-
-    return render_template('appraisal/edit.html', appraisal=appraisal)
-
-
-@app.route('/appraisal/<int:appraisal_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
-def appraisal_delete(appraisal_id):
-    """Delete appraisal"""
-    appraisal = Appraisal.query.get_or_404(appraisal_id)
-
-    try:
-        db.session.delete(appraisal)
-        db.session.commit()
-        flash('Appraisal deleted successfully', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error deleting appraisal: {str(e)}', 'error')
-
-    return redirect(url_for('appraisal_list'))
+    
+    # GET request - show form
+    employees = Employee.query.all()
+    return render_template('appraisal/create.html', employees=employees)
