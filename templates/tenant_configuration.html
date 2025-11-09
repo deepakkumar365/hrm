@@ -115,7 +115,7 @@
                                 <div class="mb-3">
                                     <label for="empIdPrefix" class="form-label">Prefix</label>
                                     <input type="text" id="empIdPrefix" class="form-control" 
-                                           value="{{ config.employee_id_prefix }}" maxlength="50"
+                                           value="{{ config.employee_id_prefix or '' }}" maxlength="50"
                                            placeholder="e.g., EMP">
                                     <small class="text-muted">Starting letters for Employee ID</small>
                                 </div>
@@ -132,7 +132,7 @@
                                 <div class="mb-3">
                                     <label for="empIdSeparator" class="form-label">Separator</label>
                                     <input type="text" id="empIdSeparator" class="form-control" 
-                                           value="{{ config.employee_id_separator }}" maxlength="5"
+                                           value="{{ config.employee_id_separator or '' }}" maxlength="5"
                                            placeholder="-"
                                            onchange="updateEmployeeIDPreview()">
                                     <small class="text-muted">Character(s) to separate components</small>
@@ -141,7 +141,7 @@
                                 <div class="mb-3">
                                     <label for="empIdPadLength" class="form-label">Number Padding Length</label>
                                     <input type="number" id="empIdPadLength" class="form-control" 
-                                           value="{{ config.employee_id_pad_length }}" min="1" max="10"
+                                           value="{{ config.employee_id_pad_length or 4 }}" min="1" max="10"
                                            onchange="updateEmployeeIDPreview()">
                                     <small class="text-muted">Number of zeros to pad (e.g., 0001)</small>
                                 </div>
@@ -252,7 +252,7 @@
                                     <label for="generalOTRate" class="form-label">General Overtime Rate</label>
                                     <div class="input-group">
                                         <input type="number" id="generalOTRate" class="form-control" 
-                                               value="{{ '%.2f' % config.general_overtime_rate }}" 
+                                               value="{{ '%.2f' % (config.general_overtime_rate or 1.5) }}" 
                                                step="0.01" min="0">
                                         <span class="input-group-text">x</span>
                                     </div>
@@ -267,7 +267,7 @@
                                     <label for="holidayOTRate" class="form-label">Holiday Overtime Rate</label>
                                     <div class="input-group">
                                         <input type="number" id="holidayOTRate" class="form-control" 
-                                               value="{{ '%.2f' % config.holiday_overtime_rate }}" 
+                                               value="{{ '%.2f' % (config.holiday_overtime_rate or 2.0) }}" 
                                                step="0.01" min="0">
                                         <span class="input-group-text">x</span>
                                     </div>
@@ -282,7 +282,7 @@
                                     <label for="weekendOTRate" class="form-label">Weekend Overtime Rate</label>
                                     <div class="input-group">
                                         <input type="number" id="weekendOTRate" class="form-control" 
-                                               value="{{ '%.2f' % config.weekend_overtime_rate }}" 
+                                               value="{{ '%.2f' % (config.weekend_overtime_rate or 2.0) }}" 
                                                step="0.01" min="0">
                                         <span class="input-group-text">x</span>
                                     </div>
