@@ -1,7 +1,7 @@
 """Add designation_id column to hrm_employee table
 
 Revision ID: add_designation_to_employee
-Revises: 2be68655c2bb
+Revises: add_is_manager
 Create Date: 2024-01-16 10:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_designation_to_employee'
-down_revision = 'add_payroll_enhancements'
+down_revision = 'add_is_manager'
 branch_labels = None
 depends_on = None
 

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit" if group else "Add" }} Employee Group - HRMS{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4>
+                        <i class="fas fa-users me-2"></i>
+                        {{ "Edit" if group else "Add" }} Employee Group
+                    </h4>
+                    {% if company %}
+                    <p class="text-muted mb-0">Company: <strong>{{ company.name }}</strong> ({{ company.code }})</p>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('employee_group_list', company_id=company.id) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <!-- Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Employee Group Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Group Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       value="{{ group.name if group else '' }}"
+                                       placeholder="e.g., Sales Team, Engineering, Support"
+                                       required>
+                                <small class="text-muted">Name of the employee group</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label">Category *</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">-- Select Category --</option>
+                                    <option value="Department" {% if group and group.category == 'Department' %}selected{% endif %}>Department</option>
+                                    <option value="Grade" {% if group and group.category == 'Grade' %}selected{% endif %}>Grade</option>
+                                    <option value="Shift" {% if group and group.category == 'Shift' %}selected{% endif %}>Shift</option>
+                                    <option value="Location" {% if group and group.category == 'Location' %}selected{% endif %}>Location</option>
+                                    <option value="Team" {% if group and group.category == 'Team' %}selected{% endif %}>Team</option>
+                                    <option value="Other" {% if group and group.category == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                                <small class="text-muted">Type/category of the group</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Optional description or notes about this group">{{ group.description if group else '' }}</textarea>
+                            <small class="text-muted">Additional details about this group</small>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('employee_group_list', company_id=company.id) }}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {{ "Update" if group else "Create" }} Employee Group
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Guidelines
+                    </h6>
+                </div>
+                <div class="card-body small">
+                    <p class="mb-2"><strong>Group Name:</strong> A descriptive name for the group that employees will belong to</p>
+                    <p class="mb-2"><strong>Category:</strong> The type of grouping (Department, Grade, Shift, etc.)</p>
+                    <p class="mb-0"><strong>Description:</strong> Additional context about the group's purpose or membership criteria</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+</script>
+{% endblock %}

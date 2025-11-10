@@ -1,7 +1,7 @@
 """Make employee email nullable
 
 Revision ID: make_email_nullable
-Revises: 2be68655c2bb
+Revises: fix_nric_null_unique
 Create Date: 2024-01-15 12:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'make_email_nullable'
-down_revision = ('2be68655c2bb',)
+down_revision = 'fix_nric_null_unique'
 branch_labels = None
 depends_on = None
 

@@ -1,7 +1,7 @@
 """Add payroll configuration enhancements and employee bank info
 
 Revision ID: add_payroll_enhancements
-Revises: 
+Revises: add_designation_to_employee
 Create Date: 2024-01-15 10:00:00.000000
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_payroll_enhancements'
-down_revision = 'add_payroll_config'
+down_revision = 'add_designation_to_employee'
 branch_labels = None
 depends_on = None
 

@@ -1,0 +1,78 @@
+MIGRATION CHAIN SUMMARY - CORRECTED
+====================================
+
+MAIN CHAIN (Linear):
+1. 28f425a665b2_initial_schema_creation 
+   ↓ down_revision = None
+
+2. fix_nric_null_unique
+   ↓ down_revision = '28f425a665b2'
+
+3. add_is_manager
+   ↓ down_revision = 'fix_nric_null_unique'
+
+4. add_designation_to_employee  
+   ↓ down_revision = 'add_is_manager'
+
+5. make_email_nullable
+   ↓ down_revision = 'add_designation_to_employee'
+
+6. add_payroll_enhancements
+   ↓ down_revision = 'make_email_nullable'
+
+7. add_payroll_config
+   ↓ down_revision = 'add_payroll_enhancements'
+
+8. add_payroll_indexes
+   ↓ down_revision = 'add_designation_to_employee' (NEEDS FIX - circular!)
+
+9. add_attendance_lop_payroll_fields
+   ↓ down_revision = 'add_payroll_indexes'
+
+10. add_tenant_configuration
+    ↓ down_revision = 'add_attendance_lop_payroll_fields'
+
+11. add_overtime_group_id
+    ↓ down_revision = 'add_tenant_configuration'
+
+12. 005_add_tenant_company_hierarchy
+    ↓ down_revision = 'add_overtime_group_id'
+
+13. 006_add_tenant_country_currency
+    ↓ down_revision = '005_add_tenant_company_hierarchy'
+
+14. 007_add_tenant_payment_and_documents
+    ↓ down_revision = '006_add_tenant_country_currency'
+
+15. 008_insert_tenant_company_test_data
+    ↓ down_revision = '007_add_tenant_payment_and_documents'
+
+16. add_certification_pass_renewal
+    ↓ down_revision = '008_insert_tenant_company_test_data'
+
+17. add_company_employee_id_config
+    ↓ down_revision = 'add_certification_pass_renewal'
+
+18. leave_allocation_001
+    ↓ down_revision = 'add_company_employee_id_config'
+
+SEPARATE CHAIN (needs to be merged):
+- add_organization_logo (down_revision = '28f425a665b2')
+- add_org_address_uen (down_revision = 'add_organization_logo')
+- remove_role_column (down_revision = 'add_org_address_uen')
+- add_enhancements_fields (down_revision = 'remove_role_column')
+- add_payroll_config (down_revision = 'add_enhancements_fields') - CONFLICT!
+
+ALSO REFERENCED:
+- add_leave_type_configuration (down_revision = 'add_certification_pass_renewal')
+- add_company_currency_code (down_revision = 'add_company_employee_id_config')
+
+ISSUES FOUND:
+1. add_payroll_indexes still has wrong reference (2be68655c2bb which doesn't exist)
+2. Circular dependency: add_payroll_config depends on add_payroll_enhancements BUT also referenced by add_enhancements_fields  
+3. Two separate chains need to be merged
+
+NEXT STEPS:
+- Fix add_payroll_indexes down_revision
+- Connect the organization/enhancements chain properly
+- Verify chain is linear without branches

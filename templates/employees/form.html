@@ -185,13 +185,8 @@
                             </div>
                             <div class="form-grid-item">
                                 <label for="manager_id" class="form-label">Reporting Manager</label>
-                                <select class="form-select" id="manager_id" name="manager_id">
+                                <select class="form-select" id="manager_id" name="manager_id" data-current-manager-id="{{ employee.manager_id if employee else '' }}">
                                     <option value="">Select Reporting Manager</option>
-                                    {% for manager in managers %}
-                                    <option value="{{ manager.id }}" {% if (form_data and form_data.get('manager_id') == manager.id|string) or (employee and employee.manager_id and employee.manager_id|string == manager.id|string and not form_data) %}selected{% endif %}>
-                                        {{ manager.first_name }} {{ manager.last_name }} - {{ manager.designation.name if manager.designation else '-' }}
-                                    </option>
-                                    {% endfor %}
                                 </select>
                             </div>
                             <div class="form-grid-item">
@@ -575,6 +570,61 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 {% endif %}
+</script>
+
+<!-- Manager Dropdown Filter by Company Script -->
+<script>
+// Function to load and update managers based on selected company
+function updateManagersByCompany() {
+    const companySelect = document.getElementById('company_id');
+    const managerSelect = document.getElementById('manager_id');
+    const currentManagerId = managerSelect.getAttribute('data-current-manager-id');
+    const companyId = companySelect.value;
+
+    if (!companyId) {
+        // Clear managers if no company is selected
+        managerSelect.innerHTML = '<option value="">Select Reporting Manager</option>';
+        return;
+    }
+
+    // Fetch managers for the selected company
+    fetch(`/api/employees/managers-by-company?company_id=${encodeURIComponent(companyId)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Build options from fetched managers
+                let optionsHTML = '<option value="">Select Reporting Manager</option>';
+                
+                data.managers.forEach(manager => {
+                    optionsHTML += `<option value="${manager.id}">${manager.name} - ${manager.designation}</option>`;
+                });
+                
+                managerSelect.innerHTML = optionsHTML;
+                
+                // Re-select the current manager if editing
+                if (currentManagerId) {
+                    managerSelect.value = currentManagerId;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching managers:', error);
+            managerSelect.innerHTML = '<option value="">Error loading managers</option>';
+        });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const companySelect = document.getElementById('company_id');
+    
+    // Initial load: populate managers if company is already selected
+    if (companySelect.value) {
+        updateManagersByCompany();
+    }
+    
+    // Listen for company changes
+    companySelect.addEventListener('change', updateManagersByCompany);
+});
 </script>
 
 <!-- Work Permit Fields Conditional Requirement Script -->

@@ -1,7 +1,7 @@
 """Add is_manager column to hrm_employee table
 
 Revision ID: add_is_manager
-Revises: 
+Revises: make_email_nullable
 Create Date: 2024-01-20 10:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_is_manager'
-down_revision = None
+down_revision = 'make_email_nullable'
 branch_labels = None
 depends_on = None
 

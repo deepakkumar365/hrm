@@ -31,6 +31,8 @@ import routes_bulk_upload  # noqa: F401 - Employee bulk upload functionality
 import routes_access_control  # noqa: F401 - Access Control Management
 import routes_tenant_config  # noqa: F401 - Tenant configuration and advanced features
 import routes_leave  # noqa: F401 - Leave management routes
+import routes_employee_group  # noqa: F401 - Employee Group master management
+import routes_leave_allocation  # noqa: F401 - Leave allocation configuration
 import cli_commands  # noqa: F401 - CLI commands for database management
 
 if __name__ == "__main__":

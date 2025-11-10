@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit" if allocation else "Add" }} Employee Group Leave Allocation - HRMS{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4>
+                        <i class="fas fa-users me-2"></i>
+                        {{ "Edit" if allocation else "Add" }} Employee Group Leave Allocation
+                    </h4>
+                    {% if company %}
+                    <p class="text-muted mb-0">Company: <strong>{{ company.name }}</strong> ({{ company.code }})</p>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('leave_allocation_employee_group_list', company_id=company.id) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <!-- Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>Allocation Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="employee_group_id" class="form-label">Employee Group *</label>
+                                <select class="form-select" id="employee_group_id" name="employee_group_id" required>
+                                    <option value="">-- Select Employee Group --</option>
+                                    {% for eg in employee_groups %}
+                                    <option value="{{ eg.id }}" {% if allocation and allocation.employee_group_id == eg.id %}selected{% endif %}>
+                                        {{ eg.name }} ({{ eg.category }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% if allocation %}<small class="text-muted">Cannot change existing allocation's employee group</small>{% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="leave_type_id" class="form-label">Leave Type *</label>
+                                <select class="form-select" id="leave_type_id" name="leave_type_id" required>
+                                    <option value="">-- Select Leave Type --</option>
+                                    {% for lt in leave_types %}
+                                    <option value="{{ lt.id }}" {% if allocation and allocation.leave_type_id == lt.id %}selected{% endif %}>
+                                        {{ lt.name }} ({{ lt.code }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% if allocation %}<small class="text-muted">Cannot change existing allocation's leave type</small>{% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="total_days" class="form-label">Total Days Available *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="total_days" name="total_days" 
+                                       value="{{ allocation.total_days if allocation else '' }}"
+                                       min="0" max="365"
+                                       required>
+                                <span class="input-group-text">days/year</span>
+                            </div>
+                            <small class="text-muted">Number of leave days available per year for employees in this group</small>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('leave_allocation_employee_group_list', company_id=company.id) }}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {{ "Update" if allocation else "Create" }} Allocation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Information
+                    </h6>
+                </div>
+                <div class="card-body small">
+                    <p class="mb-2"><strong>Employee Group:</strong> The group of employees for which you're setting leave allocation</p>
+                    <p class="mb-2"><strong>Leave Type:</strong> The type of leave (e.g., Annual Leave, Sick Leave) this allocation applies to</p>
+                    <p class="mb-0"><strong>Total Days:</strong> The number of days employees in this group get for this leave type per calendar year</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Disable employee group and leave type if editing
+{% if allocation %}
+document.getElementById('employee_group_id').disabled = true;
+document.getElementById('leave_type_id').disabled = true;
+{% endif %}
+
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+</script>
+{% endblock %}

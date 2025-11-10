@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Leave Configuration - Nexar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4>
+                        <i class="fas fa-calendar-alt me-2"></i>Leave Configuration
+                    </h4>
+                    <p class="text-muted mb-0">Configure leave types and annual allocations for your organization</p>
+                </div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <!-- Company Selector -->
+            {% if all_companies %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <label for="company_selector" class="form-label"><strong>Select Company</strong></label>
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <select class="form-select" id="company_selector" onchange="filterByCompany()">
+                                <option value="">-- All Companies --</option>
+                                {% for comp in all_companies %}
+                                <option value="{{ comp.id }}" {% if selected_company and comp.id == selected_company.id %}selected{% endif %}>
+                                    {{ comp.name }} ({{ comp.code }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{{ url_for('leave_configuration_form', company_id=selected_company.id if selected_company else all_companies[0].id) }}" class="btn btn-primary w-100">
+                                <i class="fas fa-plus me-1"></i>Add Leave Type
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Leave Types Table -->
+            <div class="card">
+                <div class="card-header card-header-green">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Leave Types
+                        {% if selected_company %}
+                        - {{ selected_company.name }}
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if leave_types %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Code</th>
+                                    <th>Annual Allocation</th>
+                                    <th>Description</th>
+                                    <th>Color</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lt in leave_types %}
+                                <tr>
+                                    <td><strong>{{ lt.name }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ lt.code }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ lt.annual_allocation }} days</strong>
+                                    </td>
+                                    <td>
+                                        {% if lt.description %}
+                                            {{ lt.description[:50] }}{% if lt.description|length > 50 %}...{% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="color-indicator" style="background-color: {{ lt.color }}; width: 30px; height: 30px; border-radius: 4px; border: 1px solid #ddd;" title="{{ lt.color }}"></div>
+                                    </td>
+                                    <td>
+                                        {% if lt.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ lt.created_at.strftime('%Y-%m-%d') if lt.created_at else '-' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('leave_configuration_form', id=lt.id, company_id=lt.company_id) }}" class="btn btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('leave_configuration_delete', leave_type_id=lt.id, company_id=lt.company_id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this leave type?');">
+                                                <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No leave types configured yet. 
+                        {% if all_companies %}
+                        <a href="{{ url_for('leave_configuration_form', company_id=selected_company.id if selected_company else all_companies[0].id) }}" class="alert-link">Create the first leave type</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Each leave type is specific to a company and cannot be shared across companies</li>
+                        <li>The <strong>Annual Allocation</strong> represents the number of days each employee gets per year for this leave type</li>
+                        <li>Use the <strong>Code</strong> (e.g., AL, SL, CL) as a short identifier for reporting purposes</li>
+                        <li>The <strong>Color</strong> will be used to visually distinguish leave types in calendars and reports</li>
+                        <li>Deactivate (rather than delete) leave types that are no longer in use to maintain historical records</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterByCompany() {
+    const companyId = document.getElementById('company_selector').value;
+    if (companyId) {
+        window.location.href = `{{ url_for('leave_configuration') }}?company_id=${companyId}`;
+    } else {
+        window.location.href = `{{ url_for('leave_configuration') }}`;
+    }
+}
+</script>
+{% endblock %}

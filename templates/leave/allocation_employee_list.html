@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Leave Allocation (Overrides) - HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4>
+                        <i class="fas fa-user-edit me-2"></i>Individual Employee Leave Allocation
+                    </h4>
+                    <p class="text-muted mb-0">Manage individual employee leave allocations (overrides)</p>
+                </div>
+                <a href="{{ url_for('leave_configuration') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <!-- Search -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="form-inline">
+                        <div class="input-group w-100">
+                            <input type="text" class="form-control" name="search" placeholder="Search by employee name or ID..." value="{{ search }}">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Allocations Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Employee Leave Allocations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if allocations.items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Employee ID</th>
+                                    <th>Employee Name</th>
+                                    <th>Leave Type</th>
+                                    <th>Allocated Days</th>
+                                    <th>Override Reason</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alloc in allocations.items %}
+                                <tr>
+                                    <td><strong>{{ alloc.employee.employee_id }}</strong></td>
+                                    <td>{{ alloc.employee.first_name }} {{ alloc.employee.last_name }}</td>
+                                    <td>{{ alloc.leave_type.name }}</td>
+                                    <td>
+                                        <span class="badge bg-success" style="font-size: 1.1em;">{{ alloc.total_days }} days</span>
+                                    </td>
+                                    <td>
+                                        {% if alloc.override_reason %}
+                                            <small>{{ alloc.override_reason[:50] }}{% if alloc.override_reason|length > 50 %}...{% endif %}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ alloc.created_at.strftime('%Y-%m-%d') if alloc.created_at else '-' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <form method="POST" action="{{ url_for('leave_allocation_employee_delete', allocation_id=alloc.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this allocation?');">
+                                                <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if allocations.pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if allocations.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('leave_allocation_employee_list', page=allocations.prev_num, search=search) }}">Previous</a>
+                            </li>
+                            {% endif %}
+
+                            {% for page_num in allocations.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num == allocations.page %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('leave_allocation_employee_list', page=page_num, search=search) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if allocations.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('leave_allocation_employee_list', page=allocations.next_num, search=search) }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No individual employee leave allocations found. Individual allocations are typically created when an employee needs an exception to the standard designation or group allocation.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>About Individual Allocations
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Individual allocations allow you to override the default allocation for a specific employee</li>
+                        <li>These are used for exceptions where an employee's leave allocation differs from their designation or group</li>
+                        <li>For example: An employee might get additional leave days for being a senior member or for other reasons</li>
+                        <li>Individual allocations take precedence over designation and employee group allocations</li>
+                        <li>Use the override reason field to document why an employee has a custom allocation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

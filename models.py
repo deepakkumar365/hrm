@@ -357,6 +357,9 @@ class Employee(db.Model):
     
     # Overtime Configuration
     overtime_group_id = db.Column(db.String(50), nullable=True)  # Group mapping for overtime (e.g., "Group 1", "Group 2", etc.)
+    
+    # Employee Group for Leave Configuration
+    employee_group_id = db.Column(db.Integer, db.ForeignKey('hrm_employee_group.id'), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.now)
     modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -941,3 +944,181 @@ class TenantConfiguration(db.Model):
             'holiday_overtime_rate': float(self.holiday_overtime_rate),
             'weekend_overtime_rate': float(self.weekend_overtime_rate),
         }
+
+
+class LeaveType(db.Model):
+    """Leave Type Configuration - per Company"""
+    __tablename__ = 'hrm_leave_type'
+    __table_args__ = (
+        Index('idx_hrm_leave_type_company_id', 'company_id'),
+        Index('idx_hrm_leave_type_is_active', 'is_active'),
+        UniqueConstraint('company_id', 'name', name='uq_leave_type_company_name'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    code = db.Column(db.String(20), nullable=False)  # e.g., 'AL', 'SL', 'CL', 'EL'
+    description = db.Column(db.Text, nullable=True)
+    annual_allocation = db.Column(db.Integer, default=0)  # Number of days per year
+    color = db.Column(db.String(20), default='#3498db')  # For UI display
+    is_active = db.Column(db.Boolean, default=True)
+    
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100), nullable=True)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+
+    company = db.relationship('Company', foreign_keys=[company_id])
+
+    def __repr__(self):
+        return f'<LeaveType {self.name} for Company {self.company_id}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'company_id': str(self.company_id),
+            'name': self.name,
+            'code': self.code,
+            'description': self.description,
+            'annual_allocation': self.annual_allocation,
+            'color': self.color,
+            'is_active': self.is_active,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'modified_by': self.modified_by,
+            'modified_at': self.modified_at.isoformat() if self.modified_at else None,
+        }
+
+
+class EmployeeGroup(db.Model):
+    """Employee Groups for Leave Configuration and other groupings"""
+    __tablename__ = 'hrm_employee_group'
+    __table_args__ = (
+        Index('idx_hrm_employee_group_company_id', 'company_id'),
+        Index('idx_hrm_employee_group_is_active', 'is_active'),
+        UniqueConstraint('company_id', 'name', name='uq_employee_group_company_name'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), nullable=False)  # e.g., 'Department', 'Grade', 'Shift', etc.
+    description = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100), nullable=True)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+
+    company = db.relationship('Company', foreign_keys=[company_id])
+    employees = db.relationship('Employee', backref='employee_group', cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<EmployeeGroup {self.name} ({self.category}) for Company {self.company_id}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'company_id': str(self.company_id),
+            'name': self.name,
+            'category': self.category,
+            'description': self.description,
+            'is_active': self.is_active,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'modified_by': self.modified_by,
+            'modified_at': self.modified_at.isoformat() if self.modified_at else None,
+        }
+
+
+class DesignationLeaveAllocation(db.Model):
+    """Leave allocation for a designation - per company and leave type"""
+    __tablename__ = 'hrm_designation_leave_allocation'
+    __table_args__ = (
+        Index('idx_designation_leave_alloc_company', 'company_id'),
+        Index('idx_designation_leave_alloc_designation', 'designation_id'),
+        Index('idx_designation_leave_alloc_leave_type', 'leave_type_id'),
+        UniqueConstraint('company_id', 'designation_id', 'leave_type_id', 
+                        name='uq_designation_leave_type'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    designation_id = db.Column(db.Integer, db.ForeignKey('hrm_designation.id', ondelete='CASCADE'), nullable=False)
+    leave_type_id = db.Column(db.Integer, db.ForeignKey('hrm_leave_type.id', ondelete='CASCADE'), nullable=False)
+    
+    total_days = db.Column(db.Integer, nullable=False)  # Total days available for this designation-leave type combo
+    
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100), nullable=True)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+
+    company = db.relationship('Company', foreign_keys=[company_id])
+    designation = db.relationship('Designation')
+    leave_type = db.relationship('LeaveType')
+
+    def __repr__(self):
+        return f'<DesignationLeaveAllocation designation={self.designation_id} leave_type={self.leave_type_id}>'
+
+
+class EmployeeGroupLeaveAllocation(db.Model):
+    """Leave allocation for an employee group - per company and leave type"""
+    __tablename__ = 'hrm_employee_group_leave_allocation'
+    __table_args__ = (
+        Index('idx_emp_group_leave_alloc_company', 'company_id'),
+        Index('idx_emp_group_leave_alloc_group', 'employee_group_id'),
+        Index('idx_emp_group_leave_alloc_leave_type', 'leave_type_id'),
+        UniqueConstraint('company_id', 'employee_group_id', 'leave_type_id', 
+                        name='uq_employee_group_leave_type'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    employee_group_id = db.Column(db.Integer, db.ForeignKey('hrm_employee_group.id', ondelete='CASCADE'), nullable=False)
+    leave_type_id = db.Column(db.Integer, db.ForeignKey('hrm_leave_type.id', ondelete='CASCADE'), nullable=False)
+    
+    total_days = db.Column(db.Integer, nullable=False)  # Total days available for this group-leave type combo
+    
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100), nullable=True)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+
+    company = db.relationship('Company', foreign_keys=[company_id])
+    employee_group = db.relationship('EmployeeGroup')
+    leave_type = db.relationship('LeaveType')
+
+    def __repr__(self):
+        return f'<EmployeeGroupLeaveAllocation emp_group={self.employee_group_id} leave_type={self.leave_type_id}>'
+
+
+class EmployeeLeaveAllocation(db.Model):
+    """Individual employee leave allocation - allows override of designation/group allocation"""
+    __tablename__ = 'hrm_employee_leave_allocation'
+    __table_args__ = (
+        Index('idx_emp_leave_alloc_employee', 'employee_id'),
+        Index('idx_emp_leave_alloc_leave_type', 'leave_type_id'),
+        UniqueConstraint('employee_id', 'leave_type_id', 
+                        name='uq_employee_leave_type'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
+    leave_type_id = db.Column(db.Integer, db.ForeignKey('hrm_leave_type.id', ondelete='CASCADE'), nullable=False)
+    
+    total_days = db.Column(db.Integer, nullable=False)  # Overridden total days for this employee
+    override_reason = db.Column(db.Text, nullable=True)  # Why this employee has a different allocation
+    
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100), nullable=True)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+
+    employee = db.relationship('Employee')
+    leave_type = db.relationship('LeaveType')
+
+    def __repr__(self):
+        return f'<EmployeeLeaveAllocation employee={self.employee_id} leave_type={self.leave_type_id}>'

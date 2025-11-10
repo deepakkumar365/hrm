@@ -6,7 +6,7 @@ This migration:
 3. Preserves existing employee ID sequences
 
 Revision ID: add_company_employee_id_config
-Revises: add_certification_pass_renewal_fields
+Revises: add_certification_pass_renewal
 Create Date: 2025-01-23 10:00:00.000000
 
 """
@@ -17,7 +17,7 @@ from datetime import datetime
 
 # revision identifiers, used by Alembic.
 revision = 'add_company_employee_id_config'
-down_revision = 'add_certification_pass_renewal_fields'
+down_revision = 'add_certification_pass_renewal'
 branch_labels = None
 depends_on = None
 

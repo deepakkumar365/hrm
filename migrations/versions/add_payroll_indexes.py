@@ -1,7 +1,7 @@
 """Add performance indexes to payroll tables
 
 Revision ID: add_payroll_indexes
-Revises: 2be68655c2bb
+Revises: add_payroll_enhancements
 Create Date: 2024-01-24 10:00:00.000000
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_payroll_indexes'
-down_revision = 'add_designation_to_employee'
+down_revision = 'add_payroll_enhancements'
 branch_labels = None
 depends_on = None
 

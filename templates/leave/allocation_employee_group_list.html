@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Group Leave Allocation - HRMS{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4>
+                        <i class="fas fa-users me-2"></i>Employee Group Leave Allocation
+                    </h4>
+                    <p class="text-muted mb-0">Configure leave days available for each employee group and leave type</p>
+                </div>
+                <a href="{{ url_for('leave_configuration') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <!-- Company and Employee Group Selector -->
+            {% if companies %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        <div class="col-md-4">
+                            <label for="company_selector" class="form-label"><strong>Select Company</strong></label>
+                            <select class="form-select" id="company_selector" onchange="filterByCompany()">
+                                <option value="">-- All Companies --</option>
+                                {% for comp in companies %}
+                                <option value="{{ comp.id }}" {% if company and comp.id == company.id %}selected{% endif %}>
+                                    {{ comp.name }} ({{ comp.code }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="employee_group_selector" class="form-label"><strong>Filter by Employee Group</strong></label>
+                            <select class="form-select" id="employee_group_selector" onchange="filterByEmployeeGroup()">
+                                <option value="">-- All Employee Groups --</option>
+                                {% for eg in employee_groups %}
+                                <option value="{{ eg.id }}" {% if selected_employee_group_id and eg.id == selected_employee_group_id %}selected{% endif %}>
+                                    {{ eg.name }} ({{ eg.category }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('leave_allocation_employee_group_form', company_id=company.id if company else companies[0].id) }}" class="btn btn-primary w-100">
+                                <i class="fas fa-plus me-1"></i>Add Allocation
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Allocations Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Leave Allocations by Employee Group
+                        {% if company %}
+                        - {{ company.name }}
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if allocations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Employee Group</th>
+                                    <th>Category</th>
+                                    <th>Leave Type</th>
+                                    <th>Total Days</th>
+                                    <th>Leave Code</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alloc in allocations %}
+                                <tr>
+                                    <td><strong>{{ alloc.employee_group.name }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-info">{{ alloc.employee_group.category }}</span>
+                                    </td>
+                                    <td>{{ alloc.leave_type.name }}</td>
+                                    <td>
+                                        <span class="badge bg-success" style="font-size: 1.1em;">{{ alloc.total_days }} days</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ alloc.leave_type.code }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ alloc.created_at.strftime('%Y-%m-%d') if alloc.created_at else '-' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('leave_allocation_employee_group_form', company_id=alloc.company_id, allocation_id=alloc.id) }}" class="btn btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('leave_allocation_employee_group_delete', allocation_id=alloc.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this allocation?');">
+                                                <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No leave allocations configured yet.
+                        {% if companies %}
+                        <a href="{{ url_for('leave_allocation_employee_group_form', company_id=company.id if company else companies[0].id) }}" class="alert-link">Create the first allocation</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>How It Works
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Configure the number of leave days available for each employee group-leave type combination</li>
+                        <li>For example: "Marketing Team" employees get 15 days of "Casual Leave" per year</li>
+                        <li>All employees in that group will automatically get this allocation</li>
+                        <li>Individual employee overrides can still be created if needed</li>
+                        <li>If both designation and employee group allocations exist for an employee, one will take priority based on configuration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterByCompany() {
+    const companyId = document.getElementById('company_selector').value;
+    if (companyId) {
+        window.location.href = `{{ url_for('leave_allocation_employee_group_list') }}?company_id=${companyId}`;
+    } else {
+        window.location.href = `{{ url_for('leave_allocation_employee_group_list') }}`;
+    }
+}
+
+function filterByEmployeeGroup() {
+    const employeeGroupId = document.getElementById('employee_group_selector').value;
+    const companyId = document.getElementById('company_selector').value;
+    const url = `{{ url_for('leave_allocation_employee_group_list') }}`;
+    const params = [];
+    if (employeeGroupId) params.push(`employee_group_id=${employeeGroupId}`);
+    if (companyId) params.push(`company_id=${companyId}`);
+    window.location.href = url + (params.length ? '?' + params.join('&') : '');
+}
+</script>
+{% endblock %}

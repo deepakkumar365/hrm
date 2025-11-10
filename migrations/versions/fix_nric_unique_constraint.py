@@ -1,7 +1,7 @@
 """Fix NRIC unique constraint to allow multiple NULL values
 
 Revision ID: fix_nric_null_unique
-Revises: 
+Revises: 28f425a665b2
 Create Date: 2024-01-01 00:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'fix_nric_null_unique'
-down_revision = None
+down_revision = '28f425a665b2'
 branch_labels = None
 depends_on = None
 

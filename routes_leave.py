@@ -2,8 +2,8 @@
 from flask import request, render_template, redirect, url_for, jsonify, flash
 from flask_login import current_user
 from app import app, db
-from models import Leave, Employee, User
-from auth import require_login
+from models import Leave, Employee, User, LeaveType, Company, Tenant
+from auth import require_login, require_role
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
 import logging
@@ -300,3 +300,255 @@ def api_leave_calendar_data():
     except Exception as e:
         logger.error(f"Error getting calendar data: {e}")
         return jsonify({'error': 'Error loading calendar data'}), 500
+
+
+# ==================== LEAVE CONFIGURATION ROUTES ====================
+
+# Leave Type Configuration - List View
+@app.route('/leave-configuration', methods=['GET'])
+@app.route('/leave-config', methods=['GET'])
+@require_login
+@require_role(['Tenant Admin', 'HR Manager', 'Super Admin'])
+def leave_configuration():
+    """List leave types - configure leaves for the current user's company/tenant"""
+    try:
+        # Check if LeaveType table exists
+        inspector = db.inspect(db.engine)
+        if 'hrm_leave_type' not in inspector.get_table_names():
+            logger.warning("LeaveType table does not exist. Please run database migrations.")
+            flash("Database not initialized. Please run: flask db upgrade", "warning")
+            return redirect(url_for('dashboard'))
+        
+        # Determine if user is Tenant Admin or HR Manager
+        company = None
+        tenant = None
+        
+        # Get tenant admin context
+        if hasattr(current_user, 'role') and current_user.role:
+            role_name = current_user.role.name if hasattr(current_user.role, 'name') else str(current_user.role)
+            
+            if role_name == 'Tenant Admin' or role_name == 'Super Admin':
+                # Get first tenant of the super admin or tenant's tenant
+                if role_name == 'Super Admin':
+                    # Super Admin can configure for all companies
+                    companies = Company.query.filter_by(is_active=True).all()
+                else:
+                    # Tenant Admin configuration
+                    tenants = Tenant.query.filter_by(is_active=True).all()
+                    company = None  # Will show all companies of first tenant
+            else:
+                # HR Manager - get their company
+                if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+                    company = current_user.employee_profile.company
+        
+        # Get company_id from query parameter if provided
+        company_id = request.args.get('company_id', type=str)
+        
+        if company_id:
+            company = Company.query.filter_by(id=company_id, is_active=True).first_or_404()
+        
+        # Get leave types
+        if company:
+            leave_types = LeaveType.query.filter_by(company_id=company.id).order_by(LeaveType.created_at.desc()).all()
+            companies = [company]
+        else:
+            leave_types = LeaveType.query.order_by(LeaveType.created_at.desc()).all()
+            companies = Company.query.filter_by(is_active=True).all()
+        
+        # Get all active companies for the dropdown
+        all_companies = Company.query.filter_by(is_active=True).all()
+        
+        return render_template('leave/configuration.html', 
+                             leave_types=leave_types, 
+                             companies=companies,
+                             all_companies=all_companies,
+                             selected_company=company)
+    except Exception as e:
+        logger.error(f"Error loading leave configuration: {e}")
+        flash(f"Error loading leave configuration: {str(e)}", "error")
+        return redirect(url_for('dashboard'))
+
+
+# Leave Type Configuration - Create/Edit
+@app.route('/leave-configuration/form', methods=['GET', 'POST'])
+@app.route('/leave-config/form', methods=['GET', 'POST'])
+@require_login
+@require_role(['Tenant Admin', 'HR Manager', 'Super Admin'])
+def leave_configuration_form():
+    """Create or edit a leave type"""
+    leave_type = None
+    
+    try:
+        leave_type_id = request.args.get('id', type=int)
+        company_id = request.args.get('company_id', type=str)
+        
+        # Validate company_id
+        if not company_id:
+            flash("Company is required", "error")
+            return redirect(url_for('leave_configuration'))
+        
+        company = Company.query.filter_by(id=company_id, is_active=True).first_or_404()
+        
+        # If editing, fetch the leave type
+        if leave_type_id:
+            leave_type = LeaveType.query.filter_by(id=leave_type_id, company_id=company_id).first_or_404()
+        
+        if request.method == 'POST':
+            name = request.form.get('name', '').strip()
+            code = request.form.get('code', '').strip().upper()
+            description = request.form.get('description', '').strip()
+            annual_allocation = request.form.get('annual_allocation', 0, type=int)
+            color = request.form.get('color', '#3498db').strip()
+            is_active = request.form.get('is_active') == 'on'
+            
+            # Validation
+            if not name:
+                flash("Leave type name is required", "error")
+                return render_template('leave/configuration_form.html', 
+                                     leave_type=leave_type, 
+                                     company=company)
+            
+            if not code:
+                flash("Leave type code is required", "error")
+                return render_template('leave/configuration_form.html', 
+                                     leave_type=leave_type, 
+                                     company=company)
+            
+            if annual_allocation < 0:
+                flash("Annual allocation cannot be negative", "error")
+                return render_template('leave/configuration_form.html', 
+                                     leave_type=leave_type, 
+                                     company=company)
+            
+            try:
+                if leave_type:
+                    # Update existing leave type
+                    leave_type.name = name
+                    leave_type.code = code
+                    leave_type.description = description
+                    leave_type.annual_allocation = annual_allocation
+                    leave_type.color = color
+                    leave_type.is_active = is_active
+                    leave_type.modified_by = current_user.username if hasattr(current_user, 'username') else 'system'
+                    leave_type.modified_at = datetime.now()
+                    
+                    db.session.commit()
+                    flash("Leave type updated successfully", "success")
+                else:
+                    # Check for duplicate
+                    existing = LeaveType.query.filter_by(
+                        company_id=company_id,
+                        name=name
+                    ).first()
+                    
+                    if existing:
+                        flash("A leave type with this name already exists for this company", "error")
+                        return render_template('leave/configuration_form.html', 
+                                             leave_type=leave_type, 
+                                             company=company)
+                    
+                    # Create new leave type
+                    leave_type = LeaveType(
+                        company_id=company_id,
+                        name=name,
+                        code=code,
+                        description=description,
+                        annual_allocation=annual_allocation,
+                        color=color,
+                        is_active=is_active,
+                        created_by=current_user.username if hasattr(current_user, 'username') else 'system'
+                    )
+                    
+                    db.session.add(leave_type)
+                    db.session.commit()
+                    flash("Leave type created successfully", "success")
+                
+                return redirect(url_for('leave_configuration', company_id=company_id))
+            
+            except Exception as e:
+                logger.error(f"Error saving leave type: {e}")
+                db.session.rollback()
+                flash("Error saving leave type", "error")
+                return render_template('leave/configuration_form.html', 
+                                     leave_type=leave_type, 
+                                     company=company)
+        
+        # GET request - show form
+        return render_template('leave/configuration_form.html', 
+                             leave_type=leave_type, 
+                             company=company)
+    
+    except Exception as e:
+        logger.error(f"Error in leave configuration form: {e}")
+        flash("Error loading form", "error")
+        return redirect(url_for('leave_configuration'))
+
+
+# Leave Type Configuration - Delete
+@app.route('/leave-configuration/<int:leave_type_id>/delete', methods=['POST'])
+@app.route('/leave-config/<int:leave_type_id>/delete', methods=['POST'])
+@require_login
+@require_role(['Tenant Admin', 'HR Manager', 'Super Admin'])
+def leave_configuration_delete(leave_type_id):
+    """Delete a leave type"""
+    try:
+        company_id = request.args.get('company_id', type=str)
+        
+        if not company_id:
+            flash("Company is required", "error")
+            return redirect(url_for('leave_configuration'))
+        
+        leave_type = LeaveType.query.filter_by(id=leave_type_id, company_id=company_id).first_or_404()
+        
+        # Check if leave type is being used in leave requests
+        leave_count = Leave.query.filter_by(leave_type=leave_type.name).count()
+        
+        if leave_count > 0:
+            # Don't delete, just deactivate
+            leave_type.is_active = False
+            leave_type.modified_by = current_user.username if hasattr(current_user, 'username') else 'system'
+            leave_type.modified_at = datetime.now()
+            db.session.commit()
+            flash(f"Leave type deactivated (cannot delete as it's used in {leave_count} leave request(s))", "info")
+        else:
+            # Safe to delete
+            db.session.delete(leave_type)
+            db.session.commit()
+            flash("Leave type deleted successfully", "success")
+        
+        return redirect(url_for('leave_configuration', company_id=company_id))
+    
+    except Exception as e:
+        logger.error(f"Error deleting leave type: {e}")
+        db.session.rollback()
+        flash("Error deleting leave type", "error")
+        return redirect(url_for('leave_configuration', company_id=company_id))
+
+
+# API Endpoint - Get leave types by company
+@app.route('/api/leave-types', methods=['GET'])
+@require_login
+def api_get_leave_types():
+    """Get leave types for a company - for populating dropdowns in leave requests"""
+    try:
+        company_id = request.args.get('company_id', type=str)
+        
+        if not company_id:
+            return jsonify({'error': 'Company ID is required'}), 400
+        
+        leave_types = LeaveType.query.filter_by(
+            company_id=company_id,
+            is_active=True
+        ).all()
+        
+        return jsonify([{
+            'id': lt.id,
+            'name': lt.name,
+            'code': lt.code,
+            'annual_allocation': lt.annual_allocation,
+            'color': lt.color
+        } for lt in leave_types])
+    
+    except Exception as e:
+        logger.error(f"Error getting leave types: {e}")
+        return jsonify({'error': 'Error loading leave types'}), 500

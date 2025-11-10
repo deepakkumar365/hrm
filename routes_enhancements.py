@@ -488,3 +488,54 @@ def generate_new_employee_id():
             'success': False,
             'message': str(e)
         }), 500
+
+
+@app.route('/api/employees/managers-by-company', methods=['GET'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager', 'Admin'])
+def get_managers_by_company():
+    """
+    Get list of managers (can be reporting manager) for a specific company
+    
+    Query parameters:
+        company_id: ID of the company to get managers for
+    
+    Returns:
+        JSON list of managers for the company
+    """
+    try:
+        company_id = request.args.get('company_id')
+        
+        if not company_id:
+            return jsonify({
+                'success': False,
+                'managers': [],
+                'message': 'Company ID is required'
+            }), 400
+        
+        # Get managers for the specified company
+        managers = Employee.query.filter_by(
+            company_id=company_id,
+            is_active=True,
+            is_manager=True
+        ).order_by(Employee.first_name, Employee.last_name).all()
+        
+        # Format the response
+        managers_data = []
+        for manager in managers:
+            managers_data.append({
+                'id': manager.id,
+                'name': f"{manager.first_name} {manager.last_name}",
+                'designation': manager.designation.name if manager.designation else '-',
+                'employee_id': manager.employee_id
+            })
+        
+        return jsonify({
+            'success': True,
+            'managers': managers_data
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'managers': [],
+            'message': str(e)
+        }), 500

@@ -1,7 +1,7 @@
 """Add LOP column to Attendance and Levy Allowance to PayrollConfiguration
 
 Revision ID: add_attendance_lop_payroll_fields
-Revises: add_payroll_enhancements
+Revises: add_payroll_indexes
 Create Date: 2024-01-16 10:00:00.000000
 
 """
