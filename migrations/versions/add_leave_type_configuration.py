@@ -23,7 +23,7 @@ def upgrade():
         op.create_table(
             'hrm_leave_type',
             sa.Column('id', sa.Integer(), nullable=False),
-            sa.Column('company_id', sa.String(36), nullable=False),
+            sa.Column('company_id', postgresql.UUID(as_uuid=True), nullable=False),
             sa.Column('name', sa.String(100), nullable=False),
             sa.Column('code', sa.String(20), nullable=False),
             sa.Column('description', sa.Text(), nullable=True),
