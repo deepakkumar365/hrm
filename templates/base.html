@@ -105,6 +105,11 @@
                                     <i class="fas fa-calendar-alt"></i>
                                     Work Schedules
                                 </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('ot_type_list') }}">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    OT Types
+                                </a></li>
                             </ul>
                         </li>
                         {% endif %}
@@ -163,13 +168,11 @@
                                 Attendance
                             </a>
                             <ul class="dropdown-menu">
-                                <!-- Mark Attendance - Hidden from Tenant Admin -->
-                                {% if not is_admin %}
+
                                 <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
                                     <i class="fas fa-clock"></i>
                                     Mark Attendance
                                 </a></li>
-                                {% endif %}
                                 <li><a class="dropdown-item" href="{{ url_for('attendance_list_view') }}">
                                     <i class="fas fa-list"></i>
                                     View Records
@@ -178,6 +181,14 @@
                                     <i class="fas fa-calendar-alt"></i>
                                     Calendar View
                                 </a></li>
+                                <!-- Mark OT Attendance - Visible to all users for self-service -->
+                                {% if not is_super_admin %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('mark_ot_attendance') }}">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    Mark OT Attendance
+                                </a></li>
+                                {% endif %}
                             </ul>
                         </li>
 
@@ -212,6 +223,34 @@
                                 <li><a class="dropdown-item" href="{{ url_for('leave_configuration') }}">
                                     <i class="fas fa-cog"></i>
                                     Configure Leave Types
+                                </a></li>
+                            </ul>
+                        </li>
+                        {% endif %}
+
+                        <!-- OT Management - Visible to HR Manager and Tenant Admin -->
+                        {% if is_admin %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-clock"></i>
+                                OT Management
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('ot_attendance') }}">
+                                    <i class="fas fa-list"></i>
+                                    OT Attendance
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('ot_requests') }}">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    OT Requests
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('ot_approval') }}">
+                                    <i class="fas fa-check-circle"></i>
+                                    Approval Dashboard
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('ot_payroll_summary') }}">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Payroll Summary
                                 </a></li>
                             </ul>
                         </li>
@@ -304,6 +343,11 @@
                                 <li><a class="dropdown-item" href="{{ url_for('work_schedule_list') }}">
                                     <i class="fas fa-calendar-alt"></i>
                                     Work Schedules
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('ot_type_list') }}">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    OT Types
                                 </a></li>
                             </ul>
                         </li>

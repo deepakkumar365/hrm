@@ -16,7 +16,8 @@ from app import app, db
 from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
-                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation)
+                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation, EmployeeGroup,
+                    OTType, OTAttendance, OTRequest, OTApproval, PayrollOTSummary)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -687,6 +688,7 @@ def employee_add():
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -697,6 +699,7 @@ def employee_add():
                                        work_schedules=work_schedules,
                                        managers=managers,
                                        companies=companies,
+                                       leave_groups=leave_groups,
                                        current_user=current_user)
 
             # Check for duplicate NRIC (only if NRIC is provided)
@@ -712,6 +715,7 @@ def employee_add():
                 # Position field removed - use designation_id instead
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -722,6 +726,7 @@ def employee_add():
                                        work_schedules=work_schedules,
                                        managers=managers,
                                        companies=companies,
+                                       leave_groups=leave_groups,
                                        current_user=current_user)
 
             # Create new employee
@@ -775,6 +780,7 @@ def employee_add():
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -785,6 +791,7 @@ def employee_add():
                                        work_schedules=work_schedules,
                                        managers=managers,
                                        companies=companies,
+                                       leave_groups=leave_groups,
                                        current_user=current_user)
 
             employee.first_name = request.form.get('first_name')
@@ -871,6 +878,13 @@ def employee_add():
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
 
+            # Set leave group
+            employee_group_id = request.form.get('employee_group_id')
+            if employee_group_id:
+                employee.employee_group_id = int(employee_group_id)
+            else:
+                employee.employee_group_id = None
+
             # Handle profile image upload (optional)
             file = request.files.get('profile_image')
             if file and file.filename.strip():
@@ -884,6 +898,7 @@ def employee_add():
                     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                     managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
                     return render_template('employees/form.html',
                                            form_data=request.form,
                                            roles=roles,
@@ -893,7 +908,8 @@ def employee_add():
                                            working_hours=working_hours,
                                            work_schedules=work_schedules,
                                            managers=managers,
-                                           companies=companies)
+                                           companies=companies,
+                                           leave_groups=leave_groups)
 
                 # Save image with unique name based on employee_id and timestamp
                 original = secure_filename(file.filename)
@@ -1223,6 +1239,7 @@ def employee_edit(employee_id):
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        employee=employee,
@@ -1234,6 +1251,7 @@ def employee_edit(employee_id):
                                        work_schedules=work_schedules,
                                        managers=managers,
                                        companies=companies,
+                                       leave_groups=leave_groups,
                                        current_user=current_user)
 
             employee.nric = nric if nric else None # Set to None if empty
@@ -1406,6 +1424,13 @@ def employee_edit(employee_id):
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
 
+            # Set leave group
+            employee_group_id = request.form.get('employee_group_id')
+            if employee_group_id:
+                employee.employee_group_id = int(employee_group_id)
+            else:
+                employee.employee_group_id = None
+
             # Update user role if changed
             user_role_id = request.form.get('user_role_id')
             if user_role_id and employee.user:
@@ -1434,6 +1459,7 @@ def employee_edit(employee_id):
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
             managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
             companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+            leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
             return render_template('employees/form.html',
                                    employee=employee,
                                    form_data=request.form,
@@ -1445,6 +1471,7 @@ def employee_edit(employee_id):
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
                                    companies=companies,
+                                   leave_groups=leave_groups,
                                    current_user=current_user)
 
     # Load master data for dropdowns
@@ -1456,6 +1483,7 @@ def employee_edit(employee_id):
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
     managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+    leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
 
     return render_template('employees/form.html',
                            employee=employee,
@@ -1466,7 +1494,8 @@ def employee_edit(employee_id):
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
-                           companies=companies)
+                           companies=companies,
+                           leave_groups=leave_groups)
 
 
 # Payroll Management Routes

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit OT Type" if ot_type else "Add OT Type" }} - Nexar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>
+                        <i class="fas fa-hourglass-end me-2"></i>
+                        {{ "Edit OT Type" if ot_type else "Add OT Type" }}
+                    </h3>
+                </div>
+                <a href="{{ url_for('ot_type_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                </a>
+            </div>
+
+            <!-- Alerts -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Form -->
+            <form method="POST" class="needs-validation" novalidate>
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>OT Type Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Basic Information -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">OT Type Name *</label>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ ot_type.name if ot_type else '' }}" 
+                                           placeholder="e.g., Regular OT, Weekend OT, Holiday OT" required>
+                                    <small class="form-text text-muted">Name of the overtime type</small>
+                                    <div class="invalid-feedback">Please provide an OT type name.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="code" class="form-label">Code *</label>
+                                    <input type="text" class="form-control" id="code" name="code" 
+                                           value="{{ ot_type.code if ot_type else '' }}" 
+                                           placeholder="e.g., REG_OT, WKD_OT, HLY_OT" required>
+                                    <small class="form-text text-muted">Unique code for this OT type (within company)</small>
+                                    <div class="invalid-feedback">Please provide a code.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rate Configuration -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="rate_multiplier" class="form-label">Rate Multiplier *</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="rate_multiplier" name="rate_multiplier" 
+                                               step="0.1" min="0.5" max="10"
+                                               value="{{ ot_type.rate_multiplier if ot_type else '1.5' }}" 
+                                               placeholder="1.5" required>
+                                        <span class="input-group-text">x base salary</span>
+                                    </div>
+                                    <small class="form-text text-muted">Multiplier for overtime pay calculation</small>
+                                    <div class="invalid-feedback">Please provide a valid rate multiplier.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="color_code" class="form-label">Color Code</label>
+                                    <div class="input-group">
+                                        <input type="color" class="form-control form-control-color" id="color_code" name="color_code" 
+                                               value="{{ ot_type.color_code if ot_type else '#3498db' }}" 
+                                               title="Choose a color for this OT type">
+                                        <input type="text" class="form-control" id="color_code_text" 
+                                               value="{{ ot_type.color_code if ot_type else '#3498db' }}" 
+                                               readonly style="flex: 0 0 100px;">
+                                    </div>
+                                    <small class="form-text text-muted">Visual color for identification</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Display Settings -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="display_order" class="form-label">Display Order</label>
+                                    <input type="number" class="form-control" id="display_order" name="display_order" 
+                                           value="{{ ot_type.display_order if ot_type else '0' }}" 
+                                           placeholder="0" min="0">
+                                    <small class="form-text text-muted">Order in which OT types appear (lower numbers first)</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="is_active" class="form-label">Status</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                               {% if ot_type and ot_type.is_active or not ot_type %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_active">
+                                            Active (Available for employees)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="3" placeholder="Optional description of when this OT type applies">{{ ot_type.description if ot_type else '' }}</textarea>
+                            <small class="form-text text-muted">e.g., Applied to work done on weekends, holidays, etc.</small>
+                        </div>
+
+                        <!-- Applicable Days -->
+                        <div class="mb-3">
+                            <label for="applicable_days" class="form-label">Applicable Days</label>
+                            <input type="text" class="form-control" id="applicable_days" name="applicable_days" 
+                                   value="{{ ot_type.applicable_days if ot_type else '' }}" 
+                                   placeholder="e.g., Monday-Friday, Weekends, All Days">
+                            <small class="form-text text-muted">Days when this OT type applies</small>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Tip:</strong> Rate Multiplier is used to calculate overtime pay. 
+                            For example, a multiplier of 1.5x means the employee gets 1.5 times their base hourly rate.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{{ url_for('ot_type_list') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {{ "Update OT Type" if ot_type else "Add OT Type" }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Sync color picker with text input
+document.getElementById('color_code').addEventListener('change', function() {
+    document.getElementById('color_code_text').value = this.value;
+});
+
+document.getElementById('color_code_text').addEventListener('change', function() {
+    document.getElementById('color_code').value = this.value;
+});
+</script>
+{% endblock %}

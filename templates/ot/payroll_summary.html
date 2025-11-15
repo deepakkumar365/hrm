@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}OT Payroll Summary - Nexar{% endblock %}
+
+{% block head %}
+<style>
+    .summary-container {
+        background: var(--white);
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .month-selector {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        align-items: flex-end;
+    }
+    
+    .form-group-inline {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .form-group-inline label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--grey-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .form-group-inline select {
+        padding: 8px 12px;
+        border: 1px solid var(--grey-200);
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .stat-card.secondary {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .stat-card.tertiary {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .stat-card.quaternary {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    
+    .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .summary-table {
+        background: var(--white);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+    
+    .table {
+        margin: 0;
+        border-collapse: collapse;
+    }
+    
+    .table thead {
+        background: var(--grey-50);
+        border-bottom: 2px solid var(--grey-200);
+    }
+    
+    .table thead th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--grey-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .table tbody td {
+        padding: 15px;
+        border-bottom: 1px solid var(--grey-100);
+        font-size: 14px;
+    }
+    
+    .table tbody tr:hover {
+        background: var(--grey-50);
+    }
+    
+    .table tbody tr.total-row {
+        background: linear-gradient(to right, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        font-weight: 600;
+        border-top: 2px solid #667eea;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .btn-export {
+        padding: 10px 20px;
+        border-radius: 6px;
+        border: 1px solid var(--grey-300);
+        background: var(--white);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-export:hover {
+        background: var(--grey-50);
+        border-color: var(--grey-400);
+    }
+    
+    .btn-export.primary {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .btn-export.primary:hover {
+        background: #5568d3;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--grey-500);
+    }
+    
+    .no-data-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 fw-bold">
+                <i class="fas fa-dollar-sign"></i>
+                OT Payroll Summary
+            </h1>
+            <p class="text-muted mb-0">Monthly overtime payroll breakdown and analysis</p>
+        </div>
+    </div>
+
+    <!-- Month Selector -->
+    <div class="summary-container mb-4">
+        <form method="GET" action="{{ url_for('ot_payroll_summary') }}" class="month-selector">
+            <div class="form-group-inline">
+                <label for="month">Month</label>
+                <select name="month" id="month" onchange="this.form.submit()">
+                    <option value="1" {% if month == 1 %}selected{% endif %}>January</option>
+                    <option value="2" {% if month == 2 %}selected{% endif %}>February</option>
+                    <option value="3" {% if month == 3 %}selected{% endif %}>March</option>
+                    <option value="4" {% if month == 4 %}selected{% endif %}>April</option>
+                    <option value="5" {% if month == 5 %}selected{% endif %}>May</option>
+                    <option value="6" {% if month == 6 %}selected{% endif %}>June</option>
+                    <option value="7" {% if month == 7 %}selected{% endif %}>July</option>
+                    <option value="8" {% if month == 8 %}selected{% endif %}>August</option>
+                    <option value="9" {% if month == 9 %}selected{% endif %}>September</option>
+                    <option value="10" {% if month == 10 %}selected{% endif %}>October</option>
+                    <option value="11" {% if month == 11 %}selected{% endif %}>November</option>
+                    <option value="12" {% if month == 12 %}selected{% endif %}>December</option>
+                </select>
+            </div>
+            <div class="form-group-inline">
+                <label for="year">Year</label>
+                <select name="year" id="year" onchange="this.form.submit()">
+                    {% for y in range(year - 2, year + 3) %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Hours</div>
+            <div class="stat-value">{{ "%.2f"|format(total_hours) }}</div>
+            <div class="stat-label">hours</div>
+        </div>
+        <div class="stat-card secondary">
+            <div class="stat-label">Total Amount</div>
+            <div class="stat-value">${{ "%.2f"|format(total_amount) }}</div>
+            <div class="stat-label">payroll</div>
+        </div>
+        <div class="stat-card tertiary">
+            <div class="stat-label">OT Types</div>
+            <div class="stat-value">{{ summary|length }}</div>
+            <div class="stat-label">categories</div>
+        </div>
+        <div class="stat-card quaternary">
+            <div class="stat-label">Average Rate</div>
+            <div class="stat-value">
+                {% if total_hours > 0 %}
+                    ${{ "%.2f"|format(total_amount / total_hours) }}
+                {% else %}
+                    $0.00
+                {% endif %}
+            </div>
+            <div class="stat-label">/hour</div>
+        </div>
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="export-buttons">
+        <button class="btn-export primary" onclick="exportToCSV()">
+            <i class="fas fa-download"></i>
+            Export CSV
+        </button>
+        <button class="btn-export primary" onclick="exportToPDF()">
+            <i class="fas fa-file-pdf"></i>
+            Export PDF
+        </button>
+        <button class="btn-export" onclick="syncToPayroll()">
+            <i class="fas fa-sync"></i>
+            Sync to Payroll
+        </button>
+    </div>
+
+    <!-- Summary Table -->
+    {% if summary %}
+    <div class="summary-table">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>OT Type</th>
+                    <th style="text-align: right;">Count</th>
+                    <th style="text-align: right;">Hours</th>
+                    <th style="text-align: right;">Amount</th>
+                    <th style="text-align: right;">Avg Rate/Hour</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ot_type, data in summary.items() %}
+                <tr>
+                    <td><strong>{{ ot_type }}</strong></td>
+                    <td style="text-align: right;">{{ data.count }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(data.hours) }}</td>
+                    <td style="text-align: right;">${{ "%.2f"|format(data.amount) }}</td>
+                    <td style="text-align: right;">
+                        {% if data.hours > 0 %}
+                            ${{ "%.2f"|format(data.amount / data.hours) }}
+                        {% else %}
+                            $0.00
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td><strong>Total</strong></td>
+                    <td style="text-align: right;">{{ summary.values()|map(attribute='count')|sum }}</td>
+                    <td style="text-align: right;">{{ "%.2f"|format(total_hours) }}</td>
+                    <td style="text-align: right;">${{ "%.2f"|format(total_amount) }}</td>
+                    <td style="text-align: right;">
+                        {% if total_hours > 0 %}
+                            ${{ "%.2f"|format(total_amount / total_hours) }}
+                        {% else %}
+                            $0.00
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="no-data">
+        <div class="no-data-icon">📭</div>
+        <h4>No OT Data Available</h4>
+        <p>No overtime approvals found for the selected month/year.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function exportToCSV() {
+        alert('CSV export functionality to be implemented');
+    }
+    
+    function exportToPDF() {
+        alert('PDF export functionality to be implemented');
+    }
+    
+    function syncToPayroll() {
+        alert('Payroll sync functionality to be implemented');
+    }
+</script>
+{% endblock %}

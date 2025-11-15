@@ -270,6 +270,18 @@
                                     {% endfor %}
                                 </select>
                             </div>
+                            <div class="form-grid-item">
+                                <label for="employee_group_id" class="form-label">Leave Group</label>
+                                <select class="form-select" id="employee_group_id" name="employee_group_id">
+                                    <option value="">-- No Leave Group --</option>
+                                    {% for group in leave_groups %}
+                                    <option value="{{ group.id }}" {% if (form_data and form_data.get('employee_group_id'|int) == group.id) or (employee and employee.employee_group_id == group.id and not form_data) %}selected{% endif %}>
+                                        {{ group.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Leave group determines employee's leave entitlements</small>
+                            </div>
 
                         </div>
                     </div>

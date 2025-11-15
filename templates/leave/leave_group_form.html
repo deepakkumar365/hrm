@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Leave Group' if group else 'Create Leave Group' }} - Nexar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4>
+                        <i class="fas fa-users me-2"></i>{{ 'Edit Leave Group' if group else 'Create Leave Group' }}
+                    </h4>
+                    <p class="text-muted mb-0">Define leave groups for different employee categories</p>
+                </div>
+                <a href="{{ url_for('leave_configuration', company_id=company.id if company else all_companies[0].id if all_companies else '') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <!-- Form -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        <!-- Company Selection -->
+                        {% if not group and all_companies %}
+                        <div class="mb-3">
+                            <label for="company_id" class="form-label"><strong>Company</strong> <span class="text-danger">*</span></label>
+                            <select class="form-select" id="company_id" name="company_id" required>
+                                <option value="">-- Select Company --</option>
+                                {% for comp in all_companies %}
+                                <option value="{{ comp.id }}" {% if company and comp.id == company.id %}selected{% endif %}>
+                                    {{ comp.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Leave groups are company-specific</small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Group Name -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label"><strong>Group Name</strong> <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ group.name if group else request.form.get('name', '') }}" 
+                                   placeholder="e.g., Permanent Staff, Contractors, Interns"
+                                   required maxlength="100">
+                            <small class="text-muted">Name of the employee group</small>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                      placeholder="Brief description of this group and its purpose"
+                                      maxlength="500">{{ group.description if group else request.form.get('description', '') }}</textarea>
+                            <small class="text-muted">Optional description</small>
+                        </div>
+
+                        <!-- Active Status -->
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                       {% if not group or group.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    <strong>Active</strong>
+                                </label>
+                            </div>
+                            <small class="text-muted">Inactive groups won't be available for new assignments</small>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>{{ 'Update' if group else 'Create' }} Group
+                            </button>
+                            <a href="{{ url_for('leave_configuration', company_id=company.id if company else all_companies[0].id if all_companies else '') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>About Leave Groups
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li><strong>Leave Groups</strong> allow you to categorize employees and assign different leave entitlements to each group</li>
+                        <li>Each group can have its own allocation for different leave types (Annual, Sick, Casual, etc.)</li>
+                        <li>When you assign a leave type to a group, all employees in that group automatically get those leave days</li>
+                        <li>Groups are company-specific - each company manages its own leave groups</li>
+                        <li>You can change an employee's group anytime in their profile</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block title %}Mark OT Attendance - Nexar{% endblock %}
+
+{% block head %}
+<style>
+    .ot-mark-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+    }
+
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #333;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 0.5rem;
+    }
+
+    .time-input-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .input-switch {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+    }
+
+    .btn-switch {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        background: #f8f9fa;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.3s;
+    }
+
+    .btn-switch.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    .recent-ots {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #eee;
+    }
+
+    .recent-ots h5 {
+        margin-bottom: 1rem;
+        color: #333;
+    }
+
+    .ot-record-item {
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .ot-record-item .date {
+        font-weight: 600;
+    }
+
+    .ot-record-item .hours {
+        color: #007bff;
+        font-weight: 600;
+    }
+
+    .ot-record-item .status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+    }
+
+    .status-draft {
+        background: #e7f3ff;
+        color: #004085;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-submit {
+        background: #28a745;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.3s;
+    }
+
+    .btn-submit:hover {
+        background: #218838;
+    }
+
+    .btn-reset {
+        background: #6c757d;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.3s;
+        margin-left: 0.5rem;
+    }
+
+    .btn-reset:hover {
+        background: #5a6268;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .alert-info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .employee-info {
+        background: #e7f3ff;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1.5rem;
+    }
+
+    .employee-info p {
+        margin: 0.25rem 0;
+        font-size: 0.95rem;
+    }
+
+    .employee-info strong {
+        color: #004085;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ot-mark-container">
+    <h1 class="mb-4">
+        <i class="fas fa-hourglass-end"></i>
+        Mark OT Attendance
+    </h1>
+
+    <!-- Employee Info -->
+    <div class="employee-info">
+        <p><strong>Employee:</strong> {{ employee.first_name }} {{ employee.last_name }}</p>
+        <p><strong>Employee ID:</strong> {{ employee.employee_id }}</p>
+        <p><strong>Department:</strong> {{ employee.department.name if employee.department else 'N/A' }}</p>
+    </div>
+
+    <!-- Alerts -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% if category == 'warning' %}
+                    <div class="alert alert-warning" style="border: 2px solid #ff9800; background-color: #fff3e0;">
+                        {{ message | safe }}
+                    </div>
+                {% else %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }}">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Mark OT Form -->
+    {% if has_ot_types %}
+    <form method="POST" id="otForm">
+    {% else %}
+    <form method="POST" id="otForm" style="opacity: 0.6; pointer-events: none;">
+    {% endif %}
+        <!-- Date Section -->
+        <div class="form-section">
+            <div class="form-section-title">Date & Time</div>
+            
+            <div class="form-group">
+                <label for="ot_date">OT Date *</label>
+                <input type="date" class="form-control" id="ot_date" name="ot_date" 
+                       value="{{ today }}" required {% if not has_ot_types %}disabled{% endif %}>
+                <small class="form-text text-muted">Select the date you worked overtime</small>
+            </div>
+        </div>
+
+        <!-- Time Entry Section -->
+        <div class="form-section">
+            <div class="form-section-title">OT Hours Entry</div>
+            
+            <div class="input-switch">
+                <button type="button" class="btn-switch active" onclick="switchMode('time')">
+                    <i class="fas fa-clock"></i> Time (In/Out)
+                </button>
+                <button type="button" class="btn-switch" onclick="switchMode('hours')">
+                    <i class="fas fa-calculator"></i> Direct Hours
+                </button>
+            </div>
+
+            <!-- Time Input Mode -->
+            <div id="timeMode" class="time-input-group">
+                <div class="form-group">
+                    <label for="ot_in_time">OT In Time</label>
+                    <input type="time" class="form-control" id="ot_in_time" name="ot_in_time">
+                </div>
+                <div class="form-group">
+                    <label for="ot_out_time">OT Out Time</label>
+                    <input type="time" class="form-control" id="ot_out_time" name="ot_out_time">
+                </div>
+            </div>
+
+            <!-- Hours Input Mode -->
+            <div id="hoursMode" class="hidden">
+                <div class="form-group">
+                    <label for="ot_hours">OT Hours *</label>
+                    <input type="number" class="form-control" id="ot_hours" name="ot_hours" 
+                           step="0.5" min="0" placeholder="e.g., 2, 2.5, 3">
+                    <small class="form-text text-muted">Enter the total overtime hours</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- OT Type Section -->
+        <div class="form-section">
+            <div class="form-section-title">OT Type</div>
+            
+            <div class="form-group">
+                <label for="ot_type_id">OT Type *</label>
+                <select class="form-control" id="ot_type_id" name="ot_type_id" required>
+                    <option value="">-- Select OT Type --</option>
+                    {% for ot_type in ot_types %}
+                        <option value="{{ ot_type.id }}">
+                            {{ ot_type.name }} (Rate: {{ ot_type.rate_multiplier }}x)
+                        </option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">Select the type of overtime</small>
+            </div>
+        </div>
+
+        <!-- Notes Section -->
+        <div class="form-section">
+            <div class="form-section-title">Additional Information</div>
+            
+            <div class="form-group">
+                <label for="notes">Notes/Reason</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3" 
+                          placeholder="Why was overtime required? (optional)"></textarea>
+                <small class="form-text text-muted">Provide additional context for this OT record</small>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="form-section" style="text-align: center;">
+            <button type="submit" class="btn-submit" {% if not has_ot_types %}disabled{% endif %}>
+                <i class="fas fa-save"></i> Save OT Attendance
+            </button>
+            <button type="reset" class="btn-reset" {% if not has_ot_types %}disabled{% endif %}>
+                <i class="fas fa-redo"></i> Clear Form
+            </button>
+        </div>
+    </form>
+
+    <!-- Recent OT Records -->
+    {% if recent_ots %}
+    <div class="recent-ots">
+        <h5>
+            <i class="fas fa-history"></i>
+            Your Recent OT Records (Last 10)
+        </h5>
+        
+        {% for ot in recent_ots %}
+        <div class="ot-record-item">
+            <div>
+                <span class="date">{{ ot.ot_date.strftime('%d %b %Y') }}</span>
+                <br>
+                <small>{{ ot.ot_type.name if ot.ot_type else 'N/A' }}</small>
+            </div>
+            <div>
+                <span class="hours">{{ ot.ot_hours or 'N/A' }} hrs</span>
+            </div>
+            <div>
+                <span class="status status-{{ ot.status.lower() }}">{{ ot.status }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function switchMode(mode) {
+        const timeMode = document.getElementById('timeMode');
+        const hoursMode = document.getElementById('hoursMode');
+        const buttons = document.querySelectorAll('.btn-switch');
+        
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        if (mode === 'time') {
+            timeMode.classList.remove('hidden');
+            hoursMode.classList.add('hidden');
+            buttons[0].classList.add('active');
+            // Clear hours input
+            document.getElementById('ot_hours').value = '';
+        } else {
+            timeMode.classList.add('hidden');
+            hoursMode.classList.remove('hidden');
+            buttons[1].classList.add('active');
+            // Clear time inputs
+            document.getElementById('ot_in_time').value = '';
+            document.getElementById('ot_out_time').value = '';
+        }
+    }
+
+    // Form validation
+    document.getElementById('otForm').addEventListener('submit', function(e) {
+        const ot_date = document.getElementById('ot_date').value;
+        const ot_type_id = document.getElementById('ot_type_id').value;
+        const ot_in_time = document.getElementById('ot_in_time').value;
+        const ot_out_time = document.getElementById('ot_out_time').value;
+        const ot_hours = document.getElementById('ot_hours').value;
+        
+        if (!ot_date) {
+            e.preventDefault();
+            alert('Please select an OT date');
+            return false;
+        }
+        
+        if (!ot_type_id) {
+            e.preventDefault();
+            alert('Please select an OT type');
+            return false;
+        }
+        
+        // Check if either time or hours is provided
+        const hasTime = ot_in_time && ot_out_time;
+        const hasHours = ot_hours;
+        
+        if (!hasTime && !hasHours) {
+            e.preventDefault();
+            alert('Please provide either OT hours or OT in/out times');
+            return false;
+        }
+        
+        // If time mode, validate times
+        if (hasTime && !hasHours) {
+            if (ot_out_time <= ot_in_time) {
+                e.preventDefault();
+                alert('OT Out Time must be after OT In Time');
+                return false;
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -33,6 +33,7 @@ import routes_tenant_config  # noqa: F401 - Tenant configuration and advanced fe
 import routes_leave  # noqa: F401 - Leave management routes
 import routes_employee_group  # noqa: F401 - Employee Group master management
 import routes_leave_allocation  # noqa: F401 - Leave allocation configuration
+import routes_ot  # noqa: F401 - OT (Overtime) Management routes
 import cli_commands  # noqa: F401 - CLI commands for database management
 
 if __name__ == "__main__":

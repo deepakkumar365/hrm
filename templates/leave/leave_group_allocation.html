@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Assign Leave Types to {{ group.name }} - Nexar{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h4>
+                        <i class="fas fa-calendar-check me-2"></i>Assign Leave Types to {{ group.name }}
+                    </h4>
+                    <p class="text-muted mb-0">Configure leave allocations for this employee group</p>
+                </div>
+                <a href="{{ url_for('leave_configuration', company_id=group.company_id) }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+
+            <!-- Current Allocations -->
+            <div class="card mb-4">
+                <div class="card-header card-header-blue">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Current Leave Allocations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if allocations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Leave Type</th>
+                                    <th>Code</th>
+                                    <th>Days Allocated</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alloc in allocations %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ alloc.leave_type.name }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ alloc.leave_type.code }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ alloc.annual_allocation }} days</span>
+                                    </td>
+                                    <td>
+                                        {% if alloc.leave_type.description %}
+                                            <small>{{ alloc.leave_type.description[:60] }}{% if alloc.leave_type.description|length > 60 %}...{% endif %}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('leave_group_allocation_delete', group_id=group.id, allocation_id=alloc.id) }}" style="display: inline;" onsubmit="return confirm('Remove this leave type from the group?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No leave types assigned yet. Add your first leave type below.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Add New Leave Type -->
+            <div class="card">
+                <div class="card-header card-header-green">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>Add Leave Type to Group
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if available_leave_types %}
+                    <form method="POST" action="{{ url_for('leave_group_allocation_form', group_id=group.id) }}" novalidate>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="leave_type_id" class="form-label"><strong>Leave Type</strong> <span class="text-danger">*</span></label>
+                                <select class="form-select" id="leave_type_id" name="leave_type_id" required 
+                                        onchange="updateAllocationFromLeaveType()">
+                                    <option value="">-- Select Leave Type --</option>
+                                    {% for lt in available_leave_types %}
+                                    <option value="{{ lt.id }}" data-allocation="{{ lt.annual_allocation }}">
+                                        {{ lt.name }} ({{ lt.code }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Select a leave type to assign to this group</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="annual_allocation" class="form-label"><strong>Days Allocation</strong> <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="annual_allocation" name="annual_allocation" 
+                                           min="0" max="365" required placeholder="0">
+                                    <span class="input-group-text">days</span>
+                                </div>
+                                <small class="text-muted">Number of days employees get per year for this leave type</small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Add Leave Type
+                            </button>
+                            <a href="{{ url_for('leave_configuration', company_id=group.company_id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        All available leave types are already assigned to this group. 
+                        <a href="{{ url_for('leave_configuration_form', company_id=group.company_id) }}">Create more leave types</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li>You can assign multiple leave types to a single group</li>
+                        <li>The <strong>Days Allocation</strong> represents how many days employees in this group get per year for this leave type</li>
+                        <li>Different groups can have different allocations for the same leave type</li>
+                        <li>When you remove a leave type, existing leave allocations for employees are not affected</li>
+                        <li>Changes to group allocations apply only to future leave requests</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateAllocationFromLeaveType() {
+    const select = document.getElementById('leave_type_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const allocation = selectedOption.getAttribute('data-allocation');
+    
+    if (allocation) {
+        document.getElementById('annual_allocation').value = allocation;
+    }
+}
+</script>
+{% endblock %}

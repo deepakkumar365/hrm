@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}OT Types Management - Nexar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3>
+                <i class="fas fa-hourglass-end me-2"></i>OT Types Management
+            </h3>
+            <p class="text-muted mb-0">Configure overtime types and rates for your organization</p>
+        </div>
+        <a href="{{ url_for('ot_type_add') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add OT Type
+        </a>
+    </div>
+
+    <!-- Alerts -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <div class="card-body">
+            {% if ot_types.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>OT Type</th>
+                            <th>Code</th>
+                            <th>Rate Multiplier</th>
+                            <th>Applicable Days</th>
+                            <th>Status</th>
+                            <th>Order</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ot_type in ot_types.items %}
+                        <tr>
+                            <td>
+                                <strong>{{ ot_type.name }}</strong>
+                                {% if ot_type.description %}
+                                <br><small class="text-muted">{{ ot_type.description }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <code>{{ ot_type.code }}</code>
+                            </td>
+                            <td>
+                                <span class="badge" style="background-color: {{ ot_type.color_code or '#3498db' }}">
+                                    {{ "%.2f" % ot_type.rate_multiplier }}x
+                                </span>
+                            </td>
+                            <td>
+                                {% if ot_type.applicable_days %}
+                                    <small>{{ ot_type.applicable_days }}</small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ot_type.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ ot_type.display_order }}</span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('ot_type_edit', ot_type_id=ot_type.id) }}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger"
+                                            onclick="confirmDelete('{{ ot_type.name }}', '{{ url_for('ot_type_delete', ot_type_id=ot_type.id) }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if ot_types.pages > 1 %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if ot_types.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('ot_type_list', page=ot_types.prev_num, search=search) }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in ot_types.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != ot_types.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('ot_type_list', page=page_num, search=search) }}">{{ page_num }}</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if ot_types.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('ot_type_list', page=ot_types.next_num, search=search) }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-hourglass-end fa-3x text-muted mb-3"></i>
+                <h5>No OT types configured</h5>
+                <p class="text-muted">Get started by adding your first overtime type.</p>
+                <a href="{{ url_for('ot_type_add') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add OT Type
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the OT type "<span id="otTypeName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(name, url) {
+    document.getElementById('otTypeName').textContent = name;
+    document.getElementById('deleteForm').action = url;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

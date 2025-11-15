@@ -1122,3 +1122,159 @@ class EmployeeLeaveAllocation(db.Model):
 
     def __repr__(self):
         return f'<EmployeeLeaveAllocation employee={self.employee_id} leave_type={self.leave_type_id}>'
+
+
+# ============== OVERTIME MANAGEMENT MODULE ==============
+
+class OTType(db.Model):
+    """Overtime Types Configuration"""
+    __tablename__ = 'hrm_ot_type'
+    __table_args__ = (
+        Index('idx_ot_type_company_id', 'company_id'),
+        UniqueConstraint('company_id', 'code', name='uq_ot_type_company_code'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    code = db.Column(db.String(20), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    rate_multiplier = db.Column(db.Numeric(5, 2), default=1.5)
+    color_code = db.Column(db.String(20), default='#3498db')
+    is_active = db.Column(db.Boolean, default=True)
+    applicable_days = db.Column(db.String(100), nullable=True)
+    display_order = db.Column(db.Integer, default=0)
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100), nullable=True)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+
+    company = db.relationship('Company', foreign_keys=[company_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'company_id': str(self.company_id),
+            'name': self.name,
+            'code': self.code,
+            'rate_multiplier': float(self.rate_multiplier),
+            'color_code': self.color_code,
+            'is_active': self.is_active,
+        }
+
+
+class OTAttendance(db.Model):
+    """OT Attendance Records"""
+    __tablename__ = 'hrm_ot_attendance'
+    __table_args__ = (
+        Index('idx_ot_attendance_employee_date', 'employee_id', 'ot_date'),
+        UniqueConstraint('employee_id', 'ot_date', name='uq_ot_attendance_emp_date'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    ot_date = db.Column(db.Date, nullable=False)
+    ot_in_time = db.Column(db.DateTime, nullable=True)
+    ot_out_time = db.Column(db.DateTime, nullable=True)
+    ot_hours = db.Column(db.Numeric(6, 2), nullable=True)
+    ot_type_id = db.Column(db.Integer, db.ForeignKey('hrm_ot_type.id'), nullable=True)
+    status = db.Column(db.String(20), default='Draft')
+    notes = db.Column(db.Text, nullable=True)
+    latitude = db.Column(db.Numeric(10, 8), nullable=True)
+    longitude = db.Column(db.Numeric(11, 8), nullable=True)
+    created_by = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+
+    employee = db.relationship('Employee', foreign_keys=[employee_id])
+    company = db.relationship('Company', foreign_keys=[company_id])
+    ot_type = db.relationship('OTType')
+
+    def calculate_ot_hours(self):
+        if self.ot_in_time and self.ot_out_time and self.ot_out_time > self.ot_in_time:
+            duration = self.ot_out_time - self.ot_in_time
+            hours = duration.total_seconds() / 3600
+            self.ot_hours = round(hours, 2)
+        return self.ot_hours
+
+
+class OTRequest(db.Model):
+    """OT Approval Requests"""
+    __tablename__ = 'hrm_ot_request'
+    __table_args__ = (
+        Index('idx_ot_request_employee_id', 'employee_id'),
+        Index('idx_ot_request_status', 'status'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    ot_date = db.Column(db.Date, nullable=False)
+    ot_type_id = db.Column(db.Integer, db.ForeignKey('hrm_ot_type.id'), nullable=False)
+    requested_hours = db.Column(db.Numeric(6, 2), nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default='Pending')
+    approved_hours = db.Column(db.Numeric(6, 2), nullable=True)
+    approver_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id'), nullable=True)
+    approval_comments = db.Column(db.Text, nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    created_by = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+
+    employee = db.relationship('Employee', foreign_keys=[employee_id])
+    company = db.relationship('Company', foreign_keys=[company_id])
+    ot_type = db.relationship('OTType')
+    approver = db.relationship('User', foreign_keys=[approver_id])
+
+
+class OTApproval(db.Model):
+    """OT Approval History"""
+    __tablename__ = 'hrm_ot_approval'
+
+    id = db.Column(db.Integer, primary_key=True)
+    ot_request_id = db.Column(db.Integer, db.ForeignKey('hrm_ot_request.id', ondelete='CASCADE'), nullable=False)
+    approver_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id'), nullable=False)
+    approval_level = db.Column(db.Integer, default=1)
+    status = db.Column(db.String(20), nullable=False)
+    comments = db.Column(db.Text, nullable=True)
+    approved_hours = db.Column(db.Numeric(6, 2), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    ot_request = db.relationship('OTRequest', foreign_keys=[ot_request_id])
+    approver = db.relationship('User', foreign_keys=[approver_id])
+
+
+class PayrollOTSummary(db.Model):
+    """Payroll OT Summary - Payroll Integration"""
+    __tablename__ = 'hrm_payroll_ot_summary'
+    __table_args__ = (
+        UniqueConstraint('employee_id', 'payroll_month', 'payroll_year', name='uq_payroll_ot_emp_month_year'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    payroll_month = db.Column(db.Integer, nullable=False)
+    payroll_year = db.Column(db.Integer, nullable=False)
+    total_ot_hours = db.Column(db.Numeric(8, 2), default=0)
+    total_ot_amount = db.Column(db.Numeric(12, 2), default=0)
+    general_ot_hours = db.Column(db.Numeric(8, 2), default=0)
+    general_ot_amount = db.Column(db.Numeric(12, 2), default=0)
+    weekend_ot_hours = db.Column(db.Numeric(8, 2), default=0)
+    weekend_ot_amount = db.Column(db.Numeric(12, 2), default=0)
+    holiday_ot_hours = db.Column(db.Numeric(8, 2), default=0)
+    holiday_ot_amount = db.Column(db.Numeric(12, 2), default=0)
+    sunday_ot_hours = db.Column(db.Numeric(8, 2), default=0)
+    sunday_ot_amount = db.Column(db.Numeric(12, 2), default=0)
+    status = db.Column(db.String(20), default='Draft')
+    daily_logs = db.Column(db.JSON, nullable=True)
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100), nullable=True)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+    finalized_at = db.Column(db.DateTime, nullable=True)
+
+    employee = db.relationship('Employee', foreign_keys=[employee_id])
+    company = db.relationship('Company', foreign_keys=[company_id])

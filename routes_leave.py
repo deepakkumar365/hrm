@@ -2,7 +2,7 @@
 from flask import request, render_template, redirect, url_for, jsonify, flash
 from flask_login import current_user
 from app import app, db
-from models import Leave, Employee, User, LeaveType, Company, Tenant
+from models import Leave, Employee, User, LeaveType, Company, Tenant, EmployeeGroup, EmployeeGroupLeaveAllocation
 from auth import require_login, require_role
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
@@ -350,16 +350,19 @@ def leave_configuration():
         # Get leave types
         if company:
             leave_types = LeaveType.query.filter_by(company_id=company.id).order_by(LeaveType.created_at.desc()).all()
+            leave_groups = EmployeeGroup.query.filter_by(company_id=company.id).order_by(EmployeeGroup.created_at.desc()).all()
             companies = [company]
         else:
             leave_types = LeaveType.query.order_by(LeaveType.created_at.desc()).all()
+            leave_groups = EmployeeGroup.query.order_by(EmployeeGroup.created_at.desc()).all()
             companies = Company.query.filter_by(is_active=True).all()
         
         # Get all active companies for the dropdown
         all_companies = Company.query.filter_by(is_active=True).all()
         
         return render_template('leave/configuration.html', 
-                             leave_types=leave_types, 
+                             leave_types=leave_types,
+                             leave_groups=leave_groups, 
                              companies=companies,
                              all_companies=all_companies,
                              selected_company=company)
@@ -523,6 +526,235 @@ def leave_configuration_delete(leave_type_id):
         db.session.rollback()
         flash("Error deleting leave type", "error")
         return redirect(url_for('leave_configuration', company_id=company_id))
+
+
+# Leave Group Routes
+@app.route('/leave-group/form', methods=['GET', 'POST'])
+@app.route('/leave-group/<int:group_id>/edit', methods=['GET', 'POST'])
+@require_login
+@require_role(['Tenant Admin', 'HR Manager', 'Super Admin'])
+def leave_group_form(group_id=None):
+    """Create or edit a leave group"""
+    try:
+        group = None
+        if group_id:
+            group = EmployeeGroup.query.get(group_id)
+            if not group:
+                flash("Leave group not found", "error")
+                return redirect(url_for('leave_configuration'))
+        
+        company_id = request.args.get('company_id')
+        company = None
+        if company_id:
+            company = Company.query.get(company_id)
+        
+        # Get all active companies for dropdown
+        all_companies = Company.query.filter_by(is_active=True).all()
+        
+        if request.method == 'POST':
+            # Get company ID from form
+            form_company_id = request.form.get('company_id') or (group.company_id if group else None)
+            if not form_company_id:
+                flash("Company is required", "error")
+                return render_template('leave/leave_group_form.html', 
+                                     group=group, company=company, all_companies=all_companies)
+            
+            company = Company.query.get(form_company_id)
+            if not company:
+                flash("Invalid company", "error")
+                return render_template('leave/leave_group_form.html', 
+                                     group=group, company=company, all_companies=all_companies)
+            
+            name = request.form.get('name', '').strip()
+            if not name:
+                flash("Group name is required", "error")
+                return render_template('leave/leave_group_form.html', 
+                                     group=group, company=company, all_companies=all_companies)
+            
+            description = request.form.get('description', '').strip()
+            is_active = bool(request.form.get('is_active'))
+            
+            if group:
+                # Update existing group
+                group.name = name
+                group.description = description
+                group.is_active = is_active
+                group.modified_by = current_user.username
+                group.modified_at = datetime.now()
+                db.session.commit()
+                flash("Leave group updated successfully", "success")
+            else:
+                # Create new group
+                group = EmployeeGroup(
+                    company_id=company.id,
+                    name=name,
+                    category='Leave',
+                    description=description,
+                    is_active=is_active,
+                    created_by=current_user.username
+                )
+                db.session.add(group)
+                db.session.commit()
+                flash("Leave group created successfully", "success")
+            
+            return redirect(url_for('leave_configuration', company_id=company.id))
+        
+        return render_template('leave/leave_group_form.html', 
+                             group=group, company=company, all_companies=all_companies)
+    
+    except Exception as e:
+        logger.error(f"Error in leave_group_form: {e}")
+        db.session.rollback()
+        flash("Error processing leave group", "error")
+        return redirect(url_for('leave_configuration'))
+
+
+@app.route('/leave-group/<int:group_id>/delete', methods=['POST'])
+@require_login
+@require_role(['Tenant Admin', 'HR Manager', 'Super Admin'])
+def leave_group_delete(group_id):
+    """Delete a leave group"""
+    try:
+        group = EmployeeGroup.query.get(group_id)
+        if not group:
+            flash("Leave group not found", "error")
+            return redirect(url_for('leave_configuration'))
+        
+        company_id = group.company_id
+        
+        # Check if group has assigned employees
+        has_employees = Employee.query.filter_by(employee_group_id=group.id).count() > 0
+        
+        if has_employees:
+            # Deactivate instead of delete
+            group.is_active = False
+            group.modified_by = current_user.username
+            group.modified_at = datetime.now()
+            db.session.commit()
+            flash("Leave group has assigned employees. Group has been deactivated instead.", "warning")
+        else:
+            # Delete the group and its allocations
+            EmployeeGroupLeaveAllocation.query.filter_by(employee_group_id=group.id).delete()
+            db.session.delete(group)
+            db.session.commit()
+            flash("Leave group deleted successfully", "success")
+        
+        return redirect(url_for('leave_configuration', company_id=company_id))
+    
+    except Exception as e:
+        logger.error(f"Error deleting leave group: {e}")
+        db.session.rollback()
+        flash("Error deleting leave group", "error")
+        return redirect(url_for('leave_configuration'))
+
+
+@app.route('/leave-group/<int:group_id>/allocation', methods=['GET', 'POST'])
+@require_login
+@require_role(['Tenant Admin', 'HR Manager', 'Super Admin'])
+def leave_group_allocation(group_id):
+    """Manage leave allocations for a group"""
+    try:
+        group = EmployeeGroup.query.get(group_id)
+        if not group:
+            flash("Leave group not found", "error")
+            return redirect(url_for('leave_configuration'))
+        
+        # Get current allocations
+        allocations = EmployeeGroupLeaveAllocation.query.filter_by(employee_group_id=group.id).all()
+        
+        # Get available leave types (not already assigned to this group)
+        assigned_leave_types = [a.leave_type_id for a in allocations]
+        available_leave_types = LeaveType.query.filter_by(
+            company_id=group.company_id,
+            is_active=True
+        ).filter(~LeaveType.id.in_(assigned_leave_types)).all()
+        
+        return render_template('leave/leave_group_allocation.html',
+                             group=group,
+                             allocations=allocations,
+                             available_leave_types=available_leave_types)
+    
+    except Exception as e:
+        logger.error(f"Error in leave_group_allocation: {e}")
+        flash("Error loading leave allocations", "error")
+        return redirect(url_for('leave_configuration'))
+
+
+@app.route('/leave-group/<int:group_id>/allocation/form', methods=['POST'])
+@require_login
+@require_role(['Tenant Admin', 'HR Manager', 'Super Admin'])
+def leave_group_allocation_form(group_id):
+    """Add a leave type to a group"""
+    try:
+        group = EmployeeGroup.query.get(group_id)
+        if not group:
+            flash("Leave group not found", "error")
+            return redirect(url_for('leave_configuration'))
+        
+        leave_type_id = request.form.get('leave_type_id')
+        annual_allocation = request.form.get('annual_allocation')
+        
+        if not leave_type_id or not annual_allocation:
+            flash("Leave type and allocation are required", "error")
+            return redirect(url_for('leave_group_allocation', group_id=group.id))
+        
+        try:
+            annual_allocation = int(annual_allocation)
+        except ValueError:
+            flash("Invalid allocation value", "error")
+            return redirect(url_for('leave_group_allocation', group_id=group.id))
+        
+        # Check if already assigned
+        existing = EmployeeGroupLeaveAllocation.query.filter_by(
+            employee_group_id=group.id,
+            leave_type_id=leave_type_id
+        ).first()
+        
+        if existing:
+            flash("This leave type is already assigned to the group", "warning")
+            return redirect(url_for('leave_group_allocation', group_id=group.id))
+        
+        # Create allocation
+        allocation = EmployeeGroupLeaveAllocation(
+            employee_group_id=group.id,
+            leave_type_id=leave_type_id,
+            annual_allocation=annual_allocation
+        )
+        db.session.add(allocation)
+        db.session.commit()
+        flash("Leave type assigned to group successfully", "success")
+        
+        return redirect(url_for('leave_group_allocation', group_id=group.id))
+    
+    except Exception as e:
+        logger.error(f"Error adding leave type to group: {e}")
+        db.session.rollback()
+        flash("Error assigning leave type", "error")
+        return redirect(url_for('leave_group_allocation', group_id=group_id))
+
+
+@app.route('/leave-group/<int:group_id>/allocation/<int:allocation_id>/delete', methods=['POST'])
+@require_login
+@require_role(['Tenant Admin', 'HR Manager', 'Super Admin'])
+def leave_group_allocation_delete(group_id, allocation_id):
+    """Remove a leave type from a group"""
+    try:
+        allocation = EmployeeGroupLeaveAllocation.query.get(allocation_id)
+        if not allocation or allocation.employee_group_id != group_id:
+            flash("Allocation not found", "error")
+            return redirect(url_for('leave_group_allocation', group_id=group_id))
+        
+        db.session.delete(allocation)
+        db.session.commit()
+        flash("Leave type removed from group successfully", "success")
+        
+        return redirect(url_for('leave_group_allocation', group_id=group_id))
+    
+    except Exception as e:
+        logger.error(f"Error deleting leave allocation: {e}")
+        db.session.rollback()
+        flash("Error removing leave type", "error")
+        return redirect(url_for('leave_group_allocation', group_id=group_id))
 
 
 # API Endpoint - Get leave types by company

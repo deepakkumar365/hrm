@@ -131,6 +131,90 @@
                 </div>
             </div>
 
+            <!-- Leave Groups Section -->
+            <div class="card mt-4">
+                <div class="card-header card-header-blue">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            Leave Groups
+                            {% if selected_company %}
+                            - {{ selected_company.name }}
+                            {% endif %}
+                        </h5>
+                        {% if selected_company %}
+                        <a href="{{ url_for('leave_group_form', company_id=selected_company.id) }}" class="btn btn-sm btn-light">
+                            <i class="fas fa-plus me-1"></i>Add Leave Group
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if leave_groups %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Group Name</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in leave_groups %}
+                                <tr>
+                                    <td><strong>{{ group.name }}</strong></td>
+                                    <td>
+                                        {% if group.description %}
+                                            {{ group.description[:60] }}{% if group.description|length > 60 %}...{% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if group.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ group.created_at.strftime('%Y-%m-%d') if group.created_at else '-' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('leave_group_allocation', group_id=group.id) }}" class="btn btn-outline-info" title="Assign Leave Types">
+                                                <i class="fas fa-calendar-check"></i>
+                                            </a>
+                                            <a href="{{ url_for('leave_group_form', group_id=group.id, company_id=group.company_id) }}" class="btn btn-outline-primary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('leave_group_delete', group_id=group.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this leave group?');">
+                                                <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No leave groups configured yet. 
+                        {% if selected_company %}
+                        <a href="{{ url_for('leave_group_form', company_id=selected_company.id) }}" class="alert-link">Create the first leave group</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Info Card -->
             <div class="card mt-4">
                 <div class="card-header">
@@ -145,6 +229,7 @@
                         <li>Use the <strong>Code</strong> (e.g., AL, SL, CL) as a short identifier for reporting purposes</li>
                         <li>The <strong>Color</strong> will be used to visually distinguish leave types in calendars and reports</li>
                         <li>Deactivate (rather than delete) leave types that are no longer in use to maintain historical records</li>
+                        <li><strong>Leave Groups</strong> allow you to assign different leave allocations to different employee categories</li>
                     </ul>
                 </div>
             </div>

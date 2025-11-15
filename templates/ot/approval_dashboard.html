@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}OT Approval Dashboard - Nexar{% endblock %}
+
+{% block head %}
+<style>
+    .approval-card {
+        background: var(--white);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 4px solid #f59e0b;
+    }
+    
+    .approval-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 1px solid var(--grey-200);
+        padding-bottom: 15px;
+    }
+    
+    .employee-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .employee-details {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .employee-name {
+        font-weight: 700;
+        font-size: 16px;
+        margin: 0;
+    }
+    
+    .employee-meta {
+        font-size: 12px;
+        color: var(--grey-500);
+        margin: 0;
+    }
+    
+    .approval-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .info-label {
+        font-size: 12px;
+        color: var(--grey-500);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 5px;
+    }
+    
+    .info-value {
+        font-weight: 600;
+        font-size: 16px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .action-form {
+        margin-bottom: 15px;
+    }
+    
+    .action-form textarea {
+        font-size: 14px;
+        border-radius: 4px;
+    }
+    
+    .action-form input {
+        border-radius: 4px;
+    }
+    
+    .no-requests {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    
+    .no-requests-icon {
+        font-size: 3rem;
+        color: var(--grey-300);
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">OT Approval Dashboard</h1>
+            <p class="text-muted small mb-0">Review and approve pending overtime requests</p>
+        </div>
+        {% if pending_approvals.total > 0 %}
+        <div>
+            <span class="badge bg-warning text-dark" style="font-size: 14px; padding: 10px 15px;">
+                {{ pending_approvals.total }} Pending Request{{ 's' if pending_approvals.total != 1 else '' }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pending Approvals -->
+    {% if pending_approvals.items %}
+        {% for approval in pending_approvals.items %}
+        <div class="approval-card">
+            <!-- Card Header -->
+            <div class="approval-header">
+                <div class="employee-info">
+                    <div class="avatar-placeholder" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 20px;">
+                        {{ approval.employee.first_name[0] if approval.employee.first_name else 'E' }}
+                    </div>
+                    <div class="employee-details">
+                        <p class="employee-name">{{ approval.employee.first_name }} {{ approval.employee.last_name }}</p>
+                        <p class="employee-meta">ID: {{ approval.employee.employee_id or 'N/A' }} | Dept: {{ approval.employee.department.name if approval.employee.department else 'N/A' }}</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-warning text-dark">Pending Review</span>
+                </div>
+            </div>
+
+            <!-- Approval Details -->
+            <div class="approval-content">
+                <div class="info-item">
+                    <span class="info-label">Hours Requested</span>
+                    <span class="info-value">{{ approval.requested_hours or 0 }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">OT Type</span>
+                    <span class="info-value">{{ approval.ot_type.name if approval.ot_type else 'General' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Requested On</span>
+                    <span class="info-value">{{ approval.ot_date.strftime('%d %b %Y') if approval.ot_date else '-' }}</span>
+                </div>
+            </div>
+
+            <!-- Reason -->
+            {% if approval.reason %}
+            <div class="alert alert-info mb-3" style="border-radius: 4px;">
+                <strong>Reason:</strong> {{ approval.reason }}
+            </div>
+            {% endif %}
+
+            <!-- Approval Form -->
+            <form method="POST" action="{{ url_for('ot_approval') }}" class="action-form">
+                <input type="hidden" name="request_id" value="{{ approval.id }}">
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="comments_{{ approval.id }}" class="form-label small">Comments</label>
+                        <textarea class="form-control" id="comments_{{ approval.id }}" name="comments" rows="3" placeholder="Add comments..."></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="modified_hours_{{ approval.id }}" class="form-label small">Modified Hours (Optional)</label>
+                        <input type="number" class="form-control" id="modified_hours_{{ approval.id }}" name="modified_hours" 
+                               step="0.5" min="0" placeholder="Leave empty to keep original">
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                    {% if approval.requested_hours %}
+                    <button type="button" class="btn btn-warning btn-sm" onclick="toggleModify('{{ approval.id }}')">
+                        <i class="fas fa-edit"></i> Modify Hours
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if pending_approvals.pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if pending_approvals.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('ot_approval', page=1) }}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.prev_num) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in pending_approvals.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num == pending_approvals.page %}
+                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('ot_approval', page=page_num) }}">{{ page_num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if pending_approvals.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.next_num) }}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.pages) }}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+    {% else %}
+    <!-- No Pending Approvals -->
+    <div class="approval-card">
+        <div class="no-requests">
+            <div class="no-requests-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <h4>No Pending Requests</h4>
+            <p class="text-muted mb-0">All OT requests have been processed. Great work! 🎉</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleModify(approvalId) {
+    const field = document.getElementById('modified_hours_' + approvalId);
+    if (field.disabled) {
+        field.disabled = false;
+        field.focus();
+    } else {
+        field.disabled = true;
+    }
+}
+</script>
+{% endblock %}

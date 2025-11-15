@@ -1,6 +1,6 @@
 """
 Master Data Management Routes
-Handles CRUD operations for Roles, Departments, Working Hours, and Work Schedules
+Handles CRUD operations for Roles, Departments, Working Hours, Work Schedules, and OT Types
 """
 
 from flask import render_template, request, redirect, url_for, flash
@@ -9,7 +9,7 @@ from datetime import datetime
 
 from app import app, db
 from auth import require_login, require_role
-from models import Role, Department, WorkingHours, WorkSchedule, Employee
+from models import Role, Department, WorkingHours, WorkSchedule, Employee, OTType, Company
 
 
 # ============================================================================
@@ -594,3 +594,190 @@ def work_schedule_delete(work_schedule_id):
         flash(f'Error deleting work schedule: {str(e)}', 'error')
     
     return redirect(url_for('work_schedule_list'))
+
+
+# ============================================================================
+# OT TYPES MANAGEMENT (Company-specific Overtime Types)
+# ============================================================================
+
+@app.route('/masters/ot-types')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def ot_type_list():
+    """List all OT types for the company with search and pagination"""
+    from flask_login import current_user
+    
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    
+    # Get company_id based on user role
+    if hasattr(current_user, 'company_id') and current_user.company_id:
+        company_id = current_user.company_id
+    else:
+        # Super Admin - no company filter
+        company_id = None
+    
+    query = OTType.query
+    if company_id:
+        query = query.filter_by(company_id=company_id)
+    
+    if search:
+        query = query.filter(
+            or_(
+                OTType.name.ilike(f'%{search}%'),
+                OTType.code.ilike(f'%{search}%'),
+                OTType.description.ilike(f'%{search}%')
+            )
+        )
+    
+    ot_types = query.order_by(OTType.display_order, OTType.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    return render_template('masters/ot_types/list.html', 
+                         ot_types=ot_types, 
+                         search=search)
+
+
+@app.route('/masters/ot-types/add', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def ot_type_add():
+    """Add a new OT type"""
+    from flask_login import current_user
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        code = request.form.get('code', '').strip()
+        description = request.form.get('description', '').strip()
+        rate_multiplier = request.form.get('rate_multiplier', '1.5')
+        color_code = request.form.get('color_code', '#3498db')
+        applicable_days = request.form.get('applicable_days', '')
+        display_order = request.form.get('display_order', '0')
+        is_active = request.form.get('is_active') == 'on'
+        
+        if not name or not code:
+            flash('OT Type name and code are required', 'error')
+            return redirect(url_for('ot_type_add'))
+        
+        # Get company_id
+        if hasattr(current_user, 'company_id') and current_user.company_id:
+            company_id = current_user.company_id
+        else:
+            flash('Error: User must be associated with a company', 'error')
+            return redirect(url_for('ot_type_add'))
+        
+        # Check if OT type with same code already exists for this company
+        existing_ot = OTType.query.filter_by(company_id=company_id, code=code).first()
+        if existing_ot:
+            flash(f'OT Type with code "{code}" already exists for this company', 'error')
+            return redirect(url_for('ot_type_add'))
+        
+        try:
+            ot_type = OTType(
+                company_id=company_id,
+                name=name,
+                code=code,
+                description=description if description else None,
+                rate_multiplier=float(rate_multiplier),
+                color_code=color_code,
+                applicable_days=applicable_days if applicable_days else None,
+                display_order=int(display_order),
+                is_active=is_active,
+                created_by=current_user.username
+            )
+            db.session.add(ot_type)
+            db.session.commit()
+            flash(f'OT Type "{name}" added successfully', 'success')
+            return redirect(url_for('ot_type_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding OT Type: {str(e)}', 'error')
+            return redirect(url_for('ot_type_add'))
+    
+    return render_template('masters/ot_types/form.html', ot_type=None)
+
+
+@app.route('/masters/ot-types/<int:ot_type_id>/edit', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def ot_type_edit(ot_type_id):
+    """Edit an existing OT type"""
+    from flask_login import current_user
+    
+    ot_type = OTType.query.get_or_404(ot_type_id)
+    
+    # Check access - only allow if user is from same company or is Super Admin
+    if hasattr(current_user, 'company_id') and current_user.company_id:
+        if ot_type.company_id != current_user.company_id:
+            flash('Access Denied', 'error')
+            return redirect(url_for('ot_type_list'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        code = request.form.get('code', '').strip()
+        description = request.form.get('description', '').strip()
+        rate_multiplier = request.form.get('rate_multiplier', '1.5')
+        color_code = request.form.get('color_code', '#3498db')
+        applicable_days = request.form.get('applicable_days', '')
+        display_order = request.form.get('display_order', '0')
+        is_active = request.form.get('is_active') == 'on'
+        
+        if not name or not code:
+            flash('OT Type name and code are required', 'error')
+            return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
+        
+        # Check if another OT type with same code exists for this company
+        existing_ot = OTType.query.filter(
+            OTType.company_id == ot_type.company_id,
+            OTType.code == code,
+            OTType.id != ot_type_id
+        ).first()
+        if existing_ot:
+            flash(f'Another OT Type with code "{code}" already exists for this company', 'error')
+            return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
+        
+        try:
+            ot_type.name = name
+            ot_type.code = code
+            ot_type.description = description if description else None
+            ot_type.rate_multiplier = float(rate_multiplier)
+            ot_type.color_code = color_code
+            ot_type.applicable_days = applicable_days if applicable_days else None
+            ot_type.display_order = int(display_order)
+            ot_type.is_active = is_active
+            ot_type.modified_by = current_user.username
+            ot_type.modified_at = datetime.now()
+            
+            db.session.commit()
+            flash(f'OT Type "{name}" updated successfully', 'success')
+            return redirect(url_for('ot_type_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating OT Type: {str(e)}', 'error')
+            return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
+    
+    return render_template('masters/ot_types/form.html', ot_type=ot_type)
+
+
+@app.route('/masters/ot-types/<int:ot_type_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def ot_type_delete(ot_type_id):
+    """Delete an OT type"""
+    from flask_login import current_user
+    
+    ot_type = OTType.query.get_or_404(ot_type_id)
+    
+    # Check access
+    if hasattr(current_user, 'company_id') and current_user.company_id:
+        if ot_type.company_id != current_user.company_id:
+            flash('Access Denied', 'error')
+            return redirect(url_for('ot_type_list'))
+    
+    try:
+        ot_name = ot_type.name
+        db.session.delete(ot_type)
+        db.session.commit()
+        flash(f'OT Type "{ot_name}" deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting OT Type: {str(e)}', 'error')
+    
+    return redirect(url_for('ot_type_list'))
