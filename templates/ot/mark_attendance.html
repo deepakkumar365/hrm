@@ -74,6 +74,24 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 1rem;
+    }
+    
+    .ot-record-item > div:last-child {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        white-space: nowrap;
+    }
+    
+    .ot-record-item .btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.85rem;
+    }
+    
+    .ot-record-item .badge {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.85rem;
     }
 
     .ot-record-item .date {
@@ -312,6 +330,21 @@
             </div>
             <div>
                 <span class="status status-{{ ot.status.lower() }}">{{ ot.status }}</span>
+            </div>
+            <div>
+                {% if ot.status == 'Draft' %}
+                <form method="POST" action="{{ url_for('submit_ot_attendance', attendance_id=ot.id) }}" style="display: inline;">
+                    <button type="submit" class="btn btn-sm btn-primary" title="Submit this OT for manager approval">
+                        <i class="fas fa-paper-plane"></i> Submit
+                    </button>
+                </form>
+                {% elif ot.status == 'Submitted' %}
+                <span class="badge badge-info">Pending Manager Review</span>
+                {% elif ot.status == 'Approved' %}
+                <span class="badge badge-success">Approved</span>
+                {% elif ot.status == 'Rejected' %}
+                <span class="badge badge-danger">Rejected</span>
+                {% endif %}
             </div>
         </div>
         {% endfor %}

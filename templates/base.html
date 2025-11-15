@@ -52,6 +52,8 @@
                     {% set is_hr_manager = user_role == 'HR Manager' %}
                     {% set is_manager = user_role == 'Manager' %}
                     {% set is_user = user_role == 'User' %}
+                    {# Check if employee has manager flag enabled #}
+                    {% set is_reporting_manager = hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.is_manager %}
 
                     <ul class="navbar-nav me-auto">
                         <!-- Dashboard - Visible to all -->
@@ -253,6 +255,16 @@
                                     Payroll Summary
                                 </a></li>
                             </ul>
+                        </li>
+                        {% endif %}
+
+                        <!-- Manager OT Approval - Visible to employees with is_manager flag enabled -->
+                        {% if is_reporting_manager and not is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('ot_manager_approval') }}">
+                                <i class="fas fa-check-circle"></i>
+                                OT Approvals
+                            </a>
                         </li>
                         {% endif %}
 

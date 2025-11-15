@@ -609,11 +609,11 @@ def ot_type_list():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
     
-    # Get company_id based on user role
-    if hasattr(current_user, 'company_id') and current_user.company_id:
-        company_id = current_user.company_id
+    # Get company_id from employee profile
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+        company_id = current_user.employee_profile.company_id
     else:
-        # Super Admin - no company filter
+        # Super Admin without employee profile - no company filter
         company_id = None
     
     query = OTType.query
@@ -658,11 +658,11 @@ def ot_type_add():
             flash('OT Type name and code are required', 'error')
             return redirect(url_for('ot_type_add'))
         
-        # Get company_id
-        if hasattr(current_user, 'company_id') and current_user.company_id:
-            company_id = current_user.company_id
+        # Get company_id from employee profile
+        if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+            company_id = current_user.employee_profile.company_id
         else:
-            flash('Error: User must be associated with a company', 'error')
+            flash('Error: User must be associated with a company through an employee profile', 'error')
             return redirect(url_for('ot_type_add'))
         
         # Check if OT type with same code already exists for this company
@@ -705,10 +705,13 @@ def ot_type_edit(ot_type_id):
     ot_type = OTType.query.get_or_404(ot_type_id)
     
     # Check access - only allow if user is from same company or is Super Admin
-    if hasattr(current_user, 'company_id') and current_user.company_id:
-        if ot_type.company_id != current_user.company_id:
-            flash('Access Denied', 'error')
-            return redirect(url_for('ot_type_list'))
+    user_company_id = None
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+        user_company_id = current_user.employee_profile.company_id
+    
+    if user_company_id and ot_type.company_id != user_company_id:
+        flash('Access Denied', 'error')
+        return redirect(url_for('ot_type_list'))
     
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -766,10 +769,13 @@ def ot_type_delete(ot_type_id):
     ot_type = OTType.query.get_or_404(ot_type_id)
     
     # Check access
-    if hasattr(current_user, 'company_id') and current_user.company_id:
-        if ot_type.company_id != current_user.company_id:
-            flash('Access Denied', 'error')
-            return redirect(url_for('ot_type_list'))
+    user_company_id = None
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+        user_company_id = current_user.employee_profile.company_id
+    
+    if user_company_id and ot_type.company_id != user_company_id:
+        flash('Access Denied', 'error')
+        return redirect(url_for('ot_type_list'))
     
     try:
         ot_name = ot_type.name
