@@ -230,10 +230,10 @@
                 </div>
 
                 <div class="action-buttons">
-                    <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">
+                    <button type="submit" name="action" value="approve" class="btn btn-success btn-sm" onclick="showLoader()">
                         <i class="fas fa-check"></i> Approve
                     </button>
-                    <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">
+                    <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm" onclick="showLoader()">
                         <i class="fas fa-times"></i> Reject
                     </button>
                     {% if approval.ot_request.requested_hours %}
@@ -292,6 +292,23 @@
 </div>
 
 <script>
+// Hide loader on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.classList.remove('show');
+    }
+});
+
+// Show loader function using CSS class
+function showLoader() {
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.classList.add('show');
+    }
+}
+
+// Toggle modify hours input
 function toggleModify(approvalId) {
     const input = document.getElementById('modified_hours_' + approvalId);
     if (input.style.display === 'none') {

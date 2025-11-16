@@ -143,28 +143,35 @@
             <div class="approval-content">
                 <div class="info-item">
                     <span class="info-label">Hours Requested</span>
-                    <span class="info-value">{{ approval.requested_hours or 0 }}</span>
+                    <span class="info-value">{{ approval.ot_request.requested_hours or 0 }}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">OT Type</span>
-                    <span class="info-value">{{ approval.ot_type.name if approval.ot_type else 'General' }}</span>
+                    <span class="info-value">{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else 'General' }}</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Requested On</span>
-                    <span class="info-value">{{ approval.ot_date.strftime('%d %b %Y') if approval.ot_date else '-' }}</span>
+                    <span class="info-value">{{ approval.ot_request.ot_date.strftime('%d %b %Y') if approval.ot_request.ot_date else '-' }}</span>
                 </div>
             </div>
 
             <!-- Reason -->
-            {% if approval.reason %}
+            {% if approval.ot_request.reason %}
             <div class="alert alert-info mb-3" style="border-radius: 4px;">
-                <strong>Reason:</strong> {{ approval.reason }}
+                <strong>Reason:</strong> {{ approval.ot_request.reason }}
+            </div>
+            {% endif %}
+
+            <!-- Approval Comments History -->
+            {% if approval.comments %}
+            <div class="alert alert-warning mb-3" style="border-radius: 4px;">
+                <strong>Previous Comments:</strong> {{ approval.comments }}
             </div>
             {% endif %}
 
             <!-- Approval Form -->
             <form method="POST" action="{{ url_for('ot_approval') }}" class="action-form">
-                <input type="hidden" name="request_id" value="{{ approval.id }}">
+                <input type="hidden" name="ot_request_id" value="{{ approval.ot_request_id }}">
                 
                 <div class="row mb-3">
                     <div class="col-md-6">
@@ -185,7 +192,7 @@
                     <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">
                         <i class="fas fa-times"></i> Reject
                     </button>
-                    {% if approval.requested_hours %}
+                    {% if approval.ot_request.requested_hours %}
                     <button type="button" class="btn btn-warning btn-sm" onclick="toggleModify('{{ approval.id }}')">
                         <i class="fas fa-edit"></i> Modify Hours
                     </button>
