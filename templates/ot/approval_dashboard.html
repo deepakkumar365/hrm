@@ -119,6 +119,24 @@
         {% endif %}
     </div>
 
+    <!-- Statistics -->
+    {% if stats %}
+    <div class="stats-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px;">
+        <div class="stat-card" style="background: var(--white); border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="font-size: 32px; font-weight: 700; color: var(--primary-color); margin-bottom: 5px;">{{ stats.pending_hr or 0 }}</div>
+            <div style="font-size: 12px; color: var(--grey-500); text-transform: uppercase; letter-spacing: 0.5px;">Pending Approvals</div>
+        </div>
+        <div class="stat-card" style="background: var(--white); border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="font-size: 32px; font-weight: 700; color: #10b981; margin-bottom: 5px;">{{ stats.hr_approved or 0 }}</div>
+            <div style="font-size: 12px; color: var(--grey-500); text-transform: uppercase; letter-spacing: 0.5px;">Approved</div>
+        </div>
+        <div class="stat-card" style="background: var(--white); border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <div style="font-size: 32px; font-weight: 700; color: #ef4444; margin-bottom: 5px;">{{ stats.hr_rejected or 0 }}</div>
+            <div style="font-size: 12px; color: var(--grey-500); text-transform: uppercase; letter-spacing: 0.5px;">Rejected</div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Pending Approvals -->
     {% if pending_approvals.items %}
         {% for approval in pending_approvals.items %}
@@ -127,11 +145,11 @@
             <div class="approval-header">
                 <div class="employee-info">
                     <div class="avatar-placeholder" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 20px;">
-                        {{ approval.employee.first_name[0] if approval.employee.first_name else 'E' }}
+                        {{ approval.ot_request.employee.first_name[0] if approval.ot_request.employee.first_name else 'E' }}
                     </div>
                     <div class="employee-details">
-                        <p class="employee-name">{{ approval.employee.first_name }} {{ approval.employee.last_name }}</p>
-                        <p class="employee-meta">ID: {{ approval.employee.employee_id or 'N/A' }} | Dept: {{ approval.employee.department.name if approval.employee.department else 'N/A' }}</p>
+                        <p class="employee-name">{{ approval.ot_request.employee.first_name }} {{ approval.ot_request.employee.last_name }}</p>
+                        <p class="employee-meta">ID: {{ approval.ot_request.employee.employee_id or 'N/A' }} | Dept: {{ approval.ot_request.employee.department.name if approval.ot_request.employee.department else 'N/A' }}</p>
                     </div>
                 </div>
                 <div>
@@ -171,7 +189,8 @@
 
             <!-- Approval Form -->
             <form method="POST" action="{{ url_for('ot_approval') }}" class="action-form">
-                <input type="hidden" name="ot_request_id" value="{{ approval.ot_request_id }}">
+                <input type="hidden" name="ot_request_id" value="{{ approval.ot_request.id }}">
+                <input type="hidden" name="action" id="action_{{ approval.id }}" value="">
                 
                 <div class="row mb-3">
                     <div class="col-md-6">
@@ -186,10 +205,10 @@
                 </div>
 
                 <div class="action-buttons">
-                    <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">
+                    <button type="submit" class="btn btn-success btn-sm" onclick="submitAction(event, 'approve', '{{ approval.id }}')">
                         <i class="fas fa-check"></i> Approve
                     </button>
-                    <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="submitAction(event, 'reject', '{{ approval.id }}')">
                         <i class="fas fa-times"></i> Reject
                     </button>
                     {% if approval.ot_request.requested_hours %}
@@ -254,6 +273,34 @@
 </div>
 
 <script>
+// Hide loader on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.classList.remove('show');
+    }
+});
+
+// Submit action - sets the hidden field and shows loader
+function submitAction(event, action, approvalId) {
+    event.preventDefault();
+    
+    // Set the hidden action field
+    const actionField = document.getElementById('action_' + approvalId);
+    if (actionField) {
+        actionField.value = action;
+    }
+    
+    // Show loader
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.classList.add('show');
+    }
+    
+    // Submit the form
+    event.target.closest('form').submit();
+}
+
 function toggleModify(approvalId) {
     const field = document.getElementById('modified_hours_' + approvalId);
     if (field.disabled) {

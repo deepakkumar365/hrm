@@ -545,6 +545,8 @@ def ot_manager_approval():
                 comments = request.form.get('comments', '')
                 modified_hours = request.form.get('modified_hours')
                 
+                logger.info(f"[OT_APPROVAL] POST received - Request ID: {ot_request_id}, Action: {action}")
+                
                 ot_request = OTRequest.query.get(ot_request_id)
                 if not ot_request:
                     flash('OT request not found', 'danger')
@@ -561,27 +563,41 @@ def ot_manager_approval():
                     return redirect(url_for('ot_manager_approval'))
                 
                 if action == 'approve':
+                    logger.info(f"[OT_APPROVAL] Processing APPROVE action for approval ID: {ot_approval.id}")
+                    
                     # Manager Approves
                     ot_approval.status = 'manager_approved'
                     ot_approval.comments = comments
                     if modified_hours:
                         ot_approval.approved_hours = float(modified_hours)
                         ot_request.approved_hours = float(modified_hours)
-                    ot_approval.created_at = datetime.now()  # Update timestamp
+                    # Don't update created_at - it's immutable. Use created_at for record creation time
                     
                     # Update OTRequest status
                     ot_request.status = 'manager_approved'
+                    logger.info(f"[OT_APPROVAL] Updated approval and request to manager_approved")
                     
                     # Create Level 2 OTApproval for HR Manager
                     # Get HR Manager (user with HR Manager role)
+                    logger.info(f"[OT_APPROVAL] Looking for HR Manager role...")
                     hr_manager_role = Role.query.filter_by(name='HR Manager').first()
-                    hr_managers = User.query.filter_by(role_id=hr_manager_role.id if hr_manager_role else None).all()
+                    
+                    if not hr_manager_role:
+                        logger.error("HR Manager role not found in database")
+                        flash('Error: HR Manager role not configured. Contact administrator.', 'danger')
+                        return redirect(url_for('ot_manager_approval'))
+                    
+                    logger.info(f"[OT_APPROVAL] Found HR Manager role, querying users...")
+                    hr_managers = User.query.filter_by(role_id=hr_manager_role.id).all()
+                    logger.info(f"[OT_APPROVAL] Found {len(hr_managers)} HR Manager(s)")
                     
                     if not hr_managers:
+                        logger.warning("[OT_APPROVAL] No HR Manager found for level 2 approval")
                         flash('Warning: No HR Manager found for level 2 approval', 'warning')
                     else:
                         # Create approval for first available HR Manager (or can assign logic)
                         hr_manager = hr_managers[0]
+                        logger.info(f"[OT_APPROVAL] Creating Level 2 approval for HR Manager ID: {hr_manager.id}")
                         ot_approval_l2 = OTApproval(
                             ot_request_id=ot_request.id,
                             approver_id=hr_manager.id,
@@ -590,14 +606,16 @@ def ot_manager_approval():
                             comments=f'Approved by {current_user.full_name} ({manager_employee.first_name}), pending HR Manager approval'
                         )
                         db.session.add(ot_approval_l2)
+                        logger.info(f"[OT_APPROVAL] Level 2 approval object added to session")
                     
+                    logger.info(f"[OT_APPROVAL] Ready to commit changes...")
                     flash(f'✓ OT Approved. Sent to HR Manager for final approval.', 'success')
                 
                 elif action == 'reject':
                     # Manager Rejects
                     ot_approval.status = 'manager_rejected'
                     ot_approval.comments = comments
-                    ot_approval.created_at = datetime.now()
+                    # Don't update created_at - it's immutable. It tracks when the approval record was created
                     
                     # Update OTRequest status
                     ot_request.status = 'manager_rejected'
@@ -614,13 +632,16 @@ def ot_manager_approval():
                     
                     flash(f'✗ OT Rejected. Returned to employee to re-mark.', 'danger')
                 
+                logger.info(f"[OT_APPROVAL] About to commit all changes...")
                 db.session.commit()
+                logger.info(f"[OT_APPROVAL] ✓ Commit successful! Redirecting to dashboard...")
                 return redirect(url_for('ot_manager_approval'))
             
             except Exception as e:
+                logger.error(f"[OT_APPROVAL] ✗ Exception occurred: {str(e)}", exc_info=True)
                 db.session.rollback()
-                logger.error(f"Error processing manager approval: {str(e)}")
                 flash(f'Error: {str(e)}', 'danger')
+                logger.error(f"Error processing manager approval: {str(e)}")
                 return redirect(url_for('ot_manager_approval'))
         
         # GET: Display OT pending manager approval
@@ -726,7 +747,7 @@ def ot_approval():
                     if modified_hours:
                         ot_approval_l2.approved_hours = float(modified_hours)
                         ot_request.approved_hours = float(modified_hours)
-                    ot_approval_l2.created_at = datetime.now()
+                    # Don't update created_at - it's immutable. It tracks when the approval record was created
                     
                     # Update OTRequest status - NOW READY FOR PAYROLL
                     ot_request.status = 'hr_approved'
@@ -740,7 +761,7 @@ def ot_approval():
                     # HR Rejects - Send back to Manager
                     ot_approval_l2.status = 'hr_rejected'
                     ot_approval_l2.comments = comments
-                    ot_approval_l2.created_at = datetime.now()
+                    # Don't update created_at - it's immutable. It tracks when the approval record was created
                     
                     # Update OTRequest status
                     ot_request.status = 'hr_rejected'

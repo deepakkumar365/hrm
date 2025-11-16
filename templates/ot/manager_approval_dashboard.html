@@ -216,6 +216,7 @@
             <!-- Approval Form -->
             <form method="POST" action="{{ url_for('ot_manager_approval') }}" class="action-form">
                 <input type="hidden" name="ot_request_id" value="{{ approval.ot_request.id }}">
+                <input type="hidden" name="action" id="action_{{ approval.id }}" value="">
                 
                 <div class="row mb-3">
                     <div class="col-md-6">
@@ -230,10 +231,10 @@
                 </div>
 
                 <div class="action-buttons">
-                    <button type="submit" name="action" value="approve" class="btn btn-success btn-sm" onclick="showLoader()">
+                    <button type="submit" class="btn btn-success btn-sm" onclick="submitAction(event, 'approve', '{{ approval.id }}')">
                         <i class="fas fa-check"></i> Approve
                     </button>
-                    <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm" onclick="showLoader()">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="submitAction(event, 'reject', '{{ approval.id }}')">
                         <i class="fas fa-times"></i> Reject
                     </button>
                     {% if approval.ot_request.requested_hours %}
@@ -300,12 +301,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Show loader function using CSS class
-function showLoader() {
+// Submit action - sets the hidden field and shows loader
+function submitAction(event, action, approvalId) {
+    event.preventDefault();
+    
+    // Set the hidden action field
+    const actionField = document.getElementById('action_' + approvalId);
+    if (actionField) {
+        actionField.value = action;
+    }
+    
+    // Show loader
     const loader = document.getElementById('global-loader');
     if (loader) {
         loader.classList.add('show');
     }
+    
+    // Submit the form
+    event.target.closest('form').submit();
 }
 
 // Toggle modify hours input
