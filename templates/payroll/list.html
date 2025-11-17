@@ -22,22 +22,6 @@
                     <a href="{{ url_for('payroll_generate') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-1"></i>Generate Payroll
                     </a>
-                    <button type="button" class="btn btn-outline-info" onclick="bulkDownloadPayslips()" title="Download all payslips as PDFs" style="display:none;">
-                        <i class="fas fa-download me-1"></i>Download Payslips
-                    </button>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fas fa-file-export me-1"></i>Export
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('compliance_generate', report_type='cpf') }}">
-                                <i class="fas fa-file-csv me-1"></i>CPF Submission
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('compliance_generate', report_type='bank') }}">
-                                <i class="fas fa-university me-1"></i>Bank Transfer
-                            </a></li>
-                        </ul>
-                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -127,19 +111,29 @@
                 </div>
 
                 <div class="row text-center border-top pt-2">
-                    <div class="col-3">
-                        <small class="text-muted d-block">Gross Pay</small>
-                        <strong>{{ payroll.gross_pay | currency }}</strong>
+                    <div class="col-4">
+                        <small class="text-muted d-block">Allowances</small>
+                        <strong class="text-info">{{ payroll.allowances | currency }}</strong>
                     </div>
-                    <div class="col-3">
+                    <div class="col-4">
+                        <small class="text-muted d-block">OT Amount</small>
+                        <strong class="text-warning">{{ payroll.overtime_pay | currency }}</strong>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted d-block">Gross Pay</small>
+                        <strong class="text-success">{{ payroll.gross_pay | currency }}</strong>
+                    </div>
+                </div>
+                <div class="row text-center border-top pt-2">
+                    <div class="col-4">
                         <small class="text-muted d-block">CPF (Emp)</small>
                         <strong>{{ payroll.employee_cpf | currency }}</strong>
                     </div>
-                    <div class="col-3">
+                    <div class="col-4">
                         <small class="text-muted d-block">CPF (Empr)</small>
                         <strong>{{ payroll.employer_cpf | currency }}</strong>
                     </div>
-                    <div class="col-3">
+                    <div class="col-4">
                         <small class="text-muted d-block">Period</small>
                         <strong>{{ payroll.pay_period_end.strftime('%m/%Y') }}</strong>
                     </div>
@@ -176,9 +170,11 @@
                         <tr>
                             <th>Employee</th>
                             <th>Pay Period</th>
+                            <th>Basic Pay</th>
+                            <th>Allowances</th>
+                            <th>OT Amount</th>
                             <th>Gross Pay</th>
-                            <th>CPF (Employee)</th>
-                            <th>CPF (Employer)</th>
+                            <th>CPF (Emp)</th>
                             <th>Net Pay</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -199,9 +195,11 @@
                                     <br>{{ payroll.pay_period_end | date }}
                                 </div>
                             </td>
+                            <td class="text-muted">{{ payroll.basic_pay | currency }}</td>
+                            <td class="text-info fw-semibold">{{ payroll.allowances | currency }}</td>
+                            <td class="text-warning fw-semibold">{{ payroll.overtime_pay | currency }}</td>
                             <td class="text-success fw-semibold">{{ payroll.gross_pay | currency }}</td>
-                            <td>{{ payroll.employee_cpf | currency }}</td>
-                            <td class="text-warning fw-semibold">{{ payroll.employer_cpf | currency }}</td>
+                            <td class="text-secondary">{{ payroll.employee_cpf | currency }}</td>
                             <td class="text-success fw-bold">{{ payroll.net_pay | currency }}</td>
                             <td>
                                 {% if payroll.status == 'Approved' %}

@@ -4,64 +4,66 @@
 
 {% block head %}
 <style>
+    * {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
     .attendance-container {
         min-height: 100vh;
-        background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
-        padding: 2rem 1rem;
+        background-color: #f5f5f5;
+        padding: 1rem;
     }
 
     .attendance-card {
-        border-radius: 16px;
-        border: none;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1.5rem;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1rem;
         overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .attendance-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
     }
 
     /* Header Section */
     .header-section {
         background: white;
-        padding: 2rem 1.5rem;
+        padding: 1rem;
         text-align: center;
-        border-radius: 16px;
-        margin-bottom: 2rem;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
     .current-time {
-        font-size: 3.5rem;
+        font-size: 2.2rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+        background: linear-gradient(135deg, #2c3e50, #34495e);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        font-family: 'Courier New', monospace;
-        letter-spacing: 2px;
-        margin-bottom: 0.5rem;
+        font-family: 'Segoe UI', monospace;
+        letter-spacing: 1px;
+        margin-bottom: 0.3rem;
     }
 
     .current-date {
-        font-size: 1.1rem;
+        font-size: 0.9rem;
         color: #666;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
     }
 
     /* Status Badge */
     .status-badge {
         display: inline-block;
-        padding: 0.5rem 1.5rem;
-        border-radius: 50px;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-top: 1rem;
+        letter-spacing: 0.3px;
+        margin-top: 0.5rem;
     }
 
     .status-badge.active {
@@ -82,17 +84,18 @@
     /* Main Status Display */
     .main-status-section {
         background: white;
-        padding: 2rem;
-        border-radius: 16px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        padding: 1.2rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e0e0e0;
     }
 
     .status-timeline {
         display: flex;
         justify-content: space-around;
         align-items: center;
-        margin: 2rem 0;
+        margin: 1rem 0;
         position: relative;
     }
 
@@ -102,8 +105,8 @@
         top: 50%;
         left: 0;
         right: 0;
-        height: 2px;
-        background: linear-gradient(to right, #667eea, #764ba2, #ddd);
+        height: 1px;
+        background: linear-gradient(to right, #2c3e50, #34495e, #ddd);
         transform: translateY(-50%);
     }
 
@@ -115,80 +118,80 @@
     }
 
     .status-circle {
-        width: 80px;
-        height: 80px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 1rem;
-        font-size: 2rem;
+        margin: 0 auto 0.5rem;
+        font-size: 1.5rem;
         font-weight: 700;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s ease;
     }
 
     .status-item:hover .status-circle {
-        transform: scale(1.1);
+        transform: scale(1.05);
     }
 
     .status-circle.pending {
         background: #f8f9fa;
         color: #999;
-        border: 2px solid #ddd;
+        border: 1px solid #ddd;
     }
 
     .status-circle.active {
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: linear-gradient(135deg, #2c3e50, #34495e);
         color: white;
     }
 
     .status-label {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: #999;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
         font-weight: 600;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.25rem;
     }
 
     .status-time {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         font-weight: 700;
         color: #333;
     }
 
     /* Working Duration */
     .working-duration {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
         color: white;
-        padding: 2rem;
-        border-radius: 16px;
+        padding: 1.2rem;
+        border-radius: 6px;
         text-align: center;
-        margin: 2rem 0;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        margin: 1rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .working-duration-label {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         opacity: 0.9;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 0.5rem;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.3rem;
     }
 
     .working-duration-time {
-        font-size: 3rem;
+        font-size: 2rem;
         font-weight: 700;
-        font-family: 'Courier New', monospace;
-        letter-spacing: 2px;
+        font-family: 'Segoe UI', monospace;
+        letter-spacing: 1px;
     }
 
     /* Action Buttons */
     .action-buttons {
         display: grid;
-        gap: 1rem;
-        margin: 2rem 0;
+        gap: 0.8rem;
+        margin: 1rem 0;
     }
 
     .action-buttons.two-column {
@@ -202,18 +205,18 @@
     }
 
     .btn-action {
-        padding: 1.2rem 1.5rem;
-        font-size: 1.1rem;
+        padding: 0.8rem 1.2rem;
+        font-size: 0.9rem;
         font-weight: 600;
-        border-radius: 12px;
+        border-radius: 6px;
         border: none;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: all 0.3s ease;
+        letter-spacing: 0.5px;
+        transition: all 0.2s ease;
         cursor: pointer;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .btn-action::before {
@@ -223,8 +226,8 @@
         left: -100%;
         width: 100%;
         height: 100%;
-        background: rgba(255, 255, 255, 0.3);
-        transition: left 0.5s ease;
+        background: rgba(255, 255, 255, 0.1);
+        transition: left 0.3s ease;
     }
 
     .btn-action:hover::before {
@@ -232,8 +235,8 @@
     }
 
     .btn-action:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
     }
 
     .btn-action:active {
@@ -247,22 +250,22 @@
     }
 
     .btn-clock-in {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
         color: white;
     }
 
     .btn-clock-out {
-        background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
         color: white;
     }
 
     .btn-break-start {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
         color: white;
     }
 
     .btn-break-end {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
         color: white;
     }
 
@@ -270,8 +273,8 @@
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
-        margin: 2rem 0;
+        gap: 1rem;
+        margin: 1rem 0;
     }
 
     @media (max-width: 768px) {
@@ -282,40 +285,41 @@
 
     .stat-card {
         background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
+        padding: 1rem;
+        border-radius: 6px;
         text-align: center;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        border-left: 4px solid;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        border-left: 3px solid;
+        border: 1px solid #e0e0e0;
     }
 
     .stat-card.regular {
-        border-left-color: #667eea;
+        border-left-color: #3498db;
     }
 
     .stat-card.overtime {
-        border-left-color: #f5576c;
+        border-left-color: #e74c3c;
     }
 
     .stat-card.total {
-        border-left-color: #764ba2;
+        border-left-color: #2c3e50;
     }
 
     .stat-value {
-        font-size: 2rem;
+        font-size: 1.6rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #667eea, #764ba2);
+        background: linear-gradient(135deg, #2c3e50, #34495e);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
     }
 
     .stat-label {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: #999;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
         font-weight: 600;
     }
 

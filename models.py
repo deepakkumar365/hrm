@@ -1278,3 +1278,85 @@ class PayrollOTSummary(db.Model):
 
     employee = db.relationship('Employee', foreign_keys=[employee_id])
     company = db.relationship('Company', foreign_keys=[company_id])
+
+
+class OTDailySummary(db.Model):
+    """OT Daily Summary with Allowances - HR Manager Dashboard"""
+    __tablename__ = 'hrm_ot_daily_summary'
+    __table_args__ = (
+        Index('idx_ot_daily_employee_date', 'employee_id', 'ot_date'),
+        UniqueConstraint('employee_id', 'ot_date', name='uq_ot_daily_emp_date'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    ot_request_id = db.Column(db.Integer, db.ForeignKey('hrm_ot_request.id', ondelete='SET NULL'), nullable=True)
+    
+    # OT Hours and Amount
+    ot_date = db.Column(db.Date, nullable=False)
+    ot_hours = db.Column(db.Numeric(6, 2), default=0)
+    ot_rate_per_hour = db.Column(db.Numeric(8, 2), default=0)
+    ot_amount = db.Column(db.Numeric(12, 2), default=0)
+    
+    # Allowances (Manual entry by HR Manager)
+    kd_and_claim = db.Column(db.Numeric(12, 2), default=0)
+    trips = db.Column(db.Numeric(12, 2), default=0)
+    sinpost = db.Column(db.Numeric(12, 2), default=0)
+    sandstone = db.Column(db.Numeric(12, 2), default=0)
+    spx = db.Column(db.Numeric(12, 2), default=0)
+    psle = db.Column(db.Numeric(12, 2), default=0)
+    manpower = db.Column(db.Numeric(12, 2), default=0)
+    stacking = db.Column(db.Numeric(12, 2), default=0)
+    dispose = db.Column(db.Numeric(12, 2), default=0)
+    night = db.Column(db.Numeric(12, 2), default=0)
+    ph = db.Column(db.Numeric(12, 2), default=0)
+    sun = db.Column(db.Numeric(12, 2), default=0)
+    
+    # Total allowances
+    total_allowances = db.Column(db.Numeric(12, 2), default=0)
+    
+    # Grand total (OT amount + allowances)
+    total_amount = db.Column(db.Numeric(12, 2), default=0)
+    
+    status = db.Column(db.String(20), default='Draft')  # Draft, Submitted, Approved, Finalized
+    notes = db.Column(db.Text, nullable=True)
+    
+    created_by = db.Column(db.String(100), nullable=False, default='system')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_by = db.Column(db.String(100), nullable=True)
+    modified_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
+    finalized_at = db.Column(db.DateTime, nullable=True)
+    finalized_by = db.Column(db.String(100), nullable=True)
+
+    employee = db.relationship('Employee', foreign_keys=[employee_id])
+    company = db.relationship('Company', foreign_keys=[company_id])
+    ot_request = db.relationship('OTRequest', foreign_keys=[ot_request_id])
+    
+    def calculate_totals(self):
+        """Calculate total allowances and grand total"""
+        self.total_allowances = (
+            (self.kd_and_claim or 0) + (self.trips or 0) + (self.sinpost or 0) +
+            (self.sandstone or 0) + (self.spx or 0) + (self.psle or 0) +
+            (self.manpower or 0) + (self.stacking or 0) + (self.dispose or 0) +
+            (self.night or 0) + (self.ph or 0) + (self.sun or 0)
+        )
+        self.total_amount = (self.ot_amount or 0) + self.total_allowances
+        return self.total_amount
+    
+    def get_allowances_dict(self):
+        """Return all allowances as dictionary"""
+        return {
+            'kd_and_claim': self.kd_and_claim or 0,
+            'trips': self.trips or 0,
+            'sinpost': self.sinpost or 0,
+            'sandstone': self.sandstone or 0,
+            'spx': self.spx or 0,
+            'psle': self.psle or 0,
+            'manpower': self.manpower or 0,
+            'stacking': self.stacking or 0,
+            'dispose': self.dispose or 0,
+            'night': self.night or 0,
+            'ph': self.ph or 0,
+            'sun': self.sun or 0,
+        }

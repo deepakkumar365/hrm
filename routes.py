@@ -17,7 +17,7 @@ from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                     Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation, EmployeeGroup,
-                    OTType, OTAttendance, OTRequest, OTApproval, PayrollOTSummary)
+                    OTType, OTAttendance, OTRequest, OTApproval, PayrollOTSummary, OTDailySummary)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -1575,10 +1575,26 @@ def payroll_generate():
                 # Get payroll config
                 config = employee.payroll_config
 
-                # Calculate allowances
+                # Calculate allowances from both sources
                 total_allowances = 0
+                ot_allowances = 0
+                
+                # Get OT Daily Summary records for this period
+                ot_daily_records = OTDailySummary.query.filter_by(
+                    employee_id=employee.id).filter(
+                        OTDailySummary.ot_date.between(pay_period_start,
+                                                       pay_period_end)).all()
+                
+                # Sum OT allowances from Daily Summary
+                for ot_record in ot_daily_records:
+                    ot_allowances += float(ot_record.total_allowances or 0)
+                
+                # Get allowances from payroll config
                 if config:
                     total_allowances = float(config.get_total_allowances())
+                
+                # Total allowances = config allowances + OT special allowances
+                total_allowances = total_allowances + ot_allowances
 
                 # Get attendance data for overtime calculation
                 attendance_records = Attendance.query.filter_by(
@@ -1589,9 +1605,19 @@ def payroll_generate():
                 total_overtime = sum(float(record.overtime_hours or 0)
                                      for record in attendance_records)
 
-                # Calculate OT pay
-                ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
-                overtime_pay = total_overtime * ot_rate
+                # Also add OT hours from OT Daily Summary
+                ot_from_daily_summary = sum(float(record.ot_hours or 0)
+                                           for record in ot_daily_records)
+                total_overtime += ot_from_daily_summary
+
+                # Calculate OT pay - use the amount from daily summary if available
+                overtime_pay = sum(float(record.ot_amount or 0)
+                                  for record in ot_daily_records)
+                
+                # If no daily summary OT, calculate from attendance
+                if overtime_pay == 0 and total_overtime > 0:
+                    ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
+                    overtime_pay = (total_overtime - ot_from_daily_summary) * ot_rate
 
                 # Calculate gross pay
                 basic_pay = float(employee.basic_salary)
@@ -1749,14 +1775,23 @@ def payroll_config_update():
 def payroll_preview_api():
     """API endpoint to preview payroll data for selected month"""
     try:
+        company_id = request.args.get('company_id')
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
 
-        if not month or not year:
+        if not company_id or not month or not year:
             return jsonify({
                 'success': False,
-                'message': 'Month and year are required'
+                'message': 'Company ID, month, and year are required'
             }), 400
+
+        # Verify company exists
+        company = Company.query.get(company_id)
+        if not company:
+            return jsonify({
+                'success': False,
+                'message': 'Selected company not found'
+            }), 404
 
         # Calculate pay period
         from calendar import monthrange
@@ -1764,65 +1799,79 @@ def payroll_preview_api():
         last_day = monthrange(year, month)[1]
         pay_period_end = date(year, month, last_day)
 
-        # Get all active employees
-        employees = Employee.query.filter_by(is_active=True).all()
+        # Get active employees for the selected company
+        employees = Employee.query.filter_by(
+            company_id=company_id,
+            is_active=True
+        ).all()
 
         employee_data = []
         for emp in employees:
-            # Get payroll config
-            config = emp.payroll_config
+            try:
+                # Get payroll config
+                config = emp.payroll_config
 
-            # Calculate allowances
-            allowance_1 = float(config.allowance_1_amount) if config else 0
-            allowance_2 = float(config.allowance_2_amount) if config else 0
-            allowance_3 = float(config.allowance_3_amount) if config else 0
-            allowance_4 = float(config.allowance_4_amount) if config else 0
-            total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
+                # Calculate allowances - safely handle None values
+                allowance_1 = float(config.allowance_1_amount or 0) if config and config.allowance_1_amount else 0
+                allowance_2 = float(config.allowance_2_amount or 0) if config and config.allowance_2_amount else 0
+                allowance_3 = float(config.allowance_3_amount or 0) if config and config.allowance_3_amount else 0
+                allowance_4 = float(config.allowance_4_amount or 0) if config and config.allowance_4_amount else 0
+                total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
 
-            # Get attendance data for the month
-            attendance_records = Attendance.query.filter_by(
-                employee_id=emp.id
-            ).filter(
-                Attendance.date.between(pay_period_start, pay_period_end)
-            ).all()
+                # Get attendance data for the month
+                attendance_records = Attendance.query.filter_by(
+                    employee_id=emp.id
+                ).filter(
+                    Attendance.date.between(pay_period_start, pay_period_end)
+                ).all()
 
-            attendance_days = len(attendance_records)
-            total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
+                attendance_days = len(attendance_records)
+                total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
 
-            # Calculate OT amount
-            ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(emp.hourly_rate or 0)
-            ot_amount = total_ot_hours * ot_rate
+                # Calculate OT amount - safely handle None values
+                ot_rate = 0
+                if config and config.ot_rate_per_hour:
+                    ot_rate = float(config.ot_rate_per_hour)
+                elif emp.hourly_rate:
+                    ot_rate = float(emp.hourly_rate)
+                ot_amount = total_ot_hours * ot_rate
 
-            # Calculate gross salary
-            basic_salary = float(emp.basic_salary)
-            gross_salary = basic_salary + total_allowances + ot_amount
+                # Calculate gross salary - safely handle None values
+                basic_salary = float(emp.basic_salary or 0)
+                gross_salary = basic_salary + total_allowances + ot_amount
 
-            # Calculate CPF deductions (simplified - using employee rate)
-            cpf_deduction = gross_salary * (float(emp.employee_cpf_rate) / 100)
+                # Calculate CPF deductions - safely handle None values
+                cpf_rate = float(emp.employee_cpf_rate or 20.0)
+                cpf_deduction = gross_salary * (cpf_rate / 100)
 
-            # Calculate net salary
-            total_deductions = cpf_deduction
-            net_salary = gross_salary - total_deductions
+                # Calculate net salary
+                total_deductions = cpf_deduction
+                net_salary = gross_salary - total_deductions
 
-            employee_data.append({
-                'id': emp.id,
-                'employee_id': emp.employee_id,
-                'name': f"{emp.first_name} {emp.last_name}",
-                'basic_salary': basic_salary,
-                'allowance_1': allowance_1,
-                'allowance_2': allowance_2,
-                'allowance_3': allowance_3,
-                'allowance_4': allowance_4,
-                'total_allowances': total_allowances,
-                'ot_hours': total_ot_hours,
-                'ot_rate': ot_rate,
-                'ot_amount': ot_amount,
-                'attendance_days': attendance_days,
-                'gross_salary': gross_salary,
-                'cpf_deduction': cpf_deduction,
-                'total_deductions': total_deductions,
-                'net_salary': net_salary
-            })
+                employee_data.append({
+                    'id': emp.id,
+                    'employee_id': emp.employee_id,
+                    'name': f"{emp.first_name} {emp.last_name}",
+                    'basic_salary': basic_salary,
+                    'allowance_1': allowance_1,
+                    'allowance_2': allowance_2,
+                    'allowance_3': allowance_3,
+                    'allowance_4': allowance_4,
+                    'total_allowances': total_allowances,
+                    'ot_hours': total_ot_hours,
+                    'ot_rate': ot_rate,
+                    'ot_amount': ot_amount,
+                    'attendance_days': attendance_days,
+                    'gross_salary': gross_salary,
+                    'cpf_deduction': cpf_deduction,
+                    'total_deductions': total_deductions,
+                    'net_salary': net_salary
+                })
+            except Exception as emp_error:
+                # Log the error but continue with other employees
+                import logging
+                logging.error(f"Error processing employee {emp.id}: {str(emp_error)}")
+                continue
 
         return jsonify({
             'success': True,
@@ -1832,6 +1881,8 @@ def payroll_preview_api():
         })
 
     except Exception as e:
+        import logging
+        logging.error(f"Payroll preview API error: {str(e)}")
         return jsonify({
             'success': False,
             'message': f'Error loading payroll preview: {str(e)}'
@@ -2752,147 +2803,87 @@ def api_attendance_auto_create():
 @app.route('/claims')
 @require_login
 def claims_list():
-    """List claims"""
+    """List expense claims"""
     page = request.args.get('page', 1, type=int)
-    status_filter = request.args.get('status', type=str)
-
-    query = Claim.query.join(Employee)
-
+    status_filter = request.args.get('status', '', type=str)
+    
+    query = Claim.query
+    
+    # Filter by role/user
+    current_role = current_user.role.name if current_user.role else None
+    if current_role == 'Employee' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        query = query.filter(Claim.employee_id == current_user.employee_profile.id)
+    elif current_role not in ['Super Admin', 'Admin', 'Manager']:
+        flash('Unauthorized', 'error')
+        return redirect(url_for('dashboard'))
+    
+    # Filter by status if provided
     if status_filter:
         query = query.filter(Claim.status == status_filter)
-
-    # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
-                                                   'employee_profile') and current_user.employee_profile:
-        query = query.filter(
-            Claim.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                    'employee_profile') and current_user.employee_profile:
-        query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
-
-    claims = query.order_by(Claim.created_at.desc()).paginate(page=page,
-                                                              per_page=20,
-                                                              error_out=False)
-
-    return render_template('claims/list.html',
-                           claims=claims,
-                           status_filter=status_filter)
+    
+    claims = query.paginate(page=page, per_page=20)
+    
+    return render_template('claims/list.html', 
+                         claims=claims, 
+                         status_filter=status_filter)
 
 
 @app.route('/claims/submit', methods=['GET', 'POST'])
 @require_login
 def claims_submit():
     """Submit new claim"""
+    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+        flash('Employee profile required for submitting claims', 'error')
+        return redirect(url_for('dashboard'))
+    
     if request.method == 'POST':
         try:
-            if not hasattr(
-                    current_user,
-                    'employee_profile') or not current_user.employee_profile:
-                flash('Employee profile required for attendance marking',
-                      'error')
-                return redirect(url_for('dashboard'))
-
             claim = Claim()
             claim.employee_id = current_user.employee_profile.id
+            claim.organization_id = current_user.organization_id
             claim.claim_type = request.form.get('claim_type')
-            amount_str = request.form.get('amount')
-            claim.amount = float(amount_str) if amount_str else 0.0
-            claim.claim_date = parse_date(request.form.get('claim_date'))
+            claim.amount = float(request.form.get('amount', 0))
             claim.description = request.form.get('description')
-            claim.receipt_number = request.form.get('receipt_number')
-            claim.submitted_by = current_user.id
-
+            claim.claim_date = datetime.now()
+            claim.status = 'Pending'
+            
             db.session.add(claim)
             db.session.commit()
-
+            
             flash('Claim submitted successfully', 'success')
             return redirect(url_for('claims_list'))
-
         except Exception as e:
             db.session.rollback()
             flash(f'Error submitting claim: {str(e)}', 'error')
-
+    
     return render_template('claims/form.html')
 
 
 @app.route('/claims/<int:claim_id>/approve', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def claims_approve(claim_id):
     """Approve/reject claim"""
     claim = Claim.query.get_or_404(claim_id)
-
+    
     try:
         action = request.form.get('action')
-
+        
         if action == 'approve':
             claim.status = 'Approved'
             claim.approved_by = current_user.id
             claim.approved_at = datetime.now()
             flash('Claim approved', 'success')
-
         elif action == 'reject':
             claim.status = 'Rejected'
             claim.approved_by = current_user.id
             claim.approved_at = datetime.now()
-            claim.rejection_reason = request.form.get('rejection_reason')
             flash('Claim rejected', 'success')
-
+        
         db.session.commit()
-
+        return redirect(url_for('claims_list'))
+    
     except Exception as e:
         db.session.rollback()
         flash(f'Error processing claim: {str(e)}', 'error')
-
-    return redirect(url_for('claims_list'))
-
-
-# Appraisal Management Routes  
-@app.route('/appraisal')
-@require_login
-def appraisal_list():
-    """List appraisals"""
-    page = request.args.get('page', 1, type=int)
-
-    query = Appraisal.query.join(Employee)
-
-    # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
-                                                   'employee_profile') and current_user.employee_profile:
-        query = query.filter(
-            Appraisal.employee_id == current_user.employee_profile.id)
-    elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                    'employee_profile') and current_user.employee_profile:
-        query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
-
-    appraisals = query.order_by(Appraisal.created_at.desc()).paginate(
-        page=page, per_page=20, error_out=False)
-
-    return render_template('appraisal/list.html', appraisals=appraisals)
-
-
-@app.route('/appraisal/create', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
-def appraisal_create():
-    """Create new appraisal"""
-    if request.method == 'POST':
-        try:
-            appraisal = Appraisal()
-            employee_id_str = request.form.get('employee_id')
-            appraisal.employee_id = int(
-                employee_id_str) if employee_id_str else 0
-            appraisal.review_period_start = parse_date(
-                request.form.get('review_period_start'))
-            appraisal.review_period_end = parse_date(
-                request.form.get('review_period_end'))
-            appraisal.comments = request.form.get('comments')
-            db.session.add(appraisal)
-            db.session.commit()
-            flash('Appraisal created successfully!', 'success')
-            return redirect(url_for('appraisal_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error: {str(e)}', 'error')
-    employees = Employee.query.all()
-    return render_template('appraisal/create.html', employees=employees)
+        return redirect(url_for('claims_list'))
+   

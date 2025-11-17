@@ -17,10 +17,62 @@ from sqlalchemy import and_, or_
 import logging
 
 from app import app, db
-from models import OTAttendance, OTApproval, OTRequest, Employee, User, Role, Company, Department, OTType
+from models import OTAttendance, OTApproval, OTRequest, Employee, User, Role, Company, Department, OTType, OTDailySummary, PayrollConfiguration
 from auth import require_login, require_role
 
 logger = logging.getLogger(__name__)
+
+
+# ============ TEMPORARY: CREATE MISSING TABLE ============
+@app.route('/admin/setup/create-ot-table', methods=['GET'])
+@login_required
+def setup_create_ot_table():
+    """TEMPORARY: Create missing OTDailySummary table - Remove after first use"""
+    try:
+        # Security: Only allow access in development or from admin
+        user_role = current_user.role.name if (hasattr(current_user, 'role') and current_user.role) else None
+        if user_role not in ['Super Admin', 'Tenant Admin']:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        from sqlalchemy import inspect
+        
+        # Check if table exists
+        inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'hrm_ot_daily_summary' in existing_tables:
+            return jsonify({
+                'status': 'success',
+                'message': 'Table hrm_ot_daily_summary already exists'
+            }), 200
+        
+        # Create the table
+        logger.info("Creating hrm_ot_daily_summary table...")
+        OTDailySummary.__table__.create(db.engine, checkfirst=True)
+        logger.info("✅ Table created successfully")
+        
+        # Verify it was created
+        inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'hrm_ot_daily_summary' in existing_tables:
+            return jsonify({
+                'status': 'success',
+                'message': 'Table hrm_ot_daily_summary created successfully!',
+                'next_steps': 'Refresh the page and try OT Management > Payroll Summary (Grid)'
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Table creation failed'
+            }), 500
+    
+    except Exception as e:
+        logger.error(f"Error creating table: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 # ============ MARK OT ATTENDANCE (Employee Self-Service) ============
@@ -608,6 +660,70 @@ def ot_manager_approval():
                         db.session.add(ot_approval_l2)
                         logger.info(f"[OT_APPROVAL] Level 2 approval object added to session")
                     
+                    # ✅ NEW: Auto-create OTDailySummary record for HR Manager to fill allowances
+                    logger.info(f"[OT_APPROVAL] Creating OTDailySummary record for payroll grid...")
+                    logger.info(f"[OT_APPROVAL] OT Request: emp_id={ot_request.employee_id}, date={ot_request.ot_date}, company={ot_request.company_id}")
+                    try:
+                        # Get employee and their OT rate
+                        employee = Employee.query.get(ot_request.employee_id)
+                        if employee:
+                            logger.info(f"[OT_APPROVAL] Found employee: {employee.first_name} {employee.last_name}")
+                            
+                            # Get OT rate from PayrollConfiguration
+                            ot_rate = 0
+                            if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
+                                ot_rate = float(employee.payroll_config.ot_rate_per_hour)
+                                logger.info(f"[OT_APPROVAL] OT Rate from PayrollConfiguration: ₹{ot_rate}")
+                            elif employee.hourly_rate:
+                                ot_rate = float(employee.hourly_rate)
+                                logger.info(f"[OT_APPROVAL] OT Rate from Employee hourly_rate: ₹{ot_rate}")
+                            else:
+                                logger.warning(f"[OT_APPROVAL] ⚠️ NO OT RATE FOUND! Please set in Masters > Payroll Configuration")
+                            
+                            # Calculate OT amount
+                            approved_hours = ot_request.approved_hours or ot_request.requested_hours or 0
+                            ot_amount = float(approved_hours) * ot_rate
+                            logger.info(f"[OT_APPROVAL] OT Calculation: {approved_hours} hours × ₹{ot_rate} = ₹{ot_amount}")
+                            
+                            # Check if OTDailySummary already exists for this employee/date
+                            existing_summary = OTDailySummary.query.filter_by(
+                                employee_id=ot_request.employee_id,
+                                ot_date=ot_request.ot_date
+                            ).first()
+                            
+                            if not existing_summary:
+                                # Create new OTDailySummary record
+                                logger.info(f"[OT_APPROVAL] Creating NEW OTDailySummary record...")
+                                ot_summary = OTDailySummary(
+                                    employee_id=ot_request.employee_id,
+                                    company_id=ot_request.company_id,
+                                    ot_request_id=ot_request.id,
+                                    ot_date=ot_request.ot_date,
+                                    ot_hours=approved_hours,
+                                    ot_rate_per_hour=ot_rate,
+                                    ot_amount=ot_amount,
+                                    status='Draft',
+                                    created_by=current_user.username
+                                )
+                                db.session.add(ot_summary)
+                                logger.info(f"[OT_APPROVAL] ✅ OTDailySummary created successfully for employee {employee.id} on {ot_request.ot_date}")
+                                logger.info(f"[OT_APPROVAL] Grid will show this record when HR Manager filters by date: {ot_request.ot_date}")
+                            else:
+                                # Update existing record with OT hours and amount
+                                logger.info(f"[OT_APPROVAL] UPDATING existing OTDailySummary record...")
+                                existing_summary.ot_hours = approved_hours
+                                existing_summary.ot_rate_per_hour = ot_rate
+                                existing_summary.ot_amount = ot_amount
+                                existing_summary.ot_request_id = ot_request.id
+                                existing_summary.modified_by = current_user.username
+                                existing_summary.modified_at = datetime.now()
+                                logger.info(f"[OT_APPROVAL] ✅ OTDailySummary updated successfully for employee {employee.id} on {ot_request.ot_date}")
+                        else:
+                            logger.error(f"[OT_APPROVAL] ❌ Employee {ot_request.employee_id} NOT FOUND! Cannot create OTDailySummary")
+                    except Exception as e:
+                        logger.error(f"[OT_APPROVAL] ❌ Error creating OTDailySummary: {str(e)}", exc_info=True)
+                        # Don't fail the approval if summary creation fails
+                    
                     logger.info(f"[OT_APPROVAL] Ready to commit changes...")
                     flash(f'✓ OT Approved. Sent to HR Manager for final approval.', 'success')
                 
@@ -747,6 +863,16 @@ def ot_approval():
                     if modified_hours:
                         ot_approval_l2.approved_hours = float(modified_hours)
                         ot_request.approved_hours = float(modified_hours)
+                        
+                        # ✅ Update OTDailySummary if hours were modified by HR Manager
+                        ot_summary = OTDailySummary.query.filter_by(ot_request_id=ot_request_id).first()
+                        if ot_summary:
+                            ot_amount = float(modified_hours) * float(ot_summary.ot_rate_per_hour or 0)
+                            ot_summary.ot_hours = float(modified_hours)
+                            ot_summary.ot_amount = ot_amount
+                            ot_summary.modified_by = current_user.username
+                            ot_summary.modified_at = datetime.now()
+                            logger.info(f"[OT_APPROVAL] Updated OTDailySummary hours to {modified_hours}")
                     # Don't update created_at - it's immutable. It tracks when the approval record was created
                     
                     # Update OTRequest status - NOW READY FOR PAYROLL
@@ -765,6 +891,15 @@ def ot_approval():
                     
                     # Update OTRequest status
                     ot_request.status = 'hr_rejected'
+                    
+                    # ✅ Mark OTDailySummary as rejected (don't delete, keep audit trail)
+                    ot_summary = OTDailySummary.query.filter_by(ot_request_id=ot_request_id).first()
+                    if ot_summary:
+                        ot_summary.status = 'Rejected'
+                        ot_summary.notes = f'Rejected by HR Manager: {comments}'
+                        ot_summary.modified_by = current_user.username
+                        ot_summary.modified_at = datetime.now()
+                        logger.info(f"[OT_APPROVAL] Marked OTDailySummary as Rejected")
                     
                     # Get Level 1 approval and reset it to pending_manager
                     ot_approval_l1 = OTApproval.query.filter_by(
@@ -943,6 +1078,294 @@ def ot_payroll_summary():
         logger.error(f"Error in ot_payroll_summary: {str(e)}")
         flash('Error loading OT payroll summary', 'danger')
         return redirect(url_for('dashboard'))
+
+
+# ============ OT DAILY SUMMARY GRID (HR Manager Payroll Summary) ============
+@app.route('/ot/daily-summary', methods=['GET', 'POST'])
+@login_required
+def ot_daily_summary():
+    """
+    OT Daily Summary Grid - HR Manager Dashboard for Payroll Summary
+    Shows daily OT records with editable allowance columns
+    Accessible to HR Manager, Tenant Admin, Super Admin
+    """
+    try:
+        # Check access control
+        user_role = current_user.role.name if current_user.role else None
+        if user_role not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+            flash('Access Denied. OT Daily Summary is only for HR Manager and above.', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        # Get filter parameters
+        filter_date_str = request.args.get('date') or request.form.get('date')
+        if not filter_date_str:
+            filter_date = datetime.now().date()
+        else:
+            filter_date = datetime.strptime(filter_date_str, '%Y-%m-%d').date()
+        
+        # Get user's company
+        user_company_id = None
+        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+            user_company_id = current_user.employee_profile.company_id
+        
+        # Query OT Daily Summary for the selected date (exclude rejected records)
+        query = OTDailySummary.query.filter_by(ot_date=filter_date)
+        
+        # ✅ Only show Draft and Submitted records (exclude Rejected, Finalized, etc.)
+        query = query.filter(OTDailySummary.status.in_(['Draft', 'Submitted']))
+        
+        if user_company_id:
+            query = query.filter_by(company_id=user_company_id)
+        
+        ot_records = query.order_by(OTDailySummary.employee_id.asc()).all()
+        
+        # Get statistics for the day
+        stats = {
+            'total_records': len(ot_records),
+            'total_ot_hours': sum(float(r.ot_hours or 0) for r in ot_records),
+            'total_ot_amount': sum(float(r.ot_amount or 0) for r in ot_records),
+            'total_allowances': sum(float(r.total_allowances or 0) for r in ot_records),
+            'total_amount': sum(float(r.total_amount or 0) for r in ot_records),
+        }
+        
+        return render_template('ot/daily_summary_grid.html',
+                             ot_records=ot_records,
+                             filter_date=filter_date,
+                             stats=stats)
+    
+    except Exception as e:
+        logger.error(f"Error in ot_daily_summary: {str(e)}")
+        flash(f'Error loading OT daily summary: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))
+
+
+@app.route('/ot/daily-summary/add', methods=['POST'])
+@login_required
+def ot_daily_summary_add():
+    """Add new employee to OT Daily Summary for manual OT entry"""
+    try:
+        # Check access control
+        user_role = current_user.role.name if current_user.role else None
+        if user_role not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+            return jsonify({'error': 'Access Denied'}), 403
+        
+        employee_id = request.form.get('employee_id', type=int)
+        ot_date_str = request.form.get('ot_date')
+        
+        if not employee_id or not ot_date_str:
+            return jsonify({'error': 'Missing employee_id or ot_date'}), 400
+        
+        ot_date = datetime.strptime(ot_date_str, '%Y-%m-%d').date()
+        
+        # Check if employee exists and get their payroll config
+        employee = Employee.query.get(employee_id)
+        if not employee:
+            return jsonify({'error': 'Employee not found'}), 404
+        
+        # Check access to this employee's company
+        user_company_id = None
+        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+            user_company_id = current_user.employee_profile.company_id
+        
+        if user_company_id and employee.company_id != user_company_id:
+            return jsonify({'error': 'Access Denied'}), 403
+        
+        # Check if record already exists
+        existing = OTDailySummary.query.filter_by(employee_id=employee_id, ot_date=ot_date).first()
+        if existing:
+            return jsonify({'error': 'Record already exists for this employee and date'}), 400
+        
+        # Get OT rate from payroll config
+        payroll_config = PayrollConfiguration.query.filter_by(employee_id=employee_id).first()
+        ot_rate = float(payroll_config.ot_rate_per_hour or 0) if payroll_config else 0
+        
+        # Create new OT Daily Summary record
+        ot_summary = OTDailySummary(
+            employee_id=employee_id,
+            company_id=employee.company_id,
+            ot_date=ot_date,
+            ot_rate_per_hour=ot_rate,
+            created_by=current_user.username,
+            status='Draft'
+        )
+        
+        db.session.add(ot_summary)
+        db.session.commit()
+        
+        logger.info(f"OT Daily Summary created: Employee {employee_id}, Date {ot_date}")
+        
+        return jsonify({
+            'success': True,
+            'id': ot_summary.id,
+            'message': f'OT record created for {employee.first_name} {employee.last_name}'
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in ot_daily_summary_add: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ot/daily-summary/update/<int:summary_id>', methods=['POST'])
+@login_required
+def ot_daily_summary_update(summary_id):
+    """Update OT Daily Summary record with hours and allowances"""
+    try:
+        # Check access control
+        user_role = current_user.role.name if current_user.role else None
+        if user_role not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+            return jsonify({'error': 'Access Denied'}), 403
+        
+        ot_summary = OTDailySummary.query.get(summary_id)
+        if not ot_summary:
+            return jsonify({'error': 'Record not found'}), 404
+        
+        # Check access to this employee's company
+        user_company_id = None
+        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+            user_company_id = current_user.employee_profile.company_id
+        
+        if user_company_id and ot_summary.company_id != user_company_id:
+            return jsonify({'error': 'Access Denied'}), 403
+        
+        # Update fields
+        ot_hours = request.form.get('ot_hours', type=float)
+        if ot_hours is not None:
+            ot_summary.ot_hours = ot_hours
+            # Calculate OT amount
+            ot_rate = float(ot_summary.ot_rate_per_hour or 0)
+            ot_summary.ot_amount = ot_hours * ot_rate if ot_rate else 0
+        
+        # Update allowances
+        allowance_fields = ['kd_and_claim', 'trips', 'sinpost', 'sandstone', 'spx', 'psle', 
+                           'manpower', 'stacking', 'dispose', 'night', 'ph', 'sun']
+        
+        for field in allowance_fields:
+            value = request.form.get(field, type=float)
+            if value is not None:
+                setattr(ot_summary, field, value)
+        
+        # Calculate totals
+        ot_summary.calculate_totals()
+        
+        # Update metadata
+        ot_summary.modified_by = current_user.username
+        ot_summary.modified_at = datetime.now()
+        ot_summary.notes = request.form.get('notes', '')
+        
+        db.session.commit()
+        
+        logger.info(f"OT Daily Summary updated: ID {summary_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'OT record updated successfully',
+            'total_amount': float(ot_summary.total_amount or 0)
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in ot_daily_summary_update: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ot/daily-summary/calendar/<int:employee_id>', methods=['GET'])
+@login_required
+def ot_daily_summary_calendar(employee_id):
+    """Get date-wise OT amounts for calendar view"""
+    try:
+        # Check access control
+        user_role = current_user.role.name if current_user.role else None
+        if user_role not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+            return jsonify({'error': 'Access Denied'}), 403
+        
+        employee = Employee.query.get(employee_id)
+        if not employee:
+            return jsonify({'error': 'Employee not found'}), 404
+        
+        # Check access to this employee's company
+        user_company_id = None
+        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+            user_company_id = current_user.employee_profile.company_id
+        
+        if user_company_id and employee.company_id != user_company_id:
+            return jsonify({'error': 'Access Denied'}), 403
+        
+        # Get current month OT records
+        current_date = datetime.now().date()
+        month_start = current_date.replace(day=1)
+        if current_date.month == 12:
+            month_end = month_start.replace(year=month_start.year + 1, month=1, day=1)
+        else:
+            month_end = month_start.replace(month=month_start.month + 1, day=1)
+        
+        records = OTDailySummary.query.filter(
+            OTDailySummary.employee_id == employee_id,
+            OTDailySummary.ot_date >= month_start,
+            OTDailySummary.ot_date < month_end
+        ).all()
+        
+        # Build calendar data
+        calendar_data = {}
+        for record in records:
+            date_key = record.ot_date.isoformat()
+            calendar_data[date_key] = {
+                'hours': float(record.ot_hours or 0),
+                'amount': float(record.ot_amount or 0),
+                'allowances': float(record.total_allowances or 0),
+                'total': float(record.total_amount or 0)
+            }
+        
+        return jsonify({
+            'employee_id': employee_id,
+            'employee_name': f"{employee.first_name} {employee.last_name}",
+            'month': current_date.month,
+            'year': current_date.year,
+            'calendar_data': calendar_data
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in ot_daily_summary_calendar: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/employees', methods=['GET'])
+@login_required
+def api_get_employees():
+    """API endpoint to get list of employees for the user's company"""
+    try:
+        # Check access control
+        user_role = current_user.role.name if current_user.role else None
+        if user_role not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+            return jsonify({'error': 'Access Denied'}), 403
+        
+        # Get user's company
+        user_company_id = None
+        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+            user_company_id = current_user.employee_profile.company_id
+        
+        # Query employees
+        query = Employee.query.filter_by(is_active=True)
+        
+        if user_company_id:
+            query = query.filter_by(company_id=user_company_id)
+        
+        employees = query.order_by(Employee.first_name.asc()).all()
+        
+        emp_list = []
+        for emp in employees:
+            emp_list.append({
+                'id': emp.id,
+                'first_name': emp.first_name,
+                'last_name': emp.last_name,
+                'employee_id': emp.employee_id or '',
+                'department_id': emp.department_id,
+                'department_name': emp.department.name if emp.department else ''
+            })
+        
+        return jsonify(emp_list)
+    
+    except Exception as e:
+        logger.error(f"Error in api_get_employees: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 # ============ API ENDPOINTS ============

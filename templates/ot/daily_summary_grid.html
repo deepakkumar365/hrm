@@ -1,0 +1,941 @@
+{% extends "base.html" %}
+
+{% block title %}OT Payroll Summary - Nexar{% endblock %}
+
+{% block head %}
+<style>
+    .summary-header {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .summary-card {
+        background: var(--white);
+        border-radius: 6px;
+        padding: 12px 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .summary-card .label {
+        font-size: 11px;
+        color: var(--grey-500);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 6px;
+    }
+    
+    .summary-card .value {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .grid-wrapper {
+        background: var(--white);
+        border-radius: 6px;
+        padding: 15px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .ot-records-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .ot-record-card {
+        display: grid;
+        grid-template-columns: 150px 80px 80px 80px 80px 80px auto;
+        gap: 8px;
+        align-items: center;
+        padding: 10px;
+        background: var(--grey-50);
+        border: 1px solid var(--grey-200);
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    
+    .ot-record-card:hover {
+        background: var(--grey-100);
+    }
+    
+    .record-field {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .record-label {
+        font-size: 10px;
+        color: var(--grey-600);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .record-value {
+        font-weight: 500;
+        color: var(--grey-900);
+    }
+    
+    .allowances-toggle {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        border: 2px solid #4f46e5;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .allowances-toggle:hover {
+        background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+        box-shadow: 0 4px 8px rgba(79, 70, 229, 0.4);
+        transform: translateY(-1px);
+    }
+    
+    .allowances-toggle:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+    }
+    
+    .ot-record-card.expanded {
+        grid-column: 1 / -1;
+    }
+    
+    .allowances-grid {
+        display: none;
+        grid-column: 1 / -1;
+        background: white;
+        border: 1px solid var(--grey-300);
+        border-radius: 4px;
+        padding: 12px;
+        margin-top: 8px;
+    }
+    
+    .allowances-grid.show {
+        display: grid;
+    }
+    
+    .allowances-grid {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+    }
+    
+    .allowance-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .allowance-input-group label {
+        font-size: 10px;
+        color: var(--grey-600);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .allowance-input-group input {
+        padding: 5px 6px;
+        border: 1px solid var(--grey-300);
+        border-radius: 3px;
+        font-size: 12px;
+    }
+    
+    .allowance-input-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 2px rgba(79, 70, 229, 0.2);
+    }
+    
+    .totals-row {
+        display: grid;
+        grid-template-columns: auto auto auto auto;
+        gap: 10px;
+        padding: 10px;
+        background: #fafafa;
+        border-top: 1px solid var(--grey-300);
+        margin-top: 8px;
+        border-radius: 4px;
+    }
+    
+    .total-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .total-label {
+        font-size: 10px;
+        color: var(--grey-600);
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .total-value {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--grey-900);
+    }
+    
+    .record-actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+    
+    .calendar-btn {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        cursor: pointer;
+        font-size: 14px;
+        padding: 3px;
+        transition: all 0.3s;
+    }
+    
+    .calendar-btn:hover {
+        transform: scale(1.15);
+        color: #4f46e5;
+    }
+    
+    .save-btn {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 500;
+    }
+    
+    .save-btn:hover {
+        background: #059669;
+    }
+    
+    .save-btn.saving {
+        background: #d1d5db;
+        cursor: not-allowed;
+    }
+    
+    .employee-cell {
+        font-weight: 600;
+    }
+    
+    .no-records {
+        text-align: center;
+        padding: 40px 20px;
+    }
+    
+    .no-records-icon {
+        font-size: 3rem;
+        color: var(--grey-300);
+        margin-bottom: 20px;
+    }
+    
+    .filters-section {
+        display: grid;
+        grid-template-columns: auto auto 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+        align-items: center;
+    }
+    
+    .filter-group {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .filter-group label {
+        font-weight: 500;
+        color: var(--grey-700);
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    
+    .filter-group input[type="date"] {
+        padding: 6px 10px;
+        border: 1px solid var(--grey-300);
+        border-radius: 4px;
+        font-size: 13px;
+    }
+    
+    .add-employee-btn {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        transition: all 0.3s;
+        justify-self: end;
+    }
+    
+    .add-employee-btn:hover {
+        background: #4f46e5;
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+    }
+    
+    /* Calendar Modal */
+    .calendar-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .calendar-modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .calendar-modal-content {
+        background: var(--white);
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .calendar-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--grey-300);
+        padding-bottom: 15px;
+    }
+    
+    .calendar-modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+    }
+    
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: var(--grey-500);
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .close-btn:hover {
+        color: var(--grey-700);
+    }
+    
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .calendar-day {
+        padding: 10px;
+        text-align: center;
+        border: 1px solid var(--grey-300);
+        border-radius: 4px;
+        min-height: 60px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .calendar-day.has-data {
+        background: #ecfdf5;
+        border-color: #10b981;
+    }
+    
+    .calendar-day-number {
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    
+    .calendar-day-amount {
+        font-size: 11px;
+        color: #10b981;
+        font-weight: 500;
+    }
+    
+    .add-employee-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .add-employee-modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .add-employee-modal-content {
+        background: var(--white);
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--grey-700);
+    }
+    
+    .form-group input[type="date"],
+    .form-group select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--grey-300);
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 25px;
+    }
+    
+    .btn-cancel {
+        background: var(--grey-300);
+        color: var(--grey-800);
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    
+    .btn-cancel:hover {
+        background: var(--grey-400);
+    }
+    
+    .btn-submit {
+        background: var(--primary-color);
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    
+    .btn-submit:hover {
+        background: #4f46e5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">OT Payroll Summary - Daily Grid</h1>
+            <p class="text-muted small mb-0">
+                <strong>How it works:</strong> 
+                When a Manager APPROVES an OT, it automatically appears here. Simply filter by date, fill the 12 allowance fields, and click SAVE.
+            </p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filter-group">
+            <label for="filterDate">Filter by Date:</label>
+            <input type="date" id="filterDate" value="{{ filter_date.isoformat() }}" onchange="filterByDate(this.value)">
+        </div>
+        <button class="add-employee-btn" onclick="openAddEmployeeModal()">
+            <i class="fas fa-plus"></i> Add New
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-header">
+        <div class="summary-card">
+            <div class="label">Total Records</div>
+            <div class="value">{{ stats.total_records }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Total OT Hours</div>
+            <div class="value">{{ "%.2f"|format(stats.total_ot_hours) }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Total OT Amount</div>
+            <div class="value">₹{{ "%.2f"|format(stats.total_ot_amount) }}</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #10b981;">
+            <div class="label">Total Allowances</div>
+            <div class="value" style="color: #10b981;">₹{{ "%.2f"|format(stats.total_allowances) }}</div>
+        </div>
+        <div class="summary-card" style="border-left-color: #f59e0b;">
+            <div class="label">Grand Total</div>
+            <div class="value" style="color: #f59e0b;">₹{{ "%.2f"|format(stats.total_amount) }}</div>
+        </div>
+    </div>
+
+    <!-- Grid -->
+    {% if ot_records %}
+    <div class="grid-wrapper">
+        <div class="ot-records-container" id="otGridContainer">
+            {% for record in ot_records %}
+            <div class="ot-record-card" data-id="{{ record.id }}" data-record-id="{{ record.id }}">
+                <!-- Main Info -->
+                <div class="record-field">
+                    <span class="record-label">Employee</span>
+                    <span class="record-value employee-cell">{{ record.employee.first_name }} {{ record.employee.last_name }}</span>
+                </div>
+                <div class="record-field">
+                    <span class="record-label">ID</span>
+                    <span class="record-value">{{ record.employee.employee_id }}</span>
+                </div>
+                <div class="record-field">
+                    <span class="record-label">Dept</span>
+                    <span class="record-value">{{ record.employee.department.name if record.employee.department else 'N/A' }}</span>
+                </div>
+                <div class="record-field">
+                    <span class="record-label">OT Hours</span>
+                    <input type="number" class="ot-hours-field" value="{{ record.ot_hours }}" step="0.5" min="0" style="width: 100%;">
+                </div>
+                <div class="record-field">
+                    <span class="record-label">Rate/Hr</span>
+                    <span class="record-value ot-rate">₹{{ "%.2f"|format(record.ot_rate_per_hour) }}</span>
+                </div>
+                <div class="record-field">
+                    <span class="record-label">OT Amount</span>
+                    <span class="record-value ot-amount" style="color: #f59e0b; font-weight: 700;">₹{{ "%.2f"|format(record.ot_amount) }}</span>
+                </div>
+                <div class="record-actions">
+                    <button type="button" class="calendar-btn" onclick="openCalendarModal({{ record.employee_id }}, '{{ record.employee.first_name }} {{ record.employee.last_name }}')" title="View Daily Breakdown">
+                        <i class="fas fa-calendar"></i>
+                    </button>
+                    <button type="button" class="allowances-toggle" onclick="toggleAllowances(this, {{ record.id }})">
+                        <i class="fas fa-chevron-down"></i> Allowances
+                    </button>
+                </div>
+            </div>
+
+            <!-- Allowances Section -->
+            <div class="allowances-grid" data-record-id="{{ record.id }}">
+                <div class="allowance-input-group">
+                    <label>KD & CLAIM</label>
+                    <input type="number" class="allowance-field" data-field="kd_and_claim" value="{{ record.kd_and_claim }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>TRIPS</label>
+                    <input type="number" class="allowance-field" data-field="trips" value="{{ record.trips }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>SINPOST</label>
+                    <input type="number" class="allowance-field" data-field="sinpost" value="{{ record.sinpost }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>SANDSTONE</label>
+                    <input type="number" class="allowance-field" data-field="sandstone" value="{{ record.sandstone }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>SPX</label>
+                    <input type="number" class="allowance-field" data-field="spx" value="{{ record.spx }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>PSLE</label>
+                    <input type="number" class="allowance-field" data-field="psle" value="{{ record.psle }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>MANPOWER</label>
+                    <input type="number" class="allowance-field" data-field="manpower" value="{{ record.manpower }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>STACKING</label>
+                    <input type="number" class="allowance-field" data-field="stacking" value="{{ record.stacking }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>DISPOSE</label>
+                    <input type="number" class="allowance-field" data-field="dispose" value="{{ record.dispose }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>NIGHT</label>
+                    <input type="number" class="allowance-field" data-field="night" value="{{ record.night }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>PH</label>
+                    <input type="number" class="allowance-field" data-field="ph" value="{{ record.ph }}" step="0.01" min="0">
+                </div>
+                <div class="allowance-input-group">
+                    <label>SUN</label>
+                    <input type="number" class="allowance-field" data-field="sun" value="{{ record.sun }}" step="0.01" min="0">
+                </div>
+
+                <!-- Totals Row -->
+                <div style="grid-column: 1 / -1;">
+                    <div class="totals-row">
+                        <div class="total-item">
+                            <span class="total-label">Total Allowances</span>
+                            <span class="total-value total-allowances" style="color: #10b981;">₹{{ "%.2f"|format(record.total_allowances) }}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">OT Amount</span>
+                            <span class="total-value ot-amount" style="color: #f59e0b;">₹{{ "%.2f"|format(record.ot_amount) }}</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-label">Grand Total</span>
+                            <span class="total-value grand-total" style="color: #f59e0b;">₹{{ "%.2f"|format(record.total_amount) }}</span>
+                        </div>
+                        <button type="button" class="save-btn" onclick="saveRecord({{ record.id }}, this)" style="align-self: flex-end;">💾 Save</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <!-- No Records -->
+    <div class="grid-wrapper">
+        <div class="no-records">
+            <div class="no-records-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <h4>No OT Records for {{ filter_date.strftime('%d %b %Y') }}</h4>
+            <p class="text-muted mb-3">No approved OT found for this date.</p>
+            <div style="background: #f3f4f6; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 4px; max-width: 500px; margin: 0 auto; text-align: left;">
+                <p style="margin: 0 0 10px 0; font-weight: 600; color: #1f2937;">What should happen next?</p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #4b5563;">
+                    <li>Employee marks OT (OT Management → Mark OT Attendance)</li>
+                    <li>Manager approves the OT (OT Management → Manager Approval)</li>
+                    <li>✨ <strong>Auto-Magic</strong>: OT record appears here automatically</li>
+                    <li>You then fill 12 allowance fields and click SAVE</li>
+                </ul>
+                <p style="margin: 15px 0 0 0; font-size: 12px; color: #666; font-style: italic;">
+                    💡 Tip: Change the date filter above to check other dates, or wait for a manager to approve an OT.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Calendar Modal -->
+<div id="calendarModal" class="calendar-modal">
+    <div class="calendar-modal-content">
+        <div class="calendar-modal-header">
+            <h3 id="calendarTitle">Daily Breakdown</h3>
+            <button class="close-btn" onclick="closeCalendarModal()">×</button>
+        </div>
+        <div id="calendarContent"></div>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div id="addEmployeeModal" class="add-employee-modal">
+    <div class="add-employee-modal-content">
+        <div class="calendar-modal-header">
+            <h3>Add OT Record</h3>
+            <button class="close-btn" onclick="closeAddEmployeeModal()">×</button>
+        </div>
+        <form id="addEmployeeForm" onsubmit="submitAddEmployee(event)">
+            <div class="form-group">
+                <label for="employeeSelect">Select Employee:</label>
+                <select id="employeeSelect" required>
+                    <option value="">-- Choose Employee --</option>
+                    <!-- Will be populated via AJAX -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="otDate">OT Date:</label>
+                <input type="date" id="otDate" value="{{ filter_date.isoformat() }}" required>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="closeAddEmployeeModal()">Cancel</button>
+                <button type="submit" class="btn-submit">Add Record</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Hide loader on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.classList.remove('show');
+    }
+});
+
+function filterByDate(date) {
+    window.location.href = `/ot/daily-summary?date=${date}`;
+}
+
+function toggleAllowances(btn, recordId) {
+    const allowancesGrid = document.querySelector(`.allowances-grid[data-record-id="${recordId}"]`);
+    const icon = btn.querySelector('i');
+    
+    if (allowancesGrid.classList.contains('show')) {
+        allowancesGrid.classList.remove('show');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    } else {
+        allowancesGrid.classList.add('show');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    }
+}
+
+function openCalendarModal(employeeId, employeeName) {
+    const modal = document.getElementById('calendarModal');
+    const title = document.getElementById('calendarTitle');
+    const content = document.getElementById('calendarContent');
+    
+    title.textContent = `Daily Breakdown - ${employeeName}`;
+    content.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    
+    fetch(`/ot/daily-summary/calendar/${employeeId}`)
+        .then(response => response.json())
+        .then(data => {
+            buildCalendarView(data, content);
+            modal.classList.add('show');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<p class="text-danger">Error loading calendar data.</p>';
+            modal.classList.add('show');
+        });
+}
+
+function closeCalendarModal() {
+    document.getElementById('calendarModal').classList.remove('show');
+}
+
+function buildCalendarView(data, container) {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = data.month;
+    const year = data.year;
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month - 1, 1).getDay();
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    let html = `<div style="margin-bottom: 15px; font-weight: 600; font-size: 14px;">
+                    ${monthNames[month - 1]} ${year}
+                </div>`;
+    html += '<div class="calendar-grid">';
+    
+    // Day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+        html += `<div style="text-align: center; font-weight: 600; font-size: 12px; margin-bottom: 10px;">${day}</div>`;
+    });
+    
+    // Empty cells for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+        html += '<div class="calendar-day" style="background: var(--grey-50); border: none;"></div>';
+    }
+    
+    // Days of month
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dayData = data.calendar_data[dateKey];
+        
+        if (dayData) {
+            html += `<div class="calendar-day has-data">
+                        <div class="calendar-day-number">${day}</div>
+                        <div class="calendar-day-amount">₹${dayData.total.toFixed(2)}</div>
+                        <div style="font-size: 10px; color: #6b7280;">${dayData.hours.toFixed(1)}h</div>
+                    </div>`;
+        } else {
+            html += `<div class="calendar-day">
+                        <div class="calendar-day-number">${day}</div>
+                    </div>`;
+        }
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function openAddEmployeeModal() {
+    const modal = document.getElementById('addEmployeeModal');
+    const employeeSelect = document.getElementById('employeeSelect');
+    const otDate = document.getElementById('otDate');
+    
+    // Clear previous options
+    employeeSelect.innerHTML = '<option value="">-- Loading --</option>';
+    
+    // Fetch employees (you can add filtering here)
+    fetch('/api/employees')
+        .then(response => response.json())
+        .then(employees => {
+            employeeSelect.innerHTML = '<option value="">-- Choose Employee --</option>';
+            employees.forEach(emp => {
+                employeeSelect.innerHTML += `<option value="${emp.id}">${emp.first_name} ${emp.last_name} (${emp.employee_id})</option>`;
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching employees:', error);
+            employeeSelect.innerHTML = '<option value="">Error loading employees</option>';
+        });
+    
+    modal.classList.add('show');
+}
+
+function closeAddEmployeeModal() {
+    document.getElementById('addEmployeeModal').classList.remove('show');
+}
+
+function submitAddEmployee(event) {
+    event.preventDefault();
+    
+    const employeeId = document.getElementById('employeeSelect').value;
+    const otDate = document.getElementById('otDate').value;
+    
+    if (!employeeId) {
+        alert('Please select an employee');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('employee_id', employeeId);
+    formData.append('ot_date', otDate);
+    
+    fetch('/ot/daily-summary/add', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeAddEmployeeModal();
+            location.reload();
+        } else {
+            alert(data.error || 'Error adding record');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error adding record');
+    });
+}
+
+function saveRecord(summaryId, btn) {
+    const allowancesGrid = btn.closest('.allowances-grid');
+    const recordCard = document.querySelector(`.ot-record-card[data-record-id="${summaryId}"]`);
+    const formData = new FormData();
+    
+    // Get OT hours from card
+    const otHours = recordCard.querySelector('.ot-hours-field').value;
+    formData.append('ot_hours', otHours);
+    
+    // Get all allowance fields from grid
+    allowancesGrid.querySelectorAll('.allowance-field').forEach(field => {
+        formData.append(field.dataset.field, field.value);
+    });
+    
+    // Show saving state
+    btn.classList.add('saving');
+    btn.disabled = true;
+    btn.textContent = '⏳ Saving...';
+    
+    fetch(`/ot/daily-summary/update/${summaryId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update totals display
+            const rate = parseFloat(recordCard.querySelector('.ot-rate').textContent.replace('₹', ''));
+            const newOtAmount = otHours * rate;
+            recordCard.querySelector('.ot-amount').textContent = '₹' + newOtAmount.toFixed(2);
+            
+            // Calculate total allowances
+            let totalAllowances = 0;
+            allowancesGrid.querySelectorAll('.allowance-field').forEach(field => {
+                totalAllowances += parseFloat(field.value) || 0;
+            });
+            
+            allowancesGrid.querySelector('.total-allowances').textContent = '₹' + totalAllowances.toFixed(2);
+            
+            const grandTotal = newOtAmount + totalAllowances;
+            allowancesGrid.querySelector('.grand-total').textContent = '₹' + grandTotal.toFixed(2);
+            
+            // Also update OT Amount in totals
+            allowancesGrid.querySelector('.ot-amount').textContent = '₹' + newOtAmount.toFixed(2);
+            
+            // Restore button
+            btn.classList.remove('saving');
+            btn.disabled = false;
+            btn.textContent = '💾 Save';
+            
+            // Show success message
+            alert('Record saved successfully!');
+        } else {
+            alert(data.error || 'Error saving record');
+            btn.classList.remove('saving');
+            btn.disabled = false;
+            btn.textContent = '💾 Save';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving record');
+        btn.classList.remove('saving');
+        btn.disabled = false;
+        btn.textContent = '💾 Save';
+    });
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const calendarModal = document.getElementById('calendarModal');
+    const addEmployeeModal = document.getElementById('addEmployeeModal');
+    
+    if (event.target === calendarModal) {
+        calendarModal.classList.remove('show');
+    }
+    if (event.target === addEmployeeModal) {
+        addEmployeeModal.classList.remove('show');
+    }
+};
+</script>
+{% endblock %}
