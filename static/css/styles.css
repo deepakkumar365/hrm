@@ -123,6 +123,50 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* ===== FONT AWESOME ICON FIX ===== */
+/* Ensure Font Awesome icons use correct font-family regardless of parent */
+i[class*="fas"],
+i[class*="far"],
+i[class*="fab"],
+i[class*="fal"],
+.fa,
+.fas,
+.far,
+.fab,
+.fal {
+    font-family: 'Font Awesome 6 Free' !important;
+}
+
+i[class*="fas"]::before,
+i[class*="far"]::before,
+i[class*="fab"]::before,
+i[class*="fal"]::before,
+.fas::before,
+.far::before,
+.fab::before,
+.fal::before {
+    font-family: 'Font Awesome 6 Free' !important;
+}
+
+/* Ensure solid icons have correct weight */
+i[class*="fas"],
+.fas {
+    font-weight: 900 !important;
+}
+
+/* Ensure regular icons have correct weight */
+i[class*="far"],
+.far {
+    font-weight: 400 !important;
+}
+
+/* Ensure brand icons work correctly */
+i[class*="fab"],
+.fab {
+    font-family: 'Font Awesome 6 Brands' !important;
+    font-weight: 400 !important;
+}
+
 .page-wrapper {
     display: flex;
     flex-direction: column;
