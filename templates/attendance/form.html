@@ -8,215 +8,283 @@
         font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
+    :root {
+        --primary-color: #667eea;
+        --primary-dark: #5568d3;
+        --success-color: #48bb78;
+        --danger-color: #f56565;
+        --warning-color: #ed8936;
+        --info-color: #4299e1;
+        --light-bg: #f7fafc;
+        --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        --card-shadow-hover: 0 10px 20px rgba(0, 0, 0, 0.1);
+        --border-color: #e2e8f0;
+        --text-dark: #2d3748;
+        --text-light: #718096;
+    }
+
     .attendance-container {
         min-height: 100vh;
-        background-color: #f5f5f5;
-        padding: 1rem;
+        background: linear-gradient(135deg, var(--light-bg) 0%, #ffffff 100%);
+        padding: 0.35rem 0.4rem;
     }
 
-    .attendance-card {
-        border-radius: 6px;
-        border: 1px solid #e0e0e0;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        margin-bottom: 1rem;
-        overflow: hidden;
-    }
-
-    .attendance-card:hover {
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+    .attendance-main-container {
+        max-width: 480px;
+        margin: 0 auto;
     }
 
     /* Header Section */
     .header-section {
         background: white;
-        padding: 1rem;
+        padding: 0.6rem 0.5rem;
         text-align: center;
         border-radius: 6px;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 0.3rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .current-time {
-        font-size: 2.2rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #2c3e50, #34495e);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        font-family: 'Segoe UI', monospace;
-        letter-spacing: 1px;
-        margin-bottom: 0.3rem;
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.15rem;
+        line-height: 1;
     }
 
     .current-date {
-        font-size: 0.9rem;
-        color: #666;
-        margin-bottom: 0.5rem;
+        font-size: 0.7rem;
+        color: var(--text-light);
+        margin-bottom: 0.2rem;
+        font-weight: 500;
     }
 
     /* Status Badge */
     .status-badge {
-        display: inline-block;
-        padding: 0.4rem 1rem;
-        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 50px;
         font-weight: 600;
-        font-size: 0.8rem;
+        font-size: 0.65rem;
         text-transform: uppercase;
         letter-spacing: 0.3px;
-        margin-top: 0.5rem;
+        animation: pulse-badge 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-badge {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.85; }
     }
 
     .status-badge.active {
-        background: #d4edda;
-        color: #155724;
+        background: rgba(72, 187, 120, 0.15);
+        color: var(--success-color);
+        border: 1.5px solid var(--success-color);
     }
 
     .status-badge.pending {
-        background: #fff3cd;
-        color: #856404;
+        background: rgba(237, 137, 54, 0.15);
+        color: var(--warning-color);
+        border: 1.5px solid var(--warning-color);
     }
 
     .status-badge.completed {
-        background: #cfe2ff;
-        color: #084298;
+        background: rgba(66, 153, 225, 0.15);
+        color: var(--info-color);
+        border: 1.5px solid var(--info-color);
     }
 
     /* Main Status Display */
     .main-status-section {
         background: white;
-        padding: 1.2rem;
+        padding: 0.6rem 0.5rem;
         border-radius: 6px;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        border: 1px solid #e0e0e0;
+        margin-bottom: 0.3rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        animation: slideDown 0.4s ease-out;
     }
 
+    .main-status-section h5 {
+        color: var(--text-dark);
+        font-weight: 700;
+        font-size: 0.78rem;
+        margin-bottom: 0.3rem;
+    }
+
+    /* Horizontal Timeline */
     .status-timeline {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        margin: 1rem 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.3rem;
+        margin: 0.4rem 0;
         position: relative;
     }
 
     .status-timeline::before {
         content: '';
         position: absolute;
-        top: 50%;
+        top: 12px;
         left: 0;
         right: 0;
-        height: 1px;
-        background: linear-gradient(to right, #2c3e50, #34495e, #ddd);
-        transform: translateY(-50%);
+        height: 2px;
+        background: linear-gradient(to right, 
+            var(--border-color) 0%, 
+            var(--border-color) 30%,
+            var(--primary-color) 30%,
+            var(--primary-color) 70%,
+            var(--border-color) 70%,
+            var(--border-color) 100%);
+        z-index: 0;
     }
 
     .status-item {
-        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
         position: relative;
         z-index: 1;
-        flex: 1;
+        gap: 0.2rem;
     }
 
     .status-circle {
-        width: 60px;
-        height: 60px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 0.5rem;
-        font-size: 1.5rem;
+        font-size: 0.8rem;
         font-weight: 700;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        transition: transform 0.2s ease;
+        transition: all 0.3s ease;
+        border: 2px solid white;
+        background: white;
+        flex-shrink: 0;
     }
 
     .status-item:hover .status-circle {
-        transform: scale(1.05);
+        transform: scale(1.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
 
     .status-circle.pending {
-        background: #f8f9fa;
-        color: #999;
-        border: 1px solid #ddd;
+        background: #f7fafc;
+        color: var(--text-light);
+        border-color: var(--border-color);
     }
 
     .status-circle.active {
-        background: linear-gradient(135deg, #2c3e50, #34495e);
+        background: linear-gradient(135deg, var(--primary-color), #5568d3);
         color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
 
     .status-label {
-        font-size: 0.75rem;
-        color: #999;
+        font-size: 0.55rem;
+        color: var(--text-light);
         text-transform: uppercase;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.2px;
         font-weight: 600;
-        margin-bottom: 0.25rem;
+        white-space: nowrap;
     }
 
     .status-time {
-        font-size: 1.2rem;
+        font-size: 0.7rem;
         font-weight: 700;
-        color: #333;
+        color: var(--text-dark);
+        font-family: 'Courier New', monospace;
     }
 
-    /* Working Duration */
+    /* Working Duration - Compact Inline */
     .working-duration {
-        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        background: linear-gradient(135deg, var(--primary-color) 0%, #5568d3 100%);
         color: white;
-        padding: 1.2rem;
+        padding: 0.5rem 0.6rem;
         border-radius: 6px;
         text-align: center;
-        margin: 1rem 0;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin: 0.3rem 0 0 0;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        animation: slideUp 0.4s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .working-duration-label {
-        font-size: 0.8rem;
+        font-size: 0.5rem;
         opacity: 0.9;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.3rem;
+        letter-spacing: 0.4px;
+        margin-bottom: 0.2rem;
+        font-weight: 500;
     }
 
     .working-duration-time {
-        font-size: 2rem;
-        font-weight: 700;
-        font-family: 'Segoe UI', monospace;
-        letter-spacing: 1px;
+        font-size: 1.1rem;
+        font-weight: 800;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.5px;
     }
 
     /* Action Buttons */
     .action-buttons {
         display: grid;
-        gap: 0.8rem;
-        margin: 1rem 0;
+        gap: 0.3rem;
+        margin: 0.3rem 0;
     }
 
     .action-buttons.two-column {
         grid-template-columns: 1fr 1fr;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 600px) {
         .action-buttons.two-column {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
         }
     }
 
     .btn-action {
-        padding: 0.8rem 1.2rem;
-        font-size: 0.9rem;
+        padding: 0.5rem 0.6rem;
+        font-size: 0.68rem;
         font-weight: 600;
-        border-radius: 6px;
+        border-radius: 4px;
         border: none;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        transition: all 0.2s ease;
+        letter-spacing: 0.3px;
+        transition: all 0.3s ease;
         cursor: pointer;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        min-height: 28px;
     }
 
     .btn-action::before {
@@ -226,8 +294,9 @@
         left: -100%;
         width: 100%;
         height: 100%;
-        background: rgba(255, 255, 255, 0.1);
-        transition: left 0.3s ease;
+        background: rgba(255, 255, 255, 0.2);
+        transition: left 0.4s ease;
+        z-index: -1;
     }
 
     .btn-action:hover::before {
@@ -235,8 +304,8 @@
     }
 
     .btn-action:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+        transform: translateY(-3px);
+        box-shadow: var(--card-shadow-hover);
     }
 
     .btn-action:active {
@@ -244,143 +313,202 @@
     }
 
     .btn-action:disabled {
-        opacity: 0.6;
+        opacity: 0.5;
         cursor: not-allowed;
         transform: none;
     }
 
     .btn-clock-in {
-        background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        background: linear-gradient(135deg, var(--success-color) 0%, #38a169 100%);
         color: white;
     }
 
     .btn-clock-out {
-        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        background: linear-gradient(135deg, var(--danger-color) 0%, #e53e3e 100%);
         color: white;
     }
 
     .btn-break-start {
-        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        background: linear-gradient(135deg, var(--warning-color) 0%, #dd6b20 100%);
         color: white;
     }
 
     .btn-break-end {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        background: linear-gradient(135deg, var(--info-color) 0%, #3182ce 100%);
         color: white;
     }
 
-    /* Stats Grid */
+    /* Stats Grid - Compact */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-        margin: 1rem 0;
+        gap: 0.3rem;
+        margin: 0.3rem 0;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 600px) {
         .stats-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(3, 1fr);
         }
     }
 
     .stat-card {
         background: white;
-        padding: 1rem;
-        border-radius: 6px;
+        padding: 0.4rem 0.3rem;
+        border-radius: 4px;
         text-align: center;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-        border-left: 3px solid;
-        border: 1px solid #e0e0e0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        border-left: 2px solid;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
     }
 
     .stat-card.regular {
-        border-left-color: #3498db;
+        border-left-color: var(--info-color);
     }
 
     .stat-card.overtime {
-        border-left-color: #e74c3c;
+        border-left-color: var(--danger-color);
     }
 
     .stat-card.total {
-        border-left-color: #2c3e50;
+        border-left-color: var(--primary-color);
     }
 
     .stat-value {
-        font-size: 1.6rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #2c3e50, #34495e);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 0.3rem;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        margin-bottom: 0.1rem;
+        font-family: 'Courier New', monospace;
     }
 
     .stat-label {
-        font-size: 0.75rem;
-        color: #999;
+        font-size: 0.5rem;
+        color: var(--text-light);
         text-transform: uppercase;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.2px;
         font-weight: 600;
+        line-height: 1.2;
     }
 
     /* Alert Box */
     .alert-custom {
-        padding: 1.5rem;
-        border-radius: 12px;
-        border-left: 4px solid;
-        margin: 1.5rem 0;
+        padding: 0.4rem 0.4rem;
+        border-radius: 4px;
+        border-left: 2px solid;
+        margin: 0.25rem 0;
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 0.3rem;
+        animation: slideUp 0.3s ease-out;
+        font-size: 0.7rem;
     }
 
     .alert-custom i {
-        font-size: 1.5rem;
+        font-size: 0.8rem;
         flex-shrink: 0;
     }
 
     .alert-break {
-        background: #fff3cd;
-        border-left-color: #ff6a00;
-        color: #856404;
+        background: rgba(237, 137, 54, 0.1);
+        border-left-color: var(--warning-color);
+        color: #7c2d12;
     }
 
     .alert-completed {
-        background: #d4edda;
-        border-left-color: #11998e;
-        color: #155724;
+        background: rgba(72, 187, 120, 0.1);
+        border-left-color: var(--success-color);
+        color: #22543d;
     }
 
     .alert-completion {
-        background: #cfe2ff;
-        border-left-color: #667eea;
-        color: #084298;
+        background: rgba(66, 153, 225, 0.1);
+        border-left-color: var(--info-color);
+        color: #1a365d;
     }
 
     /* Location & Summary Section */
     .info-section {
         background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin: 1rem 0;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        padding: 0.4rem 0.5rem;
+        border-radius: 4px;
+        margin: 0.25rem 0;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
 
     .info-section-title {
-        font-size: 0.9rem;
+        font-size: 0.65rem;
         text-transform: uppercase;
-        color: #667eea;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        margin-bottom: 1rem;
+        color: var(--primary-color);
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        margin-bottom: 0.2rem;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.2rem;
     }
 
     .info-section-content {
-        color: #555;
-        line-height: 1.6;
+        color: var(--text-light);
+        line-height: 1.3;
+        font-size: 0.65rem;
+    }
+
+    /* Quick Links */
+    .quick-links {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.3rem;
+        margin: 0.3rem 0;
+    }
+
+    @media (max-width: 600px) {
+        .quick-links {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    .quick-link {
+        padding: 0.4rem 0.3rem;
+        border-radius: 4px;
+        background: white;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        text-align: center;
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.15rem;
+    }
+
+    .quick-link:hover {
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+    }
+
+    .quick-link[style*="f56565"]:hover {
+        background: #f56565;
+    }
+
+    .quick-link[style*="764ba2"]:hover {
+        background: #764ba2;
+    }
+
+    .quick-link i {
+        font-size: 0.75rem;
     }
 
     /* Loading Spinner */
@@ -398,33 +526,53 @@
         animation: spin 1s linear infinite;
     }
 
-    /* Week Summary */
+    /* Attendance Card */
+    .attendance-card {
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        margin-bottom: 0.3rem;
+        animation: slideUp 0.4s ease-out;
+    }
+
+    .attendance-card form {
+        padding: 0.5rem 0.5rem;
+    }
+    
+    .attendance-card .form-wrapper {
+        padding: 0;
+    }
+
+    /* Week Summary - Compact */
     .week-summary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, var(--primary-color) 0%, #5568d3 100%);
         color: white;
-        padding: 2rem;
-        border-radius: 16px;
-        margin: 2rem 0;
+        padding: 0.5rem 0.6rem;
+        border-radius: 6px;
+        margin: 0.3rem 0;
         text-align: center;
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+        animation: slideUp 0.4s ease-out;
     }
 
     .week-summary-title {
-        font-size: 0.9rem;
+        font-size: 0.6rem;
         opacity: 0.9;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 1.5rem;
+        letter-spacing: 0.3px;
+        margin-bottom: 0.3rem;
+        font-weight: 600;
     }
 
     .week-stats {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
+        gap: 0.3rem;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 600px) {
         .week-stats {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(3, 1fr);
         }
     }
 
@@ -433,35 +581,47 @@
     }
 
     .week-stat-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        font-weight: 800;
+        margin-bottom: 0.1rem;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.3px;
     }
 
     .week-stat-label {
-        font-size: 0.85rem;
-        opacity: 0.9;
+        font-size: 0.5rem;
+        opacity: 0.85;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.2px;
+        font-weight: 500;
     }
 
-    /* Container Responsive */
-    .attendance-main-container {
-        max-width: 900px;
-        margin: 0 auto;
-    }
-
-    @media (max-width: 768px) {
+    @media (max-width: 600px) {
         .attendance-container {
-            padding: 1rem 0.5rem;
+            padding: 0.25rem 0.3rem;
         }
 
         .main-status-section {
-            padding: 1.5rem;
+            padding: 0.5rem 0.4rem;
+        }
+
+        .header-section {
+            padding: 0.5rem 0.4rem;
         }
 
         .current-time {
-            font-size: 2.5rem;
+            font-size: 1.4rem;
+        }
+
+        .btn-action {
+            padding: 0.45rem 0.5rem;
+            font-size: 0.65rem;
+            min-height: 26px;
+        }
+
+        .quick-link {
+            padding: 0.35rem 0.3rem;
+            font-size: 0.58rem;
         }
     }
 </style>
@@ -491,7 +651,7 @@
 
         <!-- Main Status Display -->
         <div class="main-status-section">
-            <h5 style="margin-bottom: 1.5rem; color: #333; font-weight: 700;">
+            <h5 style="margin-bottom: 0.4rem; color: #333; font-weight: 700; font-size: 0.85rem;">
                 <i class="fas fa-timeline me-2"></i>Today's Timeline
             </h5>
 
@@ -504,7 +664,7 @@
                     {% if today_attendance and today_attendance.clock_in %}
                     <div class="status-time">{{ today_attendance.clock_in.strftime('%H:%M') }}</div>
                     {% else %}
-                    <div class="status-time" style="color: #ccc;">--:--</div>
+                    <div class="status-time" style="color: #ddd; font-size: 0.75rem;">--:--</div>
                     {% endif %}
                 </div>
 
@@ -516,7 +676,7 @@
                     {% if today_attendance and today_attendance.break_start %}
                     <div class="status-time">{{ today_attendance.break_start.strftime('%H:%M') }}</div>
                     {% else %}
-                    <div class="status-time" style="color: #ccc;">--:--</div>
+                    <div class="status-time" style="color: #ddd; font-size: 0.75rem;">--:--</div>
                     {% endif %}
                 </div>
 
@@ -528,7 +688,7 @@
                     {% if today_attendance and today_attendance.clock_out %}
                     <div class="status-time">{{ today_attendance.clock_out.strftime('%H:%M') }}</div>
                     {% else %}
-                    <div class="status-time" style="color: #ccc;">--:--</div>
+                    <div class="status-time" style="color: #ddd; font-size: 0.75rem;">--:--</div>
                     {% endif %}
                 </div>
             </div>
@@ -564,16 +724,16 @@
             <div class="alert-custom alert-break">
                 <i class="fas fa-coffee"></i>
                 <div>
-                    <strong>On Break</strong><br>
-                    <small>Started at {{ today_attendance.break_start.strftime('%H:%M') }} - Don't forget to end your break!</small>
+                    <strong style="font-size: 0.75rem; display: block;">On Break</strong>
+                    <small style="font-size: 0.65rem;">Started at {{ today_attendance.break_start.strftime('%H:%M') }} - Don't forget to end your break!</small>
                 </div>
             </div>
             {% elif today_attendance and today_attendance.break_start and today_attendance.break_end %}
             <div class="alert-custom alert-completion">
                 <i class="fas fa-check-circle"></i>
                 <div>
-                    <strong>Break Recorded</strong><br>
-                    <small>{{ today_attendance.break_start.strftime('%H:%M') }} - {{ today_attendance.break_end.strftime('%H:%M') }}</small>
+                    <strong style="font-size: 0.75rem; display: block;">Break Recorded</strong>
+                    <small style="font-size: 0.65rem;">{{ today_attendance.break_start.strftime('%H:%M') }} - {{ today_attendance.break_end.strftime('%H:%M') }}</small>
                 </div>
             </div>
             {% endif %}
@@ -585,8 +745,8 @@
                 <input type="hidden" name="latitude" id="latitude">
                 <input type="hidden" name="longitude" id="longitude">
 
-                <div style="padding: 2rem;">
-                    <h5 style="margin-bottom: 1.5rem; color: #333; font-weight: 700;">
+                <div style="padding: 0.3rem 0;">
+                    <h5 style="margin-bottom: 0.25rem; color: #333; font-weight: 700; font-size: 0.78rem;">
                         <i class="fas fa-hand-pointer me-2"></i>Quick Actions
                     </h5>
 
@@ -614,11 +774,11 @@
                     </div>
 
                     {% if today_attendance and today_attendance.clock_out %}
-                    <div class="alert-custom alert-completed" style="margin-top: 1.5rem;">
+                    <div class="alert-custom alert-completed" style="margin-top: 0.25rem;">
                         <i class="fas fa-check-circle"></i>
                         <div>
-                            <strong>Great Job!</strong><br>
-                            <small>Attendance completed for today. Have a wonderful day!</small>
+                            <strong style="font-size: 0.7rem; display: block;">Great Job!</strong>
+                            <small style="font-size: 0.6rem;">Attendance completed for today. Have a wonderful day!</small>
                         </div>
                     </div>
                     {% endif %}
@@ -650,26 +810,29 @@
         <!-- Location & Information -->
         <div class="info-section">
             <div class="info-section-title">
-                <i class="fas fa-map-marker-alt"></i>Location Tracking
+                <i class="fas fa-map-marker-alt" style="font-size: 0.7rem;"></i>Location
             </div>
             <div class="info-section-content">
-                <div id="locationInfo" style="margin-bottom: 0.5rem;">
-                    <i class="fas fa-spinner fa-spin me-1 spinner"></i>Getting your location...
+                <div id="locationInfo" style="margin-bottom: 0.1rem; font-size: 0.65rem;">
+                    <i class="fas fa-spinner fa-spin me-1 spinner" style="font-size: 0.6rem;"></i>Getting location...
                 </div>
-                <small>Your location is used for attendance verification and stored securely.</small>
+                <small style="font-size: 0.6rem;">Verified &amp; stored securely</small>
             </div>
         </div>
 
         <!-- Quick Links -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0;">
-            <a href="{{ url_for('attendance_list_view') }}" class="btn" style="padding: 1rem; border-radius: 12px; background: white; color: #667eea; border: 2px solid #667eea; font-weight: 600; text-decoration: none; transition: all 0.3s ease; text-align: center;">
-                <i class="fas fa-history me-2"></i>History
+        <div class="quick-links">
+            <a href="{{ url_for('attendance_list_view') }}" class="quick-link">
+                <i class="fas fa-history"></i>
+                History
             </a>
-            <a href="{{ url_for('leave_request') }}" class="btn" style="padding: 1rem; border-radius: 12px; background: white; color: #f5576c; border: 2px solid #f5576c; font-weight: 600; text-decoration: none; transition: all 0.3s ease; text-align: center;">
-                <i class="fas fa-plane-departure me-2"></i>Request Leave
+            <a href="{{ url_for('leave_request') }}" class="quick-link" style="color: #f56565; border-color: #f56565;">
+                <i class="fas fa-plane-departure"></i>
+                Request Leave
             </a>
-            <a href="{{ url_for('dashboard') }}" class="btn" style="padding: 1rem; border-radius: 12px; background: white; color: #764ba2; border: 2px solid #764ba2; font-weight: 600; text-decoration: none; transition: all 0.3s ease; text-align: center;">
-                <i class="fas fa-home me-2"></i>Dashboard
+            <a href="{{ url_for('dashboard') }}" class="quick-link" style="color: #764ba2; border-color: #764ba2;">
+                <i class="fas fa-home"></i>
+                Dashboard
             </a>
         </div>
     </div>

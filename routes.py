@@ -2830,3 +2830,45 @@ def claims_list():
     claims = query.paginate(page=page, per_page=10)
     
     return render_template('claims/claims_list.html', claims=claims, status_filter=status_filter)
+
+@app.route('/claims/add', methods=['GET', 'POST'])
+@require_login
+def claim_add():
+    """Add a new expense claim"""
+    if request.method == 'POST':
+        try:
+            # Get current user's employee profile
+            if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+                flash('Employee profile not found', 'error')
+                return redirect(url_for('claims_list'))
+            
+            from datetime import datetime
+            claim = Claim(
+                employee_id=current_user.employee_profile.id,
+                claim_type=request.form.get('claim_type'),
+                amount=float(request.form.get('amount', 0)),
+                claim_date=datetime.strptime(request.form.get('claim_date'), '%Y-%m-%d').date(),
+                receipt_number=request.form.get('receipt_number'),
+                description=request.form.get('description'),
+                status='Pending'
+            )
+            
+            db.session.add(claim)
+            db.session.commit()
+            
+            flash('Claim submitted successfully!', 'success')
+            return redirect(url_for('claims_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error submitting claim: {str(e)}', 'error')
+    
+    return render_template('claims/form.html')
+
+
+# Alias for backward compatibility with templates
+@app.route('/claims/submit', methods=['GET', 'POST'])
+@require_login
+def claims_submit():
+    """Submit a new expense claim (alias for claim_add)"""
+    return claim_add()
+
