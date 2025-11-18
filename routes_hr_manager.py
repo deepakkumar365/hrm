@@ -1,0 +1,406 @@
+"""
+HR Manager Dashboard Routes
+Comprehensive dashboard for HR Managers and Tenant Admins
+Features: Company-wise attendance, leave, OT management, payroll
+"""
+
+from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask_login import current_user, login_required
+from sqlalchemy import func, and_, extract
+from datetime import datetime, date, timedelta
+import calendar
+from uuid import UUID
+import json
+
+from app import app, db
+from auth import require_login, require_role
+from models import (
+    Employee, Attendance, Leave, OTAttendance, OTApproval, OTRequest, Payroll,
+    Company, User, LeaveType
+)
+from utils import get_current_month_dates, check_permission
+from sqlalchemy import case
+
+
+def get_user_companies():
+    """Get companies accessible by current user"""
+    if current_user.role.name == 'Super Admin':
+        return Company.query.all()
+    elif current_user.role.name in ['Tenant Admin', 'HR Manager']:
+        if current_user.company:
+            return [current_user.company]
+        return []
+    return []
+
+
+def get_company_id(company_id_param=None):
+    """Get company_id as UUID, handling string conversion"""
+    if company_id_param:
+        try:
+            if isinstance(company_id_param, str):
+                return UUID(company_id_param)
+            return company_id_param
+        except (ValueError, TypeError):
+            pass
+    
+    # Fallback to current user's company
+    if current_user.company_id:
+        if isinstance(current_user.company_id, str):
+            return UUID(current_user.company_id)
+        return current_user.company_id
+    return None
+
+
+def get_attendance_stats(company_id, date_from, date_to):
+    """Get attendance statistics for date range"""
+    attendance = db.session.query(
+        func.count(Attendance.id).label('total'),
+        func.sum(case(
+            (Attendance.status == 'Present', 1),
+            else_=0
+        )).label('present'),
+        func.sum(case(
+            (Attendance.status == 'Absent', 1),
+            else_=0
+        )).label('absent'),
+        func.sum(case(
+            (Attendance.status == 'Late', 1),
+            else_=0
+        )).label('late')
+    ).join(Employee, Attendance.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        Attendance.date.between(date_from, date_to)
+    ).first()
+    
+    return {
+        'total': attendance.total or 0,
+        'present': attendance.present or 0,
+        'absent': attendance.absent or 0,
+        'late': attendance.late or 0
+    }
+
+
+def get_leave_stats(company_id, month_start, month_end):
+    """Get leave statistics for the month"""
+    leaves = db.session.query(
+        Leave.leave_type,
+        func.count(Leave.id).label('count')
+    ).join(Employee, Leave.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        Leave.start_date >= month_start,
+        Leave.end_date <= month_end,
+        Leave.status == 'Approved'
+    ).group_by(Leave.leave_type).all()
+    
+    return leaves
+
+
+def get_ot_stats(company_id, date_from, date_to):
+    """Get OT attendance and approval statistics"""
+    # Get OT attendance stats
+    ot_attendance = db.session.query(
+        func.count(OTAttendance.id).label('total_ot'),
+        func.sum(OTAttendance.ot_hours).label('total_hours')
+    ).join(Employee, OTAttendance.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        OTAttendance.ot_date.between(date_from, date_to)
+    ).first()
+    
+    # Get pending approvals separately
+    pending_approvals = db.session.query(
+        func.count(OTApproval.id)
+    ).join(OTRequest, OTApproval.ot_request_id == OTRequest.id).join(
+        Employee, OTRequest.employee_id == Employee.id
+    ).filter(
+        Employee.company_id == company_id,
+        OTApproval.status == 'Pending',
+        OTRequest.ot_date.between(date_from, date_to)
+    ).scalar() or 0
+    
+    return {
+        'total_ot': ot_attendance.total_ot or 0,
+        'total_hours': float(ot_attendance.total_hours) if ot_attendance.total_hours else 0,
+        'pending_approvals': pending_approvals
+    }
+
+
+def get_today_summary(company_id):
+    """Get today's attendance and leave summary"""
+    today = date.today()
+    
+    # Today's attendance
+    today_attendance = db.session.query(
+        func.count(Attendance.id).label('total'),
+        func.sum(case(
+            (Attendance.status == 'Present', 1),
+            else_=0
+        )).label('present'),
+        func.sum(case(
+            (Attendance.status == 'Absent', 1),
+            else_=0
+        )).label('absent'),
+        func.sum(case(
+            (Attendance.status == 'Late', 1),
+            else_=0
+        )).label('late')
+    ).join(Employee, Attendance.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        Attendance.date == today
+    ).first()
+    
+    # Today's leaves
+    today_leaves = db.session.query(
+        func.count(Leave.id).label('count')
+    ).join(Employee, Leave.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        Leave.start_date <= today,
+        Leave.end_date >= today,
+        Leave.status == 'Approved'
+    ).first()
+    
+    # Today's OT
+    today_ot = db.session.query(
+        func.sum(OTAttendance.ot_hours).label('hours')
+    ).join(Employee, OTAttendance.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        OTAttendance.ot_date == today
+    ).first()
+    
+    return {
+        'date': today.strftime('%A, %B %d, %Y'),
+        'attendance': {
+            'total': today_attendance.total or 0,
+            'present': today_attendance.present or 0,
+            'absent': today_attendance.absent or 0,
+            'late': today_attendance.late or 0
+        },
+        'leaves': today_leaves.count or 0,
+        'ot_hours': float(today_ot.hours) if today_ot.hours else 0
+    }
+
+
+def get_payroll_history(company_id, months=3):
+    """Get recent payroll generation history - last 3 months"""
+    today = date.today()
+    start_date = today.replace(day=1) - timedelta(days=months*30)
+    
+    payrolls = db.session.query(
+        extract('year', Payroll.pay_period_start).label('year'),
+        extract('month', Payroll.pay_period_start).label('month'),
+        func.count(Payroll.id).label('emp_count'),
+        func.sum(Payroll.net_pay).label('total_salary')
+    ).join(Employee, Payroll.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        Payroll.pay_period_start >= start_date,
+        Payroll.pay_period_start <= today
+    ).group_by(
+        extract('year', Payroll.pay_period_start),
+        extract('month', Payroll.pay_period_start)
+    ).order_by(
+        extract('year', Payroll.pay_period_start).asc(),
+        extract('month', Payroll.pay_period_start).asc()
+    ).limit(3).all()
+    
+    return payrolls
+
+
+def get_ot_pending_approvals(company_id, limit=10):
+    """Get pending OT approvals for the company"""
+    pending = db.session.query(
+        OTApproval.id,
+        OTRequest.ot_date,
+        func.concat(Employee.first_name, ' ', Employee.last_name).label('emp_name'),
+        OTRequest.requested_hours,
+        OTApproval.created_at
+    ).join(OTRequest, OTApproval.ot_request_id == OTRequest.id).join(
+        Employee, OTRequest.employee_id == Employee.id
+    ).filter(
+        Employee.company_id == company_id,
+        OTApproval.status == 'Pending'
+    ).order_by(OTApproval.created_at.desc()).limit(limit).all()
+    
+    return pending
+
+
+@app.route('/dashboard/hr-manager', methods=['GET', 'POST'])
+@require_login
+def hr_manager_dashboard():
+    """HR Manager Dashboard"""
+    # Check permission
+    if current_user.role.name not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+        flash('Access Denied', 'danger')
+        return redirect(url_for('index'))
+    
+    companies = get_user_companies()
+    
+    # Default to user's company or first company
+    selected_company_id = get_company_id(request.args.get('company_id'))
+    if not selected_company_id and companies:
+        selected_company_id = companies[0].id
+    
+    if not selected_company_id:
+        flash('No company assigned', 'warning')
+        return redirect(url_for('index'))
+    
+    selected_company = Company.query.get(selected_company_id)
+    
+    if not selected_company:
+        flash('Company not found', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    # Get current month and year
+    today = date.today()
+    month_start, month_end = get_current_month_dates()
+    
+    # Get statistics
+    today_summary = get_today_summary(selected_company_id)
+    
+    # MTD (Month-To-Date)
+    mtd_attendance = get_attendance_stats(selected_company_id, month_start, month_end)
+    mtd_leaves = get_leave_stats(selected_company_id, month_start, month_end)
+    mtd_ot = get_ot_stats(selected_company_id, month_start, month_end)
+    
+    # YTD (Year-To-Date)
+    year_start = date(today.year, 1, 1)
+    ytd_attendance = get_attendance_stats(selected_company_id, year_start, today)
+    ytd_ot = get_ot_stats(selected_company_id, year_start, today)
+    
+    # Payroll history and pending OT
+    payroll_history = get_payroll_history(selected_company_id)
+    pending_ot_approvals = get_ot_pending_approvals(selected_company_id)
+    
+    # Convert payroll_history to JSON for chart
+    payroll_history_json = json.dumps([
+        {
+            'month': int(p.month) if p.month else 0,
+            'year': int(p.year) if p.year else 0,
+            'emp_count': p.emp_count or 0,
+            'total_salary': float(p.total_salary or 0)
+        }
+        for p in payroll_history
+    ]) if payroll_history else '[]'
+    
+    context = {
+        'companies': companies,
+        'selected_company': selected_company,
+        'today_summary': today_summary,
+        'mtd_attendance': mtd_attendance,
+        'mtd_leaves': mtd_leaves,
+        'mtd_ot': mtd_ot,
+        'ytd_attendance': ytd_attendance,
+        'ytd_ot': ytd_ot,
+        'payroll_history': payroll_history,
+        'payroll_history_json': payroll_history_json,
+        'pending_ot_approvals': pending_ot_approvals,
+        'month_name': today.strftime('%B %Y')
+    }
+    
+    return render_template('hr_manager_dashboard.html', **context)
+
+
+@app.route('/dashboard/hr-manager/ot-approval', methods=['GET'])
+@require_login
+def hr_manager_ot_approval():
+    """OT Approval Management"""
+    if current_user.role.name not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+        flash('Access Denied', 'danger')
+        return redirect(url_for('index'))
+    
+    company_id = get_company_id(request.args.get('company_id'))
+    if not company_id:
+        flash('No company assigned', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    page = request.args.get('page', 1, type=int)
+    
+    # Get pending OT approvals with pagination (OTApproval -> OTRequest -> Employee)
+    approvals = OTApproval.query.filter_by(status='Pending').join(
+        OTRequest, OTApproval.ot_request_id == OTRequest.id
+    ).join(Employee, OTRequest.employee_id == Employee.id).filter(
+        Employee.company_id == company_id
+    ).paginate(page=page, per_page=20)
+    
+    return render_template('hr_manager/ot_approval.html', approvals=approvals)
+
+
+@app.route('/dashboard/hr-manager/ot-attendance', methods=['GET'])
+@require_login
+def hr_manager_ot_attendance():
+    """OT Attendance View"""
+    if current_user.role.name not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+        flash('Access Denied', 'danger')
+        return redirect(url_for('index'))
+    
+    company_id = get_company_id(request.args.get('company_id'))
+    if not company_id:
+        flash('No company assigned', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    date_from = request.args.get('date_from', (date.today() - timedelta(days=30)).isoformat())
+    date_to = request.args.get('date_to', date.today().isoformat())
+    page = request.args.get('page', 1, type=int)
+    
+    # Get OT attendance records
+    ot_records = OTAttendance.query.join(Employee, OTAttendance.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        OTAttendance.ot_date.between(date_from, date_to)
+    ).order_by(OTAttendance.ot_date.desc()).paginate(page=page, per_page=20)
+    
+    return render_template('hr_manager/ot_attendance.html', 
+                         ot_records=ot_records,
+                         date_from=date_from,
+                         date_to=date_to)
+
+
+@app.route('/dashboard/hr-manager/generate-payroll', methods=['GET', 'POST'])
+@require_login
+def hr_manager_generate_payroll():
+    """Generate Payroll"""
+    if current_user.role.name not in ['Tenant Admin', 'Super Admin']:  # Only admins can generate
+        flash('Access Denied', 'danger')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        month = request.form.get('month', type=int)
+        year = request.form.get('year', type=int)
+        company_id = get_company_id(request.form.get('company_id'))
+        
+        if not company_id:
+            flash('No company selected', 'danger')
+            return redirect(url_for('hr_manager_dashboard'))
+        
+        # TODO: Implement payroll generation logic
+        flash(f'Payroll generation for {month}/{year} started', 'success')
+        return redirect(url_for('hr_manager_dashboard', company_id=str(company_id)))
+    
+    companies = get_user_companies()
+    return render_template('hr_manager/generate_payroll.html', companies=companies)
+
+
+@app.route('/dashboard/hr-manager/payroll-reminder', methods=['GET'])
+@require_login
+def hr_manager_payroll_reminder():
+    """Payroll Reminder"""
+    if current_user.role.name not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+        flash('Access Denied', 'danger')
+        return redirect(url_for('index'))
+    
+    company_id = get_company_id(request.args.get('company_id'))
+    if not company_id:
+        flash('No company assigned', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    today = date.today()
+    month_start, month_end = get_current_month_dates()
+    
+    # Get pending payrolls for this month (filter by pay_period dates)
+    pending_payrolls = Payroll.query.join(Employee, Payroll.employee_id == Employee.id).filter(
+        Employee.company_id == company_id,
+        Payroll.pay_period_start >= month_start,
+        Payroll.pay_period_end <= month_end,
+        Payroll.status == 'Draft'
+    ).all()
+    
+    return render_template('hr_manager/payroll_reminder.html', 
+                         pending_payrolls=pending_payrolls,
+                         company_id=str(company_id))

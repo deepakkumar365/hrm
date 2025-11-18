@@ -10,17 +10,18 @@ from app import app
 # The file previously had duplicate code that was being auto-truncated, 
 # but this is no longer needed as the file structure is finalized.
 
-# Clean up any remaining issues
-try:
-    import cleanup_duplicate_code  # noqa: F401 - Removes duplicate code from auto-fixes
-except Exception as e:
-    print(f"⚠️  Warning: Could not cleanup: {e}")
-
-# Fix syntax errors in routes.py before importing
-try:
-    import auto_syntax_fix  # noqa: F401 - Auto-fixes incomplete claims_approve function
-except Exception as e:
-    print(f"⚠️  Warning: Could not run syntax fix: {e}")
+# Auto-fix modules disabled - they cause continuous file rewrites and server restarts
+# These are not needed if routes.py is already correct
+# Uncomment only if needed for emergency fixes
+# try:
+#     import cleanup_duplicate_code  # noqa: F401 - Removes duplicate code from auto-fixes
+# except Exception as e:
+#     print(f"⚠️  Warning: Could not cleanup: {e}")
+#
+# try:
+#     import auto_syntax_fix  # noqa: F401 - Auto-fixes incomplete claims_approve function
+# except Exception as e:
+#     print(f"⚠️  Warning: Could not run syntax fix: {e}")
 
 import routes  # noqa: F401
 import routes_tenant_company  # noqa: F401 - Tenant/Company hierarchy routes
@@ -34,7 +35,8 @@ import routes_leave  # noqa: F401 - Leave management routes
 import routes_employee_group  # noqa: F401 - Employee Group master management
 import routes_leave_allocation  # noqa: F401 - Leave allocation configuration
 import routes_ot  # noqa: F401 - OT (Overtime) Management routes
+import routes_hr_manager  # noqa: F401 - HR Manager Dashboard
 import cli_commands  # noqa: F401 - CLI commands for database management
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)

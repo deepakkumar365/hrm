@@ -36,6 +36,12 @@ class User(db.Model, UserMixin):
     role = db.relationship('Role', back_populates='users')
     reporting_manager = db.relationship('User', remote_side=[id], backref=db.backref('direct_reports', lazy='dynamic'))
     employee_profile = db.relationship('Employee', back_populates='user', uselist=False)
+    
+    # Multi-company support: User can access multiple companies
+    # Using lazy='select' to defer initialization until all models are loaded
+    company_access = db.relationship('UserCompanyAccess', primaryjoin='User.id==UserCompanyAccess.user_id', 
+                                     foreign_keys='UserCompanyAccess.user_id', cascade='all, delete-orphan', 
+                                     lazy='select', viewonly=False)
 
     def set_password(self, password):
         # Use Werkzeug's password hashing utilities for secure storage
@@ -68,6 +74,34 @@ class User(db.Model, UserMixin):
         first = self.get_first_name
         last = self.get_last_name
         return f"{first} {last}".strip()
+
+    @property
+    def company(self):
+        """Get company from employee profile"""
+        if self.employee_profile:
+            return self.employee_profile.company
+        return None
+
+    @property
+    def company_id(self):
+        """Get company_id from employee profile"""
+        if self.employee_profile:
+            return self.employee_profile.company_id
+        return None
+
+    def get_accessible_companies(self):
+        """Get all companies accessible by this user"""
+        if self.role and self.role.name == 'Super Admin':
+            # Super admins can access all companies
+            from models import Company
+            return Company.query.all()
+        elif self.company_access:
+            # Get companies from explicit access grants
+            return [access.company for access in self.company_access if access.company]
+        elif self.employee_profile and self.employee_profile.company:
+            # Fallback to employee's company
+            return [self.employee_profile.company]
+        return []
 
 
 class Tenant(db.Model):
@@ -182,6 +216,33 @@ class Company(db.Model):
             'modified_by': self.modified_by,
             'modified_at': self.modified_at.isoformat() if self.modified_at else None,
         }
+
+
+# UserCompanyAccess must be defined before other classes that reference it
+# This is defined early to support the User.company_access relationship
+class UserCompanyAccess(db.Model):
+    """Junction table for User-Company many-to-many relationship"""
+    __tablename__ = 'hrm_user_company_access'
+    __table_args__ = (
+        Index('ix_user_company_access_user_id', 'user_id'),
+        Index('ix_user_company_access_company_id', 'company_id'),
+        UniqueConstraint('user_id', 'company_id', name='uq_user_company_access'),
+    )
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    # Relationships - Note: back_populates removed to avoid circular dependency at mapper initialization
+    # The bidirectional relationship is established via User.company_access above
+    user = db.relationship('User', foreign_keys=[user_id], viewonly=True)
+    company = db.relationship('Company')
+
+    def __repr__(self):
+        return f'<UserCompanyAccess user_id={self.user_id} company_id={self.company_id}>'
 
 
 class CompanyEmployeeIdConfig(db.Model):
