@@ -16,7 +16,7 @@ from app import app, db
 from auth import require_role
 from models import (
     RoleAccessControl, UserRoleMapping, User, Role, 
-    Organization, Company, AuditLog
+    Organization, Company, AuditLog, UserCompanyAccess
 )
 from utils import check_permission
 
@@ -630,6 +630,234 @@ def check_edit_permission(user_role, module_name, menu_name=None):
     """
     access_level = check_module_access(user_role, module_name, menu_name)
     return access_level == 'Editable'
+
+
+# =====================================================================
+# ROUTES: Manage User Company Access (Multi-Company Feature)
+# =====================================================================
+
+@access_control_bp.route('/manage-user-companies', methods=['GET'])
+@login_required
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def manage_user_companies():
+    """Display page to manage which companies users have access to"""
+    try:
+        users = User.query.filter(
+            User.id != 1  # Exclude super admin (ID 1)
+        ).order_by(User.username).all()
+        
+        companies = Company.query.order_by(Company.name).all()
+        
+        return render_template(
+            'access_control/manage_user_companies.html',
+            users=users,
+            companies=companies,
+            total_users=len(users),
+            total_companies=len(companies)
+        )
+    except Exception as e:
+        flash(f'Error loading user company management: {str(e)}', 'danger')
+        return redirect(url_for('index'))
+
+
+@access_control_bp.route('/api/user-companies/<int:user_id>', methods=['GET'])
+@login_required
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_user_companies(user_id):
+    """API: Get all companies for a specific user"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        companies = [
+            {
+                'id': str(access.company.id),
+                'name': access.company.name,
+                'access_id': str(access.id),
+                'added_at': access.created_at.strftime('%Y-%m-%d %H:%M') if access.created_at else 'N/A'
+            }
+            for access in user.company_access
+        ]
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': user.roles[0].name if user.roles else 'N/A'
+            },
+            'companies': companies,
+            'total_companies': len(companies)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@access_control_bp.route('/api/add-company-to-user', methods=['POST'])
+@login_required
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def add_company_to_user():
+    """API: Add company access to a user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        company_id = data.get('company_id')
+        
+        if not user_id or not company_id:
+            return jsonify({'success': False, 'message': 'User ID and Company ID are required'}), 400
+        
+        user = User.query.get(user_id)
+        company = Company.query.get(company_id)
+        
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        if not company:
+            return jsonify({'success': False, 'message': 'Company not found'}), 404
+        
+        # Check if user already has access to this company
+        existing_access = UserCompanyAccess.query.filter_by(
+            user_id=user_id,
+            company_id=company_id
+        ).first()
+        
+        if existing_access:
+            return jsonify({
+                'success': False,
+                'message': f'User {user.username} already has access to {company.name}'
+            }), 409
+        
+        # Create new access record
+        new_access = UserCompanyAccess(
+            user_id=user_id,
+            company_id=company_id,
+            created_at=datetime.now(),
+            modified_at=datetime.now()
+        )
+        db.session.add(new_access)
+        db.session.commit()
+        
+        # Log the action
+        log_audit(
+            action='ADD_USER_COMPANY_ACCESS',
+            resource_type='UserCompanyAccess',
+            resource_id=str(new_access.id),
+            changes=json.dumps({
+                'user_id': user_id,
+                'user_name': user.username,
+                'company_id': str(company_id),
+                'company_name': company.name
+            })
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Company {company.name} added to {user.username} successfully',
+            'access': {
+                'id': str(new_access.id),
+                'company_id': str(company_id),
+                'company_name': company.name,
+                'added_at': new_access.created_at.strftime('%Y-%m-%d %H:%M')
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@access_control_bp.route('/api/remove-company-from-user', methods=['POST'])
+@login_required
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def remove_company_from_user():
+    """API: Remove company access from a user"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        company_id = data.get('company_id')
+        
+        if not user_id or not company_id:
+            return jsonify({'success': False, 'message': 'User ID and Company ID are required'}), 400
+        
+        user = User.query.get(user_id)
+        company = Company.query.get(company_id)
+        
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        if not company:
+            return jsonify({'success': False, 'message': 'Company not found'}), 404
+        
+        # Find the access record
+        access = UserCompanyAccess.query.filter_by(
+            user_id=user_id,
+            company_id=company_id
+        ).first()
+        
+        if not access:
+            return jsonify({
+                'success': False,
+                'message': f'User {user.username} does not have access to {company.name}'
+            }), 404
+        
+        access_id = access.id
+        db.session.delete(access)
+        db.session.commit()
+        
+        # Log the action
+        log_audit(
+            action='REMOVE_USER_COMPANY_ACCESS',
+            resource_type='UserCompanyAccess',
+            resource_id=str(access_id),
+            changes=json.dumps({
+                'user_id': user_id,
+                'user_name': user.username,
+                'company_id': str(company_id),
+                'company_name': company.name
+            })
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Company {company.name} removed from {user.username} successfully'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@access_control_bp.route('/api/get-available-companies/<int:user_id>', methods=['GET'])
+@login_required
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_available_companies(user_id):
+    """API: Get companies NOT assigned to the user (for dropdown)"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        # Get user's current companies
+        user_company_ids = [access.company_id for access in user.company_access]
+        
+        # Get all other companies
+        available_companies = Company.query.filter(
+            ~Company.id.in_(user_company_ids)
+        ).order_by(Company.name).all()
+        
+        companies = [
+            {
+                'id': str(company.id),
+                'name': company.name
+            }
+            for company in available_companies
+        ]
+        
+        return jsonify({
+            'success': True,
+            'companies': companies,
+            'total_available': len(companies)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # Register blueprint at module load time (before first request)

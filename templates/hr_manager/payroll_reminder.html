@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll Reminder - HR Manager{% endblock %}
+
+{% block head %}
+<style>
+    .reminder-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+
+    .reminder-header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .reminder-header h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+
+    .reminder-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .reminder-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-top: 4px solid #4facfe;
+    }
+
+    .reminder-card-icon {
+        font-size: 2rem;
+        color: #4facfe;
+        margin-bottom: 1rem;
+    }
+
+    .reminder-card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .reminder-card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #4facfe;
+        margin-bottom: 0.5rem;
+    }
+
+    .reminder-card-meta {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .checklist-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+
+    .checklist-section h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.1rem;
+        color: #2c3e50;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .checklist-item {
+        padding: 0.8rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .checklist-item:last-child {
+        border-bottom: none;
+    }
+
+    .checklist-checkbox {
+        width: 20px;
+        height: 20px;
+        margin-top: 0.2rem;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .checklist-content {
+        flex: 1;
+    }
+
+    .checklist-content-title {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.2rem;
+    }
+
+    .checklist-content-desc {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .timeline-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .timeline-section h3 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.1rem;
+        color: #2c3e50;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .timeline-item {
+        padding-left: 2rem;
+        margin-bottom: 1.5rem;
+        border-left: 3px solid #4facfe;
+        position: relative;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -7px;
+        top: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #4facfe;
+    }
+
+    .timeline-title {
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.3rem;
+    }
+
+    .timeline-desc {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .timeline-date {
+        font-size: 0.85rem;
+        color: #4facfe;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .btn-primary {
+        background: #4facfe;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #3d9eff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+    }
+
+    .btn-secondary {
+        background: #95a5a6;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #7f8c8d;
+        text-decoration: none;
+        transform: translateY(-2px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #95a5a6;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reminder-container">
+    <div class="reminder-header">
+        <h2><i class="fas fa-bell"></i> Payroll Reminder</h2>
+        <p style="margin: 0.5rem 0 0 0; opacity: 0.95;">Monthly payroll processing checklist and timeline</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="reminder-cards">
+        <div class="reminder-card">
+            <div class="reminder-card-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="reminder-card-title">Active Employees</div>
+            <div class="reminder-card-value">{{ pending_payrolls | length }}</div>
+            <div class="reminder-card-meta">Awaiting payroll</div>
+        </div>
+
+        <div class="reminder-card">
+            <div class="reminder-card-icon">
+                <i class="fas fa-calendar"></i>
+            </div>
+            <div class="reminder-card-title">Current Month</div>
+            <div class="reminder-card-value" id="currentMonth">-</div>
+            <div class="reminder-card-meta" id="currentYear">-</div>
+        </div>
+
+        <div class="reminder-card">
+            <div class="reminder-card-icon">
+                <i class="fas fa-hourglass-end"></i>
+            </div>
+            <div class="reminder-card-title">Days Left</div>
+            <div class="reminder-card-value" id="daysLeft">-</div>
+            <div class="reminder-card-meta">Until month end</div>
+        </div>
+    </div>
+
+    <!-- Pre-Payroll Checklist -->
+    <div class="checklist-section">
+        <h3>
+            <i class="fas fa-clipboard-check"></i> Pre-Payroll Checklist
+        </h3>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="checklist-checkbox" id="check1">
+            <div class="checklist-content">
+                <div class="checklist-content-title">Verify Attendance Records</div>
+                <div class="checklist-content-desc">Ensure all attendance records are complete and accurate for the month</div>
+            </div>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="checklist-checkbox" id="check2">
+            <div class="checklist-content">
+                <div class="checklist-content-title">Review OT Approvals</div>
+                <div class="checklist-content-desc">All overtime records should be approved and ready for calculation</div>
+            </div>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="checklist-checkbox" id="check3">
+            <div class="checklist-content">
+                <div class="checklist-content-title">Check Leave Deductions</div>
+                <div class="checklist-content-desc">Verify that leave deductions have been processed correctly</div>
+            </div>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="checklist-checkbox" id="check4">
+            <div class="checklist-content">
+                <div class="checklist-content-title">Validate Employee Data</div>
+                <div class="checklist-content-desc">Confirm no employee changes (designation, salary, etc.) are pending</div>
+            </div>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="checklist-checkbox" id="check5">
+            <div class="checklist-content">
+                <div class="checklist-content-title">Review Payroll Config</div>
+                <div class="checklist-content-desc">Ensure tax rates, CPF, and other deductions are up to date</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payroll Timeline -->
+    <div class="timeline-section">
+        <h3>
+            <i class="fas fa-timeline"></i> Recommended Payroll Timeline
+        </h3>
+
+        <div class="timeline-item">
+            <div class="timeline-date">1st - 5th of Month</div>
+            <div class="timeline-title">Attendance Finalization</div>
+            <div class="timeline-desc">Close and finalize all attendance records for the previous month</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-date">5th - 10th of Month</div>
+            <div class="timeline-title">OT & Deduction Review</div>
+            <div class="timeline-desc">Review and approve all OT requests, validate deductions</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-date">10th - 15th of Month</div>
+            <div class="timeline-title">Payroll Generation</div>
+            <div class="timeline-desc">Generate payroll run, verify calculations, make adjustments if needed</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-date">15th - 20th of Month</div>
+            <div class="timeline-title">Approval & Payment</div>
+            <div class="timeline-desc">Final approval of payroll, process payments to employees</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-date">20th - 25th of Month</div>
+            <div class="timeline-title">Payslip Distribution</div>
+            <div class="timeline-desc">Send payslips to employees, answer queries</div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="timeline-date">25th - 30th of Month</div>
+            <div class="timeline-title">Accounting & Settlement</div>
+            <div class="timeline-desc">Submit payroll report for accounting, settle payments</div>
+        </div>
+    </div>
+
+    <!-- Employee List Awaiting Payroll -->
+    {% if pending_payrolls %}
+        <div class="checklist-section" style="margin-top: 2rem;">
+            <h3>
+                <i class="fas fa-list"></i> Employees Awaiting Payroll
+            </h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
+                        <th style="padding: 0.8rem; text-align: left; font-weight: 700;">Employee</th>
+                        <th style="padding: 0.8rem; text-align: left; font-weight: 700;">Designation</th>
+                        <th style="padding: 0.8rem; text-align: left; font-weight: 700;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payroll in pending_payrolls[:10] %}
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td style="padding: 0.8rem;">{{ payroll.employee.name }}</td>
+                            <td style="padding: 0.8rem;">{{ payroll.employee.designation.name if payroll.employee.designation else '-' }}</td>
+                            <td style="padding: 0.8rem;">
+                                <span style="display: inline-block; padding: 0.3rem 0.8rem; background: #fff3cd; color: #856404; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
+                                    Processing
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if pending_payrolls | length > 10 %}
+                <div style="text-align: center; padding: 1rem; color: #666;">
+                    <p>+{{ pending_payrolls | length - 10 }} more employees</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{{ url_for('hr_manager_generate_payroll') }}" class="btn-primary">
+            <i class="fas fa-play"></i> Generate Payroll Now
+        </a>
+        <a href="{{ url_for('hr_manager_dashboard', company_id=company_id) }}" class="btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<script>
+    // Calculate days left in month and set current month/year
+    function calculateDaysLeft() {
+        const now = new Date();
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const daysLeft = lastDay.getDate() - now.getDate();
+        document.getElementById('daysLeft').textContent = Math.max(0, daysLeft);
+
+        // Set current month and year
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        document.getElementById('currentMonth').textContent = months[now.getMonth()];
+        document.getElementById('currentYear').textContent = now.getFullYear();
+    }
+
+    calculateDaysLeft();
+
+    // Save checkbox state in localStorage
+    document.querySelectorAll('.checklist-checkbox').forEach((checkbox, index) => {
+        const key = 'payroll_check_' + index;
+        checkbox.checked = localStorage.getItem(key) === 'true';
+
+        checkbox.addEventListener('change', function() {
+            localStorage.setItem(key, this.checked);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Payroll - HR Manager{% endblock %}
+
+{% block head %}
+<style>
+    .payroll-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 1.5rem;
+    }
+
+    .payroll-header {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .payroll-header h2 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .payroll-form {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+        font-size: 0.95rem;
+    }
+
+    .form-group select, .form-group input {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-family: inherit;
+    }
+
+    .form-group select:focus, .form-group input:focus {
+        outline: none;
+        border-color: #43e97b;
+        box-shadow: 0 0 0 2px rgba(67, 233, 123, 0.1);
+    }
+
+    .form-group .help-text {
+        font-size: 0.85rem;
+        color: #666;
+        margin-top: 0.4rem;
+    }
+
+    .form-group.error input, .form-group.error select {
+        border-color: #e74c3c;
+        background: #fff5f5;
+    }
+
+    .error-message {
+        color: #e74c3c;
+        font-size: 0.85rem;
+        margin-top: 0.3rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn-generate {
+        flex: 1;
+        padding: 1rem;
+        background: #43e97b;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-generate:hover {
+        background: #2ecc71;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(67, 233, 123, 0.3);
+    }
+
+    .btn-generate:disabled {
+        background: #95a5a6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-cancel {
+        flex: 1;
+        padding: 1rem;
+        background: #95a5a6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+        background: #7f8c8d;
+        text-decoration: none;
+        transform: translateY(-2px);
+    }
+
+    .warning-section {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+    }
+
+    .warning-section h4 {
+        margin: 0 0 0.5rem 0;
+        color: #856404;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .warning-section p {
+        margin: 0;
+        color: #856404;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .info-section {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 1.5rem;
+    }
+
+    .info-section h4 {
+        margin: 0 0 0.5rem 0;
+        color: #0c5460;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .info-section ul {
+        margin: 0;
+        padding-left: 1.5rem;
+        color: #0c5460;
+        font-size: 0.9rem;
+    }
+
+    .info-section li {
+        margin-bottom: 0.3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payroll-container">
+    <div class="payroll-header">
+        <h2><i class="fas fa-file-invoice-dollar"></i> Generate Payroll</h2>
+        <p style="margin: 0.5rem 0 0 0; opacity: 0.95;">Create a new payroll run for your company</p>
+    </div>
+
+    <form method="POST" class="payroll-form">
+        <div class="warning-section">
+            <h4><i class="fas fa-exclamation-triangle"></i> Important</h4>
+            <p>Generating payroll will process all employee salaries, deductions, and payments. Please verify all settings before proceeding.</p>
+        </div>
+
+        <div class="form-group">
+            <label for="company_id">Company *</label>
+            <select name="company_id" id="company_id" required>
+                <option value="">-- Select Company --</option>
+                {% for company in companies %}
+                    <option value="{{ company.id }}">{{ company.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="help-text">Select the company for which to generate payroll</div>
+        </div>
+
+        <div class="form-group">
+            <label for="month">Month *</label>
+            <select name="month" id="month" required>
+                <option value="">-- Select Month --</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+            <div class="help-text">Select the month for payroll generation</div>
+        </div>
+
+        <div class="form-group">
+            <label for="year">Year *</label>
+            <select name="year" id="year" required>
+                <option value="">-- Select Year --</option>
+                {% for year in range(2020, 2030) %}
+                    <option value="{{ year }}" {% if year == now.year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+            <div class="help-text">Select the year for payroll generation</div>
+        </div>
+
+        <div class="info-section">
+            <h4><i class="fas fa-info-circle"></i> Payroll Process</h4>
+            <ul>
+                <li>System will calculate base salary for all employees</li>
+                <li>Overtime hours will be processed based on approved OT records</li>
+                <li>Deductions (CPF, tax, etc.) will be applied automatically</li>
+                <li>Final payslips will be generated and sent to employees</li>
+                <li>Payment records will be created for accounting</li>
+            </ul>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-generate" id="submitBtn">
+                <i class="fas fa-play"></i> Generate Payroll
+            </button>
+            <a href="{{ url_for('hr_manager_dashboard') }}" class="btn-cancel">
+                <i class="fas fa-times"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const company = document.getElementById('company_id').value;
+        const month = document.getElementById('month').value;
+        const year = document.getElementById('year').value;
+
+        if (!company || !month || !year) {
+            e.preventDefault();
+            alert('Please fill in all required fields');
+            return false;
+        }
+
+        if (!confirm('Are you sure you want to generate payroll for ' + month + '/' + year + '?\n\nThis will process payments for all employees in the selected company.')) {
+            e.preventDefault();
+            return false;
+        }
+
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    });
+
+    // Set current month/year by default
+    const today = new Date();
+    document.getElementById('month').value = today.getMonth() + 1;
+    document.getElementById('year').value = today.getFullYear();
+</script>
+{% endblock %}
