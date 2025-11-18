@@ -385,6 +385,10 @@ def dashboard():
     if user_role_name == 'Super Admin':
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
+    
+    if user_role_name in ['HR Manager', 'Tenant Admin']:
+        # Redirect HR Manager and Tenant Admin to their specialized dashboard
+        return redirect(url_for('hr_manager_dashboard'))
 
     # Get basic statistics
     stats = {
@@ -2811,79 +2815,18 @@ def claims_list():
     
     # Filter by role/user
     current_role = current_user.role.name if current_user.role else None
-    if current_role == 'Employee' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        query = query.filter(Claim.employee_id == current_user.employee_profile.id)
-    elif current_role not in ['Super Admin', 'Admin', 'Manager']:
-        flash('Unauthorized', 'error')
-        return redirect(url_for('dashboard'))
+    if current_role == 'Employee' and hasattr(current_user, 'employee_profile'):
+        query = query.filter_by(employee_id=current_user.employee_profile.id)
+    elif current_role not in ['Super Admin', 'Admin', 'Manager', 'HR Manager', 'Tenant Admin']:
+        # Non-admin users can only see their own claims
+        if hasattr(current_user, 'employee_profile'):
+            query = query.filter_by(employee_id=current_user.employee_profile.id)
     
-    # Filter by status if provided
+    # Apply status filter if provided
     if status_filter:
-        query = query.filter(Claim.status == status_filter)
+        query = query.filter_by(status=status_filter)
     
-    claims = query.paginate(page=page, per_page=20)
+    # Pagination
+    claims = query.paginate(page=page, per_page=10)
     
-    return render_template('claims/list.html', 
-                         claims=claims, 
-                         status_filter=status_filter)
-
-
-@app.route('/claims/submit', methods=['GET', 'POST'])
-@require_login
-def claims_submit():
-    """Submit new claim"""
-    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
-        flash('Employee profile required for submitting claims', 'error')
-        return redirect(url_for('dashboard'))
-    
-    if request.method == 'POST':
-        try:
-            claim = Claim()
-            claim.employee_id = current_user.employee_profile.id
-            claim.organization_id = current_user.organization_id
-            claim.claim_type = request.form.get('claim_type')
-            claim.amount = float(request.form.get('amount', 0))
-            claim.description = request.form.get('description')
-            claim.claim_date = datetime.now()
-            claim.status = 'Pending'
-            
-            db.session.add(claim)
-            db.session.commit()
-            
-            flash('Claim submitted successfully', 'success')
-            return redirect(url_for('claims_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error submitting claim: {str(e)}', 'error')
-    
-    return render_template('claims/form.html')
-
-
-@app.route('/claims/<int:claim_id>/approve', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def claims_approve(claim_id):
-    """Approve/reject claim"""
-    claim = Claim.query.get_or_404(claim_id)
-    
-    try:
-        action = request.form.get('action')
-        
-        if action == 'approve':
-            claim.status = 'Approved'
-            claim.approved_by = current_user.id
-            claim.approved_at = datetime.now()
-            flash('Claim approved', 'success')
-        elif action == 'reject':
-            claim.status = 'Rejected'
-            claim.approved_by = current_user.id
-            claim.approved_at = datetime.now()
-            flash('Claim rejected', 'success')
-        
-        db.session.commit()
-        return redirect(url_for('claims_list'))
-    
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error processing claim: {str(e)}', 'error')
-        return redirect(url_for('claims_list'))
-   
+    return render_template('claims/claims_list.html', claims=claims, status_filter=status_filter)
