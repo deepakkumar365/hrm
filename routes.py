@@ -1559,7 +1559,7 @@ def payroll_generate():
             pay_period_end = date(year, month, last_day)
 
             generated_count = 0
-            skipped_count = 0
+            updated_count = 0
 
             for emp_id in selected_employees:
                 employee = Employee.query.get(int(emp_id))
@@ -1571,10 +1571,6 @@ def payroll_generate():
                     employee_id=employee.id,
                     pay_period_start=pay_period_start,
                     pay_period_end=pay_period_end).first()
-
-                if existing:
-                    skipped_count += 1
-                    continue
 
                 # Get payroll config
                 config = employee.payroll_config
@@ -1634,34 +1630,53 @@ def payroll_generate():
                 # Calculate net pay
                 net_pay = gross_pay - employee_cpf
 
-                # Create payroll record
-                payroll = Payroll()
-                payroll.employee_id = employee.id
-                payroll.pay_period_start = pay_period_start
-                payroll.pay_period_end = pay_period_end
-                payroll.basic_pay = basic_pay
-                payroll.overtime_pay = overtime_pay
-                payroll.allowances = total_allowances
-                payroll.bonuses = 0
-                payroll.gross_pay = gross_pay
-                payroll.employee_cpf = employee_cpf
-                payroll.employer_cpf = employer_cpf
-                payroll.income_tax = 0
-                payroll.other_deductions = 0
-                payroll.net_pay = net_pay
-                payroll.overtime_hours = total_overtime
-                payroll.days_worked = len(attendance_records)
-                payroll.generated_by = current_user.id
-                payroll.status = 'Draft'
-
-                db.session.add(payroll)
-                generated_count += 1
+                # Update or create payroll record
+                if existing:
+                    # Update existing payroll
+                    existing.basic_pay = basic_pay
+                    existing.overtime_pay = overtime_pay
+                    existing.allowances = total_allowances
+                    existing.bonuses = 0
+                    existing.gross_pay = gross_pay
+                    existing.employee_cpf = employee_cpf
+                    existing.employer_cpf = employer_cpf
+                    existing.income_tax = 0
+                    existing.other_deductions = 0
+                    existing.net_pay = net_pay
+                    existing.overtime_hours = total_overtime
+                    existing.days_worked = len(attendance_records)
+                    existing.generated_by = current_user.id
+                    existing.status = 'Draft'
+                    updated_count += 1
+                else:
+                    # Create new payroll record
+                    payroll = Payroll()
+                    payroll.employee_id = employee.id
+                    payroll.pay_period_start = pay_period_start
+                    payroll.pay_period_end = pay_period_end
+                    payroll.basic_pay = basic_pay
+                    payroll.overtime_pay = overtime_pay
+                    payroll.allowances = total_allowances
+                    payroll.bonuses = 0
+                    payroll.gross_pay = gross_pay
+                    payroll.employee_cpf = employee_cpf
+                    payroll.employer_cpf = employer_cpf
+                    payroll.income_tax = 0
+                    payroll.other_deductions = 0
+                    payroll.net_pay = net_pay
+                    payroll.overtime_hours = total_overtime
+                    payroll.days_worked = len(attendance_records)
+                    payroll.generated_by = current_user.id
+                    payroll.status = 'Draft'
+                    db.session.add(payroll)
+                    generated_count += 1
 
             db.session.commit()
 
-            message = f'Generated payroll for {generated_count} employee(s)'
-            if skipped_count > 0:
-                message += f'. Skipped {skipped_count} employee(s) with existing payroll.'
+            message = f'Payroll processed: {generated_count} new employee(s) created'
+            if updated_count > 0:
+                message += f', {updated_count} updated with recalculated values'
+            message += '.'
 
             flash(message, 'success')
             return redirect(url_for('payroll_list'))
@@ -2788,45 +2803,8 @@ def api_attendance_auto_create():
 
         return {
             'success': True,
-            'message': f'Created attendance records for {created_count} employees on {target_date}',
-            'date': target_date.strftime('%Y-%m-%d'),
-            'created_count': created_count
-        }, 200
-
-    except ValueError:
-        return {'error': 'Invalid date format. Please use YYYY-MM-DD format.'}, 400
+            'message': f'Created {created_count} attendance record(s).'
+        }
     except Exception as e:
-        return {'error': f'Error creating attendance records: {str(e)}'}, 500
-
-
-# Leave Management Routes have been moved to routes_leave.py
-# See routes_leave.py for leave_list, leave_request, leave_edit, leave_approve
-
-
-# Claims Management Routes
-@app.route('/claims')
-@require_login
-def claims_list():
-    """List expense claims"""
-    page = request.args.get('page', 1, type=int)
-    status_filter = request.args.get('status', '', type=str)
-    
-    query = Claim.query
-    
-    # Filter by role/user
-    current_role = current_user.role.name if current_user.role else None
-    if current_role == 'Employee' and hasattr(current_user, 'employee_profile'):
-        query = query.filter_by(employee_id=current_user.employee_profile.id)
-    elif current_role not in ['Super Admin', 'Admin', 'Manager', 'HR Manager', 'Tenant Admin']:
-        # Non-admin users can only see their own claims
-        if hasattr(current_user, 'employee_profile'):
-            query = query.filter_by(employee_id=current_user.employee_profile.id)
-    
-    # Apply status filter if provided
-    if status_filter:
-        query = query.filter_by(status=status_filter)
-    
-    # Pagination
-    claims = query.paginate(page=page, per_page=10)
-    
-    return render_template('claims/claims_list.html', claims=claims, status_filter=status_filter)
+        logging.error(f"Error creating attendance records: {e}")
+        return {'success': False, 'error': str(e)}, 500

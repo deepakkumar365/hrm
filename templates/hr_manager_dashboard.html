@@ -85,7 +85,7 @@
     /* Main Content Wrapper */
     .dashboard-content {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
         gap: 0.75rem;
         flex: 1;
         overflow: hidden;
@@ -184,7 +184,7 @@
     /* Dashboard Sections */
     .dashboard-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr;
         gap: 0.75rem;
         flex: 1;
         overflow: hidden;
@@ -519,23 +519,13 @@
     }
 
     /* Responsive */
-    @media (max-width: 1600px) {
+    @media (max-width: 1800px) {
         .dashboard-content {
-            grid-template-columns: 1fr 1fr 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
         }
     }
 
     @media (max-width: 1400px) {
-        .dashboard-content {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .ot-management-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-
-    @media (max-width: 1024px) {
         .dashboard-content {
             grid-template-columns: 1fr 1fr;
         }
@@ -545,7 +535,21 @@
         }
 
         .ot-management-grid {
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-content {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .ot-management-grid {
+            grid-template-columns: repeat(3, 1fr);
         }
     }
 
@@ -712,10 +716,17 @@
                 <h3 style="font-size: 0.85rem; margin: 0;"><i class="fas fa-clock"></i> OT Hub</h3>
             </div>
             <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem;">
-                <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}" class="ot-action-card ot-approval" style="padding: 0.45rem;">
+                <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}" class="ot-action-card ot-approval" style="padding: 0.45rem; position: relative;">
                     <i class="fas fa-check-circle" style="font-size: 1rem;"></i>
                     <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval</div>
-                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{ mtd_ot.pending_approvals }}</div>
+                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
+                        {% if mtd_ot.pending_approvals > 0 %}
+                            <span style="display: inline-block; background-color: #e74c3c; color: white; border-radius: 50%; min-width: 1.2rem; height: 1.2rem; line-height: 1.2rem; text-align: center; font-weight: bold; font-size: 0.7rem;">{{ mtd_ot.pending_approvals }}</span>
+                            <span style="margin-left: 0.3rem;">pending</span>
+                        {% else %}
+                            <span style="color: #27ae60;">All Clear</span>
+                        {% endif %}
+                    </div>
                 </a>
 
                 <a href="/dashboard/hr-manager/ot-attendance?company_id={{ selected_company.id }}" class="ot-action-card ot-attendance" style="padding: 0.45rem;">
@@ -760,41 +771,6 @@
                 <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #9b59b6;">
                     <div class="metric-label" style="font-size: 0.6rem;">YTD Hrs</div>
                     <div class="metric-value" style="font-size: 0.95rem;">{{ "%.1f" | format(ytd_ot.total_hours) }}h</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Employee Status Summary -->
-        <div class="dashboard-section">
-            <div class="section-header">
-                <h3><i class="fas fa-users"></i> Staff Status</h3>
-            </div>
-            <div class="section-body" style="display: flex; flex-direction: column; gap: 0.3rem;">
-                <div style="text-align: center; padding: 0.3rem; background: #f8f9fa; border-radius: 4px;">
-                    <div style="font-size: 0.65rem; color: #666; font-weight: 600; margin-bottom: 0.2rem;">TOTAL EMPLOYEES</div>
-                    <div style="font-size: 1.3rem; font-weight: 700; color: #2c3e50;">{{ today_summary.attendance.total }}</div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem;">
-                    <div style="padding: 0.3rem; background: #d5f4e6; border-radius: 4px; text-align: center;">
-                        <div style="font-size: 0.6rem; color: #27ae60; font-weight: 600;">Working Today</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #27ae60;">{{ today_summary.attendance.present }}</div>
-                    </div>
-                    <div style="padding: 0.3rem; background: #fadbd8; border-radius: 4px; text-align: center;">
-                        <div style="font-size: 0.6rem; color: #e74c3c; font-weight: 600;">Absent</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #e74c3c;">{{ today_summary.attendance.absent }}</div>
-                    </div>
-                    <div style="padding: 0.3rem; background: #fef5e7; border-radius: 4px; text-align: center;">
-                        <div style="font-size: 0.6rem; color: #f39c12; font-weight: 600;">Late</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #f39c12;">{{ today_summary.attendance.late }}</div>
-                    </div>
-                    <div style="padding: 0.3rem; background: #ede7f6; border-radius: 4px; text-align: center;">
-                        <div style="font-size: 0.6rem; color: #9b59b6; font-weight: 600;">On Leave</div>
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #9b59b6;">{{ today_summary.leaves }}</div>
-                    </div>
-                </div>
-                <div style="margin-top: 0.3rem; padding-top: 0.3rem; border-top: 1px solid #e0e0e0; text-align: center;">
-                    <div style="font-size: 0.65rem; color: #666; font-weight: 600; margin-bottom: 0.2rem;">ATTENDANCE RATE</div>
-                    <div style="font-size: 1.2rem; font-weight: 700; color: #3498db;">{{ ((today_summary.attendance.present / today_summary.attendance.total * 100) if today_summary.attendance.total > 0 else 0) | int }}%</div>
                 </div>
             </div>
         </div>

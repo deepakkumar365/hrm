@@ -180,7 +180,8 @@ a:hover {
 
 /* ===== HEADER & NAVIGATION ===== */
 .navbar {
-    background: var(--primary) !important;
+    background-color: #008080 !important;
+    background: #008080 !important;
     height: var(--header-height);
     padding: 0;
     box-shadow: var(--shadow-md);
@@ -378,14 +379,15 @@ a:hover {
 
 /* --- Mobile Navbar Fixes --- */
 .navbar {
-    background-color: var(--primary) !important;
+    background-color: #008080 !important;
+    background: #008080 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     border-bottom: 1px solid var(--accent);
 }
 
 @media (max-width: 991.98px) {
     .navbar-collapse {
-        background-color: var(--primary) !important;
+        background-color: #008080 !important;
         box-shadow: 0 4px 16px rgba(0,0,0,0.12);
         border-radius: 0 0 12px 12px;
     }
@@ -424,13 +426,46 @@ a:hover {
 
 @media (min-width: 992px) {
     .navbar {
-        background-color: var(--primary) !important;
+        background-color: #008080 !important;
+        background: #008080 !important;
     }
     .navbar-nav .dropdown-menu {
         background: var(--background-card) !important;
         color: var(--text-primary) !important;
         box-shadow: var(--shadow-xl);
         border: 1px solid var(--border-color);
+    }
+}
+
+/* Force navbar background for all Bootstrap states */
+.navbar.navbar-expand-lg {
+    background-color: #008080 !important;
+    background: #008080 !important;
+}
+
+.navbar[class*="navbar"] {
+    background-color: #008080 !important;
+    background: #008080 !important;
+}
+
+/* Override Bootstrap's default white navbar */
+.navbar-light {
+    background-color: #008080 !important;
+}
+
+.navbar-dark {
+    background-color: #008080 !important;
+}
+
+nav.navbar {
+    background-color: #008080 !important;
+}
+
+/* Mobile navbar override */
+@media (max-width: 991px) {
+    .navbar {
+        background-color: #008080 !important;
+        background: #008080 !important;
     }
 }
 

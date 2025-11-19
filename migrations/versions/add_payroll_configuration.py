@@ -8,6 +8,7 @@ Create Date: 2025-01-22 10:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = 'add_payroll_config'
@@ -17,6 +18,12 @@ depends_on = None
 
 
 def upgrade():
+    # Check if table already exists
+    inspector = inspect(op.get_context().bind)
+    if 'hrm_payroll_configuration' in inspector.get_table_names():
+        print("✓ Table hrm_payroll_configuration already exists, skipping creation")
+        return
+    
     # Create payroll_configuration table
     op.create_table('hrm_payroll_configuration',
         sa.Column('id', sa.Integer(), nullable=False),

@@ -152,12 +152,11 @@
                 <tbody>
                     {% for approval in approvals.items %}
                         <tr>
-                            <td>{{ approval.ot_attendance.employee.name }}</td>
-                            <td>{{ approval.ot_attendance.ot_date.strftime('%d/%m/%Y') }}</td>
-                            <td>{{ approval.ot_attendance.in_time or 'N/A' }}</td>
-                            <td>{{ approval.ot_attendance.out_time or 'N/A' }}</td>
-                            <td><strong>{{ "%.2f" | format(approval.ot_attendance.ot_hours) }}h</strong></td>
-                            <td>{{ approval.ot_attendance.ot_type.name if approval.ot_attendance.ot_type else 'N/A' }}</td>
+                            <td>{{ approval.ot_request.employee.first_name }} {{ approval.ot_request.employee.last_name }}</td>
+                            <td>{{ approval.ot_request.ot_date.strftime('%d/%m/%Y') }}</td>
+                            <td colspan="2" style="text-align: center; color: #95a5a6;">-</td>
+                            <td><strong>{{ "%.2f" | format(approval.ot_request.requested_hours) }}h</strong></td>
+                            <td>{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else 'N/A' }}</td>
                             <td>{{ approval.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
                             <td>
                                 <div class="approval-row-actions">

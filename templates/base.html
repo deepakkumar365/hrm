@@ -20,7 +20,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Main CSS - includes responsive design -->
-    <link href="{{ url_for('static', filename='css/styles.css') }}?v=20250922" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/styles.css') }}?v=20250924-navbar-fix-v2" rel="stylesheet">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -64,8 +64,8 @@
                             </a>
                         </li>
 
-                        <!-- HR Manager Dashboard - Visible to HR Manager and Tenant Admin -->
-                        {% if is_admin %}
+                        <!-- HR Manager Dashboard - Visible only to Tenant Admin -->
+                        {% if user_role == 'Tenant Admin' %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('hr_manager_dashboard') }}">
                                 <i class="fas fa-chart-line"></i>
@@ -199,6 +199,14 @@
                                 <li><a class="dropdown-item" href="{{ url_for('mark_ot_attendance') }}">
                                     <i class="fas fa-hourglass-end"></i>
                                     Mark OT Attendance
+                                </a></li>
+                                {% endif %}
+                                <!-- Bulk Attendance - Visible only to HR Manager -->
+                                {% if is_hr_manager %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('attendance_bulk_manage') }}">
+                                    <i class="fas fa-check-double"></i>
+                                    Bulk Attendance
                                 </a></li>
                                 {% endif %}
                             </ul>
@@ -376,23 +384,14 @@
                                     <i class="fas fa-hourglass-end"></i>
                                     OT Types
                                 </a></li>
-                            </ul>
-                        </li>
-                        {% endif %}
-
-                        <!-- Admin Settings - Visible to Tenant Admin and HR Manager -->
-                        {% if is_admin %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-shield-alt"></i>
-                                Access Control
-                            </a>
-                            <ul class="dropdown-menu">
+                                <!-- Access Control - Moved under Masters for Tenant Admin and HR Manager -->
+                                {% if is_admin %}
+                                <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('access_control.manage_user_companies') }}">
-                                    <i class="fas fa-building"></i>
-                                    Manage User Companies
+                                    <i class="fas fa-shield-alt"></i>
+                                    Access Control
                                 </a></li>
-                                <li><small class="dropdown-item-text text-muted ps-3">Assign companies to users</small></li>
+                                {% endif %}
                             </ul>
                         </li>
                         {% endif %}
@@ -478,9 +477,6 @@
             </a></li>
             <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
                 <i class="fas fa-plane-departure"></i>Request Leave
-            </a></li>
-            <li><a class="dropdown-item" href="{{ url_for('claims_submit') }}">
-                <i class="fas fa-receipt"></i>Submit Claim
             </a></li>
         </ul>
     </div>

@@ -1041,15 +1041,22 @@ def ot_payroll_summary():
             ot_type_name = ot_type_obj.name if ot_type_obj else 'General'
             
             if ot_type_name not in summary:
-                summary[ot_type_name] = {'hours': 0, 'amount': 0, 'count': 0}
+                summary[ot_type_name] = {'hours': 0, 'amount': 0, 'count': 0, 'rate_per_hour': 0}
             
             hours = float(ot.approved_hours or ot.requested_hours or 0)
-            # Calculate rate multiplier for amount
-            rate_multiplier = float(ot_type_obj.rate_multiplier or 1.0) if ot_type_obj else 1.0
-            # Assume hourly_rate from employee or use ot_type rate
+            
+            # Get Employee's Rate/Hour from master (primary source)
             employee = ot.employee
             hourly_rate = float(employee.hourly_rate) if employee and employee.hourly_rate else 0
+            
+            # Apply OT Type rate multiplier if present
+            rate_multiplier = float(ot_type_obj.rate_multiplier or 1.0) if ot_type_obj else 1.0
+            
+            # Calculate OT amount using Employee's Rate/Hour × Multiplier
             amount = hours * hourly_rate * rate_multiplier if hourly_rate else 0
+            
+            # Track rate per hour for display
+            summary[ot_type_name]['rate_per_hour'] = hourly_rate * rate_multiplier
             
             summary[ot_type_name]['hours'] += hours
             summary[ot_type_name]['amount'] += amount
@@ -1058,9 +1065,10 @@ def ot_payroll_summary():
             # Track by employee
             emp_name = f"{employee.first_name} {employee.last_name}" if employee else "Unknown"
             if emp_name not in employee_summary:
-                employee_summary[emp_name] = {'hours': 0, 'amount': 0}
+                employee_summary[emp_name] = {'hours': 0, 'amount': 0, 'hourly_rate': 0}
             employee_summary[emp_name]['hours'] += hours
             employee_summary[emp_name]['amount'] += amount
+            employee_summary[emp_name]['hourly_rate'] = hourly_rate
             
             total_hours += hours
             total_amount += amount
