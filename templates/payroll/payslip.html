@@ -3,18 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <title>Payslip - {{ employee.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Calibri:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
         /* ========================================
-           PROFESSIONAL TEAL THEME
+           AKS FREIGHT PROFESSIONAL THEME
            Color Palette:
-           - Background: #f8fafb (Light neutral)
-           - Bottom Wave: #66b2b2 (Light teal)
-           - Header Bar: #008080 (Primary teal)
-           - Company Bar: #004d4d (Darker teal)
-           - Title: #004d4d (Dark teal for consistency)
-           - Subtext: #66b2b2 (Light teal)
-           - Text/Borders: #4A4A4A (Neutral gray)
+           - Primary: #DD2B1C (Red/Orange)
+           - Secondary: #151616 (Dark Gray/Black)
+           - Accent: #FBE116 (Yellow)
+           - Neutral Gray: #4E4E4D
+           - Light Background: #f8fafb
         ======================================== */
 
         * {
@@ -24,9 +22,9 @@
         }
 
         body {
-            font-family: 'Open Sans', sans-serif;
-            background: linear-gradient(135deg, #f0f8f9 0%, #e8f4f5 50%, #e0f2f3 100%);
-            color: #4A4A4A;
+            font-family: 'Calibri', sans-serif;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 50%, #e0e0e0 100%);
+            color: #4E4E4D;
             padding: 20px;
             min-height: 100vh;
         }
@@ -41,9 +39,9 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         }
 
-        /* Company Header Bar */
+        /* Company Header Bar - AKS Freight Red */
         .company-header {
-            background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
             padding: 25px 30px;
             text-align: center;
             color: #FFFFFF;
@@ -57,16 +55,27 @@
             left: 0;
             right: 0;
             height: 10px;
-            background: linear-gradient(90deg, #008080 0%, #004d4d 50%, #008080 100%);
+            background: linear-gradient(90deg, #DD2B1C 0%, #151616 50%, #DD2B1C 100%);
             opacity: 0.3;
         }
 
         .company-name {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 24px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .company-slogan {
+            font-size: 11px;
+            font-weight: 600;
+            background-color: #FBE116;
+            color: #151616;
+            padding: 4px 8px;
+            display: inline-block;
+            letter-spacing: 0.5px;
             margin-bottom: 8px;
         }
 
@@ -75,6 +84,13 @@
             font-weight: 400;
             margin: 5px 0;
             opacity: 0.95;
+        }
+
+        .company-contact {
+            font-size: 12px;
+            font-weight: 400;
+            margin: 3px 0;
+            opacity: 0.90;
         }
 
         .company-uen {
@@ -89,23 +105,23 @@
             background: #fff;
             padding: 18px 30px;
             text-align: center;
-            border-bottom: 3px solid #008080;
+            border-bottom: 3px solid #DD2B1C;
         }
 
         .slip-title {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 28px;
-            font-weight: 600;
-            color: #004d4d;
+            font-weight: 700;
+            color: #151616;
             letter-spacing: 2px;
             margin-bottom: 4px;
         }
 
         .slip-subtitle {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 12px;
             font-weight: 400;
-            color: #008080;
+            color: #DD2B1C;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -119,7 +135,7 @@
         /* Employee Info Section */
         .info-section {
             background: #FFFFFF;
-            border: 1px solid #66b2b2;
+            border: 1px solid #DD2B1C;
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
@@ -145,9 +161,9 @@
         }
 
         .info-table .label {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-weight: 600;
-            color: #008080;
+            color: #DD2B1C;
             width: 180px;
         }
 
@@ -159,7 +175,7 @@
         /* Pay Details Table */
         .pay-section {
             background: #FFFFFF;
-            border: 1px solid #66b2b2;
+            border: 1px solid #DD2B1C;
             border-radius: 8px;
             overflow: hidden;
             margin-bottom: 20px;
@@ -171,11 +187,11 @@
         }
 
         .pay-table thead {
-            background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
         }
 
         .pay-table th {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 13px;
             font-weight: 600;
             color: #FFFFFF;
@@ -200,7 +216,7 @@
         .pay-table td {
             font-size: 13px;
             padding: 10px;
-            color: #4A4A4A;
+            color: #4E4E4D;
             border-right: 1px solid #E8E8E8;
         }
 
@@ -222,21 +238,21 @@
 
         /* Totals Row */
         .totals-row {
-            background: linear-gradient(135deg, #e8f4f5 0%, #e0f2f3 100%);
+            background: linear-gradient(135deg, #FBE116 0%, #f5e0cc 100%);
             font-weight: 600;
-            color: #008080;
+            color: #151616;
         }
 
         .totals-row td {
             padding: 12px 10px;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 14px;
         }
 
         /* Summary Section */
         .summary-section {
             background: #FFFFFF;
-            border: 2px solid #66b2b2;
+            border: 2px solid #DD2B1C;
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
@@ -263,25 +279,25 @@
         }
 
         .summary-table .label {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-weight: 600;
-            color: #008080;
+            color: #DD2B1C;
         }
 
         .summary-table td:nth-child(2) {
             text-align: right;
             font-weight: 600;
-            color: #4A4A4A;
+            color: #4E4E4D;
         }
 
-        /* Net Pay Row - Highlighted */
+        /* Net Pay Row - Highlighted in AKS Red */
         .netpay-row {
-            background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
             border-radius: 6px;
         }
 
         .netpay-row td {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 16px;
             font-weight: 700;
             color: #FFFFFF;
@@ -298,9 +314,9 @@
             color: #FFFFFF;
         }
 
-        /* Footer Wave Section */
+        /* Footer Section */
         .footer-wave {
-            background: linear-gradient(135deg, #66b2b2 0%, #008080 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
             padding: 20px 30px;
             text-align: center;
             position: relative;
@@ -313,25 +329,33 @@
             left: 0;
             right: 0;
             height: 15px;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 15"><path fill="%2366b2b2" d="M0,10 Q300,0 600,10 T1200,10 L1200,15 L0,15 Z"/></svg>') repeat-x;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 15"><path fill="%23DD2B1C" d="M0,10 Q300,0 600,10 T1200,10 L1200,15 L0,15 Z"/></svg>') repeat-x;
             background-size: 100% 15px;
         }
 
         .footer-note {
-            font-family: 'Open Sans', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 12px;
             font-style: italic;
             color: #FFFFFF;
             margin-bottom: 8px;
         }
 
+        .footer-contact {
+            font-family: 'Calibri', sans-serif;
+            font-size: 10px;
+            color: #FFFFFF;
+            margin: 2px 0;
+        }
+
         .footer-logo {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 10px;
             font-weight: 600;
             color: #FFFFFF;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-top: 5px;
         }
 
         /* Print Styles - Single Page Optimization */
@@ -360,8 +384,18 @@
                 margin-bottom: 4px;
             }
 
+            .company-slogan {
+                font-size: 9px;
+                padding: 3px 6px;
+            }
+
             .company-address {
                 font-size: 11px;
+                margin: 2px 0;
+            }
+
+            .company-contact {
+                font-size: 10px;
                 margin: 2px 0;
             }
 
@@ -457,6 +491,11 @@
                 margin-bottom: 4px;
             }
 
+            .footer-contact {
+                font-size: 9px;
+                margin: 1px 0;
+            }
+
             .footer-logo {
                 font-size: 9px;
             }
@@ -499,17 +538,19 @@
     <!-- Company Header Bar -->
     <div class="company-header">
         <div class="company-name">{{ company.name }}</div>
-        <div class="company-address">{{ company.address }}</div>
-        <div class="company-uen">UEN NO: {{ company.uen }}</div>
+        <div class="company-slogan">FOR ALL YOUR FREIGHT SOLUTIONS</div>
+        <div class="company-contact">Tel: +65 9766 6641 | 6254 9447</div>
+        <div class="company-contact">{{ company.address }}</div>
+        <div class="company-uen">UEN: {{ company.uen }}</div>
     </div>
 
     <!-- Salary Slip Title Section -->
     <div class="slip-title-section">
         <div class="slip-title">PAYROLL SALARY SLIP</div>
-
+        <div class="slip-subtitle">{{ payroll.pay_date }}</div>
     </div>
 
-    <!-- Content Area with Pastel Background -->
+    <!-- Content Area with Background -->
     <div class="content-area">
 
         <!-- Employee Information Section -->
@@ -628,13 +669,19 @@
 
     </div>
 
-    <!-- Footer Wave Section -->
+    <!-- Footer Section -->
     <div class="footer-wave">
         <div class="footer-note">
             This is a system-generated document. Hence, signature is not needed!
         </div>
+        <div class="footer-contact">
+            Email: james.woo@aksfs.com | segar@aksfs.com | sashi@aksfs.com | acc@aksfs.com
+        </div>
+        <div class="footer-contact">
+            Website: www.aksgroup.com.sg
+        </div>
         <div class="footer-logo">
-            Nexar Private Limited
+            AKS FREIGHT SOLUTIONS PTE.LTD.
         </div>
     </div>
 

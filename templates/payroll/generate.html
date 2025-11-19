@@ -655,7 +655,7 @@ function renderEmployeeTable() {
             </td>
             <td>${parseFloat(emp.ot_hours || 0).toFixed(2)}</td>
             <td>$${parseFloat(emp.ot_amount || 0).toFixed(2)}</td>
-            <td class="total-allow-${emp.id}">$${(parseFloat(emp.allowance_1 || 0) + parseFloat(emp.allowance_2 || 0) + parseFloat(emp.allowance_3 || 0) + parseFloat(emp.allowance_4 || 0) + parseFloat(emp.levy_allowance || 0)).toFixed(2)}</td>
+            <td class="total-allow-${emp.id}">$${parseFloat(emp.total_allowances || 0).toFixed(2)}</td>
             <td class="${lowAttendance ? 'text-danger fw-bold' : ''}">
                 ${emp.attendance_days || 0}
             </td>
@@ -763,12 +763,13 @@ function saveRow(empId) {
         return;
     }
     
-    // Recalculate totals
+    // Recalculate totals (Config allowances + OT allowances)
     emp.total_allowances = parseFloat(emp.allowance_1 || 0) + 
                           parseFloat(emp.allowance_2 || 0) + 
                           parseFloat(emp.allowance_3 || 0) + 
                           parseFloat(emp.allowance_4 || 0) + 
-                          parseFloat(emp.levy_allowance || 0);
+                          parseFloat(emp.levy_allowance || 0) +
+                          parseFloat(emp.ot_allowances || 0);
     
     emp.gross_salary = parseFloat(emp.basic_salary || 0) + emp.total_allowances + parseFloat(emp.ot_amount || 0);
     emp.total_deductions = parseFloat(emp.cpf_deduction || 0) + parseFloat(emp.lop_deduction || 0) + parseFloat(emp.other_deductions || 0);
@@ -830,12 +831,8 @@ function updateSummary() {
         if (emp) {
             totalBasic += parseFloat(emp.basic_salary || 0);
             
-            // Sum all allowances (Transport, Housing, Meal, Other, Levy)
-            totalAllowances += parseFloat(emp.allowance_1 || 0) +
-                             parseFloat(emp.allowance_2 || 0) +
-                             parseFloat(emp.allowance_3 || 0) +
-                             parseFloat(emp.allowance_4 || 0) +
-                             parseFloat(emp.levy_allowance || 0);
+            // Sum all allowances (Config allowances + OT allowances from API)
+            totalAllowances += parseFloat(emp.total_allowances || 0);
             
             totalOT += parseFloat(emp.ot_amount || 0);
             totalGross += parseFloat(emp.gross_salary || 0);

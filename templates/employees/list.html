@@ -84,6 +84,11 @@
                             <small><strong>Company:</strong> {{ employee.company_name }}</small>
                         </p>
                         {% endif %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'HR Manager'] %}
+                        <p class="mb-1">
+                            <small><strong>Company:</strong> {{ employee.company_name }}</small>
+                        </p>
+                        {% endif %}
                         <p class="mb-1">{{ employee.designation.name if employee.designation else '-' }}</p>
                         {% if employee.department %}
                         <span class="text-muted">{{ employee.department }}</span>
@@ -153,6 +158,8 @@
                                     {% endif %}
                                 </a>
                             </th>
+                            {% endif %}
+                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Tenant Admin', 'HR Manager'] %}
                             <th>
                                 <a href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
                                    class="text-decoration-none text-dark">
@@ -198,6 +205,8 @@
                             </td>
                             {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
                             <td>{{ employee.tenant_name }}</td>
+                            {% endif %}
+                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Tenant Admin', 'HR Manager'] %}
                             <td>{{ employee.company_name }}</td>
                             {% endif %}
                             <td>{{ employee.designation.name if employee.designation else '-' }}</td>

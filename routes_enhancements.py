@@ -46,7 +46,7 @@ def _allowed_image(filename: str) -> bool:
 # =====================================================
 
 @app.route('/employees/<int:employee_id>/reset-password', methods=['POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def employee_reset_password(employee_id):
     """Reset employee password"""
     try:

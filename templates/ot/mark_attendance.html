@@ -191,8 +191,9 @@
 
     .time-input-group {
         display: flex;
-        flex-direction: column;
-        gap: 0.8rem;
+        flex-direction: row;
+        gap: 1rem;
+        align-items: flex-start;
     }
 
     .hidden {
@@ -281,7 +282,11 @@
         transition: background 0.2s;
         font-size: 0.75rem;
         white-space: nowrap;
-        margin-left: 0.4rem;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
     }
 
     .btn-now:hover {
@@ -296,17 +301,43 @@
     /* Time Input with Button Group */
     .time-input-wrapper {
         display: flex;
+        flex-direction: row;
         gap: 0.4rem;
         align-items: flex-end;
+        flex: 1;
+        min-width: 0;
     }
 
     .time-input-wrapper .form-group {
-        flex: 0 0 auto;
-        max-width: 110px;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
     }
 
-    input[type="time"] {
-        max-width: 110px;
+    .time-input-wrapper .form-group label {
+        font-weight: 500;
+        font-size: 0.8rem;
+        color: #333;
+        margin: 0;
+        display: block;
+    }
+
+    .time-input-wrapper input[type="time"] {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.6rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        height: 32px;
+    }
+
+    .time-input-wrapper input[type="time"]:focus {
+        outline: none;
+        border-color: #2c3e50;
+        box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.1);
     }
 
     /* Recent OT Records Grid Section */

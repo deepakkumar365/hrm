@@ -222,7 +222,7 @@
         </div>
         <div class="stat-card secondary">
             <div class="stat-label">Total Amount</div>
-            <div class="stat-value">${{ "%.2f"|format(total_amount) }}</div>
+            <div class="stat-value">₹{{ "%.2f"|format(total_amount) }}</div>
             <div class="stat-label">payroll</div>
         </div>
         <div class="stat-card tertiary">
@@ -234,9 +234,9 @@
             <div class="stat-label">Average Rate</div>
             <div class="stat-value">
                 {% if total_hours > 0 %}
-                    ${{ "%.2f"|format(total_amount / total_hours) }}
+                    ₹{{ "%.2f"|format(total_amount / total_hours) }}
                 {% else %}
-                    $0.00
+                    ₹0.00
                 {% endif %}
             </div>
             <div class="stat-label">/hour</div>
@@ -268,8 +268,8 @@
                     <th>OT Type</th>
                     <th style="text-align: right;">Count</th>
                     <th style="text-align: right;">Hours</th>
+                    <th style="text-align: right;">Rate/Hour</th>
                     <th style="text-align: right;">Amount</th>
-                    <th style="text-align: right;">Avg Rate/Hour</th>
                 </tr>
             </thead>
             <tbody>
@@ -278,28 +278,16 @@
                     <td><strong>{{ ot_type }}</strong></td>
                     <td style="text-align: right;">{{ data.count }}</td>
                     <td style="text-align: right;">{{ "%.2f"|format(data.hours) }}</td>
-                    <td style="text-align: right;">${{ "%.2f"|format(data.amount) }}</td>
-                    <td style="text-align: right;">
-                        {% if data.hours > 0 %}
-                            ${{ "%.2f"|format(data.amount / data.hours) }}
-                        {% else %}
-                            $0.00
-                        {% endif %}
-                    </td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(data.rate_per_hour) }}</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(data.amount) }}</td>
                 </tr>
                 {% endfor %}
                 <tr class="total-row">
                     <td><strong>Total</strong></td>
                     <td style="text-align: right;">{{ summary.values()|map(attribute='count')|sum }}</td>
                     <td style="text-align: right;">{{ "%.2f"|format(total_hours) }}</td>
-                    <td style="text-align: right;">${{ "%.2f"|format(total_amount) }}</td>
-                    <td style="text-align: right;">
-                        {% if total_hours > 0 %}
-                            ${{ "%.2f"|format(total_amount / total_hours) }}
-                        {% else %}
-                            $0.00
-                        {% endif %}
-                    </td>
+                    <td style="text-align: right;">-</td>
+                    <td style="text-align: right;">₹{{ "%.2f"|format(total_amount) }}</td>
                 </tr>
             </tbody>
         </table>

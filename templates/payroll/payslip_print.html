@@ -4,18 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payslip - {{ employee.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Calibri:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
         /* ========================================
-           PROFESSIONAL TEAL THEME - PRINT OPTIMIZED
+           AKS FREIGHT PROFESSIONAL THEME - PRINT OPTIMIZED
            Color Palette:
-           - Background: #f8fafb (Light neutral)
-           - Bottom Wave: #66b2b2 (Light teal)
-           - Header Bar: #008080 (Primary teal)
-           - Company Bar: #004d4d (Darker teal)
-           - Title: #004d4d (Dark teal for consistency)
-           - Subtext: #66b2b2 (Light teal)
-           - Text/Borders: #4A4A4A (Neutral gray)
+           - Primary: #DD2B1C (Red/Orange)
+           - Secondary: #151616 (Dark Gray/Black)
+           - Accent: #FBE116 (Yellow)
+           - Neutral Gray: #4E4E4D
+           - Light Background: #f8fafb
         ======================================== */
 
         * {
@@ -25,8 +23,8 @@
         }
 
         html, body {
-            font-family: 'Open Sans', sans-serif;
-            color: #4A4A4A;
+            font-family: 'Calibri', sans-serif;
+            color: #4E4E4D;
             width: 100%;
             height: 100%;
         }
@@ -45,9 +43,9 @@
             page-break-after: always;
         }
 
-        /* Company Header Bar */
+        /* Company Header Bar - AKS Freight Red */
         .company-header {
-            background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
             padding: 25px 30px;
             text-align: center;
             color: #FFFFFF;
@@ -61,17 +59,35 @@
             left: 0;
             right: 0;
             height: 10px;
-            background: linear-gradient(90deg, #008080 0%, #004d4d 50%, #008080 100%);
+            background: linear-gradient(90deg, #DD2B1C 0%, #151616 50%, #DD2B1C 100%);
             opacity: 0.3;
         }
 
         .company-name {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 24px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             margin-bottom: 8px;
+        }
+
+        .company-slogan {
+            font-size: 11px;
+            font-weight: 600;
+            background-color: #FBE116;
+            color: #151616;
+            padding: 4px 8px;
+            display: inline-block;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .company-contact {
+            font-size: 12px;
+            font-weight: 400;
+            margin: 3px 0;
+            opacity: 0.90;
         }
 
         .company-address {
@@ -93,23 +109,23 @@
             background: #fff;
             padding: 18px 30px;
             text-align: center;
-            border-bottom: 3px solid #008080;
+            border-bottom: 3px solid #DD2B1C;
         }
 
         .slip-title {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 28px;
-            font-weight: 600;
-            color: #004d4d;
+            font-weight: 700;
+            color: #151616;
             letter-spacing: 2px;
             margin-bottom: 4px;
         }
 
         .slip-subtitle {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 12px;
             font-weight: 400;
-            color: #008080;
+            color: #DD2B1C;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -123,7 +139,7 @@
         /* Employee Info Section */
         .info-section {
             background: #FFFFFF;
-            border: 1px solid #66b2b2;
+            border: 1px solid #DD2B1C;
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
@@ -150,9 +166,9 @@
         }
 
         .info-table .label {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-weight: 600;
-            color: #008080;
+            color: #DD2B1C;
             width: 180px;
         }
 
@@ -164,7 +180,7 @@
         /* Pay Details Table */
         .pay-section {
             background: #FFFFFF;
-            border: 1px solid #66b2b2;
+            border: 1px solid #DD2B1C;
             border-radius: 8px;
             overflow: hidden;
             margin-bottom: 20px;
@@ -177,11 +193,11 @@
         }
 
         .pay-table thead {
-            background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
         }
 
         .pay-table th {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 13px;
             font-weight: 600;
             color: #FFFFFF;
@@ -201,7 +217,7 @@
         .pay-table td {
             font-size: 13px;
             padding: 10px;
-            color: #4A4A4A;
+            color: #4E4E4D;
             border-right: 1px solid #E8E8E8;
         }
 
@@ -223,21 +239,21 @@
 
         /* Totals Row */
         .totals-row {
-            background: linear-gradient(135deg, #e8f4f5 0%, #e0f2f3 100%);
+            background: linear-gradient(135deg, #FBE116 0%, #f5e0cc 100%);
             font-weight: 600;
-            color: #008080;
+            color: #151616;
         }
 
         .totals-row td {
             padding: 12px 10px;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 14px;
         }
 
         /* Summary Section */
         .summary-section {
             background: #FFFFFF;
-            border: 2px solid #66b2b2;
+            border: 2px solid #DD2B1C;
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
@@ -265,25 +281,25 @@
         }
 
         .summary-table .label {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-weight: 600;
-            color: #008080;
+            color: #DD2B1C;
         }
 
         .summary-table td:nth-child(2) {
             text-align: right;
             font-weight: 600;
-            color: #4A4A4A;
+            color: #4E4E4D;
         }
 
-        /* Net Pay Row - Highlighted */
+        /* Net Pay Row - Highlighted in AKS Red */
         .netpay-row {
-            background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
             border-radius: 6px;
         }
 
         .netpay-row td {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 16px;
             font-weight: 700;
             color: #FFFFFF;
@@ -300,7 +316,7 @@
 
         /* Footer Wave Section */
         .footer-wave {
-            background: linear-gradient(135deg, #66b2b2 0%, #008080 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
             padding: 20px 30px;
             text-align: center;
             position: relative;
@@ -313,25 +329,33 @@
             left: 0;
             right: 0;
             height: 15px;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 15"><path fill="%2366b2b2" d="M0,10 Q300,0 600,10 T1200,10 L1200,15 L0,15 Z"/></svg>') repeat-x;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 15"><path fill="%23DD2B1C" d="M0,10 Q300,0 600,10 T1200,10 L1200,15 L0,15 Z"/></svg>') repeat-x;
             background-size: 100% 15px;
         }
 
         .footer-note {
-            font-family: 'Open Sans', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 12px;
             font-style: italic;
             color: #FFFFFF;
             margin-bottom: 8px;
         }
 
+        .footer-contact {
+            font-family: 'Calibri', sans-serif;
+            font-size: 10px;
+            color: #FFFFFF;
+            margin: 2px 0;
+        }
+
         .footer-logo {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             font-size: 10px;
             font-weight: 600;
             color: #FFFFFF;
             text-transform: uppercase;
             letter-spacing: 1px;
+            margin-top: 5px;
         }
 
         /* Print Button Container */
@@ -345,7 +369,7 @@
         }
 
         .print-button {
-            background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
+            background: linear-gradient(135deg, #DD2B1C 0%, #151616 100%);
             color: #FFFFFF;
             border: none;
             padding: 12px 30px;
@@ -353,7 +377,7 @@
             font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
@@ -361,12 +385,12 @@
         }
 
         .print-button:hover {
-            box-shadow: 0 4px 12px rgba(0, 128, 128, 0.3);
+            box-shadow: 0 4px 12px rgba(221, 43, 28, 0.3);
             transform: translateY(-2px);
         }
 
         .back-button {
-            background: #66b2b2;
+            background: #4E4E4D;
             color: #FFFFFF;
             border: none;
             padding: 12px 30px;
@@ -374,7 +398,7 @@
             font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Calibri', sans-serif;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
@@ -382,313 +406,232 @@
         }
 
         .back-button:hover {
-            box-shadow: 0 4px 12px rgba(102, 178, 178, 0.3);
+            box-shadow: 0 4px 12px rgba(78, 78, 77, 0.3);
             transform: translateY(-2px);
         }
 
         .info-message {
-            background: #e8f4f5;
-            border: 1px solid #66b2b2;
+            background: #fff3cd;
+            border: 1px solid #FBE116;
             border-radius: 6px;
             padding: 15px;
             margin-bottom: 20px;
-            color: #004d4d;
+            color: #151616;
             font-size: 13px;
             line-height: 1.6;
         }
 
         .info-message strong {
-            color: #008080;
+            color: #DD2B1C;
         }
 
-        /* Print Styles */
+        .info-message a {
+            color: #DD2B1C;
+            font-weight: 600;
+        }
+
+        /* Hide buttons in print */
         @media print {
-            body {
-                background: #FFFFFF;
-                padding: 0;
-                margin: 0;
+            .print-button-container {
+                display: none;
             }
-
-            .payslip-container {
-                box-shadow: none;
-                border-radius: 0;
-                max-width: 100%;
-                width: 100%;
-                margin: 0;
-                page-break-after: avoid;
-            }
-
-            .print-button-container,
             .info-message {
                 display: none;
             }
+        }
 
-            .company-header {
-                padding: 15px 20px;
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .payslip-container {
+                width: 100%;
             }
 
             .company-name {
-                font-size: 18px;
-                margin-bottom: 4px;
-            }
-
-            .company-address {
-                font-size: 11px;
-                margin: 2px 0;
-            }
-
-            .company-uen {
-                font-size: 10px;
-                margin-top: 4px;
-            }
-
-            .slip-title-section {
-                padding: 12px 20px;
+                font-size: 20px;
             }
 
             .slip-title {
-                font-size: 20px;
-                margin-bottom: 2px;
-            }
-
-            .slip-subtitle {
-                font-size: 10px;
+                font-size: 22px;
             }
 
             .content-area {
-                padding: 15px 20px;
-                background: #FFFFFF;
-            }
-
-            .info-section,
-            .pay-section,
-            .summary-section {
-                margin-bottom: 10px;
-                page-break-inside: avoid;
-                border: 1px solid #4A4A4A;
-            }
-
-            .info-section {
-                padding: 12px;
-            }
-
-            .pay-section {
-                overflow: visible;
-            }
-
-            .pay-table {
-                font-size: 11px;
+                padding: 20px;
             }
 
             .pay-table th,
             .pay-table td {
-                padding: 8px;
-            }
-
-            .pay-table th {
                 font-size: 11px;
-            }
-
-            .info-table td {
-                font-size: 12px;
                 padding: 8px 6px;
-            }
-
-            .info-table .label {
-                width: 140px;
-                font-size: 11px;
-            }
-
-            .summary-table td {
-                font-size: 12px;
-                padding: 8px 6px;
-            }
-
-            .netpay-row td {
-                font-size: 14px;
-                padding: 10px 8px;
-            }
-
-            .footer-wave {
-                padding: 12px 20px;
-            }
-
-            .footer-note {
-                font-size: 10px;
-            }
-
-            .footer-logo {
-                font-size: 8px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="print-button-container">
-        <button class="print-button" onclick="window.print()">🖨️ Print / Save as PDF</button>
-        <button class="back-button" onclick="window.history.back()">← Back</button>
-        <div class="info-message">
-            <strong>💡 How to download as PDF:</strong><br>
-            Click "Print / Save as PDF" above, then in the print dialog:<br>
-            For <strong>Chrome</strong>: Select "Save as PDF" from the printer dropdown<br>
-            For <strong>Firefox</strong>: Select "Print to File" or "Save as PDF"<br>
-            For <strong>Edge</strong>: Select "Save as PDF" from the printer dropdown
+
+<div class="info-message">
+    <strong>Print Instructions:</strong> This payslip is optimized for printing. Use your browser's Print function (Ctrl+P or Cmd+P) to save or print this document. 
+    Set margins to minimal (0.5 inches) for best results.
+</div>
+
+<div class="payslip-container">
+
+    <!-- Company Header Bar -->
+    <div class="company-header">
+        <div class="company-name">{{ company.name }}</div>
+        <div class="company-slogan">FOR ALL YOUR FREIGHT SOLUTIONS</div>
+        <div class="company-contact">Tel: +65 9766 6641 | 6254 9447</div>
+        <div class="company-address">{{ company.address }}</div>
+        <div class="company-uen">UEN: {{ company.uen }}</div>
+    </div>
+
+    <!-- Salary Slip Title Section -->
+    <div class="slip-title-section">
+        <div class="slip-title">PAYROLL SALARY SLIP</div>
+        <div class="slip-subtitle">{{ payroll.pay_date }}</div>
+    </div>
+
+    <!-- Content Area with Background -->
+    <div class="content-area">
+
+        <!-- Employee Information Section -->
+        <div class="info-section">
+            <table class="info-table">
+                <tr>
+                    <td class="label">Employee Name:</td>
+                    <td class="value">{{ employee.name }}</td>
+                    <td class="label">Pay Date:</td>
+                    <td class="value">{{ payroll.pay_date }}</td>
+                </tr>
+                <tr>
+                    <td class="label">NRIC/FIN/WP/SP:</td>
+                    <td class="value">{{ employee.nric }}</td>
+                    <td class="label">Designation:</td>
+                    <td class="value">{{ employee.designation }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Nationality:</td>
+                    <td class="value">{{ employee.nationality }}</td>
+                    <td class="label">Department:</td>
+                    <td class="value">{{ employee.department if employee.department else 'N/A' }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Pay Details Section -->
+        <div class="pay-section">
+            <table class="pay-table">
+                <thead>
+                <tr>
+                    <th>Earnings</th>
+                    <th>Rate (SGD)</th>
+                    <th>Hours</th>
+                    <th>Amount (SGD)</th>
+                    <th>Deductions</th>
+                    <th>Amount (SGD)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Regular Pay</td>
+                    <td>{{ earnings.regular_pay_rate }}</td>
+                    <td>-</td>
+                    <td>{{ earnings.regular_pay_amount }}</td>
+                    <td>Income Tax</td>
+                    <td>{{ deductions.income_tax }}</td>
+                </tr>
+                <tr>
+                    <td>Overtime Pay</td>
+                    <td>{{ earnings.overtime_pay_rate }}</td>
+                    <td>{{ earnings.overtime_hours if earnings.overtime_hours else '-' }}</td>
+                    <td>{{ earnings.overtime_amount }}</td>
+                    <td>Medical</td>
+                    <td>{{ deductions.medical }}</td>
+                </tr>
+                <tr>
+                    <td>Holiday Pay</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ earnings.holiday_pay }}</td>
+                    <td>Life Insurance</td>
+                    <td>{{ deductions.life_insurance }}</td>
+                </tr>
+                <tr>
+                    <td>Vacation Pay</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ earnings.vacation_pay }}</td>
+                    <td>Loss of Pay</td>
+                    <td>{{ deductions.loss_of_pay }}</td>
+                </tr>
+                <tr>
+                    <td>Others</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td>{{ earnings.others }}</td>
+                    <td>Central Provident Fund</td>
+                    <td>{{ deductions.provident_fund }}</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td>Other Deductions</td>
+                    <td>{{ deductions.others }}</td>
+                </tr>
+                <tr class="totals-row">
+                    <td colspan="3">Total (Gross)</td>
+                    <td>{{ payroll.total_earnings }}</td>
+                    <td>Total</td>
+                    <td>{{ payroll.total_deductions }}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <table class="summary-table">
+                <tr>
+                    <td class="label">Total Earnings (SGD)</td>
+                    <td>{{ payroll.total_earnings }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Total Deductions (SGD)</td>
+                    <td>{{ payroll.total_deductions }}</td>
+                </tr>
+                <tr class="netpay-row">
+                    <td class="label">Net Pay (SGD)</td>
+                    <td>{{ payroll.net_pay }}</td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- Footer Section -->
+    <div class="footer-wave">
+        <div class="footer-note">
+            This is a system-generated document. Hence, signature is not needed!
+        </div>
+        <div class="footer-contact">
+            Email: james.woo@aksfs.com | segar@aksfs.com | sashi@aksfs.com | acc@aksfs.com
+        </div>
+        <div class="footer-contact">
+            Website: www.aksgroup.com.sg
+        </div>
+        <div class="footer-logo">
+            AKS FREIGHT SOLUTIONS PTE.LTD.
         </div>
     </div>
 
-    <div class="payslip-container">
-        <!-- Company Header -->
-        <div class="company-header">
-            <div class="company-name">{{ company.name }}</div>
-            <div class="company-address">{{ company.address }}</div>
-            <div class="company-uen">UEN: {{ company.uen }}</div>
-        </div>
+</div>
 
-        <!-- Salary Slip Title -->
-        <div class="slip-title-section">
-            <div class="slip-title">SALARY SLIP</div>
-            <div class="slip-subtitle">Period: {{ payroll.pay_date }}</div>
-        </div>
+<!-- Print and Back Buttons -->
+<div class="print-button-container">
+    <button class="print-button" onclick="window.print()">🖨️ Print Payslip</button>
+    <a href="javascript:history.back()" class="back-button">← Back</a>
+</div>
 
-        <!-- Content Area -->
-        <div class="content-area">
-            <!-- Employee Information -->
-            <div class="info-section">
-                <table class="info-table">
-                    <tr>
-                        <td class="label">Employee Name</td>
-                        <td class="value">{{ employee.name }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Employee ID</td>
-                        <td class="value">{{ employee.employee_id }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Designation</td>
-                        <td class="value">{{ employee.designation }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Department</td>
-                        <td class="value">{{ employee.department }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">NRIC</td>
-                        <td class="value">{{ employee.nric }}</td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- Earnings Section -->
-            <div class="pay-section">
-                <table class="pay-table">
-                    <thead>
-                        <tr>
-                            <th>Earnings Details</th>
-                            <th>Rate</th>
-                            <th>Qty/Hours</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Regular Pay</td>
-                            <td>{{ earnings.regular_pay_rate }}</td>
-                            <td>1.00</td>
-                            <td>{{ earnings.regular_pay_amount }}</td>
-                        </tr>
-                        <tr>
-                            <td>Overtime Pay</td>
-                            <td>{{ earnings.overtime_pay_rate }}</td>
-                            <td>{{ earnings.overtime_hours }}</td>
-                            <td>{{ earnings.overtime_amount }}</td>
-                        </tr>
-                        <tr>
-                            <td>Allowances & Bonuses</td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td>{{ earnings.others }}</td>
-                        </tr>
-                        <tr class="totals-row">
-                            <td>Total Earnings</td>
-                            <td colspan="2"></td>
-                            <td>{{ payroll.total_earnings }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Deductions Section -->
-            <div class="pay-section">
-                <table class="pay-table">
-                    <thead>
-                        <tr>
-                            <th>Deductions Details</th>
-                            <th colspan="2">-</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Income Tax</td>
-                            <td colspan="2"></td>
-                            <td>{{ deductions.income_tax }}</td>
-                        </tr>
-                        <tr>
-                            <td>Central Provident Fund (CPF)</td>
-                            <td colspan="2"></td>
-                            <td>{{ deductions.provident_fund }}</td>
-                        </tr>
-                        <tr>
-                            <td>Other Deductions</td>
-                            <td colspan="2"></td>
-                            <td>{{ deductions.others }}</td>
-                        </tr>
-                        <tr class="totals-row">
-                            <td>Total Deductions</td>
-                            <td colspan="2"></td>
-                            <td>{{ payroll.total_deductions }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Summary Section -->
-            <div class="summary-section">
-                <table class="summary-table">
-                    <tr>
-                        <td class="label">Total Earnings:</td>
-                        <td>{{ payroll.total_earnings }}</td>
-                    </tr>
-                    <tr>
-                        <td class="label">Total Deductions:</td>
-                        <td>{{ payroll.total_deductions }}</td>
-                    </tr>
-                    <tr class="netpay-row">
-                        <td class="label">Net Pay:</td>
-                        <td>{{ payroll.net_pay }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer-wave">
-            <div class="footer-note">This is a computer-generated document. No signature is required.</div>
-            <div class="footer-logo">HRMS - Payroll System</div>
-        </div>
-    </div>
-
-    <div class="print-button-container" style="margin-top: 20px;">
-        <button class="print-button" onclick="window.print()">🖨️ Print / Save as PDF</button>
-        <button class="back-button" onclick="window.history.back()">← Back</button>
-    </div>
-
-    <script>
-        // Automatic print dialog on page load if requested
-        document.addEventListener('DOMContentLoaded', function() {
-            // Optional: Uncomment the line below to auto-open print dialog on page load
-            // window.print();
-        });
-    </script>
 </body>
 </html>

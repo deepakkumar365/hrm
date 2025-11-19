@@ -1,7 +1,7 @@
 """Add OTDailySummary table for OT Payroll Summary management
 
 Revision ID: add_ot_daily_summary_001
-Revises: add_overtime_group_001
+Revises: add_overtime_group_id
 Create Date: 2025-01-01
 
 This migration adds:
@@ -17,7 +17,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_ot_daily_summary_001'
-down_revision = 'add_overtime_group_001'
+down_revision = 'add_overtime_group_id'
 branch_labels = None
 depends_on = None
 

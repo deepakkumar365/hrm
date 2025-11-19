@@ -30,16 +30,29 @@
             <div class="card filter-card mb-4">
             <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="fas fa-calendar-alt me-2"></i>Date Selection & Actions
+                    <i class="fas fa-calendar-alt me-2"></i>Date Selection & Filters
                 </h6>
             </div>
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="date" class="form-label">Select Date</label>
                         <input type="date" id="date" name="date" class="form-control"
                                value="{{ selected_date }}" max="{{ date.today() }}" required>
                     </div>
+                    {% if available_companies %}
+                    <div class="col-md-2">
+                        <label for="company" class="form-label">Company</label>
+                        <select id="company" name="company" class="form-select">
+                            <option value="">-- All Companies --</option>
+                            {% for company in available_companies %}
+                            <option value="{{ company.id }}" {% if selected_company and selected_company|int == company.id %}selected{% endif %}>
+                                {{ company.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="fas fa-search me-1"></i>Load Date
@@ -119,10 +132,11 @@
                                             </div>
                                         </th>
                                         <th style="width: 120px;">Employee ID</th>
-                                        <th style="width: 230px;">Employee Name</th>
-                                        <th style="width: 150px;">Department</th>
-                                        <th style="width: 150px;">Designation</th>
-                                        <th style="width: 150px;">Status</th>
+                                        <th style="width: 150px;">Employee Name</th>
+                                        <th style="width: 120px;">Company</th>
+                                        <th style="width: 120px;">Department</th>
+                                        <th style="width: 130px;">Designation</th>
+                                        <th style="width: 130px;">Status</th>
                                         <th style="width: 100px;" class="text-center">LOP</th>
                                         <th style="width: 80px;" class="text-center">Hours</th>
                                     </tr>
@@ -147,6 +161,7 @@
                                         <td>
                                             {{ employee.first_name }} {{ employee.last_name }}
                                         </td>
+                                        <td><small>{{ employee.company_name or '-' }}</small></td>
                                         <td><small>{{ employee.department or '-' }}</small></td>
                                         <td><small>{{ employee.designation.name if employee.designation else '-' }}</small></td>
                                         <td>
@@ -199,6 +214,7 @@
                                     <div class="flex-grow-1">
                                         <h6 class="mb-1">{{ employee.first_name }} {{ employee.last_name }}</h6>
                                         <p class="text-muted small mb-1">{{ employee.employee_id }}</p>
+                                        <p class="mb-1"><small><strong>{{ employee.company_name or '-' }}</strong></small></p>
                                         <p class="mb-1"><small>{{ employee.department or '-' }}</small></p>
                                         <p class="mb-1"><small>{{ employee.designation.name if employee.designation else '-' }}</small></p>
                                         <div class="mt-2">

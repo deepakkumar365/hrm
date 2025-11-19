@@ -1,0 +1,938 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance - Dashboard{% endblock %}
+
+{% block head %}
+<style>
+    * {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif !important;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        min-height: 100vh;
+    }
+
+    .attendance-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        color: white;
+        padding: 3rem 2rem;
+        border-radius: 0;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    }
+
+    .attendance-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(240, 147, 251, 0.3) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(100px, -100px);
+    }
+
+    .attendance-hero::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(-100px, -50px);
+    }
+
+    .hero-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
+    }
+
+    .hero-left h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        animation: slideInLeft 0.8s ease-out;
+    }
+
+    .hero-left p {
+        font-size: 1.1rem;
+        opacity: 0.95;
+        margin-bottom: 0.5rem;
+        animation: slideInLeft 0.9s ease-out;
+    }
+
+    .hero-date {
+        font-size: 0.95rem;
+        opacity: 0.85;
+        font-weight: 500;
+        animation: slideInLeft 1s ease-out;
+    }
+
+    .status-display {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 1.5rem 2rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-top: 1.5rem;
+        animation: slideInLeft 1.1s ease-out;
+    }
+
+    .status-badge-new {
+        display: inline-block;
+        padding: 0.6rem 1.2rem;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: rgba(255, 255, 255, 0.25);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .hero-right {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .digital-clock {
+        background: rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 3rem 2rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        animation: slideInRight 0.8s ease-out;
+    }
+
+    .clock-display {
+        font-size: 4rem;
+        font-weight: 900;
+        font-family: 'Courier New', monospace;
+        letter-spacing: 3px;
+        margin: 0;
+        text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .clock-label {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-top: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 600;
+    }
+
+    /* Main Container */
+    .attendance-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 3rem 2rem;
+    }
+
+    /* Action Cards Grid */
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+    }
+
+    .action-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.2);
+    }
+
+    .action-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .action-card.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .card-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .action-card.break .card-icon {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+    }
+
+    .action-card.clockout .card-icon {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+    }
+
+    .action-card.breakend .card-icon {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    }
+
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .card-desc {
+        font-size: 0.9rem;
+        color: #7f8c8d;
+        margin-bottom: 1.5rem;
+    }
+
+    .card-button {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .action-card.break .card-button {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+    }
+
+    .action-card.clockout .card-button {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+    }
+
+    .action-card.breakend .card-button {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    }
+
+    .card-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .card-button:active {
+        transform: translateY(0);
+    }
+
+    .card-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Stats Section */
+    .stats-section {
+        background: white;
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        margin-bottom: 3rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+
+    .section-title i {
+        color: #667eea;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 2rem;
+    }
+
+    .stat-box {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .stat-box:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+
+    /* Timeline Section */
+    .timeline-section {
+        background: white;
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        margin-bottom: 3rem;
+    }
+
+    .timeline {
+        position: relative;
+        padding: 2rem 0;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 50%, #e9ecef 100%);
+        transform: translateX(-50%);
+    }
+
+    @media (max-width: 768px) {
+        .timeline::before {
+            left: 20px;
+        }
+    }
+
+    .timeline-item {
+        display: grid;
+        grid-template-columns: 1fr 80px 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        align-items: center;
+    }
+
+    @media (max-width: 768px) {
+        .timeline-item {
+            grid-template-columns: 60px 1fr;
+            gap: 1.5rem;
+        }
+    }
+
+    .timeline-item:nth-child(2n+1) .timeline-content {
+        text-align: right;
+    }
+
+    @media (max-width: 768px) {
+        .timeline-item:nth-child(2n+1) .timeline-content {
+            text-align: left;
+        }
+    }
+
+    .timeline-dot {
+        width: 20px;
+        height: 20px;
+        background: white;
+        border: 3px solid #667eea;
+        border-radius: 50%;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .timeline-dot.active {
+        background: #667eea;
+        box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.2), 0 0 20px rgba(102, 126, 234, 0.4);
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .timeline-content {
+        padding: 1rem;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .timeline-content:hover {
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .timeline-label {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }
+
+    .timeline-time {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #2c3e50;
+        font-family: 'Courier New', monospace;
+    }
+
+    /* Info & Location */
+    .info-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        color: white;
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+        margin-bottom: 3rem;
+    }
+
+    .info-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+
+    .info-content {
+        font-size: 0.95rem;
+        line-height: 1.8;
+        opacity: 0.95;
+    }
+
+    /* Animations */
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.2), 0 0 20px rgba(102, 126, 234, 0.4);
+        }
+        50% {
+            box-shadow: 0 0 0 12px rgba(102, 126, 234, 0.1), 0 0 30px rgba(102, 126, 234, 0.6);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .action-grid > .action-card {
+        animation: fadeInUp 0.6s ease-out both;
+    }
+
+    .action-grid > .action-card:nth-child(1) { animation-delay: 0.1s; }
+    .action-grid > .action-card:nth-child(2) { animation-delay: 0.2s; }
+    .action-grid > .action-card:nth-child(3) { animation-delay: 0.3s; }
+    .action-grid > .action-card:nth-child(4) { animation-delay: 0.4s; }
+
+    .stats-section {
+        animation: fadeInUp 0.6s ease-out 0.5s both;
+    }
+
+    .timeline-section {
+        animation: fadeInUp 0.6s ease-out 0.6s both;
+    }
+
+    .info-section {
+        animation: fadeInUp 0.6s ease-out 0.7s both;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+        .hero-content {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        .hero-left h1 {
+            font-size: 2.2rem;
+        }
+
+        .digital-clock {
+            padding: 2rem 1.5rem;
+        }
+
+        .clock-display {
+            font-size: 3rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .attendance-hero {
+            padding: 2rem 1rem;
+        }
+
+        .hero-left h1 {
+            font-size: 1.8rem;
+        }
+
+        .hero-content {
+            gap: 1.5rem;
+        }
+
+        .attendance-container {
+            padding: 1.5rem 1rem;
+        }
+
+        .action-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .digital-clock {
+            padding: 1.5rem 1rem;
+        }
+
+        .clock-display {
+            font-size: 2.5rem;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+        }
+    }
+
+    /* Form Integration */
+    .hidden-form {
+        display: none;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s linear infinite;
+        margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .card-button.loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="attendance-hero">
+    <div class="hero-content">
+        <div class="hero-left">
+            <h1>Welcome</h1>
+            <p id="userGreeting">Good Morning!</p>
+            <div class="hero-date" id="heroDate">Loading...</div>
+            <div class="status-display">
+                <div class="status-badge-new" id="statusBadge">
+                    <i class="fas fa-circle me-1"></i>
+                    <span id="statusText">Loading Status...</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-right">
+            <div class="digital-clock">
+                <div class="clock-display" id="digitalClock">00:00:00</div>
+                <div class="clock-label">Current Time</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Container -->
+<div class="attendance-container">
+    <!-- Action Cards -->
+    <div class="action-grid">
+        <form id="attendanceForm" method="POST" class="hidden-form">
+            <input type="hidden" name="latitude" id="latitude">
+            <input type="hidden" name="longitude" id="longitude">
+        </form>
+
+        <!-- Clock In Card -->
+        {% if not today_attendance or not today_attendance.clock_in %}
+        <div class="action-card" id="clockInCard">
+            <div class="card-icon">
+                <i class="fas fa-sign-in-alt"></i>
+            </div>
+            <h3 class="card-title">Clock In</h3>
+            <p class="card-desc">Start your work day</p>
+            <button class="card-button" onclick="submitAction('clock_in')">
+                <i class="fas fa-play me-2"></i>Clock In Now
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Break Start Card -->
+        {% if today_attendance and today_attendance.clock_in and not today_attendance.clock_out and not today_attendance.break_start %}
+        <div class="action-card break" id="breakStartCard">
+            <div class="card-icon">
+                <i class="fas fa-coffee"></i>
+            </div>
+            <h3 class="card-title">Start Break</h3>
+            <p class="card-desc">Take a well-deserved break</p>
+            <button class="card-button" onclick="submitAction('break_start')">
+                <i class="fas fa-pause me-2"></i>Start Break
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Break End Card -->
+        {% if today_attendance and today_attendance.break_start and not today_attendance.break_end %}
+        <div class="action-card breakend" id="breakEndCard">
+            <div class="card-icon">
+                <i class="fas fa-play-circle"></i>
+            </div>
+            <h3 class="card-title">End Break</h3>
+            <p class="card-desc">Resume your work</p>
+            <button class="card-button" onclick="submitAction('break_end')">
+                <i class="fas fa-play me-2"></i>End Break
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Clock Out Card -->
+        {% if today_attendance and today_attendance.clock_in and not today_attendance.clock_out %}
+        <div class="action-card clockout" id="clockOutCard">
+            <div class="card-icon">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            <h3 class="card-title">Clock Out</h3>
+            <p class="card-desc">End your work day</p>
+            <button class="card-button" onclick="submitAction('clock_out')">
+                <i class="fas fa-stop me-2"></i>Clock Out Now
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Today's Statistics -->
+    <div class="stats-section">
+        <h2 class="section-title">
+            <i class="fas fa-chart-line"></i>Today's Summary
+        </h2>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-value" id="regularHours">{{ today_attendance.regular_hours or '0.00' }}</div>
+                <div class="stat-label">Regular Hours</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="overtimeHours">{{ today_attendance.overtime_hours or '0.00' }}</div>
+                <div class="stat-label">Overtime Hours</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="totalHours">{{ today_attendance.total_hours or '0.00' }}</div>
+                <div class="stat-label">Total Hours</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline-section">
+        <h2 class="section-title">
+            <i class="fas fa-clock"></i>Today's Timeline
+        </h2>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-label">Clock In</div>
+                    <div class="timeline-time" id="timelineClockIn">
+                        {% if today_attendance and today_attendance.clock_in %}
+                            {{ today_attendance.clock_in.strftime('%H:%M:%S') }}
+                        {% else %}
+                            --:--:--
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="timeline-dot {% if today_attendance and today_attendance.clock_in %}active{% endif %}"></div>
+                <div></div>
+            </div>
+
+            <div class="timeline-item">
+                <div></div>
+                <div class="timeline-dot {% if today_attendance and today_attendance.break_start %}active{% endif %}"></div>
+                <div class="timeline-content">
+                    <div class="timeline-label">Break Start</div>
+                    <div class="timeline-time" id="timelineBreakStart">
+                        {% if today_attendance and today_attendance.break_start %}
+                            {{ today_attendance.break_start.strftime('%H:%M:%S') }}
+                        {% else %}
+                            --:--:--
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-label">Break End</div>
+                    <div class="timeline-time" id="timelineBreakEnd">
+                        {% if today_attendance and today_attendance.break_end %}
+                            {{ today_attendance.break_end.strftime('%H:%M:%S') }}
+                        {% else %}
+                            --:--:--
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="timeline-dot {% if today_attendance and today_attendance.break_end %}active{% endif %}"></div>
+                <div></div>
+            </div>
+
+            <div class="timeline-item">
+                <div></div>
+                <div class="timeline-dot {% if today_attendance and today_attendance.clock_out %}active{% endif %}"></div>
+                <div class="timeline-content">
+                    <div class="timeline-label">Clock Out</div>
+                    <div class="timeline-time" id="timelineClockOut">
+                        {% if today_attendance and today_attendance.clock_out %}
+                            {{ today_attendance.clock_out.strftime('%H:%M:%S') }}
+                        {% else %}
+                            --:--:--
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Info -->
+    <div class="info-section">
+        <div class="info-title">
+            <i class="fas fa-map-marker-alt"></i>Location Information
+        </div>
+        <div class="info-content">
+            <div id="locationInfo">
+                <i class="fas fa-spinner fa-spin me-2"></i>Getting your location...
+            </div>
+            <small style="margin-top: 1rem; display: block; opacity: 0.8;">
+                📍 Your location is captured for security and stored securely.
+            </small>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Update digital clock
+    function updateClock() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('digitalClock').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+
+    // Update greeting based on time
+    function updateGreeting() {
+        const hour = new Date().getHours();
+        const greeting = document.getElementById('userGreeting');
+        if (hour < 12) {
+            greeting.textContent = '☀️ Good Morning!';
+        } else if (hour < 18) {
+            greeting.textContent = '🌤️ Good Afternoon!';
+        } else {
+            greeting.textContent = '🌙 Good Evening!';
+        }
+    }
+
+    // Update date
+    function updateDate() {
+        const now = new Date();
+        const options = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        };
+        document.getElementById('heroDate').textContent = now.toLocaleDateString('en-US', options);
+    }
+
+    // Update status
+    function updateStatus() {
+        const badge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+        
+        const clockInCard = document.getElementById('clockInCard');
+        const clockOutCard = document.getElementById('clockOutCard');
+        
+        if (!clockInCard && clockOutCard) {
+            // Working
+            badge.style.background = 'rgba(46, 204, 113, 0.3)';
+            statusText.innerHTML = '<i class="fas fa-dot-circle me-1"></i>Currently Working';
+        } else if (!clockInCard && !clockOutCard) {
+            // Day completed
+            badge.style.background = 'rgba(52, 152, 219, 0.3)';
+            statusText.innerHTML = '<i class="fas fa-check-circle me-1"></i>Day Completed';
+        } else {
+            // Not started
+            badge.style.background = 'rgba(241, 196, 15, 0.3)';
+            statusText.innerHTML = '<i class="fas fa-hourglass-start me-1"></i>Not Started';
+        }
+    }
+
+    // Get location
+    function getLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    document.getElementById('latitude').value = position.coords.latitude;
+                    document.getElementById('longitude').value = position.coords.longitude;
+                    const locationInfo = document.getElementById('locationInfo');
+                    locationInfo.innerHTML = `
+                        <div>✅ Location captured: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}</div>
+                    `;
+                },
+                function(error) {
+                    const locationInfo = document.getElementById('locationInfo');
+                    locationInfo.innerHTML = `
+                        <div>⚠️ Location: ${error.message}</div>
+                    `;
+                }
+            );
+        }
+    }
+
+    // Submit action
+    function submitAction(action) {
+        const form = document.getElementById('attendanceForm');
+        const button = event.target.closest('.card-button');
+        
+        // Add loading state
+        button.classList.add('loading');
+        button.innerHTML = '<span class="loading-spinner"></span>Processing...';
+        button.disabled = true;
+
+        // Create hidden input for action
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'action';
+        input.value = action;
+        form.appendChild(input);
+
+        // Submit form
+        setTimeout(() => {
+            form.submit();
+        }, 500);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        updateClock();
+        updateGreeting();
+        updateDate();
+        updateStatus();
+        getLocation();
+
+        // Update clock every second
+        setInterval(updateClock, 1000);
+    });
+</script>
+{% endblock %}

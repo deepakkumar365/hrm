@@ -95,10 +95,13 @@
                             <hr class="my-2">
                             {% endfor %}
                         {% else %}
-                        <p class="text-muted mb-0"><i class="fas fa-info-circle"></i> No companies available</p>
+                        <p class="text-muted mb-0"><i class="fas fa-info-circle"></i> No companies available. <small>Please ensure companies are created in the system.</small></p>
                         {% endif %}
                     </div>
                     <small class="form-text text-muted mt-2">Leave empty for all companies. Check specific companies to restrict access.</small>
+                    <div id="loadingIndicator" style="display: none; margin-top: 8px;">
+                        <small class="text-info"><i class="fas fa-spinner fa-spin"></i> Loading user company mappings...</small>
+                    </div>
                 </div>
 
                 <!-- Form Actions -->
@@ -226,26 +229,46 @@
 // Load user mappings when user is selected
 function loadUserMappings() {
     const userId = document.getElementById('userSelect').value;
+    const loadingIndicator = document.getElementById('loadingIndicator');
     
     if (!userId) {
         document.getElementById('currentMappingsContainer').style.display = 'none';
+        loadingIndicator.style.display = 'none';
         clearFormCheckboxes();
         return;
     }
     
-    // Fetch user mappings via AJAX
-    fetch(`/api/user-role-mappings/${userId}`)
-        .then(response => response.json())
+    // Show loading indicator
+    loadingIndicator.style.display = 'block';
+    
+    // Fetch user mappings via AJAX with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    fetch(`/api/user-role-mappings/${userId}`, { signal: controller.signal })
+        .then(response => {
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            if (data.success) {
+            loadingIndicator.style.display = 'none';
+            if (data.success && data.mappings) {
                 // Update role checkboxes
                 document.querySelectorAll('.role-checkbox').forEach(checkbox => {
-                    checkbox.checked = data.mappings.some(m => m.role_id === parseInt(checkbox.value));
+                    checkbox.checked = data.mappings.some(m => {
+                        return parseInt(m.role_id) === parseInt(checkbox.value);
+                    });
                 });
                 
-                // Update company checkboxes
+                // Update company checkboxes - handle both string and number comparison
                 document.querySelectorAll('.company-checkbox').forEach(checkbox => {
-                    checkbox.checked = data.mappings.some(m => m.company_id === checkbox.value);
+                    const checkboxValue = String(checkbox.value);
+                    checkbox.checked = data.mappings.some(m => {
+                        return m.company_id && String(m.company_id) === checkboxValue;
+                    });
                 });
                 
                 // Show current mappings
@@ -258,11 +281,21 @@ function loadUserMappings() {
                 } else {
                     document.getElementById('currentMappingsContainer').style.display = 'none';
                 }
+            } else {
+                console.error('Invalid response:', data);
+                showAlert('warning', 'No mappings found for this user');
             }
         })
         .catch(error => {
-            console.error('Error loading mappings:', error);
-            showAlert('danger', 'Error loading user mappings');
+            clearTimeout(timeoutId);
+            loadingIndicator.style.display = 'none';
+            if (error.name === 'AbortError') {
+                console.error('Request timeout loading mappings');
+                showAlert('danger', 'Timeout loading user mappings. Please try again.');
+            } else {
+                console.error('Error loading mappings:', error);
+                showAlert('danger', 'Error loading user mappings: ' + error.message);
+            }
         });
 }
 

@@ -1634,34 +1634,53 @@ def payroll_generate():
                 # Calculate net pay
                 net_pay = gross_pay - employee_cpf
 
-                # Create payroll record
-                payroll = Payroll()
-                payroll.employee_id = employee.id
-                payroll.pay_period_start = pay_period_start
-                payroll.pay_period_end = pay_period_end
-                payroll.basic_pay = basic_pay
-                payroll.overtime_pay = overtime_pay
-                payroll.allowances = total_allowances
-                payroll.bonuses = 0
-                payroll.gross_pay = gross_pay
-                payroll.employee_cpf = employee_cpf
-                payroll.employer_cpf = employer_cpf
-                payroll.income_tax = 0
-                payroll.other_deductions = 0
-                payroll.net_pay = net_pay
-                payroll.overtime_hours = total_overtime
-                payroll.days_worked = len(attendance_records)
-                payroll.generated_by = current_user.id
-                payroll.status = 'Draft'
-
-                db.session.add(payroll)
-                generated_count += 1
+                # Update or create payroll record
+                if existing:
+                    # Update existing payroll
+                    existing.basic_pay = basic_pay
+                    existing.overtime_pay = overtime_pay
+                    existing.allowances = total_allowances
+                    existing.bonuses = 0
+                    existing.gross_pay = gross_pay
+                    existing.employee_cpf = employee_cpf
+                    existing.employer_cpf = employer_cpf
+                    existing.income_tax = 0
+                    existing.other_deductions = 0
+                    existing.net_pay = net_pay
+                    existing.overtime_hours = total_overtime
+                    existing.days_worked = len(attendance_records)
+                    existing.generated_by = current_user.id
+                    existing.status = 'Draft'
+                    updated_count += 1
+                else:
+                    # Create new payroll record
+                    payroll = Payroll()
+                    payroll.employee_id = employee.id
+                    payroll.pay_period_start = pay_period_start
+                    payroll.pay_period_end = pay_period_end
+                    payroll.basic_pay = basic_pay
+                    payroll.overtime_pay = overtime_pay
+                    payroll.allowances = total_allowances
+                    payroll.bonuses = 0
+                    payroll.gross_pay = gross_pay
+                    payroll.employee_cpf = employee_cpf
+                    payroll.employer_cpf = employer_cpf
+                    payroll.income_tax = 0
+                    payroll.other_deductions = 0
+                    payroll.net_pay = net_pay
+                    payroll.overtime_hours = total_overtime
+                    payroll.days_worked = len(attendance_records)
+                    payroll.generated_by = current_user.id
+                    payroll.status = 'Draft'
+                    db.session.add(payroll)
+                    generated_count += 1
 
             db.session.commit()
 
-            message = f'Generated payroll for {generated_count} employee(s)'
-            if skipped_count > 0:
-                message += f'. Skipped {skipped_count} employee(s) with existing payroll.'
+            message = f'Payroll processed: {generated_count} new employee(s) created'
+            if updated_count > 0:
+                message += f', {updated_count} updated with recalculated values'
+            message += '.'
 
             flash(message, 'success')
             return redirect(url_for('payroll_list'))
