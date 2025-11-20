@@ -17,7 +17,7 @@ from sqlalchemy import and_, or_
 import logging
 
 from app import app, db
-from models import OTAttendance, OTApproval, OTRequest, Employee, User, Role, Company, Department, OTType, OTDailySummary, PayrollConfiguration
+from models import OTAttendance, OTApproval, OTRequest, Employee, User, Role, Company, Department, OTType, OTDailySummary, PayrollConfiguration, Attendance
 from auth import require_login, require_role
 
 logger = logging.getLogger(__name__)
@@ -200,6 +200,44 @@ def mark_ot_attendance():
         # Get today's date for default
         today = datetime.now().date()
         
+        # Get today's attendance record for timeline
+        today_attendance = Attendance.query.filter_by(
+            employee_id=employee.id,
+            date=today
+        ).first()
+        
+        # Format attendance data for timeline
+        attendance_data = []
+        if today_attendance:
+            if today_attendance.clock_in:
+                attendance_data.append({
+                    'time': today_attendance.clock_in.strftime('%I:%M %p'),
+                    'activity': 'Clock In',
+                    'activity_time': today_attendance.clock_in.strftime('%I:%M %p'),
+                    'activity_type': 'Clock In'
+                })
+            if today_attendance.break_start:
+                attendance_data.append({
+                    'time': today_attendance.break_start.strftime('%I:%M %p'),
+                    'activity': 'Start Break',
+                    'activity_time': today_attendance.break_start.strftime('%I:%M %p'),
+                    'activity_type': 'Start Break'
+                })
+            if today_attendance.break_end:
+                attendance_data.append({
+                    'time': today_attendance.break_end.strftime('%I:%M %p'),
+                    'activity': 'End Break',
+                    'activity_time': today_attendance.break_end.strftime('%I:%M %p'),
+                    'activity_type': 'End Break'
+                })
+            if today_attendance.clock_out:
+                attendance_data.append({
+                    'time': today_attendance.clock_out.strftime('%I:%M %p'),
+                    'activity': 'Clock Out',
+                    'activity_time': today_attendance.clock_out.strftime('%I:%M %p'),
+                    'activity_type': 'Clock Out'
+                })
+        
         # Get recent OT records for this employee
         recent_ots = OTAttendance.query.filter_by(
             employee_id=employee.id
@@ -210,7 +248,8 @@ def mark_ot_attendance():
                              ot_types=ot_types,
                              today=today,
                              recent_ots=recent_ots,
-                             has_ot_types=bool(ot_types))
+                             has_ot_types=bool(ot_types),
+                             attendance_data=attendance_data)
         
     except Exception as e:
         logger.error(f"Error in mark_ot_attendance: {str(e)}")
@@ -831,7 +870,23 @@ def ot_approval():
                 action = request.form.get('action')  # approve or reject
                 comments = request.form.get('comments', '')
                 modified_hours = request.form.get('modified_hours')
-                
+
+                # Get allowance fields
+                allowances = {
+                    'kd_and_claim': request.form.get('kd_and_claim', type=float) or 0,
+                    'trips': request.form.get('trips', type=float) or 0,
+                    'sinpost': request.form.get('sinpost', type=float) or 0,
+                    'sandstone': request.form.get('sandstone', type=float) or 0,
+                    'spx': request.form.get('spx', type=float) or 0,
+                    'psle': request.form.get('psle', type=float) or 0,
+                    'manpower': request.form.get('manpower', type=float) or 0,
+                    'stacking': request.form.get('stacking', type=float) or 0,
+                    'dispose': request.form.get('dispose', type=float) or 0,
+                    'night': request.form.get('night', type=float) or 0,
+                    'ph': request.form.get('ph', type=float) or 0,
+                    'sun': request.form.get('sun', type=float) or 0,
+                }
+
                 ot_request = OTRequest.query.get(ot_request_id)
                 if not ot_request:
                     flash('OT request not found', 'danger')
@@ -863,25 +918,35 @@ def ot_approval():
                     if modified_hours:
                         ot_approval_l2.approved_hours = float(modified_hours)
                         ot_request.approved_hours = float(modified_hours)
-                        
-                        # ✅ Update OTDailySummary if hours were modified by HR Manager
-                        ot_summary = OTDailySummary.query.filter_by(ot_request_id=ot_request_id).first()
-                        if ot_summary:
+
+                    # ✅ Update OTDailySummary with hours and allowances
+                    ot_summary = OTDailySummary.query.filter_by(ot_request_id=ot_request_id).first()
+                    if ot_summary:
+                        if modified_hours:
                             ot_amount = float(modified_hours) * float(ot_summary.ot_rate_per_hour or 0)
                             ot_summary.ot_hours = float(modified_hours)
                             ot_summary.ot_amount = ot_amount
-                            ot_summary.modified_by = current_user.username
-                            ot_summary.modified_at = datetime.now()
-                            logger.info(f"[OT_APPROVAL] Updated OTDailySummary hours to {modified_hours}")
+
+                        # Update allowances from form data
+                        for allowance_field, value in allowances.items():
+                            setattr(ot_summary, allowance_field, value)
+
+                        # Calculate totals (total_allowances and total_amount)
+                        ot_summary.calculate_totals()
+
+                        ot_summary.status = 'Approved'
+                        ot_summary.modified_by = current_user.username
+                        ot_summary.modified_at = datetime.now()
+                        logger.info(f"[OT_APPROVAL] Updated OTDailySummary with allowances and totals")
                     # Don't update created_at - it's immutable. It tracks when the approval record was created
-                    
+
                     # Update OTRequest status - NOW READY FOR PAYROLL
                     ot_request.status = 'hr_approved'
                     ot_request.approver_id = current_user.id
                     ot_request.approved_at = datetime.now()
                     ot_request.approval_comments = comments
-                    
-                    flash(f'✓ OT Final Approved. Ready for Payroll calculation.', 'success')
+
+                    flash(f'✓ OT Final Approved with allowances. Ready for Payroll calculation.', 'success')
                 
                 elif action == 'reject':
                     # HR Rejects - Send back to Manager

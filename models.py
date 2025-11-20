@@ -619,6 +619,8 @@ class Attendance(db.Model):
 
     location_lat = db.Column(db.String(20))
     location_lng = db.Column(db.String(20))
+    
+    timezone = db.Column(db.String(50), default='UTC')
 
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -1288,6 +1290,7 @@ class OTRequest(db.Model):
     company = db.relationship('Company', foreign_keys=[company_id])
     ot_type = db.relationship('OTType')
     approver = db.relationship('User', foreign_keys=[approver_id])
+    ot_daily_summary = db.relationship('OTDailySummary', foreign_keys='OTDailySummary.ot_request_id', uselist=False)
 
 
 class OTApproval(db.Model):

@@ -280,6 +280,21 @@
         transform: none;
     }
 
+    /* Summary and Timeline Container */
+    .summary-timeline-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    @media (max-width: 768px) {
+        .summary-timeline-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+    }
+
     /* Stats Section */
     .stats-section {
         background: white;
@@ -287,7 +302,6 @@
         padding: 2.5rem;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         border: 1px solid rgba(102, 126, 234, 0.1);
-        margin-bottom: 3rem;
     }
 
     .section-title {
@@ -350,12 +364,73 @@
         padding: 2.5rem;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         border: 1px solid rgba(102, 126, 234, 0.1);
-        margin-bottom: 3rem;
     }
 
-    .timeline {
+    /* Horizontal Timeline */
+    .timeline-horizontal {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         position: relative;
-        padding: 2rem 0;
+        padding: 2rem 1rem;
+    }
+
+    .timeline-item-horizontal {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        position: relative;
+    }
+
+    .timeline-connector {
+        flex: 1;
+        height: 2px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #e9ecef 100%);
+        position: relative;
+    }
+
+    .timeline-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #e9ecef;
+        border: 3px solid #667eea;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 2;
+    }
+
+    .timeline-dot.active {
+        background: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+    }
+
+    .timeline-content {
+        text-align: center;
+    }
+
+    .timeline-label {
+        font-size: 0.85rem;
+        color: #7f8c8d;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .timeline-time {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #2c3e50;
+        font-family: 'Courier New', monospace;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Legacy Vertical Timeline (hidden but kept for reference) */
+    .timeline {
+        display: none;
     }
 
     .timeline::before {
@@ -715,89 +790,94 @@
         {% endif %}
     </div>
 
-    <!-- Today's Statistics -->
-    <div class="stats-section">
-        <h2 class="section-title">
-            <i class="fas fa-chart-line"></i>Today's Summary
-        </h2>
-        <div class="stats-grid">
-            <div class="stat-box">
-                <div class="stat-value" id="regularHours">{{ today_attendance.regular_hours or '0.00' }}</div>
-                <div class="stat-label">Regular Hours</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value" id="overtimeHours">{{ today_attendance.overtime_hours or '0.00' }}</div>
-                <div class="stat-label">Overtime Hours</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value" id="totalHours">{{ today_attendance.total_hours or '0.00' }}</div>
-                <div class="stat-label">Total Hours</div>
+    <!-- Summary and Timeline Container -->
+    <div class="summary-timeline-container">
+        <!-- Today's Statistics -->
+        <div class="stats-section">
+            <h2 class="section-title">
+                <i class="fas fa-chart-line"></i>Today's Summary
+            </h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="regularHours">{{ today_attendance.regular_hours or '0.00' }}</div>
+                    <div class="stat-label">Regular Hours</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="overtimeHours">{{ today_attendance.overtime_hours or '0.00' }}</div>
+                    <div class="stat-label">Overtime Hours</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="totalHours">{{ today_attendance.total_hours or '0.00' }}</div>
+                    <div class="stat-label">Total Hours</div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Timeline -->
-    <div class="timeline-section">
-        <h2 class="section-title">
-            <i class="fas fa-clock"></i>Today's Timeline
-        </h2>
-        <div class="timeline">
-            <div class="timeline-item">
-                <div class="timeline-content">
-                    <div class="timeline-label">Clock In</div>
-                    <div class="timeline-time" id="timelineClockIn">
-                        {% if today_attendance and today_attendance.clock_in %}
-                            {{ today_attendance.clock_in.strftime('%H:%M:%S') }}
-                        {% else %}
-                            --:--:--
-                        {% endif %}
+        <!-- Timeline -->
+        <div class="timeline-section">
+            <h2 class="section-title">
+                <i class="fas fa-clock"></i>Today's Timeline
+            </h2>
+            <div class="timeline-horizontal">
+                <div class="timeline-item-horizontal">
+                    <div class="timeline-dot {% if today_attendance and today_attendance.clock_in %}active{% endif %}"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-label">Clock In</div>
+                        <div class="timeline-time" id="timelineClockIn">
+                            {% if today_attendance and today_attendance.clock_in %}
+                                {{ today_attendance.clock_in.strftime('%H:%M:%S') }}
+                            {% else %}
+                                --:--:--
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-                <div class="timeline-dot {% if today_attendance and today_attendance.clock_in %}active{% endif %}"></div>
-                <div></div>
-            </div>
 
-            <div class="timeline-item">
-                <div></div>
-                <div class="timeline-dot {% if today_attendance and today_attendance.break_start %}active{% endif %}"></div>
-                <div class="timeline-content">
-                    <div class="timeline-label">Break Start</div>
-                    <div class="timeline-time" id="timelineBreakStart">
-                        {% if today_attendance and today_attendance.break_start %}
-                            {{ today_attendance.break_start.strftime('%H:%M:%S') }}
-                        {% else %}
-                            --:--:--
-                        {% endif %}
+                <div class="timeline-connector"></div>
+
+                <div class="timeline-item-horizontal">
+                    <div class="timeline-dot {% if today_attendance and today_attendance.break_start %}active{% endif %}"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-label">Break Start</div>
+                        <div class="timeline-time" id="timelineBreakStart">
+                            {% if today_attendance and today_attendance.break_start %}
+                                {{ today_attendance.break_start.strftime('%H:%M:%S') }}
+                            {% else %}
+                                --:--:--
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="timeline-item">
-                <div class="timeline-content">
-                    <div class="timeline-label">Break End</div>
-                    <div class="timeline-time" id="timelineBreakEnd">
-                        {% if today_attendance and today_attendance.break_end %}
-                            {{ today_attendance.break_end.strftime('%H:%M:%S') }}
-                        {% else %}
-                            --:--:--
-                        {% endif %}
+                <div class="timeline-connector"></div>
+
+                <div class="timeline-item-horizontal">
+                    <div class="timeline-dot {% if today_attendance and today_attendance.break_end %}active{% endif %}"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-label">Break End</div>
+                        <div class="timeline-time" id="timelineBreakEnd">
+                            {% if today_attendance and today_attendance.break_end %}
+                                {{ today_attendance.break_end.strftime('%H:%M:%S') }}
+                            {% else %}
+                                --:--:--
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-                <div class="timeline-dot {% if today_attendance and today_attendance.break_end %}active{% endif %}"></div>
-                <div></div>
-            </div>
 
-            <div class="timeline-item">
-                <div></div>
-                <div class="timeline-dot {% if today_attendance and today_attendance.clock_out %}active{% endif %}"></div>
-                <div class="timeline-content">
-                    <div class="timeline-label">Clock Out</div>
-                    <div class="timeline-time" id="timelineClockOut">
-                        {% if today_attendance and today_attendance.clock_out %}
-                            {{ today_attendance.clock_out.strftime('%H:%M:%S') }}
-                        {% else %}
-                            --:--:--
-                        {% endif %}
+                <div class="timeline-connector"></div>
+
+                <div class="timeline-item-horizontal">
+                    <div class="timeline-dot {% if today_attendance and today_attendance.clock_out %}active{% endif %}"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-label">Clock Out</div>
+                        <div class="timeline-time" id="timelineClockOut">
+                            {% if today_attendance and today_attendance.clock_out %}
+                                {{ today_attendance.clock_out.strftime('%H:%M:%S') }}
+                            {% else %}
+                                --:--:--
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>

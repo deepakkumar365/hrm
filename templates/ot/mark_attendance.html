@@ -912,18 +912,19 @@
                     </div>
                     <!-- Timezone Selection -->
                     <div class="form-group" style="margin-bottom: 0.4rem;">
-                        <label for="ot_timezone">Timezone</label>
-                        <select class="form-control" id="ot_timezone" name="ot_timezone"
+                        <label for="ot_timezone">Timezone <span class="required">*</span></label>
+                        <select class="form-control" id="ot_timezone" name="ot_timezone" required
                                 {% if not has_ot_types %}disabled{% endif %}>
+                            <option value="">-- Select Timezone --</option>
                             <option value="UTC">UTC</option>
-                            <option value="Asia/Singapore" selected>Asia/Singapore (SGT)</option>
-                            <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-                            <option value="Asia/Bangkok">Asia/Bangkok (ICT)</option>
-                            <option value="Asia/Jakarta">Asia/Jakarta (WIB)</option>
-                            <option value="Asia/Kuala_Lumpur">Asia/Kuala Lumpur (MYT)</option>
-                            <option value="America/New_York">America/New_York (EST)</option>
-                            <option value="Europe/London">Europe/London (GMT)</option>
-                            <option value="Australia/Sydney">Australia/Sydney (AEDT)</option>
+                            <option value="Asia/Singapore" selected>Asia/Singapore (SGT - UTC+8)</option>
+                            <option value="Asia/Kolkata">Asia/Kolkata (IST - UTC+5:30)</option>
+                            <option value="Asia/Bangkok">Asia/Bangkok (ICT - UTC+7)</option>
+                            <option value="Asia/Jakarta">Asia/Jakarta (WIB - UTC+7)</option>
+                            <option value="Asia/Kuala_Lumpur">Asia/Kuala Lumpur (MYT - UTC+8)</option>
+                            <option value="America/New_York">America/New_York (EST - UTC-5)</option>
+                            <option value="Europe/London">Europe/London (GMT - UTC+0)</option>
+                            <option value="Australia/Sydney">Australia/Sydney (AEDT - UTC+11)</option>
                         </select>
                     </div>
                     <div style="display: flex; gap: 0.4rem;">
@@ -1005,31 +1006,10 @@
                 <i class="fas fa-clock"></i>
                 Today's Activity
             </div>
-            <div class="timeline-list">
-                <!-- Sample Timeline - Will be populated by JavaScript -->
-                <div class="timeline-item">
-                    <div class="timeline-time">09:00 AM</div>
-                    <div class="timeline-activity">Clock In</div>
-                    <div class="timeline-zone">SGT (UTC+8)</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">13:00 PM</div>
-                    <div class="timeline-activity">Start Break</div>
-                    <div class="timeline-zone">SGT (UTC+8)</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">14:00 PM</div>
-                    <div class="timeline-activity">End Break</div>
-                    <div class="timeline-zone">SGT (UTC+8)</div>
-                </div>
-                <div class="timeline-item">
-                    <div class="timeline-time">18:30 PM</div>
-                    <div class="timeline-activity">Clock Out</div>
-                    <div class="timeline-zone">SGT (UTC+8)</div>
-                </div>
-                <!-- End of Timeline Items -->
-                <div class="no-activity" style="display: none; padding: 0.8rem;">
-                    <i class="fas fa-inbox" style="font-size: 1.5rem; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+            <div class="timeline-list" id="timelineList">
+                <!-- Timeline items will be populated by JavaScript -->
+                <div class="no-activity" id="noActivityPlaceholder" style="padding: 1rem;">
+                    <i class="fas fa-inbox" style="font-size: 1.5rem; opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i>
                     <p>No activity recorded today</p>
                 </div>
             </div>
@@ -1038,6 +1018,69 @@
 </div>
 
 <script>
+    // Timezone mapping for display
+    const timezoneMap = {
+        'UTC': { offset: 0, display: 'UTC' },
+        'Asia/Singapore': { offset: 8, display: 'SGT (UTC+8)' },
+        'Asia/Kolkata': { offset: 5.5, display: 'IST (UTC+5:30)' },
+        'Asia/Bangkok': { offset: 7, display: 'ICT (UTC+7)' },
+        'Asia/Jakarta': { offset: 7, display: 'WIB (UTC+7)' },
+        'Asia/Kuala_Lumpur': { offset: 8, display: 'MYT (UTC+8)' },
+        'America/New_York': { offset: -5, display: 'EST (UTC-5)' },
+        'Europe/London': { offset: 0, display: 'GMT (UTC+0)' },
+        'Australia/Sydney': { offset: 11, display: 'AEDT (UTC+11)' }
+    };
+
+    // Populate timeline with today's attendance data
+    function populateTimeline() {
+        const timelineList = document.getElementById('timelineList');
+        const noActivityPlaceholder = document.getElementById('noActivityPlaceholder');
+        
+        // Get attendance data from backend (if available)
+        const attendanceData = {{ attendance_data | tojson | safe if attendance_data else '[]' }};
+        
+        if (attendanceData && attendanceData.length > 0) {
+            noActivityPlaceholder.style.display = 'none';
+            timelineList.innerHTML = '';
+            
+            attendanceData.forEach(record => {
+                const item = createTimelineItem(record);
+                timelineList.appendChild(item);
+            });
+        } else {
+            // Show sample data if no actual data
+            noActivityPlaceholder.style.display = 'block';
+        }
+    }
+
+    // Create a timeline item element
+    function createTimelineItem(record) {
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        
+        const selectedTimezone = document.getElementById('ot_timezone').value || 'Asia/Singapore';
+        const tzInfo = timezoneMap[selectedTimezone] || timezoneMap['Asia/Singapore'];
+        
+        item.innerHTML = `
+            <div class="timeline-time">${record.time || record.activity_time}</div>
+            <div class="timeline-activity">${record.activity || record.activity_type}</div>
+            <div class="timeline-zone">${tzInfo.display}</div>
+        `;
+        
+        return item;
+    }
+
+    // Update timezone display in all timeline items
+    function updateTimezoneDisplay() {
+        const selectedTimezone = document.getElementById('ot_timezone').value || 'Asia/Singapore';
+        const tzInfo = timezoneMap[selectedTimezone] || timezoneMap['Asia/Singapore'];
+        
+        const timelineItems = document.querySelectorAll('.timeline-item .timeline-zone');
+        timelineItems.forEach(zone => {
+            zone.textContent = tzInfo.display;
+        });
+    }
+
     // Prevent future dates
     const dateInput = document.getElementById('ot_date');
     const today = new Date().toISOString().split('T')[0];
@@ -1057,7 +1100,7 @@
             field.style.animation = 'pulse 0.6s ease-out';
         }, 10);
         
-        console.log(`Set ${fieldId} to ${currentTime}`);
+        console.log(`Set ${fieldId} to ${currentTime} in timezone: ${document.getElementById('ot_timezone').value}`);
     }
 
     // Switch between time and hours mode
@@ -1081,6 +1124,9 @@
             document.getElementById('ot_out_time').value = '';
         }
     }
+
+    // Listen for timezone changes
+    document.getElementById('ot_timezone').addEventListener('change', updateTimezoneDisplay);
 
     // Form validation with animations
     document.getElementById('otForm').addEventListener('submit', function(e) {
@@ -1157,6 +1203,23 @@
             ripple.style.left = x + 'px';
             ripple.style.top = y + 'px';
         });
+    });
+
+    // Initialize page on load
+    document.addEventListener('DOMContentLoaded', function() {
+        populateTimeline();
+        updateTimezoneDisplay();
+    });
+
+    // Ensure timezone is set with time values
+    document.getElementById('ot_in_time').addEventListener('change', function() {
+        const timezone = document.getElementById('ot_timezone').value;
+        console.log(`In Time set: ${this.value} [${timezone}]`);
+    });
+
+    document.getElementById('ot_out_time').addEventListener('change', function() {
+        const timezone = document.getElementById('ot_timezone').value;
+        console.log(`Out Time set: ${this.value} [${timezone}]`);
     });
 </script>
 {% endblock %}

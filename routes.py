@@ -38,8 +38,8 @@ payroll_calc = SingaporePayrollCalculator()
 
 # A list of common timezones for dropdowns
 common_timezones = [
-    "UTC", "Asia/Singapore", "Asia/Kolkata", "Asia/Dubai", "Asia/Shanghai", 
-    "Asia/Tokyo", "Europe/London", "Europe/Paris", "Europe/Berlin", 
+    "UTC", "Asia/Singapore", "Asia/Kolkata", "Asia/Dubai", "Asia/Shanghai",
+    "Asia/Tokyo", "Europe/London", "Europe/Paris", "Europe/Berlin",
     "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
     "Australia/Sydney", "Australia/Perth"
 ]
@@ -164,7 +164,7 @@ def inject_user_profile_info():
     if current_user.is_authenticated and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         profile_image_path = current_user.employee_profile.profile_image_path
         user_full_name = f"{current_user.employee_profile.first_name} {current_user.employee_profile.last_name}"
-    
+
     return dict(profile_image_path=profile_image_path, user_full_name=user_full_name)
 
 @app.before_request
@@ -385,7 +385,7 @@ def dashboard():
     if user_role_name == 'Super Admin':
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
-    
+
     if user_role_name in ['HR Manager', 'Tenant Admin']:
         # Redirect HR Manager and Tenant Admin to their specialized dashboard
         return redirect(url_for('hr_manager_dashboard'))
@@ -594,28 +594,28 @@ def export_employees():
         # Get search and filter parameters
         search = request.args.get('search', '', type=str)
         department = request.args.get('department', '', type=str)
-        
+
         # Build query
         query = db.session.query(Employee).filter(Employee.is_active == True)
-        
+
         if search:
             query = query.filter(
                 db.or_(Employee.first_name.ilike(f'%{search}%'),
                        Employee.last_name.ilike(f'%{search}%'),
                        Employee.employee_id.ilike(f'%{search}%'),
                        Employee.email.ilike(f'%{search}%')))
-        
+
         if department:
             query = query.filter(Employee.department == department)
-        
+
         # Role-based filtering
         if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                       'employee_profile') and current_user.employee_profile:
             query = query.filter(
                 Employee.organization_id == current_user.organization_id)
-        
+
         employees = query.order_by(Employee.first_name).all()
-        
+
         # Prepare data for CSV export
         export_data = []
         for emp in employees:
@@ -632,10 +632,10 @@ def export_employees():
                 'NRIC': emp.nric or '',
                 'Status': 'Active' if emp.is_active else 'Inactive'
             })
-        
+
         # Export to CSV
         return export_to_csv(export_data, 'employees.csv')
-        
+
     except Exception as e:
         print(f"Error exporting employees: {str(e)}")
         flash(f'Error exporting employees: {str(e)}', 'error')
@@ -650,35 +650,35 @@ def employee_add():
         try:
             # Ensure we start with a clean transaction state
             db.session.rollback()
-            
+
             # Validation: Check required fields
             first_name = request.form.get('first_name', '').strip()
             last_name = request.form.get('last_name', '').strip()
             designation_id = request.form.get('designation_id', '').strip()
             company_id = request.form.get('company_id', '').strip()
-            
+
             if not first_name:
                 flash('First Name is required', 'error')
                 return redirect(url_for('employee_add'))
-            
+
             if not last_name:
                 flash('Last Name is required', 'error')
                 return redirect(url_for('employee_add'))
-            
+
             if not company_id:
                 flash('Company is required', 'error')
                 return redirect(url_for('employee_add'))
-            
+
             if not designation_id:
                 flash('Designation is required', 'error')
                 return redirect(url_for('employee_add'))
-            
+
             # Validation: Email format if provided
             email = request.form.get('email', '').strip()
             if email and not validate_email(email):
                 flash('Invalid email format', 'error')
                 return redirect(url_for('employee_add'))
-            
+
             # Validate NRIC (optional field)
             nric = request.form.get('nric', '').upper()
             if nric and not validate_nric(nric):
@@ -1040,7 +1040,7 @@ def employee_view(employee_id):
             return redirect(url_for('dashboard'))
     elif (current_user.role.name if current_user.role else None) == 'HR Manager':
         # HR Manager can view any employee within the same organization.
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and 
+        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and
                 employee.organization_id == current_user.employee_profile.organization_id):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
@@ -1129,9 +1129,9 @@ def profile():
     # of working_hours_list, working_hours_add, working_hours_edit and
     # working_hours_delete.
 
-    return render_template('employees/view.html', 
-                           employee=employee, 
-                           stats=stats, 
+    return render_template('employees/view.html',
+                           employee=employee,
+                           stats=stats,
                            activities=activities,
                            today=date.today()) # Pass today's date to the template
 
@@ -1143,26 +1143,26 @@ def profile_edit():
     if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
         flash('Profile not found. Please contact your administrator.', 'error')
         return redirect(url_for('profile'))
-    
+
     employee = current_user.employee_profile
-    
+
     if request.method == 'POST':
         try:
             # Update basic employee information
             employee.first_name = request.form.get('first_name', '').strip()
             employee.last_name = request.form.get('last_name', '').strip()
-            
+
             # Update banking details (Account Holder Name is OPTIONAL)
             employee.bank_name = request.form.get('bank_name', '').strip()
             employee.bank_account = request.form.get('bank_account', '').strip()
             employee.account_holder_name = request.form.get('account_holder_name', '').strip() or None
             employee.swift_code = request.form.get('swift_code', '').strip()
             employee.ifsc_code = request.form.get('ifsc_code', '').strip()
-            
+
             # Update user information
             current_user.first_name = employee.first_name
             current_user.last_name = employee.last_name
-            
+
             db.session.commit()
             flash('Profile updated successfully!', 'success')
             return redirect(url_for('profile'))
@@ -1170,7 +1170,7 @@ def profile_edit():
             db.session.rollback()
             flash(f'Error updating profile: {str(e)}', 'error')
             return redirect(url_for('profile_edit'))
-    
+
     # GET request - render the edit form
     return render_template('profile_edit.html', employee=employee)
 
@@ -1185,52 +1185,52 @@ def employee_edit(employee_id):
         try:
             # Ensure we start with a clean transaction state
             db.session.rollback()
-            
+
             # Validation: Check required fields
             first_name = request.form.get('first_name', '').strip()
             last_name = request.form.get('last_name', '').strip()
             designation_id = request.form.get('designation_id', '').strip()
             company_id = request.form.get('company_id', '').strip()
-            
+
             if not first_name:
                 flash('First Name is required', 'error')
                 return redirect(url_for('employee_edit', employee_id=employee_id))
-            
+
             if not last_name:
                 flash('Last Name is required', 'error')
                 return redirect(url_for('employee_edit', employee_id=employee_id))
-            
+
             if not company_id:
                 flash('Company is required', 'error')
                 return redirect(url_for('employee_edit', employee_id=employee_id))
-            
+
             if not designation_id:
                 flash('Designation is required', 'error')
                 return redirect(url_for('employee_edit', employee_id=employee_id))
-            
+
             # Validation: Email format if provided
             email = request.form.get('email', '').strip()
             if email and not validate_email(email):
                 flash('Invalid email format', 'error')
                 return redirect(url_for('employee_edit', employee_id=employee_id))
-            
+
             # Update validated fields
             employee.first_name = first_name
             employee.last_name = last_name
             employee.email = email if email else None
-            
+
             # Update company_id from form
             if company_id:
                 employee.company_id = company_id
             else:
                 employee.company_id = None
-            
+
             # Update designation_id
             employee.designation_id = designation_id
-            
+
             phone = request.form.get('phone', '').strip()
             employee.phone = phone if phone else None
-            
+
             # Validate NRIC (optional field)
             nric = request.form.get('nric', '').upper()
             if nric and not validate_nric(nric):
@@ -1578,21 +1578,21 @@ def payroll_generate():
                 # Calculate allowances from both sources
                 total_allowances = 0
                 ot_allowances = 0
-                
+
                 # Get OT Daily Summary records for this period
                 ot_daily_records = OTDailySummary.query.filter_by(
                     employee_id=employee.id).filter(
                         OTDailySummary.ot_date.between(pay_period_start,
                                                        pay_period_end)).all()
-                
+
                 # Sum OT allowances from Daily Summary
                 for ot_record in ot_daily_records:
                     ot_allowances += float(ot_record.total_allowances or 0)
-                
+
                 # Get allowances from payroll config
                 if config:
                     total_allowances = float(config.get_total_allowances())
-                
+
                 # Total allowances = config allowances + OT special allowances
                 total_allowances = total_allowances + ot_allowances
 
@@ -1613,7 +1613,7 @@ def payroll_generate():
                 # Calculate OT pay - use the amount from daily summary if available
                 overtime_pay = sum(float(record.ot_amount or 0)
                                   for record in ot_daily_records)
-                
+
                 # If no daily summary OT, calculate from attendance
                 if overtime_pay == 0 and total_overtime > 0:
                     ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
@@ -2167,13 +2167,13 @@ def attendance_list_view():
                 Employee.manager_id == manager_id
             )
         ).filter_by(is_active=True).order_by(Employee.first_name).all()
-    
+
     return render_template('attendance/list.html',
                            attendance_records=attendance_records,
                            employees=employees,
                            date_filter=date_filter,
                            employee_filter=employee_filter)
-    
+
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])
 @require_login
@@ -2189,11 +2189,11 @@ def attendance_mark():
                 flash('Employee profile required for attendance marking',
                       'error')
                 return redirect(url_for('dashboard'))
-            
+
             # Get employee's timezone, default to UTC
             employee_tz_str = current_user.employee_profile.timezone or 'UTC'
             employee_tz = timezone(employee_tz_str)
-            
+
             # Get current time in UTC and employee's local date
             now_utc = datetime.now(utc)
             today = now_utc.astimezone(employee_tz).date()
@@ -2205,6 +2205,7 @@ def attendance_mark():
 
             action = request.form.get(
                 'action')  # clock_in, clock_out, break_start, break_end
+            timezone_str = request.form.get('timezone', 'UTC')
             current_time = now_utc.time()
 
             if action == 'clock_in':
@@ -2265,6 +2266,7 @@ def attendance_mark():
                     attendance.date = today
                     attendance.clock_in = current_time
                     attendance.status = 'Present'
+                    attendance.timezone = timezone_str
 
                     # Get location if provided
                     lat = request.form.get('latitude')
@@ -2278,6 +2280,9 @@ def attendance_mark():
                 else:
                     flash('Already clocked in for today', 'warning')
             elif existing:
+                # Update timezone for existing record
+                existing.timezone = timezone_str
+
                 # Update existing record
                 if action == 'clock_out':
                     existing.clock_out = current_time
@@ -2676,7 +2681,7 @@ def attendance_auto_create():
         flash(f'Error creating attendance records: {str(e)}', 'error')
 
     return redirect(url_for('attendance_bulk_manage'))
-    
+
 @app.route('/attendance')
 @require_login
 def attendance_calendar():
@@ -2699,8 +2704,8 @@ def attendance_calendar():
                 Employee.organization_id == current_user.employee_profile.organization_id,
                 Employee.is_active == True
             ).order_by(Employee.first_name).all()
-    
-    return render_template('attendance/calendar.html', 
+
+    return render_template('attendance/calendar.html',
                            employees=employees,
                            default_employee_id=default_employee_id)
 
@@ -2803,8 +2808,12 @@ def api_attendance_auto_create():
 
         return {
             'success': True,
-            'message': f'Created {created_count} attendance record(s).'
+            'message': f'Created {created_count} attendance records for {target_date}'
         }
+
     except Exception as e:
-        logging.error(f"Error creating attendance records: {e}")
-        return {'success': False, 'error': str(e)}, 500
+        logging.error(f"API attendance auto-create error: {str(e)}")
+        return {
+            'success': False,
+            'message': f'Error creating attendance records: {str(e)}'
+        }, 500
