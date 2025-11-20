@@ -1244,7 +1244,7 @@ def employee_edit(employee_id):
             if nric and not validate_nric(nric):
                 flash('Invalid NRIC format', 'error')
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1369,7 +1369,7 @@ def employee_edit(employee_id):
                 if not _allowed_image(file.filename):
                     flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
                     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1464,7 +1464,7 @@ def employee_edit(employee_id):
             flash(f'Error updating employee: {str(e)}', 'error')
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+            user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
             designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1488,7 +1488,7 @@ def employee_edit(employee_id):
 
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
