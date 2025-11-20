@@ -26,6 +26,14 @@ from utils import (export_to_csv, format_currency, format_date, parse_date,
                    mobile_optimized_pagination, get_current_month_dates, validate_phone_number)
 from constants import DEFAULT_USER_PASSWORD
 
+logger = logging.getLogger(__name__)
+
+def get_current_user_email():
+    """Get current user's email for audit fields"""
+    if current_user and current_user.is_authenticated:
+        return current_user.email
+    return 'system'
+
 # Helper to validate image extension
 def _allowed_image(filename: str) -> bool:
     if not filename or '.' not in filename:
@@ -1500,6 +1508,56 @@ def employee_edit(employee_id):
                            work_schedules=work_schedules,
                            companies=companies,
                            leave_groups=leave_groups)
+
+
+@app.route('/api/employees/<employee_id>', methods=['DELETE'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+def delete_employee(employee_id):
+    """Delete an employee via DELETE method"""
+    try:
+        employee = Employee.query.get_or_404(employee_id)
+        employee_name = f"{employee.first_name} {employee.last_name}"
+        employee_id_str = employee.employee_id
+
+        db.session.delete(employee)
+        db.session.commit()
+
+        logger.warning(f"Employee deleted: {employee_name} ({employee_id_str}) by {get_current_user_email()}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Employee {employee_name} deleted successfully'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting employee: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/employees/<int:employee_id>/delete', methods=['POST'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+def delete_employee_post(employee_id):
+    """Delete an employee via POST method (alternative endpoint)"""
+    try:
+        employee = Employee.query.get_or_404(employee_id)
+        employee_name = f"{employee.first_name} {employee.last_name}"
+        employee_id_str = employee.employee_id
+
+        db.session.delete(employee)
+        db.session.commit()
+
+        logger.warning(f"Employee deleted: {employee_name} ({employee_id_str}) by {get_current_user_email()}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Employee {employee_name} deleted successfully'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting employee: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # Payroll Management Routes
