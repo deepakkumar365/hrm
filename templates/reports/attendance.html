@@ -94,7 +94,7 @@
                                         <span>{{ record.employee.first_name }} {{ record.employee.last_name }}</span>
                                     </div>
                                 </td>
-                                <td>{{ record.employee.department.name if record.employee.department else 'N/A' }}</td>
+                                <td>{{ record.employee.department if record.employee.department else 'N/A' }}</td>
                                 <td>
                                     {% if record.clock_in %}
                                         <span class="badge bg-success">

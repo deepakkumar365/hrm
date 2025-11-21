@@ -352,6 +352,16 @@ def submit_ot_attendance(attendance_id):
             flash('Only Draft OT records can be submitted', 'warning')
             return redirect(url_for('mark_ot_attendance'))
         
+        # Check if OT has ot_type_id assigned
+        if not ot_attendance.ot_type_id:
+            flash('❌ Cannot submit: OT Type is not assigned. Please select an OT Type before submitting.', 'danger')
+            return redirect(url_for('mark_ot_attendance'))
+        
+        # Check if OT has hours assigned
+        if not ot_attendance.ot_hours or ot_attendance.ot_hours <= 0:
+            flash('❌ Cannot submit: OT Hours must be greater than 0. Please enter valid hours.', 'danger')
+            return redirect(url_for('mark_ot_attendance'))
+        
         # Check if employee has a manager assigned
         if not employee.manager_id:
             flash('❌ Cannot submit: No reporting manager assigned to your profile. Contact HR.', 'danger')
@@ -373,13 +383,19 @@ def submit_ot_attendance(attendance_id):
                 flash('⚠️  OT for this date already in approval workflow', 'warning')
                 return redirect(url_for('mark_ot_attendance'))
             
+            # Validate OT Type exists
+            ot_type = OTType.query.get(ot_attendance.ot_type_id)
+            if not ot_type:
+                flash('❌ Error: OT Type is invalid or no longer exists. Please select a valid OT Type.', 'danger')
+                return redirect(url_for('mark_ot_attendance'))
+            
             # Create OT Request with pending_manager status
             ot_request = OTRequest(
                 employee_id=employee.id,
                 company_id=employee.company_id,
                 ot_date=ot_attendance.ot_date,
                 ot_type_id=ot_attendance.ot_type_id,
-                requested_hours=ot_attendance.ot_hours or 0,
+                requested_hours=float(ot_attendance.ot_hours) if ot_attendance.ot_hours else 0,
                 reason=ot_attendance.notes or 'OT submitted for approval',
                 status='pending_manager',
                 created_by=current_user.username
@@ -407,10 +423,15 @@ def submit_ot_attendance(attendance_id):
             flash(f'✅ OT submitted to {manager_name} for approval. Hours: {ot_attendance.ot_hours}', 'success')
             return redirect(url_for('mark_ot_attendance'))
         
+        except ValueError as ve:
+            db.session.rollback()
+            logger.error(f"Value error submitting OT: {str(ve)}")
+            flash(f'❌ Invalid data format: {str(ve)}', 'danger')
+            return redirect(url_for('mark_ot_attendance'))
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Error submitting OT: {str(e)}")
-            flash(f'Error submitting OT: {str(e)}', 'danger')
+            logger.error(f"Error submitting OT: {str(e)}", exc_info=True)
+            flash(f'❌ Error submitting OT. Please contact support.', 'danger')
             return redirect(url_for('mark_ot_attendance'))
     
     except Exception as e:

@@ -1395,7 +1395,7 @@ class OTDailySummary(db.Model):
 
     employee = db.relationship('Employee', foreign_keys=[employee_id])
     company = db.relationship('Company', foreign_keys=[company_id])
-    ot_request = db.relationship('OTRequest', foreign_keys=[ot_request_id])
+    ot_request = db.relationship('OTRequest', foreign_keys=[ot_request_id], overlaps="ot_daily_summary")
     
     def calculate_totals(self):
         """Calculate total allowances and grand total"""

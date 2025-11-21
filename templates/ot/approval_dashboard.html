@@ -12,32 +12,29 @@
         font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif !important;
     }
 
+    /* Compact Horizontal Layout */
     .approval-card {
         background: linear-gradient(135deg, #008080 0%, #009999 100%);
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 12px rgba(0,128,128,0.15);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+        box-shadow: 0 2px 6px rgba(0,128,128,0.12);
         border: none;
         color: white;
-        width: 20%;
-        min-width: 300px;
-        display: inline-block;
-        vertical-align: top;
-        margin-right: 15px;
+        width: 100%;
         transition: all 0.3s ease;
         animation: slideInUp 0.5s ease-out;
     }
 
     .approval-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0,128,128,0.25);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,128,128,0.2);
     }
 
     @keyframes slideInUp {
         from {
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(10px);
         }
         to {
             opacity: 1;
@@ -46,18 +43,19 @@
     }
     
     .approval-header {
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 40px 1fr 100px 100px 90px 80px 80px 60px;
         align-items: center;
-        margin-bottom: 10px;
-        border-bottom: 1px solid rgba(255,255,255,0.2);
-        padding-bottom: 10px;
+        gap: 12px;
+        padding: 0;
+        border: none;
+        margin-bottom: 0;
     }
 
     .employee-info {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
     }
 
     .employee-details {
@@ -67,22 +65,28 @@
 
     .employee-name {
         font-weight: 700;
-        font-size: 14px;
+        font-size: 13px;
         margin: 0;
         color: white;
     }
 
     .employee-meta {
-        font-size: 11px;
+        font-size: 10px;
         color: rgba(255,255,255,0.8);
         margin: 0;
     }
     
     .approval-content {
-        display: grid;
+        display: none;
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         gap: 10px;
-        margin-bottom: 15px;
+        margin: 12px 0;
+        padding: 12px 0;
+        border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .approval-content.expanded {
+        display: grid;
     }
 
     .info-item {
@@ -91,40 +95,54 @@
     }
 
     .info-label {
-        font-size: 10px;
+        font-size: 9px;
         color: rgba(255,255,255,0.7);
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
     }
 
     .info-value {
         font-weight: 600;
-        font-size: 13px;
+        font-size: 12px;
         color: white;
     }
     
     .action-buttons {
-        display: flex;
-        gap: 8px;
+        display: none;
+        gap: 6px;
         flex-wrap: wrap;
-        margin-bottom: 10px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .action-buttons.expanded {
+        display: flex;
     }
 
     .action-form {
-        margin-bottom: 10px;
+        display: none;
+    }
+
+    .action-form.expanded {
+        display: block;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.2);
     }
 
     .action-form textarea {
-        font-size: 12px;
-        border-radius: 6px;
+        font-size: 11px;
+        border-radius: 4px;
         background: rgba(255,255,255,0.1);
         border: 1px solid rgba(255,255,255,0.3);
         color: white;
+        margin-bottom: 8px;
     }
 
     .action-form input {
-        border-radius: 6px;
+        border-radius: 4px;
         background: rgba(255,255,255,0.1);
         border: 1px solid rgba(255,255,255,0.3);
         color: white;
@@ -136,6 +154,46 @@
 
     .action-form textarea::placeholder {
         color: rgba(255,255,255,0.6);
+    }
+
+    .expand-btn {
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.4);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .expand-btn:hover {
+        background: rgba(255,255,255,0.3);
+    }
+
+    .quick-info {
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .allowance-section {
+        display: none;
+        background: rgba(255,255,255,0.1);
+        border-radius: 6px;
+        padding: 10px;
+        border: 1px solid rgba(255,255,255,0.2);
+        margin-top: 12px;
+    }
+
+    .allowance-section.expanded {
+        display: block;
+    }
+
+    .allowance-section h6 {
+        font-size: 12px;
+        margin-bottom: 8px;
     }
     
     .no-requests {
@@ -153,6 +211,13 @@
 
 {% block content %}
 <div class="container-fluid py-4">
+    <!-- DEBUG INFO - TEMPORARY -->
+    <div style="background: #f0f0f0; padding: 10px; margin-bottom: 20px; border-radius: 4px; display: none;">
+        <p><strong>DEBUG:</strong> pending_approvals type = {{ pending_approvals.__class__.__name__ }}</p>
+        <p><strong>DEBUG:</strong> pending_approvals.items length = {{ pending_approvals.items|length }}</p>
+        <p><strong>DEBUG:</strong> pending_approvals.total = {{ pending_approvals.total }}</p>
+    </div>
+    
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -188,144 +253,178 @@
 
     <!-- Pending Approvals -->
     {% if pending_approvals.items %}
-        <div class="cards-container" style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px;">
+        <div style="display: block; margin-bottom: 30px;">
         {% for approval in pending_approvals.items %}
-        <div class="approval-card">
-            <!-- Card Header -->
+        <div class="approval-card" id="card_{{ approval.id }}">
+            <!-- Compact Header Row -->
             <div class="approval-header">
-                <div class="employee-info">
-                    <div class="avatar-placeholder" style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 20px;">
+                <!-- Avatar -->
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <div class="avatar-placeholder" style="width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; font-size: 14px; flex-shrink: 0;">
                         {{ approval.ot_request.employee.first_name[0] if approval.ot_request.employee.first_name else 'E' }}
                     </div>
-                    <div class="employee-details">
-                        <p class="employee-name">{{ approval.ot_request.employee.first_name }} {{ approval.ot_request.employee.last_name }}</p>
-                        <p class="employee-meta">ID: {{ approval.ot_request.employee.employee_id or 'N/A' }} | Dept: {{ approval.ot_request.employee.department.name if approval.ot_request.employee.department else 'N/A' }}</p>
+                </div>
+
+                <!-- Employee Name & ID -->
+                <div class="employee-details">
+                    <p class="employee-name">{{ approval.ot_request.employee.first_name }} {{ approval.ot_request.employee.last_name }}</p>
+                    <p class="employee-meta">{{ approval.ot_request.employee.employee_id or 'N/A' }}</p>
+                </div>
+
+                <!-- Hours -->
+                <div class="quick-info">
+                    <strong>{{ approval.ot_request.requested_hours or 0 }}h</strong>
+                </div>
+
+                <!-- OT Type -->
+                <div class="quick-info" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else 'General' }}
+                </div>
+
+                <!-- OT Date -->
+                <div class="quick-info">
+                    {{ approval.ot_request.ot_date.strftime('%d %b') if approval.ot_request.ot_date else '-' }}
+                </div>
+
+                <!-- Department -->
+                <div class="quick-info" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    {{ approval.ot_request.employee.department[0:8] if approval.ot_request.employee.department else 'N/A' }}
+                </div>
+
+                <!-- Status Badge -->
+                <div>
+                    <span class="badge" style="background: rgba(245,158,11,0.8); color: white; font-size: 9px; padding: 3px 6px; border-radius: 3px; white-space: nowrap;">Pending</span>
+                </div>
+
+                <!-- Expand Button -->
+                <button type="button" class="expand-btn" onclick="toggleExpand(event, '{{ approval.id }}')">
+                    <i class="fas fa-chevron-down"></i> Expand
+                </button>
+            </div>
+
+            <!-- Expanded Details (Hidden by Default) -->
+            <div class="expanded-content" id="expanded_{{ approval.id }}" style="display: none;">
+                
+                <!-- Approval Details -->
+                <div class="approval-content" style="grid-template-columns: repeat(3, 1fr); margin-top: 12px;">
+                    <div class="info-item">
+                        <span class="info-label">Hours Requested</span>
+                        <span class="info-value">{{ approval.ot_request.requested_hours or 0 }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">OT Type</span>
+                        <span class="info-value">{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else 'General' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Requested Date</span>
+                        <span class="info-value">{{ approval.ot_request.ot_date.strftime('%d %b %Y') if approval.ot_request.ot_date else '-' }}</span>
                     </div>
                 </div>
-                <div>
-                    <span class="badge" style="background: rgba(245,158,11,0.8); color: white; font-size: 10px; padding: 4px 8px; border-radius: 4px;">Pending Review</span>
-                </div>
-            </div>
 
-            <!-- Approval Details -->
-            <div class="approval-content">
-                <div class="info-item">
-                    <span class="info-label">Hours Requested</span>
-                    <span class="info-value">{{ approval.ot_request.requested_hours or 0 }}</span>
+                <!-- Reason -->
+                {% if approval.ot_request.reason %}
+                <div style="border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px; margin-top: 10px; font-size: 11px;">
+                    <strong>Reason:</strong> {{ approval.ot_request.reason }}
                 </div>
-                <div class="info-item">
-                    <span class="info-label">OT Type</span>
-                    <span class="info-value">{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else 'General' }}</span>
+                {% endif %}
+
+                <!-- Approval Comments History -->
+                {% if approval.comments %}
+                <div style="border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px; margin-top: 8px; font-size: 11px;">
+                    <strong>Previous Comments:</strong> {{ approval.comments }}
                 </div>
-                <div class="info-item">
-                    <span class="info-label">Requested On</span>
-                    <span class="info-value">{{ approval.ot_request.ot_date.strftime('%d %b %Y') if approval.ot_request.ot_date else '-' }}</span>
-                </div>
-            </div>
+                {% endif %}
 
-            <!-- Reason -->
-            {% if approval.ot_request.reason %}
-            <div class="alert alert-info mb-3" style="border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-                <strong style="color: rgba(255,255,255,0.9);">Reason:</strong> {{ approval.ot_request.reason }}
-            </div>
-            {% endif %}
-
-            <!-- Approval Comments History -->
-            {% if approval.comments %}
-            <div class="alert alert-warning mb-3" style="border-radius: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;">
-                <strong style="color: rgba(255,255,255,0.9);">Previous Comments:</strong> {{ approval.comments }}
-            </div>
-            {% endif %}
-
-            <!-- Allowance Fields -->
-            <div class="allowance-section mb-3" style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; border: 1px solid rgba(255,255,255,0.2);">
-                <h6 style="color: white; margin-bottom: 10px; font-weight: 600; font-size: 13px;">
+                <!-- Allowance Fields -->
+            <div class="allowance-section" style="background: rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; border: 1px solid rgba(255,255,255,0.2); margin-top: 10px;">
+                <h6 style="color: white; margin-bottom: 8px; font-weight: 600; font-size: 12px;">
                     <i class="fas fa-money-bill-wave"></i> OT Allowances
                 </h6>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 6px;">
                     <div class="allowance-field">
-                        <label for="kd_and_claim_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">KD & Claim</label>
-                        <input type="number" class="form-control form-control-sm" id="kd_and_claim_{{ approval.id }}" name="kd_and_claim" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.kd_and_claim if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="kd_and_claim_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">KD & Claim</label>
+                        <input type="number" class="form-control form-control-sm" id="kd_and_claim_{{ approval.id }}" name="kd_and_claim" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.kd_and_claim if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="trips_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">Trips</label>
-                        <input type="number" class="form-control form-control-sm" id="trips_{{ approval.id }}" name="trips" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.trips if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="trips_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">Trips</label>
+                        <input type="number" class="form-control form-control-sm" id="trips_{{ approval.id }}" name="trips" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.trips if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="sinpost_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">Sinpost</label>
-                        <input type="number" class="form-control form-control-sm" id="sinpost_{{ approval.id }}" name="sinpost" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sinpost if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="sinpost_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">Sinpost</label>
+                        <input type="number" class="form-control form-control-sm" id="sinpost_{{ approval.id }}" name="sinpost" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sinpost if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="sandstone_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">Sandstone</label>
-                        <input type="number" class="form-control form-control-sm" id="sandstone_{{ approval.id }}" name="sandstone" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sandstone if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="sandstone_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">Sandstone</label>
+                        <input type="number" class="form-control form-control-sm" id="sandstone_{{ approval.id }}" name="sandstone" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sandstone if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="spx_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">SPX</label>
-                        <input type="number" class="form-control form-control-sm" id="spx_{{ approval.id }}" name="spx" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.spx if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="spx_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">SPX</label>
+                        <input type="number" class="form-control form-control-sm" id="spx_{{ approval.id }}" name="spx" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.spx if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="psle_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">PSLE</label>
-                        <input type="number" class="form-control form-control-sm" id="psle_{{ approval.id }}" name="psle" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.psle if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="psle_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">PSLE</label>
+                        <input type="number" class="form-control form-control-sm" id="psle_{{ approval.id }}" name="psle" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.psle if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="manpower_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">Manpower</label>
-                        <input type="number" class="form-control form-control-sm" id="manpower_{{ approval.id }}" name="manpower" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.manpower if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="manpower_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">Manpower</label>
+                        <input type="number" class="form-control form-control-sm" id="manpower_{{ approval.id }}" name="manpower" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.manpower if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="stacking_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">Stacking</label>
-                        <input type="number" class="form-control form-control-sm" id="stacking_{{ approval.id }}" name="stacking" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.stacking if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="stacking_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">Stacking</label>
+                        <input type="number" class="form-control form-control-sm" id="stacking_{{ approval.id }}" name="stacking" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.stacking if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="dispose_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">Dispose</label>
-                        <input type="number" class="form-control form-control-sm" id="dispose_{{ approval.id }}" name="dispose" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.dispose if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="dispose_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">Dispose</label>
+                        <input type="number" class="form-control form-control-sm" id="dispose_{{ approval.id }}" name="dispose" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.dispose if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="night_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">Night</label>
-                        <input type="number" class="form-control form-control-sm" id="night_{{ approval.id }}" name="night" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.night if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="night_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">Night</label>
+                        <input type="number" class="form-control form-control-sm" id="night_{{ approval.id }}" name="night" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.night if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="ph_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">PH</label>
-                        <input type="number" class="form-control form-control-sm" id="ph_{{ approval.id }}" name="ph" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.ph if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="ph_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">PH</label>
+                        <input type="number" class="form-control form-control-sm" id="ph_{{ approval.id }}" name="ph" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.ph if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                     <div class="allowance-field">
-                        <label for="sun_{{ approval.id }}" style="font-weight: 500; font-size: 11px; color: white; margin-bottom: 3px; display: block;">Sun</label>
-                        <input type="number" class="form-control form-control-sm" id="sun_{{ approval.id }}" name="sun" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sun if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        <label for="sun_{{ approval.id }}" style="font-weight: 500; font-size: 10px; color: white; margin-bottom: 2px; display: block;">Sun</label>
+                        <input type="number" class="form-control form-control-sm" id="sun_{{ approval.id }}" name="sun" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sun if approval.ot_request.ot_daily_summary else 0 }}" style="font-size: 10px; padding: 3px 4px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333; height: 28px;">
                     </div>
                 </div>
             </div>
 
-            <!-- Approval Form -->
-            <form method="POST" action="{{ url_for('ot_approval') }}" class="action-form">
-                <input type="hidden" name="ot_request_id" value="{{ approval.ot_request.id }}">
-                <input type="hidden" name="action" id="action_{{ approval.id }}" value="">
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="comments_{{ approval.id }}" style="color: white; font-size: 12px; font-weight: 500; margin-bottom: 5px; display: block;">Comments</label>
-                        <textarea class="form-control" id="comments_{{ approval.id }}" name="comments" rows="3" placeholder="Add comments..." style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;"></textarea>
+                <!-- Approval Form (Shown Only When Expanded) -->
+                <form method="POST" action="{{ url_for('ot_approval') }}" class="action-form" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2);">
+                    <input type="hidden" name="ot_request_id" value="{{ approval.ot_request.id }}">
+                    <input type="hidden" name="action" id="action_{{ approval.id }}" value="">
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <div>
+                            <label for="comments_{{ approval.id }}" style="color: white; font-size: 11px; font-weight: 500; margin-bottom: 3px; display: block;">Comments</label>
+                            <textarea class="form-control" id="comments_{{ approval.id }}" name="comments" rows="2" placeholder="Add comments..." style="font-size: 11px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;"></textarea>
+                        </div>
+                        <div>
+                            <label for="modified_hours_{{ approval.id }}" style="color: white; font-size: 11px; font-weight: 500; margin-bottom: 3px; display: block;">Modified Hours (Optional)</label>
+                            <input type="number" class="form-control" id="modified_hours_{{ approval.id }}" name="modified_hours"
+                                   step="0.5" min="0" placeholder="Leave empty to keep original" style="font-size: 11px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label for="modified_hours_{{ approval.id }}" style="color: white; font-size: 12px; font-weight: 500; margin-bottom: 5px; display: block;">Modified Hours (Optional)</label>
-                        <input type="number" class="form-control" id="modified_hours_{{ approval.id }}" name="modified_hours"
-                               step="0.5" min="0" placeholder="Leave empty to keep original" style="font-size: 12px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.3); color: #333;">
-                    </div>
-                </div>
 
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-sm" onclick="submitAction(event, 'approve', '{{ approval.id }}')" style="background: #10b981; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px;">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                    <button type="submit" class="btn btn-sm" onclick="submitAction(event, 'reject', '{{ approval.id }}')" style="background: #ef4444; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px;">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                    {% if approval.ot_request.requested_hours %}
-                    <button type="button" class="btn btn-sm" onclick="toggleModify('{{ approval.id }}')" style="background: #f59e0b; border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px;">
-                        <i class="fas fa-edit"></i> Modify Hours
-                    </button>
-                    {% endif %}
-                </div>
-            </form>
-        </div>
+                    <div class="action-buttons" style="gap: 6px; flex-wrap: wrap;">
+                        <button type="submit" class="btn btn-sm" onclick="submitAction(event, 'approve', '{{ approval.id }}')" style="background: #10b981; border: none; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px;">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button type="submit" class="btn btn-sm" onclick="submitAction(event, 'reject', '{{ approval.id }}')" style="background: #ef4444; border: none; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px;">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                        {% if approval.ot_request.requested_hours %}
+                        <button type="button" class="btn btn-sm" onclick="toggleModify('{{ approval.id }}')" style="background: #f59e0b; border: none; color: white; padding: 5px 10px; border-radius: 4px; font-size: 11px;">
+                            <i class="fas fa-edit"></i> Modify Hours
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>  <!-- Close expanded-content -->
+        </div>  <!-- Close approval-card -->
         {% endfor %}
         </div>
 
@@ -416,6 +515,52 @@ function toggleModify(approvalId) {
         field.focus();
     } else {
         field.disabled = true;
+    }
+}
+
+// Toggle expand/collapse for OT approval cards
+function toggleExpand(event, approvalId) {
+    event.preventDefault();
+    const expandedContent = document.getElementById('expanded_' + approvalId);
+    const expandBtn = event.target.closest('.expand-btn');
+    const card = document.getElementById('card_' + approvalId);
+    
+    if (expandedContent.style.display === 'none' || expandedContent.style.display === '') {
+        // Expand
+        expandedContent.style.display = 'block';
+        expandBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Collapse';
+        card.style.boxShadow = '0 8px 20px rgba(0,128,128,0.25)';
+        
+        // Also show all child elements that should be visible when expanded
+        const approvalContent = expandedContent.querySelector('.approval-content');
+        if (approvalContent) approvalContent.classList.add('expanded');
+        
+        const allowanceSection = expandedContent.querySelector('.allowance-section');
+        if (allowanceSection) allowanceSection.classList.add('expanded');
+        
+        const actionForm = expandedContent.querySelector('.action-form');
+        if (actionForm) actionForm.classList.add('expanded');
+        
+        const actionButtons = expandedContent.querySelector('.action-buttons');
+        if (actionButtons) actionButtons.classList.add('expanded');
+    } else {
+        // Collapse
+        expandedContent.style.display = 'none';
+        expandBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Expand';
+        card.style.boxShadow = '0 2px 6px rgba(0,128,128,0.12)';
+        
+        // Remove expanded classes
+        const approvalContent = expandedContent.querySelector('.approval-content');
+        if (approvalContent) approvalContent.classList.remove('expanded');
+        
+        const allowanceSection = expandedContent.querySelector('.allowance-section');
+        if (allowanceSection) allowanceSection.classList.remove('expanded');
+        
+        const actionForm = expandedContent.querySelector('.action-form');
+        if (actionForm) actionForm.classList.remove('expanded');
+        
+        const actionButtons = expandedContent.querySelector('.action-buttons');
+        if (actionButtons) actionButtons.classList.remove('expanded');
     }
 }
 </script>

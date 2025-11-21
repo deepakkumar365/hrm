@@ -178,7 +178,7 @@
                     </div>
                     <div class="employee-details">
                         <p class="employee-name">{{ approval.ot_request.employee.first_name }} {{ approval.ot_request.employee.last_name }}</p>
-                        <p class="employee-meta">ID: {{ approval.ot_request.employee.employee_id or 'N/A' }} | Dept: {{ approval.ot_request.employee.department.name if approval.ot_request.employee.department else 'N/A' }}</p>
+                        <p class="employee-meta">ID: {{ approval.ot_request.employee.employee_id or 'N/A' }} | Dept: {{ approval.ot_request.employee.department if approval.ot_request.employee.department else 'N/A' }}</p>
                     </div>
                 </div>
                 <div>

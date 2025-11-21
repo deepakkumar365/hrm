@@ -212,6 +212,15 @@
         overflow: hidden;
     }
 
+    /* Right sidebar for stacking cards */
+    .right-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
     @media (max-width: 1024px) {
         .content-wrapper {
             grid-template-columns: 1fr;
@@ -831,7 +840,7 @@
                 </div>
                 <div class="info-item">
                     <span class="info-label">Department</span>
-                    <span class="info-value">{{ employee.department.name if employee.department else 'N/A' }}</span>
+                    <span class="info-value">{{ employee.department if employee.department else 'N/A' }}</span>
                 </div>
             </div>
         </div>
@@ -1000,17 +1009,69 @@
             </form>
         </div>
 
-        <!-- Daily Activity Timeline Card -->
-        <div class="timeline-card">
-            <div class="timeline-title">
-                <i class="fas fa-clock"></i>
-                Today's Activity
+        <!-- Right Sidebar (Timeline + Recent OT Records) -->
+        <div class="right-sidebar">
+            <!-- Daily Activity Timeline Card -->
+            <div class="timeline-card">
+                <div class="timeline-title">
+                    <i class="fas fa-clock"></i>
+                    Today's Activity
+                </div>
+                <div class="timeline-list" id="timelineList">
+                    <!-- Timeline items will be populated by JavaScript -->
+                    <div class="no-activity" id="noActivityPlaceholder" style="padding: 1rem;">
+                        <i class="fas fa-inbox" style="font-size: 1.5rem; opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i>
+                        <p>No activity recorded today</p>
+                    </div>
+                </div>
             </div>
-            <div class="timeline-list" id="timelineList">
-                <!-- Timeline items will be populated by JavaScript -->
-                <div class="no-activity" id="noActivityPlaceholder" style="padding: 1rem;">
-                    <i class="fas fa-inbox" style="font-size: 1.5rem; opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i>
-                    <p>No activity recorded today</p>
+
+            <!-- Recent OT Records Card -->
+            <div class="timeline-card">
+                <div class="timeline-title">
+                    <i class="fas fa-file-invoice"></i>
+                    Recent OT Records
+                </div>
+                <div class="timeline-list" id="recentOtsList">
+                    {% if recent_ots %}
+                        {% for ot in recent_ots %}
+                        <div class="ot-record-item" style="padding: 0.8rem; border-bottom: 1px solid #e8eef5; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 0.8rem; color: #2c3e50;">
+                                    {{ ot.ot_date.strftime('%d %b %Y') if ot.ot_date else 'N/A' }}
+                                </div>
+                                <div style="font-size: 0.7rem; color: #999; margin-top: 0.2rem;">
+                                    {{ ot.ot_hours or 0 }} hrs - {{ ot.ot_type.name if ot.ot_type else 'General' }}
+                                </div>
+                                <div style="font-size: 0.65rem; color: #999; margin-top: 0.2rem;">
+                                    {% if ot.status == 'Draft' %}
+                                        <span style="background: #fef3c7; color: #92400e; padding: 0.2rem 0.6rem; border-radius: 12px; font-weight: 600;">Draft</span>
+                                    {% elif ot.status == 'Submitted' %}
+                                        <span style="background: #dbeafe; color: #1e40af; padding: 0.2rem 0.6rem; border-radius: 12px; font-weight: 600;">Submitted</span>
+                                    {% elif ot.status == 'Approved' %}
+                                        <span style="background: #d1fae5; color: #065f46; padding: 0.2rem 0.6rem; border-radius: 12px; font-weight: 600;">Approved</span>
+                                    {% elif ot.status == 'Rejected' %}
+                                        <span style="background: #fee2e2; color: #7f1d1d; padding: 0.2rem 0.6rem; border-radius: 12px; font-weight: 600;">Rejected</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem;">
+                                {% if ot.status == 'Draft' %}
+                                    <button type="button" class="btn btn-sm btn-success" 
+                                            onclick="submitOT({{ ot.id }}, '{{ ot.ot_date.strftime('%d %b %Y') if ot.ot_date else 'N/A' }}')"
+                                            style="padding: 0.35rem 0.6rem; font-size: 0.7rem;">
+                                        <i class="fas fa-paper-plane"></i> Submit
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="no-activity" style="padding: 1rem; text-align: center;">
+                        <i class="fas fa-inbox" style="font-size: 1.5rem; opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i>
+                        <p style="font-size: 0.8rem; color: #999;">No OT records yet</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -1018,6 +1079,67 @@
 </div>
 
 <script>
+    // Submit OT Attendance with proper error handling
+    function submitOT(attendanceId, recordDate) {
+        if (!confirm(`Submit OT record for ${recordDate} to your reporting manager for approval?`)) {
+            return;
+        }
+        
+        // Show loading spinner
+        const submitBtn = event.target;
+        const originalText = submitBtn.textContent;
+        const originalDisabled = submitBtn.disabled;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        
+        // Use Fetch API with timeout handling
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        fetch(`/ot/submit/${attendanceId}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            signal: controller.signal,
+            headers: {
+                'Accept': 'text/html'
+            },
+            redirect: 'follow'  // Important: Follow redirect responses
+        })
+        .then(response => {
+            clearTimeout(timeoutId);
+            
+            // After following redirect, reload page to show flash messages
+            // The backend will redirect to /ot/mark with flash message
+            if (response.ok) {
+                // Small delay to ensure database commit is complete
+                setTimeout(() => {
+                    window.location.href = '/ot/mark';
+                }, 500);
+                return;
+            }
+            
+            // Handle errors
+            return response.text().then(text => {
+                throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+            });
+        })
+        .catch(error => {
+            clearTimeout(timeoutId);
+            console.error('Error submitting OT:', error);
+            
+            // Restore button
+            submitBtn.disabled = originalDisabled;
+            submitBtn.textContent = originalText;
+            
+            // Show error to user
+            if (error.name === 'AbortError') {
+                alert('❌ Request timed out. The server took too long to respond. Please try again.');
+            } else {
+                alert(`❌ Error submitting OT:\n\n${error.message}\n\nPlease check the browser console for details.`);
+            }
+        });
+    }
+
     // Timezone mapping for display
     const timezoneMap = {
         'UTC': { offset: 0, display: 'UTC' },

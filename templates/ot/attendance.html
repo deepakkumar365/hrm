@@ -56,6 +56,15 @@
         font-size: 12px;
         font-weight: 600;
     }
+    
+    .badge-submitted {
+        background-color: #3b82f6;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
 </style>
 {% endblock %}
 
@@ -143,6 +152,8 @@
                                 <span class="badge-approved">Approved</span>
                             {% elif record.status == 'Draft' %}
                                 <span class="badge-pending">Draft</span>
+                            {% elif record.status == 'Submitted' %}
+                                <span class="badge-submitted">Submitted</span>
                             {% elif record.status == 'Rejected' %}
                                 <span class="badge-rejected">Rejected</span>
                             {% else %}
@@ -150,10 +161,19 @@
                             {% endif %}
                         </td>
                         <td style="text-align: center;">
-                            <a href="javascript:void(0);" class="btn btn-sm btn-outline-primary" 
-                               onclick="viewDetails({{ record.id }})">
-                                <i class="fas fa-eye"></i>
-                            </a>
+                            {% if record.status == 'Draft' %}
+                                <button type="button" class="btn btn-sm btn-success" 
+                                        onclick="submitOT({{ record.id }}, '{{ record.employee.first_name }} {{ record.employee.last_name }}')"
+                                        title="Submit for Manager Approval">
+                                    <i class="fas fa-paper-plane"></i> Submit
+                                </button>
+                            {% else %}
+                                <a href="javascript:void(0);" class="btn btn-sm btn-outline-primary" 
+                                   onclick="viewDetails({{ record.id }})"
+                                   title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -208,10 +228,21 @@
 </div>
 
 <script>
+function submitOT(attendanceId, employeeName) {
+    // Confirm before submitting
+    if (confirm(`Submit OT for "${employeeName}" to reporting manager for approval?`)) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/ot/submit/${attendanceId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
 function viewDetails(attendanceId) {
     // You can implement a modal or redirect to a detail view
     console.log('View details for attendance:', attendanceId);
-    // For now, just show an alert
     alert('Attendance ID: ' + attendanceId);
 }
 </script>

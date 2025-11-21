@@ -214,7 +214,7 @@
                                         {{ leave.employee.first_name }} {{ leave.employee.last_name }}
                                     </div>
                                     <div class="text-muted small">
-                                        {{ leave.employee.department.name if leave.employee.department else 'No Department' }}
+                                        {{ leave.employee.department if leave.employee.department else 'No Department' }}
                                     </div>
                                     <div class="mt-2">
                                         <span class="badge bg-info">{{ leave.leave_type }}</span>
