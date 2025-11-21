@@ -26,7 +26,7 @@ class User(db.Model, UserMixin):
     must_reset_password = db.Column(db.Boolean, default=True, nullable=False)
 
     organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('hrm_roles.id'), nullable=False)
     reporting_manager_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -755,10 +755,10 @@ class Organization(db.Model):
 
 
 class Role(db.Model):
-    __tablename__ = 'role'
+    __tablename__ = 'hrm_roles'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)
-    description = db.Column(db.String(255))
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -853,7 +853,7 @@ class UserRoleMapping(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='CASCADE'), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id', ondelete='CASCADE'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('hrm_roles.id', ondelete='CASCADE'), nullable=False)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
