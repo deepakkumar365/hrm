@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}Leave Details - HR Manager Dashboard{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --primary: #4f46e5;
+        --primary-dark: #4338ca;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --pending: #8b5cf6;
+    }
+
+    .detail-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .detail-header {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .detail-title {
+        font-size: 26px;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .detail-title i {
+        color: var(--primary);
+        font-size: 30px;
+    }
+
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+        background: var(--primary-dark);
+        gap: 12px;
+    }
+
+    /* Summary Cards */
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .summary-card {
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        border-left: 4px solid var(--primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .summary-card-label {
+        font-size: 12px;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .summary-card-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .summary-card.success { border-left-color: var(--success); }
+    .summary-card.danger { border-left-color: var(--danger); }
+    .summary-card.pending { border-left-color: var(--pending); }
+
+    /* Filters Section */
+    .filters-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+    }
+
+    .filters-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .filter-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .filter-group input,
+    .filter-group select {
+        padding: 8px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .filter-button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        align-self: flex-end;
+        margin-top: 24px;
+    }
+
+    .filter-button:hover {
+        background: var(--primary-dark);
+    }
+
+    /* Table Section */
+    .table-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .leave-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .leave-table thead {
+        background: #f3f4f6;
+    }
+
+    .leave-table th {
+        padding: 16px 12px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 700;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .leave-table td {
+        padding: 16px 12px;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .leave-table tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    .employee-name {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge.approved {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.pending {
+        background: #ede9fe;
+        color: #5b21b6;
+    }
+
+    .status-badge.rejected {
+        background: #fee2e2;
+        color: #7f1d1d;
+    }
+
+    .date-range {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 40px;
+    }
+
+    .empty-state-icon {
+        font-size: 64px;
+        color: #d1d5db;
+        margin-bottom: 16px;
+    }
+
+    .empty-state-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .empty-state-text {
+        color: #9ca3af;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <!-- Header -->
+    <div class="detail-header">
+        <div class="detail-title">
+            <i class="fas fa-calendar-check"></i>
+            Leave Details
+        </div>
+        <a href="/dashboard/hr-manager?company_id={{ company_id }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card success">
+            <div class="summary-card-label">Total Leaves</div>
+            <div class="summary-card-value">{{ summary.total }}</div>
+        </div>
+        <div class="summary-card success">
+            <div class="summary-card-label">Approved</div>
+            <div class="summary-card-value" style="color: var(--success);">{{ summary.approved }}</div>
+        </div>
+        <div class="summary-card pending">
+            <div class="summary-card-label">Pending</div>
+            <div class="summary-card-value" style="color: var(--pending);">{{ summary.pending }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-label">Rejected</div>
+            <div class="summary-card-value" style="color: var(--danger);">{{ summary.rejected }}</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filters-title">
+            <i class="fas fa-filter"></i>
+            Filters & Sorting
+        </div>
+        <form method="GET" class="filters-form">
+            <input type="hidden" name="company_id" value="{{ company_id }}">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select name="status">
+                        <option value="All" {% if filter_status == 'All' %}selected{% endif %}>All Status</option>
+                        <option value="Approved" {% if filter_status == 'Approved' %}selected{% endif %}>Approved</option>
+                        <option value="Pending" {% if filter_status == 'Pending' %}selected{% endif %}>Pending</option>
+                        <option value="Rejected" {% if filter_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Department:</label>
+                    <select name="department">
+                        <option value="All">All Departments</option>
+                        {% for dept in departments %}
+                            <option value="{{ dept }}" {% if filter_department == dept %}selected{% endif %}>{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Leave Type:</label>
+                    <select name="leave_type">
+                        <option value="All">All Types</option>
+                        {% for leave_type in leave_types %}
+                            <option value="{{ leave_type }}" {% if filter_leave_type == leave_type %}selected{% endif %}>{{ leave_type }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Sort By:</label>
+                    <select name="sort">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                        <option value="start_date" {% if sort_by == 'start_date' %}selected{% endif %}>Start Date</option>
+                        <option value="department" {% if sort_by == 'department' %}selected{% endif %}>Department</option>
+                    </select>
+                </div>
+                <button type="submit" class="filter-button">
+                    <i class="fas fa-search"></i> Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="table-section">
+        {% if leave_records %}
+            <div class="table-wrapper">
+                <table class="leave-table">
+                    <thead>
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>Employee ID</th>
+                            <th>Department</th>
+                            <th>Leave Type</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for leave, employee, leave_type, emp_name in leave_records %}
+                            <tr>
+                                <td class="employee-name">{{ employee.first_name }} {{ employee.last_name }}</td>
+                                <td>{{ employee.employee_id }}</td>
+                                <td>{{ employee.department or 'N/A' }}</td>
+                                <td>
+                                    <span style="font-weight: 600; color: #111827;">{{ leave_type.name }}</span>
+                                </td>
+                                <td class="date-range">{{ leave.start_date.strftime('%Y-%m-%d') }}</td>
+                                <td class="date-range">{{ leave.end_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% set days = (leave.end_date - leave.start_date).days + 1 %}
+                                    <span style="font-weight: 600;">{{ days }} day{{ 's' if days != 1 else '' }}</span>
+                                </td>
+                                <td>
+                                    <span class="status-badge {{ leave.status.lower() }}">
+                                        {{ leave.status }}
+                                    </span>
+                                </td>
+                                <td>{{ leave.reason or '-' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <div class="empty-state-title">No Leave Records</div>
+                <div class="empty-state-text">No leave records found for the selected filters.</div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

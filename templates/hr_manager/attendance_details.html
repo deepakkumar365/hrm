@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Details - HR Manager Dashboard{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --primary: #4f46e5;
+        --primary-dark: #4338ca;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+    }
+
+    .detail-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .detail-header {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .detail-title {
+        font-size: 26px;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .detail-title i {
+        color: var(--primary);
+        font-size: 30px;
+    }
+
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+        background: var(--primary-dark);
+        gap: 12px;
+    }
+
+    /* Summary Cards */
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .summary-card {
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        border-left: 4px solid var(--primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .summary-card-label {
+        font-size: 12px;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+
+    .summary-card-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .summary-card.success { border-left-color: var(--success); }
+    .summary-card.danger { border-left-color: var(--danger); }
+    .summary-card.warning { border-left-color: var(--warning); }
+
+    /* Filters Section */
+    .filters-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+    }
+
+    .filters-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .filter-group label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .filter-group input,
+    .filter-group select {
+        padding: 8px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .filter-button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        align-self: flex-end;
+        margin-top: 24px;
+    }
+
+    .filter-button:hover {
+        background: var(--primary-dark);
+    }
+
+    /* Table Section */
+    .table-section {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .attendance-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .attendance-table thead {
+        background: #f3f4f6;
+    }
+
+    .attendance-table th {
+        padding: 16px 12px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 700;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s;
+    }
+
+    .attendance-table th:hover {
+        background: #f9fafb;
+    }
+
+    .attendance-table td {
+        padding: 16px 12px;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .attendance-table tbody tr {
+        transition: all 0.2s;
+    }
+
+    .attendance-table tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    .employee-name {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge.present {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.absent {
+        background: #fee2e2;
+        color: #7f1d1d;
+    }
+
+    .status-badge.late {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .time-cell {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 48px 24px;
+        color: #9ca3af;
+    }
+
+    .no-data-icon {
+        font-size: 48px;
+        color: #d1d5db;
+        margin-bottom: 16px;
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 60px 40px;
+    }
+
+    .empty-state-icon {
+        font-size: 64px;
+        color: #d1d5db;
+        margin-bottom: 16px;
+    }
+
+    .empty-state-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .empty-state-text {
+        color: #9ca3af;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <!-- Header -->
+    <div class="detail-header">
+        <div class="detail-title">
+            <i class="fas fa-users-check"></i>
+            Attendance Details
+        </div>
+        <a href="/dashboard/hr-manager?company_id={{ company_id }}" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-card-label">Total Present</div>
+            <div class="summary-card-value success" style="color: var(--success);">{{ summary.present }}</div>
+        </div>
+        <div class="summary-card success">
+            <div class="summary-card-label">Total Absent</div>
+            <div class="summary-card-value danger" style="color: var(--danger);">{{ summary.absent }}</div>
+        </div>
+        <div class="summary-card warning">
+            <div class="summary-card-label">Total Late</div>
+            <div class="summary-card-value warning" style="color: var(--warning);">{{ summary.late }}</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-card-label">Total Recorded</div>
+            <div class="summary-card-value">{{ summary.total }}</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section">
+        <div class="filters-title">
+            <i class="fas fa-filter"></i>
+            Filters & Sorting
+        </div>
+        <form method="GET" class="filters-form">
+            <input type="hidden" name="company_id" value="{{ company_id }}">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Date:</label>
+                    <input type="date" name="date" value="{{ filter_date.isoformat() }}" required>
+                </div>
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select name="status">
+                        <option value="All" {% if filter_status == 'All' %}selected{% endif %}>All Status</option>
+                        <option value="Present" {% if filter_status == 'Present' %}selected{% endif %}>Present</option>
+                        <option value="Absent" {% if filter_status == 'Absent' %}selected{% endif %}>Absent</option>
+                        <option value="Late" {% if filter_status == 'Late' %}selected{% endif %}>Late</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Department:</label>
+                    <select name="department">
+                        <option value="All">All Departments</option>
+                        {% for dept in departments %}
+                            <option value="{{ dept }}" {% if filter_department == dept %}selected{% endif %}>{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Sort By:</label>
+                    <select name="sort">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                        <option value="time_in" {% if sort_by == 'time_in' %}selected{% endif %}>Time In</option>
+                        <option value="department" {% if sort_by == 'department' %}selected{% endif %}>Department</option>
+                    </select>
+                </div>
+                <button type="submit" class="filter-button">
+                    <i class="fas fa-search"></i> Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="table-section">
+        {% if attendance_records %}
+            <div class="table-wrapper">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>Employee ID</th>
+                            <th>Department</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record, employee, emp_name in attendance_records %}
+                            <tr>
+                                <td class="employee-name">{{ employee.first_name }} {{ employee.last_name }}</td>
+                                <td>{{ employee.employee_id }}</td>
+                                <td>{{ employee.department or 'N/A' }}</td>
+                                <td class="time-cell">{{ record.time_in.strftime('%H:%M') if record.time_in else 'N/A' }}</td>
+                                <td class="time-cell">{{ record.time_out.strftime('%H:%M') if record.time_out else 'N/A' }}</td>
+                                <td>
+                                    <span class="status-badge {{ record.status.lower() }}">
+                                        {{ record.status }}
+                                    </span>
+                                </td>
+                                <td>{{ record.notes or '-' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <div class="empty-state-title">No Attendance Records</div>
+                <div class="empty-state-text">No attendance records found for the selected date and filters.</div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

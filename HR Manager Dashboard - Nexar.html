@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<!-- saved from url=(0014)about:internet -->
+<html lang="en" style="--vh: 6.65px;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>HR Manager Dashboard - Nexar</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="./HR Manager Dashboard - Nexar_files/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome Icons -->
+    <link href="./HR Manager Dashboard - Nexar_files/all.min.css" rel="stylesheet">
+
+    <!-- Roboto & Inter fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com/">
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+    <link href="./HR Manager Dashboard - Nexar_files/css2" rel="stylesheet">
+
+    <!-- Main CSS - includes responsive design -->
+    <link href="./HR Manager Dashboard - Nexar_files/styles.css" rel="stylesheet">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="http://10.10.10.177:5000/static/manifest.json">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=&#39;http://www.w3.org/2000/svg&#39; viewBox=&#39;0 0 100 100&#39;&gt;&lt;text y=&#39;.9em&#39; font-size=&#39;90&#39;&gt;%F0%9F%8F%A2&lt;/text&gt;&lt;/svg&gt;">
+
+    
+<style>
+    * {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    }
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow-x: hidden;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .hr-dashboard-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        height: 100vh;
+        box-sizing: border-box;
+        overflow-y: auto;
+    }
+
+    /* Header Section */
+    .dashboard-header {
+        background: white;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .header-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .header-title i {
+        color: #3498db;
+        font-size: 1.5rem;
+    }
+
+    .company-selector {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+
+    .company-selector select {
+        padding: 0.4rem 0.6rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        background: white;
+        min-width: 200px;
+    }
+
+    .company-selector select:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+    }
+
+    /* Main Content Wrapper */
+    .dashboard-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+        gap: 0.75rem;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    /* Today Summary Section */
+    .today-summary-wrapper {
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .today-summary-header {
+        background: linear-gradient(135deg, #f0f4f8 0%, #e8eef2 100%);
+        color: #2c3e50;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        flex-shrink: 0;
+        border-bottom: 2px solid #d0dce6;
+    }
+
+    .today-summary-header h3 {
+        margin: 0;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #2c3e50;
+    }
+
+    .today-summary-header i {
+        font-size: 1rem;
+        color: #3498db;
+    }
+
+    .summary-section {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.5rem;
+        padding: 0.6rem;
+        flex: 1;
+        overflow-y: auto;
+        align-content: start;
+    }
+
+    .summary-card {
+        background: transparent;
+        padding: 0.5rem;
+        border-radius: 4px;
+        box-shadow: none;
+        border-left: none;
+        border-bottom: 2px solid;
+        transition: all 0.2s;
+        flex: none;
+        min-width: auto;
+        text-align: center;
+    }
+
+    .summary-card:hover {
+        box-shadow: none;
+        background: rgba(0,0,0,0.02);
+    }
+
+    .summary-card.present { border-bottom-color: #27ae60; }
+    .summary-card.absent { border-bottom-color: #e74c3c; }
+    .summary-card.late { border-bottom-color: #f39c12; }
+    .summary-card.leaves { border-bottom-color: #9b59b6; }
+    .summary-card.ot { border-bottom-color: #1abc9c; }
+
+    .summary-card-title {
+        font-size: 0.65rem;
+        color: #666;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .summary-card-value {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.2rem;
+    }
+
+    .summary-card-meta {
+        font-size: 0.6rem;
+        color: #95a5a6;
+        line-height: 1.1;
+    }
+
+    /* Dashboard Sections */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.75rem;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .dashboard-section {
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .section-header {
+        background: linear-gradient(135deg, #f0f4f8 0%, #e8eef2 100%);
+        color: #2c3e50;
+        padding: 0.6rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+        border-bottom: 2px solid #d0dce6;
+    }
+
+    .section-header h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #2c3e50;
+    }
+
+    .section-header i {
+        font-size: 1rem;
+        color: #3498db;
+    }
+
+    .section-body {
+        padding: 0.5rem;
+        flex: 1;
+        font-size: 0.8rem;
+    }
+
+    .section-body.scrollable {
+        overflow-y: auto;
+    }
+
+    /* Stats Tables */
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.75rem;
+    }
+
+    .stats-table th {
+        background: #f8f9fa;
+        padding: 0.3rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.7rem;
+        color: #2c3e50;
+        border-bottom: 1px solid #e0e0e0;
+        position: sticky;
+        top: 0;
+    }
+
+    .stats-table td {
+        padding: 0.3rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .stats-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .stat-value {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    /* OT Management Section - Compact */
+    .ot-management-container {
+        display: flex;
+        flex-direction: column;
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .ot-management-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.4rem;
+        padding: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .ot-action-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.6rem;
+        border-radius: 4px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        font-size: 0.75rem;
+    }
+
+    .ot-action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+
+    .ot-action-card i {
+        font-size: 1.2rem;
+    }
+
+    .ot-action-card-title {
+        font-weight: 700;
+        font-size: 0.7rem;
+        line-height: 1.2;
+    }
+
+    .ot-action-card-subtitle {
+        font-size: 0.65rem;
+        opacity: 0.9;
+        line-height: 1.1;
+    }
+
+    /* Color variations */
+    .ot-action-card.ot-approval { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .ot-action-card.ot-attendance { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .ot-action-card.payroll-reminder { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .ot-action-card.generate-payroll { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .ot-action-card.payroll-history { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+
+    /* Metrics Stats */
+    .metrics-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.4rem;
+        padding: 0.5rem;
+    }
+
+    .metric-item {
+        background: #f8f9fa;
+        padding: 0.4rem;
+        border-radius: 4px;
+        border-left: 2px solid #3498db;
+        font-size: 0.75rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+    }
+
+    .metric-label {
+        font-size: 0.65rem;
+        color: #666;
+        font-weight: 600;
+        margin-bottom: 0.15rem;
+        text-align: center;
+        width: 100%;
+    }
+
+    .metric-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #2c3e50;
+        text-align: center;
+        width: 100%;
+    }
+
+    .metric-item.clickable {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .metric-item.clickable:hover {
+        background: #eef2f5;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+
+    /* Modal Styles */
+    .detail-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.4);
+        animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 1rem;
+        border-radius: 6px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        max-width: 600px;
+        width: 90%;
+        max-height: 70vh;
+        overflow-y: auto;
+        animation: slideIn 0.3s;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 0.5rem;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #2c3e50;
+    }
+
+    .modal-close {
+        cursor: pointer;
+        font-size: 1.5rem;
+        color: #7f8c8d;
+        border: none;
+        background: none;
+    }
+
+    .modal-close:hover {
+        color: #2c3e50;
+    }
+
+    .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+
+    .detail-table th {
+        background: #f0f4f8;
+        padding: 0.5rem;
+        text-align: left;
+        font-weight: 600;
+        color: #2c3e50;
+        border-bottom: 2px solid #d0dce6;
+    }
+
+    .detail-table td {
+        padding: 0.4rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .detail-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 1rem;
+        color: #95a5a6;
+        font-size: 0.8rem;
+    }
+
+    .empty-state i {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        margin: 0;
+    }
+
+    /* Button Styles */
+    .btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        border-radius: 4px;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        width: 100%;
+        font-weight: 600;
+    }
+
+    .btn-primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2980b9;
+    }
+
+    .btn-success {
+        background: #27ae60;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #229954;
+    }
+
+    /* Responsive */
+    @media (max-width: 1800px) {
+        .dashboard-content {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 1400px) {
+        .dashboard-content {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .ot-management-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-content {
+            grid-template-columns: 1fr;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .ot-management-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .ot-management-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .metrics-stats {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .summary-card {
+            flex: 0 1 calc(50% - 0.25rem);
+        }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+<!-- Chart.js Library -->
+<script src="./HR Manager Dashboard - Nexar_files/chart.umd.min.js.download"></script>
+
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Professional Corporate Header -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="http://10.10.10.177:5000/dashboard">
+                    <i class="fas fa-building"></i>
+                    Nexar
+                </a>
+
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+
+                    <ul class="navbar-nav me-auto">
+                        <!-- Dashboard - Visible to all -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="http://10.10.10.177:5000/dashboard">
+                                <i class="fas fa-home"></i>
+                                Dashboard
+                            </a>
+                        </li>
+
+                        <!-- HR Manager Dashboard - Visible only to Tenant Admin -->
+                        
+
+                        <!-- Super Admin Menu - Only Dashboard and Masters -->
+                        
+
+                        <!-- Regular Admin/Manager/User Menus -->
+                        
+
+                        <!-- My Team - Visible to Manager and User roles -->
+                        
+
+                        <!-- Documents - Visible only to User role -->
+                        
+                         <!-- Employees - Hidden from User role -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.10.10.177:5000/dashboard/hr-manager#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-users"></i>
+                                Employees
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/employees/add">
+                                    <i class="fas fa-user-plus"></i>
+                                    Add Employee
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/employees">
+                                    <i class="fas fa-users"></i>
+                                    All Employees
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/employees/bulk-upload">
+                                    <i class="fas fa-file-upload"></i>
+                                    Employee Bulk Upload
+                                </a></li>
+                            </ul>
+                        </li>
+                        
+
+                        <!-- Attendance -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.10.10.177:5000/dashboard/hr-manager#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-calendar-check"></i>
+                                Attendance
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/attendance/mark">
+                                    <i class="fas fa-clock"></i>
+                                    Mark Attendance
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/attendance/list">
+                                    <i class="fas fa-list"></i>
+                                    View Records
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/attendance">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Calendar View
+                                </a></li>
+                                <!-- Mark OT Attendance - Visible to all users for self-service -->
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/ot/mark">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    Mark OT Attendance
+                                </a></li>
+                                
+                                <!-- Bulk Attendance - Visible only to HR Manager -->
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/attendance/bulk">
+                                    <i class="fas fa-check-double"></i>
+                                    Bulk Attendance
+                                </a></li>
+                                
+                            </ul>
+                        </li>
+
+                        <!-- Leave - Hidden from Tenant Admin, Visible to Manager and User -->
+                        
+
+                        <!-- Leave Management - Visible to HR Manager and Tenant Admin -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.10.10.177:5000/dashboard/hr-manager#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-plane-departure"></i>
+                                Leave Management
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/leave-config">
+                                    <i class="fas fa-cog"></i>
+                                    Configure Leave Types
+                                </a></li>
+                            </ul>
+                        </li>
+                        
+
+                        <!-- OT Management - Visible to HR Manager, Tenant Admin, and Reporting Managers -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.10.10.177:5000/dashboard/hr-manager#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-clock"></i>
+                                OT Management
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <!-- Full OT Management menu for HR Manager and Tenant Admin -->
+                                
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/ot/attendance">
+                                    <i class="fas fa-list"></i>
+                                    OT Attendance
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/ot/requests">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    OT Requests
+                                </a></li>
+                                
+                                <!-- OT Approvals - Available to both HR Manager/Admin and Reporting Managers -->
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/ot/approval">
+                                    <i class="fas fa-check-circle"></i>
+                                    OT Approvals
+                                </a></li>
+                                <!-- Additional menu items only for HR Manager and Tenant Admin -->
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/ot/daily-summary">
+                                    <i class="fas fa-table"></i>
+                                    Payroll Summary (Grid)
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/ot/payroll-summary">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Payroll Summary (Report)
+                                </a></li>
+                                
+                            </ul>
+                        </li>
+                        
+
+                        <!-- Payroll -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.10.10.177:5000/dashboard/hr-manager#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-dollar-sign"></i>
+                                Payroll
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/payroll">
+                                    <i class="fas fa-list"></i>
+                                    Payroll List
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/payroll/generate">
+                                    <i class="fas fa-calculator"></i>
+                                    Generate Payroll
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/payroll/config">
+                                    <i class="fas fa-sliders-h"></i>
+                                    Payroll Configuration
+                                </a></li>
+                            </ul>
+                        </li>
+                        
+
+                        <!-- Reports -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.10.10.177:5000/dashboard/hr-manager#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-chart-bar"></i>
+                                Reports
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/reports">
+                                    <i class="fas fa-th-large"></i>
+                                    All Reports
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/reports/employee-history">
+                                    <i class="fas fa-user-clock"></i>
+                                    Employee History
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/reports/payroll-configuration">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Payroll Configuration
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/reports/attendance">
+                                    <i class="fas fa-calendar-check"></i>
+                                    Attendance Report
+                                </a></li>
+                            </ul>
+                        </li>
+                        
+
+
+
+                        <!-- Masters -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.10.10.177:5000/dashboard/hr-manager#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs"></i>
+                                Masters
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/tenants">
+                                    <i class="fas fa-sitemap"></i>
+                                    Tenants
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/companies">
+                                    <i class="fas fa-building"></i>
+                                    Companies
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/masters/roles">
+                                    <i class="fas fa-user-tag"></i>
+                                    Roles
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/masters/departments">
+                                    <i class="fas fa-briefcase"></i>
+                                    Departments
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/masters/working-hours">
+                                    <i class="fas fa-clock"></i>
+                                    Working Hours
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/masters/work-schedules">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Work Schedules
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/masters/ot-types">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    OT Types
+                                </a></li>
+                                <!-- Access Control - Moved under Masters for Tenant Admin and HR Manager -->
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/access-control/manage-user-companies">
+                                    <i class="fas fa-shield-alt"></i>
+                                    Access Control
+                                </a></li>
+                                
+                            </ul>
+                        </li>
+                        
+
+                        
+                        <!-- End of Regular Admin/Manager/User Menus -->
+                    </ul>
+
+                    <!-- Profile Dropdown + Logout Icon -->
+                    <ul class="navbar-nav">
+                        <!-- Profile Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.10.10.177:5000/dashboard/hr-manager#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="profile-image-container">
+                                    
+                                    <div class="avatar-placeholder">
+                                        H
+                                    </div>
+                                    
+                                </span>
+                                HR
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end mobile-friendly">
+                                
+                                <li><span class="dropdown-item-text">
+                                    <small style="color: var(--grey-500);">HR Manager</small>
+                                </span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/profile">
+                                    <i class="fas fa-user"></i>
+                                    My Profile
+                                </a></li>
+                                
+                                <li><a class="dropdown-item" href="http://10.10.10.177:5000/logout">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    Logout
+                                </a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Direct Logout Icon -->
+                        <li class="nav-item">
+                            <a class="nav-link logout-icon-btn" href="http://10.10.10.177:5000/logout" title="Logout">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="page-container">
+            
+                
+        
+        
+<div class="hr-dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-title">
+            <i class="fas fa-chart-line"></i>
+            HR Manager Dashboard
+        </div>
+        <div class="company-selector">
+            <label>Select Company:</label>
+            <form method="GET" style="display: flex; gap: 0.3rem;">
+                <select name="company_id" onchange="this.form.submit()">
+                    
+                        <option value="8b28e2c2-7bb4-4998-a9d9-66a722d7c746" selected="">
+                            AKS LOGISTICS PTE LTD
+                        </option>
+                    
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Content -->
+    <div class="dashboard-content">
+        <!-- Column 1: Today's Summary -->
+        <div class="today-summary-wrapper">
+            <div class="today-summary-header">
+                <h3><i class="fas fa-calendar-day"></i> <span id="todayDate">Friday, November 21, 2025</span></h3>
+            </div>
+            <div class="summary-section">
+                <div class="summary-card present">
+                    <div class="summary-card-title">Present</div>
+                    <div class="summary-card-value">2</div>
+                    <div class="summary-card-meta">of 2</div>
+                </div>
+
+                <div class="summary-card absent">
+                    <div class="summary-card-title">Absent</div>
+                    <div class="summary-card-value">0</div>
+                    <div class="summary-card-meta">0%</div>
+                </div>
+
+                <div class="summary-card late">
+                    <div class="summary-card-title">Late</div>
+                    <div class="summary-card-value">0</div>
+                    <div class="summary-card-meta">Clocked in late</div>
+                </div>
+
+                <div class="summary-card leaves">
+                    <div class="summary-card-title">On Leave</div>
+                    <div class="summary-card-value">0</div>
+                    <div class="summary-card-meta">Approved leaves</div>
+                </div>
+
+                <div class="summary-card ot">
+                    <div class="summary-card-title">OT Hrs</div>
+                    <div class="summary-card-value">0.0</div>
+                    <div class="summary-card-meta">Total OT</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 2: Attendance & Leave -->
+        <div class="dashboard-grid">
+            <!-- Attendance Dashboard -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-user-check"></i> Attendance</h3>
+                </div>
+                <div class="section-body">
+                    <div class="metrics-stats" style="grid-template-columns: repeat(4, 1fr); gap: 0.3rem; padding: 0.4rem;">
+                        <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #27ae60;" onclick="openDetailModal(&#39;attendance&#39;, &#39;Present&#39;, 20, &#39;MTD&#39;)">
+                            <div class="metric-label" style="font-size: 0.6rem;">MTD Present</div>
+                            <div class="metric-value" style="font-size: 0.95rem;">20</div>
+                        </div>
+                        <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #e74c3c;" onclick="openDetailModal(&#39;attendance&#39;, &#39;Absent&#39;, 0, &#39;MTD&#39;)">
+                            <div class="metric-label" style="font-size: 0.6rem;">MTD Absent</div>
+                            <div class="metric-value" style="font-size: 0.95rem;">0</div>
+                        </div>
+                        <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #3498db;" onclick="openDetailModal(&#39;attendance&#39;, &#39;Present&#39;, 206, &#39;YTD&#39;)">
+                            <div class="metric-label" style="font-size: 0.6rem;">YTD Present</div>
+                            <div class="metric-value" style="font-size: 0.95rem;">206</div>
+                        </div>
+                        <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #f39c12;" onclick="openDetailModal(&#39;attendance&#39;, &#39;Absent&#39;, 0, &#39;YTD&#39;)">
+                            <div class="metric-label" style="font-size: 0.6rem;">YTD Absent</div>
+                            <div class="metric-value" style="font-size: 0.95rem;">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Dashboard -->
+            <div class="dashboard-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-calendar-times"></i> Leave</h3>
+                </div>
+                <div class="section-body">
+                    
+                        <div class="empty-state" style="padding: 0.5rem; font-size: 0.75rem;">
+                            <i class="fas fa-inbox"></i>
+                            <p style="margin: 0.2rem 0 0 0;">No leaves</p>
+                        </div>
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 3: OT Management Hub -->
+        <div class="ot-management-container">
+            <div class="section-header" style="padding: 0.4rem 0.75rem;">
+                <h3 style="font-size: 0.85rem; margin: 0;"><i class="fas fa-clock"></i> OT Hub</h3>
+            </div>
+            <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem;">
+                <a href="http://10.10.10.177:5000/dashboard/hr-manager/ot-approval?company_id=8b28e2c2-7bb4-4998-a9d9-66a722d7c746" class="ot-action-card ot-approval" style="padding: 0.45rem; position: relative;">
+                    <i class="fas fa-check-circle" style="font-size: 1rem;"></i>
+                    <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval</div>
+                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
+                        
+                            <span style="color: #27ae60;">All Clear</span>
+                        
+                    </div>
+                </a>
+
+                <a href="http://10.10.10.177:5000/dashboard/hr-manager/ot-attendance?company_id=8b28e2c2-7bb4-4998-a9d9-66a722d7c746" class="ot-action-card ot-attendance" style="padding: 0.45rem;">
+                    <i class="fas fa-list" style="font-size: 1rem;"></i>
+                    <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Attendance</div>
+                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">31.8h</div>
+                </a>
+
+                <a href="http://10.10.10.177:5000/dashboard/hr-manager/payroll-reminder?company_id=8b28e2c2-7bb4-4998-a9d9-66a722d7c746" class="ot-action-card payroll-reminder" style="padding: 0.45rem;">
+                    <i class="fas fa-bell" style="font-size: 1rem;"></i>
+                    <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll Reminder</div>
+                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">November 2025</div>
+                </a>
+
+                <a href="http://10.10.10.177:5000/dashboard/hr-manager/generate-payroll" class="ot-action-card generate-payroll" style="padding: 0.45rem;">
+                    <i class="fas fa-file-invoice-dollar" style="font-size: 1rem;"></i>
+                    <div class="ot-action-card-title" style="font-size: 0.65rem;">Generate Payroll</div>
+                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">New Run</div>
+                </a>
+
+                <a href="http://10.10.10.177:5000/dashboard/hr-manager#payroll-history" class="ot-action-card payroll-history" style="padding: 0.45rem;">
+                    <i class="fas fa-history" style="font-size: 1rem;"></i>
+                    <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll History</div>
+                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">Last 6 Mo</div>
+                </a>
+            </div>
+
+            <!-- OT Statistics -->
+            <div class="metrics-stats" style="grid-template-columns: repeat(4, 1fr); gap: 0.3rem; padding: 0.4rem;">
+                <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #1abc9c;">
+                    <div class="metric-label" style="font-size: 0.6rem;">MTD OT</div>
+                    <div class="metric-value" style="font-size: 0.95rem;">13</div>
+                </div>
+                <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #3498db;">
+                    <div class="metric-label" style="font-size: 0.6rem;">MTD Hrs</div>
+                    <div class="metric-value" style="font-size: 0.95rem;">31.8h</div>
+                </div>
+                <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #e67e22;">
+                    <div class="metric-label" style="font-size: 0.6rem;">YTD OT</div>
+                    <div class="metric-value" style="font-size: 0.95rem;">13</div>
+                </div>
+                <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #9b59b6;">
+                    <div class="metric-label" style="font-size: 0.6rem;">YTD Hrs</div>
+                    <div class="metric-value" style="font-size: 0.95rem;">31.8h</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom: Pending OT Approvals & Payroll History -->
+    <div class="dashboard-grid">
+        <!-- Pending OT Approvals -->
+        <div class="dashboard-section">
+            <div class="section-header">
+                <h3><i class="fas fa-hourglass-end"></i> Pending OT</h3>
+            </div>
+            <div class="section-body scrollable">
+                
+                    <div class="empty-state">
+                        <i class="fas fa-check"></i>
+                        <p>All OT approvals up to date!</p>
+                    </div>
+                
+            </div>
+        </div>
+
+        <!-- Payroll History -->
+        <div class="dashboard-section" id="payroll-history">
+            <div class="section-header">
+                <h3><i class="fas fa-file-invoice"></i> Payroll Trend</h3>
+            </div>
+            <div class="section-body" style="display: flex; flex-direction: column;">
+                
+                    <canvas id="payrollTrendChart" style="flex: 1 1 0%; min-height: 0px; display: block; box-sizing: border-box; height: 9470px; width: 1236px;" width="2473" height="18941"></canvas>
+                    <div style="margin-top: 0.3rem;">
+                        <a href="http://10.10.10.177:5000/dashboard/hr-manager/generate-payroll" class="btn btn-success" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">
+                            Generate Payroll
+                        </a>
+                    </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="detail-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Details</h3>
+                <button class="modal-close" onclick="closeDetailModal()">×</button>
+            </div>
+            <div id="modalBody">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Set today's date
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', options);
+
+    // Initialize Payroll Trend Chart
+    const payrollChartCanvas = document.getElementById('payrollTrendChart');
+    if (payrollChartCanvas) {
+        const payrollData = [{"month": 9, "year": 2025, "emp_count": 1, "total_salary": 1280.0}, {"month": 10, "year": 2025, "emp_count": 5, "total_salary": 11200.0}, {"month": 11, "year": 2025, "emp_count": 3, "total_salary": 5476.61}];
+        
+        if (payrollData && payrollData.length > 0) {
+            const months = payrollData.map(p => {
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return monthNames[p.month - 1] + " '" + String(p.year).slice(-2);
+            });
+            
+            const salaries = payrollData.map(p => Math.round(p.total_salary));
+            const empCounts = payrollData.map(p => p.emp_count);
+            
+            new Chart(payrollChartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Total Salary (Paid)',
+                            data: salaries,
+                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                            borderColor: 'rgba(52, 152, 219, 1)',
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Employees Paid',
+                            data: empCounts,
+                            backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                            borderColor: 'rgba(46, 204, 113, 1)',
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { font: { size: 11 }, padding: 8, usePointStyle: true }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 8,
+                            titleFont: { size: 11 },
+                            bodyFont: { size: 10 },
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString('en-IN');
+                                    } else {
+                                        return context.dataset.label + ': ' + context.parsed.y;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Salary (₹)', font: { size: 10 } },
+                            ticks: { font: { size: 9 }, callback: function(v) { return '₹' + (v/100000).toFixed(1) + 'L'; } },
+                            grid: { drawBorder: false, color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Employee Count', font: { size: 10 } },
+                            ticks: { font: { size: 9 } },
+                            grid: { drawOnChartArea: false }
+                        },
+                        x: {
+                            ticks: { font: { size: 9 } },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Modal Functions
+    function openDetailModal(type, label, count, period) {
+        const modal = document.getElementById('detailModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        
+        const companyId = '8b28e2c2-7bb4-4998-a9d9-66a722d7c746';
+        
+        if (type === 'attendance') {
+            modalTitle.textContent = `${period} ${label} Attendance - ${count} Employees`;
+            modalBody.innerHTML = `
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                    <strong>Period:</strong> ${period} | <strong>Status:</strong> ${label} | <strong>Count:</strong> ${count}
+                </p>
+                <div style="text-align: center; padding: 2rem; color: #95a5a6;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>Loading detailed attendance records...</p>
+                    <small>Click on <a href="/dashboard/hr-manager/ot-attendance?company_id=${companyId}" style="color: #3498db; text-decoration: none;">here</a> to view full attendance details.</small>
+                </div>
+            `;
+        } else if (type === 'leave') {
+            modalTitle.textContent = `${label} Leave Requests - ${count} Approved`;
+            modalBody.innerHTML = `
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                    <strong>Leave Type:</strong> ${label} | <strong>Count:</strong> ${count} approved for this month
+                </p>
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>From Date</th>
+                            <th>To Date</th>
+                            <th>Days</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 1.5rem; color: #95a5a6;">
+                                <i class="fas fa-info-circle"></i> Leave details loading...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        modal.style.display = 'block';
+    }
+
+    function closeDetailModal() {
+        const modal = document.getElementById('detailModal');
+        modal.style.display = 'none';
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+        const modal = document.getElementById('detailModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // Auto-refresh dashboard every 5 minutes
+    setTimeout(function() {
+        location.reload();
+    }, 5 * 60 * 1000);
+</script>
+
+    </main>
+
+    <!-- Mobile Floating Action Button -->
+    
+
+    <!-- Global Loader -->
+    <div id="global-loader" class="global-loader">
+        <div class="loader-overlay"></div>
+        <div class="loader-container">
+            <div class="loader-spinner"></div>
+            <p class="loader-text">Loading...</p>
+        </div>
+    </div>
+    </div>
+    <!-- Bootstrap JS -->
+    <script src="./HR Manager Dashboard - Nexar_files/bootstrap.bundle.min.js.download"></script>
+
+    <!-- Mobile dropdown fix -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile dropdown handler
+        function handleMobileDropdowns() {
+            const dropdownToggles = document.querySelectorAll('.navbar-nav .dropdown-toggle');
+
+            dropdownToggles.forEach(toggle => {
+                // Remove existing listeners
+                toggle.removeEventListener('click', handleDropdownClick);
+
+                // Add new listener for mobile
+                if (window.innerWidth <= 991) {
+                    toggle.addEventListener('click', handleDropdownClick);
+                }
+            });
+        }
+
+        function handleDropdownClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const dropdown = this.closest('.dropdown');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            const isOpen = dropdown.classList.contains('show');
+
+            // Close all dropdowns first
+            document.querySelectorAll('.navbar-nav .dropdown').forEach(d => {
+                d.classList.remove('show');
+            });
+
+            // Toggle current dropdown if it wasn't open
+            if (!isOpen) {
+                dropdown.classList.add('show');
+            }
+        }
+
+        // Initialize
+        handleMobileDropdowns();
+
+        // Re-initialize on window resize
+        window.addEventListener('resize', handleMobileDropdowns);
+    });
+    </script>
+
+    <!-- Global Loader Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loader = document.getElementById('global-loader');
+
+        if (!loader) return; // Exit if loader not found
+
+        // Function to show loader
+        function showLoader() {
+            loader.classList.add('show');
+        }
+
+        // Function to hide loader
+        function hideLoader() {
+            loader.classList.remove('show');
+        }
+
+        // Improved loader hiding: Wait until browser is completely idle
+        function waitForPageComplete() {
+            if (document.readyState === 'complete') {
+                // Use Performance API to check if all resources are loaded
+                if (performance && performance.getEntriesByType) {
+                    // Wait a bit more for any pending requests
+                    setTimeout(hideLoader, 500);
+                } else {
+                    hideLoader();
+                }
+            } else {
+                // Check again soon
+                setTimeout(waitForPageComplete, 100);
+            }
+        }
+
+        // Start checking when page is ready
+        if (document.readyState === 'complete') {
+            waitForPageComplete();
+        } else {
+            document.addEventListener('readystatechange', function() {
+                if (document.readyState === 'complete') {
+                    waitForPageComplete();
+                }
+            });
+        }
+
+        // Show loader on form submission
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                // Validate form before showing loader
+                if (form.checkValidity() === false) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                } else {
+                    showLoader();
+                }
+            });
+        });
+
+        // Show loader on button clicks (for AJAX or page navigation)
+        // Common action buttons: Save, Submit, Update, Delete, Generate, etc.
+        const actionButtons = document.querySelectorAll(
+            'button[type="submit"], ' +
+            'button[type="button"][onclick], ' +
+            'a[href*="delete"], ' +
+            'a[href*="update"], ' +
+            'a[href*="generate"], ' +
+            '.btn-primary, ' +
+            '.btn-success, ' +
+            '.action-btn'
+        );
+
+        actionButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                // Check if it's an anchor tag for page navigation
+                if (this.tagName === 'A' && this.href && !this.hasAttribute('onclick')) {
+                    // Only show loader if it's not a hash link or external link
+                    if (!this.href.includes('#') && !this.target === '_blank') {
+                        showLoader();
+                    }
+                }
+            });
+        });
+
+        // Show loader on navigation with Ctrl+Click or Middle-click check
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('a');
+            if (link && link.href && !link.href.includes('#') && !link.hasAttribute('onclick')) {
+                // Don't show loader if new tab/window is being opened
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey && link.target !== '_blank') {
+                    showLoader();
+                }
+            }
+        });
+
+        // Hide loader if navigation is cancelled (back button, etc.)
+        window.addEventListener('beforeunload', function() {
+            // Keep loader visible during navigation
+        });
+
+        // Safety timeout: Hide loader after 60 seconds if still showing
+        setTimeout(function() {
+            if (loader.classList.contains('show')) {
+                hideLoader();
+            }
+        }, 60000);
+    });
+    </script>
+
+    <!-- Custom JS -->
+    <script src="./HR Manager Dashboard - Nexar_files/app.js.download"></script>
+
+    <!-- Form Validation Framework -->
+    <script src="./HR Manager Dashboard - Nexar_files/form-validation.js.download"></script>
+
+    
+
+</body></html>

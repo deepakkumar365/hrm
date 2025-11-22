@@ -519,6 +519,18 @@
         font-family: 'Courier New', monospace;
     }
 
+    .timeline-location {
+        font-size: 0.7rem;
+        color: #7f8c8d;
+        margin-top: 0.25rem;
+        font-style: italic;
+    }
+
+    .timeline-location i {
+        color: #e74c3c;
+        margin-right: 0.25rem;
+    }
+
     /* Horizontal Timeline (for new layout) */
     .timeline-horizontal {
         display: flex;
@@ -804,6 +816,7 @@
                 <form id="attendanceForm" method="POST" class="hidden-form">
                     <input type="hidden" name="latitude" id="latitude">
                     <input type="hidden" name="longitude" id="longitude">
+                    <input type="hidden" name="location_address" id="locationAddress">
                     <input type="hidden" name="timezone" id="timezoneInput" value="UTC">
                 </form>
 
@@ -922,6 +935,11 @@
                                     --:--:--
                                 {% endif %}
                             </div>
+                            {% if today_attendance and today_attendance.location_address %}
+                            <div class="timeline-location">
+                                <i class="fas fa-map-marker-alt"></i> {{ today_attendance.location_address }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -1050,16 +1068,37 @@
         }
     }
 
+    // Reverse geocode to get address
+    async function reverseGeocode(lat, lng) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`);
+            const data = await response.json();
+            if (data && data.display_name) {
+                return data.display_name;
+            }
+        } catch (error) {
+            console.error('Reverse geocoding error:', error);
+        }
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; // Fallback to coordinates
+    }
+
     // Get location
-    function getLocation() {
+    async function getLocation() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    document.getElementById('latitude').value = position.coords.latitude;
-                    document.getElementById('longitude').value = position.coords.longitude;
+                async function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('latitude').value = lat;
+                    document.getElementById('longitude').value = lng;
+
+                    // Get address
+                    const address = await reverseGeocode(lat, lng);
+                    document.getElementById('locationAddress').value = address;
+
                     const locationInfo = document.getElementById('locationInfo');
                     locationInfo.innerHTML = `
-                        <div>✅ Location captured: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}</div>
+                        <div>✅ Location: ${address}</div>
                     `;
                 },
                 function(error) {

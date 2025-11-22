@@ -619,7 +619,8 @@ class Attendance(db.Model):
 
     location_lat = db.Column(db.String(20))
     location_lng = db.Column(db.String(20))
-    
+    location_address = db.Column(db.String(255))
+
     timezone = db.Column(db.String(50), default='UTC')
 
     created_at = db.Column(db.DateTime, default=datetime.now)
