@@ -95,12 +95,21 @@ class User(db.Model, UserMixin):
             # Super admins can access all companies
             from models import Company
             return Company.query.all()
+
+        # For HR Manager and Tenant Admin, always return all companies
+        if self.role and self.role.name in ['HR Manager', 'Tenant Admin']:
+            from models import Company
+            return Company.query.all()
+
         elif self.company_access:
             # Get companies from explicit access grants
-            return [access.company for access in self.company_access if access.company]
+            companies = [access.company for access in self.company_access if access.company]
+            if companies:
+                return companies
         elif self.employee_profile and self.employee_profile.company:
             # Fallback to employee's company
             return [self.employee_profile.company]
+
         return []
 
 

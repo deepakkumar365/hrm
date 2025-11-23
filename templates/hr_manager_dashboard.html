@@ -1017,6 +1017,12 @@
         }
     }
 
+    // Check if company selector has options
+    const companySelect = document.querySelector('select[name="company_id"]');
+    if (companySelect && companySelect.options.length === 0) {
+        showNotification('No company mapped. Please contact administrator.', 'warning');
+    }
+
     // Auto-refresh dashboard every 5 minutes
     setTimeout(function() {
         location.reload();

@@ -24,13 +24,7 @@ from sqlalchemy import case
 
 def get_user_companies():
     """Get companies accessible by current user"""
-    if current_user.role.name == 'Super Admin':
-        return Company.query.all()
-    elif current_user.role.name in ['Tenant Admin', 'HR Manager']:
-        if current_user.company:
-            return [current_user.company]
-        return []
-    return []
+    return current_user.get_accessible_companies()
 
 
 def get_company_id(company_id_param=None):
@@ -232,12 +226,16 @@ def hr_manager_dashboard():
         return redirect(url_for('index'))
     
     companies = get_user_companies()
-    
+
+    if not companies:
+        flash('No companies accessible. Please contact administrator.', 'warning')
+        return redirect(url_for('index'))
+
     # Default to user's company or first company
     selected_company_id = get_company_id(request.args.get('company_id'))
     if not selected_company_id and companies:
         selected_company_id = companies[0].id
-    
+
     if not selected_company_id:
         flash('No company assigned', 'warning')
         return redirect(url_for('index'))
@@ -246,7 +244,7 @@ def hr_manager_dashboard():
     
     if not selected_company:
         flash('Company not found', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('index'))
     
     # Get current month and year
     today = date.today()

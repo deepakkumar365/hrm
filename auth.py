@@ -59,9 +59,9 @@ def require_role(allowed_roles):
 
 def create_default_users():
     """Create default users if none exist"""
-    from models import Employee, Role, Organization
+    from models import Employee, Role, Organization, Company
     from datetime import date
-    
+
     if User.query.count() == 0:
         # Get or create default organization
         org = Organization.query.first()
@@ -69,9 +69,16 @@ def create_default_users():
             org = Organization(name='Default Organization')
             db.session.add(org)
             db.session.flush()  # Get the org.id
+
+        # Get or create default company
+        company = Company.query.first()
+        if not company:
+            company = Company(name='Default Company', organization_id=org.id)
+            db.session.add(company)
+            db.session.flush()  # Get the company.id
         
         # Get or create default roles
-        role_names = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'EMPLOYEE']
+        role_names = ['Super Admin', 'Admin', 'HR Manager', 'Employee']
         roles = {}
         for role_name in role_names:
             role = Role.query.filter_by(name=role_name).first()
@@ -88,11 +95,11 @@ def create_default_users():
             first_name='Super',
             last_name='Admin',
             organization_id=org.id,
-            role_id=roles['SUPER_ADMIN'].id,
+            role_id=roles['Super Admin'].id,
             must_reset_password=False
         )
         super_admin.set_password(DEFAULT_USER_PASSWORD)
-        
+
         # Create Regular Admin
         admin = User(
             username='admin',
@@ -100,11 +107,11 @@ def create_default_users():
             first_name='System',
             last_name='Admin',
             organization_id=org.id,
-            role_id=roles['ADMIN'].id,
+            role_id=roles['Admin'].id,
             must_reset_password=False
         )
         admin.set_password(DEFAULT_USER_PASSWORD)
-        
+
         # Create Manager
         manager = User(
             username='manager',
@@ -112,11 +119,11 @@ def create_default_users():
             first_name='HR',
             last_name='Manager',
             organization_id=org.id,
-            role_id=roles['HR_MANAGER'].id,
+            role_id=roles['HR Manager'].id,
             must_reset_password=False
         )
         manager.set_password(DEFAULT_USER_PASSWORD)
-        
+
         # Create Regular User
         user = User(
             username='user',
@@ -124,7 +131,7 @@ def create_default_users():
             first_name='Regular',
             last_name='User',
             organization_id=org.id,
-            role_id=roles['EMPLOYEE'].id,
+            role_id=roles['Employee'].id,
             must_reset_password=False
         )
         user.set_password(DEFAULT_USER_PASSWORD)
@@ -146,6 +153,7 @@ def create_default_users():
                 employment_type='Full-time',
                 work_permit_type='Citizen',
                 basic_salary=15000,
+                company_id=company.id,
                 user_id=super_admin.id
             ),
             Employee(
@@ -160,6 +168,7 @@ def create_default_users():
                 employment_type='Full-time',
                 work_permit_type='Citizen',
                 basic_salary=8000,
+                company_id=company.id,
                 user_id=admin.id
             ),
             Employee(
@@ -174,6 +183,7 @@ def create_default_users():
                 employment_type='Full-time',
                 work_permit_type='Citizen',
                 basic_salary=6000,
+                company_id=company.id,
                 user_id=manager.id
             ),
             Employee(
@@ -188,6 +198,7 @@ def create_default_users():
                 employment_type='Full-time',
                 work_permit_type='Citizen',
                 basic_salary=4000,
+                company_id=company.id,
                 user_id=user.id,
                 manager_id=3  # Reports to HR Manager
             )
