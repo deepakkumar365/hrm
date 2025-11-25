@@ -463,6 +463,7 @@ def create_company():
             website=data.get('website'),
             logo_path=data.get('logo_path'),
             currency_code=data.get('currency_code', 'SGD').upper(),  # Default to SGD if not provided
+            timezone=data.get('timezone', 'UTC'),  # Default to UTC if not provided
             is_active=data.get('is_active', True),
             created_by=get_current_user_email()
         )
@@ -503,7 +504,7 @@ def update_company(company_id):
         updatable_fields = [
             'name', 'code', 'description', 'address', 'uen',
             'registration_number', 'tax_id', 'phone', 'email',
-            'website', 'logo_path', 'currency_code', 'is_active'
+            'website', 'logo_path', 'currency_code', 'timezone', 'is_active'
         ]
 
         for field in updatable_fields:

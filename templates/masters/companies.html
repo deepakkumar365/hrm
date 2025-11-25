@@ -142,21 +142,32 @@
                         <label for="companyAddress" class="form-label">Address</label>
                         <textarea class="form-control" id="companyAddress" rows="2"></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label for="companyCurrencyCode" class="form-label">Currency Code *</label>
-                        <select class="form-select" id="companyCurrencyCode" required>
-                            <option value="">Select Currency</option>
-                            <option value="SGD">SGD - Singapore Dollar</option>
-                            <option value="USD">USD - US Dollar</option>
-                            <option value="EUR">EUR - Euro</option>
-                            <option value="GBP">GBP - British Pound</option>
-                            <option value="INR">INR - Indian Rupee</option>
-                            <option value="MYR">MYR - Malaysian Ringgit</option>
-                            <option value="THB">THB - Thai Baht</option>
-                            <option value="IDR">IDR - Indonesian Rupiah</option>
-                            <option value="PHP">PHP - Philippine Peso</option>
-                            <option value="VND">VND - Vietnamese Dong</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="companyCurrencyCode" class="form-label">Currency Code *</label>
+                            <select class="form-select" id="companyCurrencyCode" required>
+                                <option value="">Select Currency</option>
+                                <option value="SGD">SGD - Singapore Dollar</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="EUR">EUR - Euro</option>
+                                <option value="GBP">GBP - British Pound</option>
+                                <option value="INR">INR - Indian Rupee</option>
+                                <option value="MYR">MYR - Malaysian Ringgit</option>
+                                <option value="THB">THB - Thai Baht</option>
+                                <option value="IDR">IDR - Indonesian Rupiah</option>
+                                <option value="PHP">PHP - Philippine Peso</option>
+                                <option value="VND">VND - Vietnamese Dong</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="companyTimezone" class="form-label">Timezone *</label>
+                            <select class="form-select" id="companyTimezone" required>
+                                <option value="">Select Timezone</option>
+                                <option value="Asia/Singapore">Asia/Singapore</option>
+                                <option value="Asia/Kolkata">Asia/Kolkata (India)</option>
+                            </select>
+                            <small class="text-muted d-block mt-1">Used for attendance and OT time display</small>
+                        </div>
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="companyActive" checked>
@@ -230,21 +241,32 @@
                         <label for="editCompanyAddress" class="form-label">Address</label>
                         <textarea class="form-control" id="editCompanyAddress" rows="2"></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label for="editCompanyCurrencyCode" class="form-label">Currency Code *</label>
-                        <select class="form-select" id="editCompanyCurrencyCode" required>
-                            <option value="">Select Currency</option>
-                            <option value="SGD">SGD - Singapore Dollar</option>
-                            <option value="USD">USD - US Dollar</option>
-                            <option value="EUR">EUR - Euro</option>
-                            <option value="GBP">GBP - British Pound</option>
-                            <option value="INR">INR - Indian Rupee</option>
-                            <option value="MYR">MYR - Malaysian Ringgit</option>
-                            <option value="THB">THB - Thai Baht</option>
-                            <option value="IDR">IDR - Indonesian Rupiah</option>
-                            <option value="PHP">PHP - Philippine Peso</option>
-                            <option value="VND">VND - Vietnamese Dong</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editCompanyCurrencyCode" class="form-label">Currency Code *</label>
+                            <select class="form-select" id="editCompanyCurrencyCode" required>
+                                <option value="">Select Currency</option>
+                                <option value="SGD">SGD - Singapore Dollar</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="EUR">EUR - Euro</option>
+                                <option value="GBP">GBP - British Pound</option>
+                                <option value="INR">INR - Indian Rupee</option>
+                                <option value="MYR">MYR - Malaysian Ringgit</option>
+                                <option value="THB">THB - Thai Baht</option>
+                                <option value="IDR">IDR - Indonesian Rupiah</option>
+                                <option value="PHP">PHP - Philippine Peso</option>
+                                <option value="VND">VND - Vietnamese Dong</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editCompanyTimezone" class="form-label">Timezone *</label>
+                            <select class="form-select" id="editCompanyTimezone" required>
+                                <option value="">Select Timezone</option>
+                                <option value="Asia/Singapore">Asia/Singapore</option>
+                                <option value="Asia/Kolkata">Asia/Kolkata (India)</option>
+                            </select>
+                            <small class="text-muted d-block mt-1">Used for attendance and OT time display</small>
+                        </div>
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="editCompanyActive">
@@ -273,6 +295,7 @@ function saveCompany() {
         website: document.getElementById('companyWebsite').value,
         address: document.getElementById('companyAddress').value,
         currency_code: document.getElementById('companyCurrencyCode').value,
+        timezone: document.getElementById('companyTimezone').value,
         is_active: document.getElementById('companyActive').checked
     };
 
@@ -321,6 +344,7 @@ function editCompany(companyId) {
                 document.getElementById('editCompanyWebsite').value = company.website || '';
                 document.getElementById('editCompanyAddress').value = company.address || '';
                 document.getElementById('editCompanyCurrencyCode').value = company.currency_code || 'SGD';
+                document.getElementById('editCompanyTimezone').value = company.timezone || 'UTC';
                 document.getElementById('editCompanyActive').checked = company.is_active;
 
                 // Show modal
@@ -349,6 +373,7 @@ function updateCompany() {
         website: document.getElementById('editCompanyWebsite').value,
         address: document.getElementById('editCompanyAddress').value,
         currency_code: document.getElementById('editCompanyCurrencyCode').value,
+        timezone: document.getElementById('editCompanyTimezone').value,
         is_active: document.getElementById('editCompanyActive').checked
     };
 

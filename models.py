@@ -189,6 +189,9 @@ class Company(db.Model):
     
     # Payroll and Financial Configuration
     currency_code = db.Column(db.String(10), nullable=False, default='SGD')  # e.g., SGD, USD, INR
+    
+    # Timezone Configuration
+    timezone = db.Column(db.String(50), nullable=False, default='UTC')  # e.g., Asia/Singapore, America/New_York
 
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
@@ -219,6 +222,7 @@ class Company(db.Model):
             'website': self.website,
             'logo_path': self.logo_path,
             'currency_code': self.currency_code,
+            'timezone': self.timezone,
             'is_active': self.is_active,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,

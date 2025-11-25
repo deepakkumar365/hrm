@@ -37,6 +37,7 @@ import routes_leave_allocation  # noqa: F401 - Leave allocation configuration
 import routes_ot  # noqa: F401 - OT (Overtime) Management routes
 import routes_hr_manager  # noqa: F401 - HR Manager Dashboard
 import routes_api  # noqa: F401 - Mobile App JSON API endpoints
+import routes_timezone  # noqa: F401 - Timezone management routes
 import cli_commands  # noqa: F401 - CLI commands for database management
 
 if __name__ == "__main__":
