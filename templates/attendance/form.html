@@ -792,6 +792,7 @@
             <div class="digital-clock">
                 <div class="clock-display" id="digitalClock">00:00:00</div>
                 <div class="clock-label">Current Time</div>
+                <div class="clock-label" style="margin-top: 0.4rem; font-size: 0.55rem; opacity: 0.9;" id="timezoneLabel">{{ company_timezone }}</div>
             </div>
         </div>
     </div>
@@ -804,7 +805,7 @@
                 <form id="attendanceForm" method="POST" class="hidden-form">
                     <input type="hidden" name="latitude" id="latitude">
                     <input type="hidden" name="longitude" id="longitude">
-                    <input type="hidden" name="timezone" id="timezoneInput" value="UTC">
+                    <!-- Timezone is now automatically set from company configuration -->
                 </form>
 
         <!-- Clock In Card -->
@@ -896,6 +897,7 @@
                     <div class="timezone-inline">
                         <label for="timezoneDropdown">
                             <i class="fas fa-globe"></i> Timezone
+                            <span style="font-size: 0.65rem; color: #999; font-weight: normal;">({{ company_timezone }} - Company Default)</span>
                         </label>
                         <select id="timezoneDropdown" onchange="updateTimezone()">
                             <option value="UTC">UTC</option>
@@ -993,18 +995,75 @@
 </div>
 
 <script>
-    // Update digital clock
-    function updateClock() {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        document.getElementById('digitalClock').textContent = `${hours}:${minutes}:${seconds}`;
+    // Timezone mapping with IANA identifiers
+    const timezoneMap = {
+        'UTC': 'UTC',
+        'Asia/Singapore': 'Asia/Singapore',
+        'Asia/Kolkata': 'Asia/Kolkata',
+        'Asia/Bangkok': 'Asia/Bangkok',
+        'Asia/Jakarta': 'Asia/Jakarta',
+        'Asia/Kuala_Lumpur': 'Asia/Kuala_Lumpur',
+        'America/New_York': 'America/New_York',
+        'Europe/London': 'Europe/London',
+        'Australia/Sydney': 'Australia/Sydney'
+    };
+
+    // Get time formatted in a specific timezone using browser's Intl API
+    function getTimeInTimezone(timezone) {
+        try {
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const parts = formatter.formatToParts(now);
+            let hour = '', minute = '', second = '';
+            
+            parts.forEach(part => {
+                if (part.type === 'hour') hour = part.value;
+                if (part.type === 'minute') minute = part.value;
+                if (part.type === 'second') second = part.value;
+            });
+            
+            return `${hour}:${minute}:${second}`;
+        } catch (e) {
+            console.error('Timezone error:', e);
+            return new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
     }
 
-    // Update greeting based on time
+    // Update live clock based on selected timezone
+    function updateLiveClock() {
+        const timezone = document.getElementById('timezoneDropdown').value || '{{ company_timezone }}';
+        const timeStr = getTimeInTimezone(timezone);
+        document.getElementById('digitalClock').textContent = timeStr;
+    }
+
+    // Update digital clock
+    function updateClock() {
+        updateLiveClock();
+    }
+
+    // Update greeting based on time in selected timezone
     function updateGreeting() {
-        const hour = new Date().getHours();
+        const timezone = document.getElementById('timezoneDropdown').value || '{{ company_timezone }}';
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            hour: '2-digit',
+            hour12: false
+        });
+        
+        const parts = formatter.formatToParts(now);
+        let hour = 0;
+        parts.forEach(part => {
+            if (part.type === 'hour') hour = parseInt(part.value);
+        });
+        
         const greeting = document.getElementById('userGreeting');
         if (hour < 12) {
             greeting.textContent = '☀️ Good Morning!';
@@ -1072,11 +1131,18 @@
         }
     }
 
-    // Update timezone in hidden input
+    // Update timezone in hidden input and live clock
     function updateTimezone() {
         const timezoneDropdown = document.getElementById('timezoneDropdown');
         const timezoneInput = document.getElementById('timezoneInput');
+        const timezoneLabel = document.getElementById('timezoneLabel');
+        
         timezoneInput.value = timezoneDropdown.value;
+        timezoneLabel.textContent = timezoneDropdown.value;
+        
+        // Update clock and greeting immediately
+        updateLiveClock();
+        updateGreeting();
     }
 
     // Submit action
@@ -1107,14 +1173,28 @@
 
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
+        // Auto-select company timezone
+        const companyTimezone = '{{ company_timezone }}';
+        const timezoneDropdown = document.getElementById('timezoneDropdown');
+        if (companyTimezone && timezoneMap[companyTimezone]) {
+            timezoneDropdown.value = companyTimezone;
+        }
+        
+        // Initial updates
         updateClock();
         updateGreeting();
         updateDate();
         updateStatus();
         getLocation();
 
-        // Update clock every second
-        setInterval(updateClock, 1000);
+        // Update clock every second with timezone awareness
+        setInterval(function() {
+            updateClock();
+            updateGreeting();
+        }, 1000);
+        
+        // Add event listener for timezone changes
+        timezoneDropdown.addEventListener('change', updateTimezone);
     });
 </script>
 {% endblock %}

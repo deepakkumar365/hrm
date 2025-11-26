@@ -2263,7 +2263,8 @@ def attendance_mark():
 
             action = request.form.get(
                 'action')  # clock_in, clock_out, break_start, break_end
-            timezone_str = request.form.get('timezone', 'UTC')
+            # Get timezone from user's company configuration, not from form
+            timezone_str = current_user.company.timezone if current_user.company else 'UTC'
             current_time = now_utc.time()
 
             if action == 'clock_in':
@@ -2399,17 +2400,22 @@ def attendance_mark():
 
     # Get today's attendance record
     today_attendance = None
-    employee_timezone = 'UTC'  # Default timezone
+    company_timezone = 'UTC'  # Default timezone
     if hasattr(current_user,
                'employee_profile') and current_user.employee_profile:
-        # Get employee's timezone and calculate their current date
-        employee_timezone = current_user.employee_profile.timezone or 'UTC'
+        # Get company timezone and calculate their current date
+        employee = current_user.employee_profile
+        company_id = employee.company_id
+        from models import Company
+        company = Company.query.get(company_id) if company_id else None
+        company_timezone = company.timezone if company and company.timezone else 'UTC'
+        
         from pytz import timezone, utc
-        employee_tz_obj = timezone(employee_timezone)
-        employee_today = datetime.now(utc).astimezone(employee_tz_obj).date()
+        company_tz_obj = timezone(company_timezone)
+        employee_today = datetime.now(utc).astimezone(company_tz_obj).date()
 
         today_attendance = Attendance.query.filter_by(
-            employee_id=current_user.employee_profile.id,
+            employee_id=employee.id,
             date=employee_today).first()
     else:
         flash(
@@ -2418,7 +2424,7 @@ def attendance_mark():
 
     return render_template('attendance/form.html',
                            today_attendance=today_attendance,
-                           employee_timezone=employee_timezone)
+                           company_timezone=company_timezone)
 
 
 @app.route('/attendance/correct/<int:attendance_id>', methods=['GET', 'POST'])
@@ -2828,50 +2834,4 @@ def api_attendance_calendar_data():
                 events_dict[record.date] = {
                     'date': record.date.isoformat(),
                     'status': record.status,
-                    'clock_in': record.clock_in.strftime('%H:%M') if record.clock_in else None,
-                    'clock_out': record.clock_out.strftime('%H:%M') if record.clock_out else None,
-                    'total_hours': f"{record.total_hours:.2f}" if record.total_hours is not None else '0.00',
-                    'remarks': record.remarks or record.notes or ''
-                }
-
-        return jsonify(list(events_dict.values()))
-
-    except Exception as e:
-        logging.error(f"Error fetching calendar data: {e}")
-        return jsonify({'error': 'An internal error occurred', 'details': str(e)}), 500
-
-
-@app.route('/api/attendance/auto-create', methods=['POST'])
-def api_attendance_auto_create():
-    """API endpoint for creating daily attendance records - for external cron services"""
-    try:
-        # Simple API key authentication (you should set this in environment variables)
-        api_key = request.headers.get('X-API-Key') or request.form.get('api_key')
-        expected_api_key = os.environ.get('ATTENDANCE_API_KEY', 'your-secret-api-key-here')
-
-        if api_key != expected_api_key:
-            return {'error': 'Invalid API key'}, 401
-
-        target_date_str = request.form.get('date') or request.json.get('date') if request.is_json else None
-        if target_date_str:
-            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
-        else:
-            target_date = date.today()
-
-        # Get all active employees
-        employees = Employee.query.filter_by(is_active=True).all()
-
-        # Create attendance records
-        created_count = create_daily_attendance_records(target_date, employees)
-
-        return {
-            'success': True,
-            'message': f'Created {created_count} attendance records for {target_date}'
-        }
-
-    except Exception as e:
-        logging.error(f"API attendance auto-create error: {str(e)}")
-        return {
-            'success': False,
-            'message': f'Error creating attendance records: {str(e)}'
-        }, 500
+                    'clock_in': record.clock_in.strftime('%H:%M') if

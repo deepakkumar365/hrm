@@ -919,22 +919,18 @@
                                    {% if not has_ot_types %}disabled{% endif %}>
                         </div>
                     </div>
-                    <!-- Timezone Selection -->
+                    <!-- Company Timezone Display (Read-Only) -->
                     <div class="form-group" style="margin-bottom: 0.4rem;">
-                        <label for="ot_timezone">Timezone <span class="required">*</span></label>
-                        <select class="form-control" id="ot_timezone" name="ot_timezone" required
-                                {% if not has_ot_types %}disabled{% endif %}>
-                            <option value="">-- Select Timezone --</option>
-                            <option value="UTC">UTC</option>
-                            <option value="Asia/Singapore" selected>Asia/Singapore (SGT - UTC+8)</option>
-                            <option value="Asia/Kolkata">Asia/Kolkata (IST - UTC+5:30)</option>
-                            <option value="Asia/Bangkok">Asia/Bangkok (ICT - UTC+7)</option>
-                            <option value="Asia/Jakarta">Asia/Jakarta (WIB - UTC+7)</option>
-                            <option value="Asia/Kuala_Lumpur">Asia/Kuala Lumpur (MYT - UTC+8)</option>
-                            <option value="America/New_York">America/New_York (EST - UTC-5)</option>
-                            <option value="Europe/London">Europe/London (GMT - UTC+0)</option>
-                            <option value="Australia/Sydney">Australia/Sydney (AEDT - UTC+11)</option>
-                        </select>
+                        <label>🌍 Company Timezone</label>
+                        <div style="padding: 0.4rem 0.6rem; background-color: #f8f9fb; border: 1.5px solid #e8eef5; border-radius: 6px; color: #2c3e50; font-weight: 500;">
+                            {{ company_timezone }}
+                        </div>
+                        <div class="form-help">All times are recorded in your company's configured timezone</div>
+                    </div>
+                    <!-- Live Clock Display -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.6rem; border-radius: 6px; margin-bottom: 0.4rem; text-align: center;">
+                        <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; opacity: 0.9; margin-bottom: 0.2rem;">Current Time in <span id="clockTimezone">Your Timezone</span></div>
+                        <div style="font-size: 1.4rem; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 0.1rem;" id="liveClock">--:-- --</div>
                     </div>
                     <div style="display: flex; gap: 0.4rem;">
                         <button type="button" class="btn-time-now" onclick="setCurrentTime('ot_in_time')" 
@@ -1079,6 +1075,9 @@
 </div>
 
 <script>
+    // Set company timezone from backend
+    const companyTimezone = '{{ company_timezone }}' || 'Asia/Singapore';
+    
     // Submit OT Attendance with proper error handling
     function submitOT(attendanceId, recordDate) {
         if (!confirm(`Submit OT record for ${recordDate} to your reporting manager for approval?`)) {
@@ -1140,18 +1139,64 @@
         });
     }
 
-    // Timezone mapping for display
+    // Timezone mapping with IANA identifiers and display names
     const timezoneMap = {
-        'UTC': { offset: 0, display: 'UTC' },
-        'Asia/Singapore': { offset: 8, display: 'SGT (UTC+8)' },
-        'Asia/Kolkata': { offset: 5.5, display: 'IST (UTC+5:30)' },
-        'Asia/Bangkok': { offset: 7, display: 'ICT (UTC+7)' },
-        'Asia/Jakarta': { offset: 7, display: 'WIB (UTC+7)' },
-        'Asia/Kuala_Lumpur': { offset: 8, display: 'MYT (UTC+8)' },
-        'America/New_York': { offset: -5, display: 'EST (UTC-5)' },
-        'Europe/London': { offset: 0, display: 'GMT (UTC+0)' },
-        'Australia/Sydney': { offset: 11, display: 'AEDT (UTC+11)' }
+        'UTC': { iana: 'UTC', display: 'UTC', label: 'UTC' },
+        'Asia/Singapore': { iana: 'Asia/Singapore', display: 'SGT (UTC+8)', label: 'Singapore (SGT)' },
+        'Asia/Kolkata': { iana: 'Asia/Kolkata', display: 'IST (UTC+5:30)', label: 'India - Kolkata (IST)' },
+        'Asia/Bangkok': { iana: 'Asia/Bangkok', display: 'ICT (UTC+7)', label: 'Bangkok (ICT)' },
+        'Asia/Jakarta': { iana: 'Asia/Jakarta', display: 'WIB (UTC+7)', label: 'Jakarta (WIB)' },
+        'Asia/Kuala_Lumpur': { iana: 'Asia/Kuala_Lumpur', display: 'MYT (UTC+8)', label: 'Malaysia (MYT)' },
+        'America/New_York': { iana: 'America/New_York', display: 'EST (UTC-5)', label: 'New York (EST)' },
+        'Europe/London': { iana: 'Europe/London', display: 'GMT (UTC+0)', label: 'London (GMT)' },
+        'Australia/Sydney': { iana: 'Australia/Sydney', display: 'AEDT (UTC+11)', label: 'Sydney (AEDT)' }
     };
+
+    /**
+     * Get current time in a specific timezone
+     * Uses Intl API for accurate timezone handling
+     */
+    function getTimeInTimezone(timezone) {
+        try {
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const parts = formatter.formatToParts(now);
+            const timeObj = {};
+            
+            parts.forEach(part => {
+                if (part.type !== 'literal') {
+                    timeObj[part.type] = part.value;
+                }
+            });
+            
+            return {
+                hours: timeObj.hour || '00',
+                minutes: timeObj.minute || '00',
+                seconds: timeObj.second || '00',
+                formatted12: new Intl.DateTimeFormat('en-US', {
+                    timeZone: timezone,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                }).format(now)
+            };
+        } catch (e) {
+            console.error(`Error getting time for timezone ${timezone}:`, e);
+            return {
+                hours: '00',
+                minutes: '00',
+                seconds: '00',
+                formatted12: '--:-- --'
+            };
+        }
+    }
 
     // Populate timeline with today's attendance data
     function populateTimeline() {
@@ -1180,7 +1225,7 @@
         const item = document.createElement('div');
         item.className = 'timeline-item';
         
-        const selectedTimezone = document.getElementById('ot_timezone').value || 'Asia/Singapore';
+        const selectedTimezone = companyTimezone || 'Asia/Singapore';
         const tzInfo = timezoneMap[selectedTimezone] || timezoneMap['Asia/Singapore'];
         
         item.innerHTML = `
@@ -1194,7 +1239,7 @@
 
     // Update timezone display in all timeline items
     function updateTimezoneDisplay() {
-        const selectedTimezone = document.getElementById('ot_timezone').value || 'Asia/Singapore';
+        const selectedTimezone = companyTimezone || 'Asia/Singapore';
         const tzInfo = timezoneMap[selectedTimezone] || timezoneMap['Asia/Singapore'];
         
         const timelineItems = document.querySelectorAll('.timeline-item .timeline-zone');
@@ -1208,12 +1253,34 @@
     const today = new Date().toISOString().split('T')[0];
     dateInput.max = today;
 
-    // Set current time in time input with animation
+    /**
+     * Update the live clock display
+     */
+    function updateLiveClock() {
+        const timezone = companyTimezone || 'Asia/Singapore';
+        const tzInfo = timezoneMap[timezone];
+        
+        if (!tzInfo) return;
+        
+        const timeInfo = getTimeInTimezone(timezone);
+        const clockElement = document.getElementById('liveClock');
+        const tzNameElement = document.getElementById('clockTimezone');
+        
+        if (clockElement) {
+            clockElement.textContent = timeInfo.formatted12;
+        }
+        if (tzNameElement) {
+            tzNameElement.textContent = tzInfo.label;
+        }
+    }
+
+    /**
+     * Set current time in time input with timezone conversion
+     */
     function setCurrentTime(fieldId) {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const currentTime = `${hours}:${minutes}`;
+        const timezone = companyTimezone || 'Asia/Singapore';
+        const timeInfo = getTimeInTimezone(timezone);
+        const currentTime = `${timeInfo.hours}:${timeInfo.minutes}`;
         
         const field = document.getElementById(fieldId);
         field.style.animation = 'none';
@@ -1222,7 +1289,7 @@
             field.style.animation = 'pulse 0.6s ease-out';
         }, 10);
         
-        console.log(`Set ${fieldId} to ${currentTime} in timezone: ${document.getElementById('ot_timezone').value}`);
+        console.log(`✅ Set ${fieldId} to ${currentTime} (${timeInfo.formatted12}) in ${timezone}`);
     }
 
     // Switch between time and hours mode
@@ -1246,9 +1313,6 @@
             document.getElementById('ot_out_time').value = '';
         }
     }
-
-    // Listen for timezone changes
-    document.getElementById('ot_timezone').addEventListener('change', updateTimezoneDisplay);
 
     // Form validation with animations
     document.getElementById('otForm').addEventListener('submit', function(e) {
@@ -1329,19 +1393,27 @@
 
     // Initialize page on load
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize displays
         populateTimeline();
         updateTimezoneDisplay();
+        updateLiveClock();
+        
+        // Start live clock update (every second)
+        const clockInterval = setInterval(updateLiveClock, 1000);
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            clearInterval(clockInterval);
+        });
     });
 
-    // Ensure timezone is set with time values
+    // Log time changes with company timezone
     document.getElementById('ot_in_time').addEventListener('change', function() {
-        const timezone = document.getElementById('ot_timezone').value;
-        console.log(`In Time set: ${this.value} [${timezone}]`);
+        console.log(`✅ In Time set: ${this.value} [${companyTimezone}]`);
     });
 
     document.getElementById('ot_out_time').addEventListener('change', function() {
-        const timezone = document.getElementById('ot_timezone').value;
-        console.log(`Out Time set: ${this.value} [${timezone}]`);
+        console.log(`✅ Out Time set: ${this.value} [${companyTimezone}]`);
     });
 </script>
 {% endblock %}

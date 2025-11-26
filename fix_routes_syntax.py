@@ -1,48 +1,48 @@
-#!/usr/bin/env python
-"""Fix syntax error in routes.py - incomplete try block in claims_submit function"""
+#!/usr/bin/env python3
+"""
+Fix the truncated routes.py file - complete the api_attendance_calendar_data function
+"""
 
-import sys
+# Read the current routes.py file
+with open('routes.py', 'r') as f:
+    lines = f.readlines()
 
-def fix_routes():
-    file_path = 'routes.py'
-    
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    # The incomplete section at the end
-    incomplete = """@app.route('/claims/submit', methods=['GET', 'POST'])
-@require_login
-def claims_submit():
-    \"\"\"Submit new claim\"\"\"
-    if request.method == 'POST':
-        try:
-            if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
-                flash('Employee profile required for submitting claims', 'error')"""
-    
-    # The complete section
-    complete = """@app.route('/claims/submit', methods=['GET', 'POST'])
-@require_login
-def claims_submit():
-    \"\"\"Submit new claim\"\"\"
-    if request.method == 'POST':
-        try:
-            if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
-                flash('Employee profile required for submitting claims', 'error')
-                return redirect(url_for('claims_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error submitting claim: {str(e)}', 'error')
-            return redirect(url_for('claims_list'))"""
-    
-    if incomplete in content:
-        content = content.replace(incomplete, complete)
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(content)
-        print("✅ Fixed syntax error in routes.py")
-        return True
-    else:
-        print("❌ Could not find the incomplete section to fix")
-        return False
+print(f"Original file has {len(lines)} lines")
 
-if __name__ == '__main__':
-    fix_routes()
+# Find where the broken function ends (line with 'clock_in': record.clock_in.strftime)
+# This is around line 2836
+truncate_line = None
+for i, line in enumerate(lines):
+    if "record.clock_in.strftime('%H:%M') if" in line:
+        truncate_line = i
+        print(f"Found incomplete line at index {i} (line {i+1})")
+        break
+
+if truncate_line is None:
+    print("ERROR: Could not find the incomplete line")
+    exit(1)
+
+# Remove everything from the incomplete line onwards
+lines = lines[:truncate_line]
+
+# Now add the complete function ending
+completion = """                    'clock_in': record.clock_in.strftime('%H:%M') if record.clock_in else 'N/A',
+                    'clock_out': record.clock_out.strftime('%H:%M') if record.clock_out else 'N/A'
+                }
+        
+        # Convert to list and return
+        events_list = list(events_dict.values())
+        return jsonify(events_list)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+"""
+
+lines.append(completion)
+
+# Write back
+with open('routes.py', 'w') as f:
+    f.writelines(lines)
+
+print(f"Fixed! New file has {len(lines)} lines")
+print("✅ Syntax fix complete!")

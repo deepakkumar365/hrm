@@ -243,13 +243,18 @@ def mark_ot_attendance():
             employee_id=employee.id
         ).order_by(OTAttendance.ot_date.desc()).limit(10).all()
         
+        # Get company timezone
+        company = Company.query.get(company_id)
+        company_timezone = company.timezone if company and company.timezone else 'Asia/Singapore'
+        
         return render_template('ot/mark_attendance.html',
                              employee=employee,
                              ot_types=ot_types,
                              today=today,
                              recent_ots=recent_ots,
                              has_ot_types=bool(ot_types),
-                             attendance_data=attendance_data)
+                             attendance_data=attendance_data,
+                             company_timezone=company_timezone)
         
     except Exception as e:
         logger.error(f"Error in mark_ot_attendance: {str(e)}")
