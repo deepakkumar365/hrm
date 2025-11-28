@@ -6,7 +6,8 @@ Features: Company-wise attendance, leave, OT management, payroll
 
 from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import current_user, login_required
-from sqlalchemy import func, and_, extract
+from sqlalchemy import func, and_, extract, case
+from sqlalchemy.sql.functions import concat
 from datetime import datetime, date, timedelta
 import calendar
 from uuid import UUID
@@ -16,10 +17,9 @@ from app import app, db
 from auth import require_login, require_role
 from models import (
     Employee, Attendance, Leave, OTAttendance, OTApproval, OTRequest, Payroll,
-    Company, User, LeaveType
+    Company, User, LeaveType, Department, Designation
 )
 from utils import get_current_month_dates, check_permission
-from sqlalchemy import case
 
 
 def get_user_companies():
@@ -47,10 +47,11 @@ def get_company_id(company_id_param=None):
 
 def get_attendance_stats(company_id, date_from, date_to):
     """Get attendance statistics for date range"""
+    # IMPORTANT: 'Present' count includes both 'Present' and 'Late' (they are present at work, just marked late)
     attendance = db.session.query(
         func.count(Attendance.id).label('total'),
         func.sum(case(
-            (Attendance.status == 'Present', 1),
+            (Attendance.status.in_(['Present', 'Late']), 1),
             else_=0
         )).label('present'),
         func.sum(case(
@@ -118,15 +119,89 @@ def get_ot_stats(company_id, date_from, date_to):
     }
 
 
+def get_attendance_details(company_id, status):
+    """Get detailed user list for a specific attendance status"""
+    today = date.today()
+    
+    if status == 'not_updated':
+        # Get employees who haven't updated attendance
+        employees_with_attendance = db.session.query(Employee.id).join(
+            Attendance, Attendance.employee_id == Employee.id
+        ).filter(
+            Employee.company_id == company_id,
+            Attendance.date == today
+        ).distinct()
+        
+        all_employees = db.session.query(
+            Employee.id,
+            Employee.employee_id,
+            concat(Employee.first_name, ' ', Employee.last_name).label('name'),
+            Employee.department,
+            Designation.name.label('designation')
+        ).outerjoin(
+            Designation, Employee.designation_id == Designation.id
+        ).filter(
+            Employee.company_id == company_id,
+            Employee.is_active == True
+        )
+        
+        not_updated = all_employees.filter(~Employee.id.in_(employees_with_attendance)).all()
+        return [{
+            'name': emp.name,
+            'id': emp.employee_id,
+            'department': emp.department or 'N/A',
+            'designation': emp.designation or 'N/A',
+            'time': 'Not Updated'
+        } for emp in not_updated]
+    
+    else:
+        # Get attendance records by status
+        # IMPORTANT: When requesting 'Present', also include 'Late' employees 
+        # (they are present at work, just marked as late)
+        query = db.session.query(
+            Employee.id,
+            Employee.employee_id,
+            concat(Employee.first_name, ' ', Employee.last_name).label('name'),
+            Employee.department,
+            Designation.name.label('designation'),
+            Attendance.clock_in,
+            Attendance.status
+        ).join(Employee, Attendance.employee_id == Employee.id).outerjoin(
+            Designation, Employee.designation_id == Designation.id
+        ).filter(
+            Employee.company_id == company_id,
+            Attendance.date == today
+        )
+        
+        # Apply status filter with special handling for 'Present' status
+        if status == 'Present':
+            # Include both 'Present' and 'Late' records for the Present section
+            query = query.filter(Attendance.status.in_(['Present', 'Late']))
+        else:
+            # For other statuses (Late, Absent), filter by exact status
+            query = query.filter(Attendance.status == status)
+        
+        records = query.all()
+        
+        return [{
+            'name': rec.name,
+            'id': rec.employee_id,
+            'department': rec.department or 'N/A',
+            'designation': rec.designation or 'N/A',
+            'time': rec.clock_in.strftime('%H:%M') if rec.clock_in else 'N/A'
+        } for rec in records]
+
+
 def get_today_summary(company_id):
     """Get today's attendance and leave summary"""
     today = date.today()
     
     # Today's attendance
+    # IMPORTANT: 'Present' count includes both 'Present' and 'Late' (they are present at work, just marked late)
     today_attendance = db.session.query(
         func.count(Attendance.id).label('total'),
         func.sum(case(
-            (Attendance.status == 'Present', 1),
+            (Attendance.status.in_(['Present', 'Late']), 1),
             else_=0
         )).label('present'),
         func.sum(case(
@@ -152,13 +227,22 @@ def get_today_summary(company_id):
         Leave.status == 'Approved'
     ).first()
     
-    # Today's OT
-    today_ot = db.session.query(
-        func.sum(OTAttendance.ot_hours).label('hours')
-    ).join(Employee, OTAttendance.employee_id == Employee.id).filter(
+    # Get not updated count
+    employees_with_attendance = db.session.query(Employee.id).join(
+        Attendance, Attendance.employee_id == Employee.id
+    ).filter(
         Employee.company_id == company_id,
-        OTAttendance.ot_date == today
-    ).first()
+        Attendance.date == today
+    ).distinct()
+    
+    not_updated_count = db.session.query(func.count(Employee.id)).filter(
+        Employee.company_id == company_id,
+        Employee.is_active == True,
+        ~Employee.id.in_(employees_with_attendance)
+    ).scalar() or 0
+    
+    # Get present details for pre-loading
+    present_details = get_attendance_details(company_id, 'Present')
     
     return {
         'date': today.strftime('%A, %B %d, %Y'),
@@ -169,7 +253,9 @@ def get_today_summary(company_id):
             'late': today_attendance.late or 0
         },
         'leaves': today_leaves.count or 0,
-        'ot_hours': float(today_ot.hours) if today_ot.hours else 0
+        'not_updated': not_updated_count,
+        'present_details': present_details,
+        'present_details_json': json.dumps(present_details)
     }
 
 
@@ -294,6 +380,65 @@ def hr_manager_dashboard():
     }
     
     return render_template('hr_manager_dashboard.html', **context)
+
+
+@app.route('/api/attendance-details', methods=['GET'])
+@require_login
+def api_attendance_details():
+    """API endpoint to get detailed attendance information for a specific status"""
+    status = request.args.get('status')  # 'Present', 'Absent', 'Late', 'not_updated'
+    company_id = get_company_id(request.args.get('company_id'))
+    
+    if not status or not company_id:
+        return jsonify({'error': 'Missing status or company_id'}), 400
+    
+    try:
+        details = get_attendance_details(company_id, status)
+        return jsonify({'data': details, 'count': len(details)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/leave-details', methods=['GET'])
+@require_login
+def api_leave_details():
+    """API endpoint to get detailed leave information for today"""
+    company_id = get_company_id(request.args.get('company_id'))
+    
+    if not company_id:
+        return jsonify({'error': 'Missing company_id'}), 400
+    
+    try:
+        today = date.today()
+        
+        # Get employees on approved leaves today
+        records = db.session.query(
+            Employee.id,
+            Employee.employee_id,
+            (Employee.first_name + ' ' + Employee.last_name).label('name'),
+            Employee.department,
+            Designation.name.label('designation'),
+            Leave.leave_type
+        ).join(Employee, Leave.employee_id == Employee.id).outerjoin(
+            Designation, Employee.designation_id == Designation.id
+        ).filter(
+            Employee.company_id == company_id,
+            Leave.start_date <= today,
+            Leave.end_date >= today,
+            Leave.status == 'Approved'
+        ).all()
+        
+        details = [{
+            'name': rec.name,
+            'id': rec.employee_id,
+            'department': rec.department or 'N/A',
+            'designation': rec.designation or 'N/A',
+            'time': rec.leave_type or 'N/A'
+        } for rec in records]
+        
+        return jsonify({'data': details, 'count': len(details)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/dashboard/hr-manager/ot-approval', methods=['GET'])

@@ -45,6 +45,45 @@
         flex-shrink: 0;
     }
 
+    .header-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .refresh-btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .refresh-btn:hover {
+        background: #2980b9;
+        transform: translateY(-1px);
+    }
+
+    .refresh-btn:active {
+        transform: translateY(0);
+    }
+
+    .refresh-btn.loading i {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
     .header-title {
         font-size: 1.3rem;
         font-weight: 700;
@@ -129,8 +168,8 @@
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         gap: 0.5rem;
-        padding: 0.6rem;
-        flex: 1;
+        padding: 0.4rem;
+        flex: 0 0 auto;
         overflow-y: auto;
         align-content: start;
     }
@@ -153,11 +192,12 @@
         background: rgba(0,0,0,0.02);
     }
 
-    .summary-card.present { border-bottom-color: #27ae60; }
-    .summary-card.absent { border-bottom-color: #e74c3c; }
-    .summary-card.late { border-bottom-color: #f39c12; }
-    .summary-card.leaves { border-bottom-color: #9b59b6; }
+    .summary-card.present { border-bottom-color: #27ae60; cursor: pointer; }
+    .summary-card.absent { border-bottom-color: #e74c3c; cursor: pointer; }
+    .summary-card.late { border-bottom-color: #f39c12; cursor: pointer; }
+    .summary-card.leaves { border-bottom-color: #9b59b6; cursor: pointer; }
     .summary-card.ot { border-bottom-color: #1abc9c; }
+    .summary-card.not-updated { border-bottom-color: #3498db; }
 
     .summary-card-title {
         font-size: 0.65rem;
@@ -276,6 +316,15 @@
         border-radius: 6px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         overflow: hidden;
+        margin-top: -0.45rem;
+    }
+
+    .ot-management-container:first-of-type {
+        margin-top: -0.35rem;
+    }
+
+    .ot-management-container:last-of-type {
+        margin-top: -0.45rem;
     }
 
     .ot-management-grid {
@@ -559,7 +608,7 @@
         }
 
         .ot-management-grid {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
         }
 
         .metrics-stats {
@@ -568,6 +617,12 @@
 
         .summary-card {
             flex: 0 1 calc(50% - 0.25rem);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .ot-management-grid {
+            grid-template-columns: 1fr;
         }
     }
 
@@ -590,8 +645,6 @@
         background: #555;
     }
 </style>
-<!-- Chart.js Library -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -602,243 +655,131 @@
             <i class="fas fa-chart-line"></i>
             HR Manager Dashboard
         </div>
-        <div class="company-selector">
-            <label>Select Company:</label>
-            <form method="GET" style="display: flex; gap: 0.3rem;">
-                <select name="company_id" onchange="this.form.submit()">
-                    {% for company in companies %}
-                        <option value="{{ company.id }}" {% if company.id == selected_company.id %}selected{% endif %}>
-                            {{ company.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </form>
+        <div class="header-actions">
+            <div class="company-selector">
+                <label>Select Company:</label>
+                <form method="GET" style="display: flex; gap: 0.3rem;">
+                    <select name="company_id" onchange="this.form.submit()">
+                        {% for company in companies %}
+                            <option value="{{ company.id }}" {% if company.id == selected_company.id %}selected{% endif %}>
+                                {{ company.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+            <button class="refresh-btn" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
         </div>
     </div>
 
     <!-- Main Dashboard Content -->
-    <div class="dashboard-content">
-        <!-- Column 1: Today's Summary -->
+    <div class="dashboard-content" style="grid-template-columns: 1fr;">
+        <!-- Row 1: Today's Summary -->
         <div class="today-summary-wrapper">
             <div class="today-summary-header">
                 <h3><i class="fas fa-calendar-day"></i> <span id="todayDate"></span></h3>
             </div>
             <div class="summary-section">
-                <div class="summary-card present">
+                <div class="summary-card present" onclick="openAttendanceModal('Present', {{ today_summary.attendance.present }})">
                     <div class="summary-card-title">Present</div>
                     <div class="summary-card-value">{{ today_summary.attendance.present }}</div>
                     <div class="summary-card-meta">of {{ today_summary.attendance.total }}</div>
                 </div>
 
-                <div class="summary-card absent">
+                <div class="summary-card absent" onclick="openAttendanceModal('Absent', {{ today_summary.attendance.absent }})">
                     <div class="summary-card-title">Absent</div>
                     <div class="summary-card-value">{{ today_summary.attendance.absent }}</div>
                     <div class="summary-card-meta">{{ ((today_summary.attendance.absent / today_summary.attendance.total * 100) if today_summary.attendance.total > 0 else 0) | int }}%</div>
                 </div>
 
-                <div class="summary-card late">
+                <div class="summary-card late" onclick="openAttendanceModal('Late', {{ today_summary.attendance.late }})">
                     <div class="summary-card-title">Late</div>
                     <div class="summary-card-value">{{ today_summary.attendance.late }}</div>
                     <div class="summary-card-meta">Clocked in late</div>
                 </div>
 
-                <div class="summary-card leaves">
+                <div class="summary-card leaves" onclick="openAttendanceModal('leaves', {{ today_summary.leaves }})">
                     <div class="summary-card-title">On Leave</div>
                     <div class="summary-card-value">{{ today_summary.leaves }}</div>
                     <div class="summary-card-meta">Approved leaves</div>
                 </div>
 
-                <div class="summary-card ot">
-                    <div class="summary-card-title">OT Hrs</div>
-                    <div class="summary-card-value">{{ "%.1f" | format(today_summary.ot_hours) }}</div>
-                    <div class="summary-card-meta">Total OT</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Column 2: Attendance & Leave -->
-        <div class="dashboard-grid">
-            <!-- Attendance Dashboard -->
-            <div class="dashboard-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-user-check"></i> Attendance</h3>
-                </div>
-                <div class="section-body">
-                    <div class="metrics-stats" style="grid-template-columns: repeat(4, 1fr); gap: 0.3rem; padding: 0.4rem;">
-                        <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #27ae60;" onclick="openDetailModal('attendance', 'Present', {{ mtd_attendance.present }}, 'MTD')">
-                            <div class="metric-label" style="font-size: 0.6rem;">MTD Present</div>
-                            <div class="metric-value" style="font-size: 0.95rem;">{{ mtd_attendance.present }}</div>
-                        </div>
-                        <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #e74c3c;" onclick="openDetailModal('attendance', 'Absent', {{ mtd_attendance.absent }}, 'MTD')">
-                            <div class="metric-label" style="font-size: 0.6rem;">MTD Absent</div>
-                            <div class="metric-value" style="font-size: 0.95rem;">{{ mtd_attendance.absent }}</div>
-                        </div>
-                        <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #3498db;" onclick="openDetailModal('attendance', 'Present', {{ ytd_attendance.present }}, 'YTD')">
-                            <div class="metric-label" style="font-size: 0.6rem;">YTD Present</div>
-                            <div class="metric-value" style="font-size: 0.95rem;">{{ ytd_attendance.present }}</div>
-                        </div>
-                        <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #f39c12;" onclick="openDetailModal('attendance', 'Absent', {{ ytd_attendance.absent }}, 'YTD')">
-                            <div class="metric-label" style="font-size: 0.6rem;">YTD Absent</div>
-                            <div class="metric-value" style="font-size: 0.95rem;">{{ ytd_attendance.absent }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Leave Dashboard -->
-            <div class="dashboard-section">
-                <div class="section-header">
-                    <h3><i class="fas fa-calendar-times"></i> Leave</h3>
-                </div>
-                <div class="section-body">
-                    {% if mtd_leaves %}
-                        <div class="metrics-stats" style="grid-template-columns: repeat(4, 1fr); gap: 0.3rem; padding: 0.4rem;">
-                            {% for leave in mtd_leaves[:4] %}
-                                <div class="metric-item clickable" style="padding: 0.35rem; border-left: 2px solid #9b59b6;" onclick="openDetailModal('leave', '{{ leave.name }}', {{ leave.count }}, 'MTD')">
-                                    <div class="metric-label" style="font-size: 0.6rem;">{{ leave.name[:8] }}</div>
-                                    <div class="metric-value" style="font-size: 0.95rem;">{{ leave.count }}</div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="empty-state" style="padding: 0.5rem; font-size: 0.75rem;">
-                            <i class="fas fa-inbox"></i>
-                            <p style="margin: 0.2rem 0 0 0;">No leaves</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Column 3: OT Management Hub -->
-        <div class="ot-management-container">
-            <div class="section-header" style="padding: 0.4rem 0.75rem;">
-                <h3 style="font-size: 0.85rem; margin: 0;"><i class="fas fa-clock"></i> OT Hub</h3>
-            </div>
-            <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem;">
-                <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}" class="ot-action-card ot-approval" style="padding: 0.45rem; position: relative;">
-                    <i class="fas fa-check-circle" style="font-size: 1rem;"></i>
-                    <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval</div>
-                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
-                        {% if mtd_ot.pending_approvals > 0 %}
-                            <span style="display: inline-block; background-color: #e74c3c; color: white; border-radius: 50%; min-width: 1.2rem; height: 1.2rem; line-height: 1.2rem; text-align: center; font-weight: bold; font-size: 0.7rem;">{{ mtd_ot.pending_approvals }}</span>
-                            <span style="margin-left: 0.3rem;">pending</span>
-                        {% else %}
-                            <span style="color: #27ae60;">All Clear</span>
-                        {% endif %}
-                    </div>
-                </a>
-
-                <a href="/dashboard/hr-manager/ot-attendance?company_id={{ selected_company.id }}" class="ot-action-card ot-attendance" style="padding: 0.45rem;">
-                    <i class="fas fa-list" style="font-size: 1rem;"></i>
-                    <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Attendance</div>
-                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
-                </a>
-
-                <a href="/dashboard/hr-manager/payroll-reminder?company_id={{ selected_company.id }}" class="ot-action-card payroll-reminder" style="padding: 0.45rem;">
-                    <i class="fas fa-bell" style="font-size: 1rem;"></i>
-                    <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll Reminder</div>
-                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{month_name}}</div>
-                </a>
-
-                <a href="/dashboard/hr-manager/generate-payroll" class="ot-action-card generate-payroll" style="padding: 0.45rem;">
-                    <i class="fas fa-file-invoice-dollar" style="font-size: 1rem;"></i>
-                    <div class="ot-action-card-title" style="font-size: 0.65rem;">Generate Payroll</div>
-                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">New Run</div>
-                </a>
-
-                <a href="#payroll-history" class="ot-action-card payroll-history" style="padding: 0.45rem;">
-                    <i class="fas fa-history" style="font-size: 1rem;"></i>
-                    <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll History</div>
-                    <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">Last 6 Mo</div>
-                </a>
-            </div>
-
-            <!-- OT Statistics -->
-            <div class="metrics-stats" style="grid-template-columns: repeat(4, 1fr); gap: 0.3rem; padding: 0.4rem;">
-                <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #1abc9c;">
-                    <div class="metric-label" style="font-size: 0.6rem;">MTD OT</div>
-                    <div class="metric-value" style="font-size: 0.95rem;">{{ mtd_ot.total_ot }}</div>
-                </div>
-                <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #3498db;">
-                    <div class="metric-label" style="font-size: 0.6rem;">MTD Hrs</div>
-                    <div class="metric-value" style="font-size: 0.95rem;">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
-                </div>
-                <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #e67e22;">
-                    <div class="metric-label" style="font-size: 0.6rem;">YTD OT</div>
-                    <div class="metric-value" style="font-size: 0.95rem;">{{ ytd_ot.total_ot }}</div>
-                </div>
-                <div class="metric-item" style="padding: 0.35rem; border-left: 2px solid #9b59b6;">
-                    <div class="metric-label" style="font-size: 0.6rem;">YTD Hrs</div>
-                    <div class="metric-value" style="font-size: 0.95rem;">{{ "%.1f" | format(ytd_ot.total_hours) }}h</div>
+                <div class="summary-card not-updated" onclick="openAttendanceModal('not_updated', {{ today_summary.not_updated }})">
+                    <div class="summary-card-title">Not Updated</div>
+                    <div class="summary-card-value">{{ today_summary.not_updated }}</div>
+                    <div class="summary-card-meta">Pending update</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bottom: Pending OT Approvals & Payroll History -->
-    <div class="dashboard-grid">
-        <!-- Pending OT Approvals -->
-        <div class="dashboard-section">
-            <div class="section-header">
-                <h3><i class="fas fa-hourglass-end"></i> Pending OT</h3>
-            </div>
-            <div class="section-body scrollable">
-                {% if pending_ot_approvals %}
-                    <table class="stats-table">
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Date</th>
-                                <th>Hours</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for approval in pending_ot_approvals[:8] %}
-                                <tr>
-                                    <td>{{ approval.emp_name }}</td>
-                                    <td>{{ approval.ot_date.strftime('%d/%m') }}</td>
-                                    <td class="stat-value">{{ "%.2f" | format(approval.ot_hours) }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    {% if pending_ot_approvals|length > 8 %}
-                        <div style="margin-top: 0.5rem; text-align: center;">
-                            <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}" class="btn btn-primary" style="padding: 0.3rem;">
-                                View All ({{ pending_ot_approvals|length }})
-                            </a>
-                        </div>
-                    {% endif %}
-                {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-check"></i>
-                        <p>All OT approvals up to date!</p>
-                    </div>
-                {% endif %}
-            </div>
+    <!-- Row 2: OT Hub (3 sections) -->
+    <div class="ot-management-container">
+        <div class="section-header" style="padding: 0.4rem 0.75rem;">
+            <h3 style="font-size: 0.85rem; margin: 0;"><i class="fas fa-clock"></i> OT Hub</h3>
         </div>
+        <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem; grid-template-columns: repeat(3, 1fr);">
+            <!-- OT Approval Pending (HR) -->
+            <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}" class="ot-action-card ot-approval" style="padding: 0.45rem; position: relative;">
+                <i class="fas fa-check-circle" style="font-size: 1rem;"></i>
+                <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval (HR)</div>
+                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
+                    {% if mtd_ot.pending_approvals > 0 %}
+                        <span style="display: inline-block; background-color: #e74c3c; color: white; border-radius: 50%; min-width: 1.2rem; height: 1.2rem; line-height: 1.2rem; text-align: center; font-weight: bold; font-size: 0.7rem;">{{ mtd_ot.pending_approvals }}</span>
+                        <span style="margin-left: 0.3rem;">pending</span>
+                    {% else %}
+                        <span style="color: #27ae60;">All Clear</span>
+                    {% endif %}
+                </div>
+            </a>
 
-        <!-- Payroll History -->
-        <div class="dashboard-section" id="payroll-history">
-            <div class="section-header">
-                <h3><i class="fas fa-file-invoice"></i> Payroll Trend</h3>
-            </div>
-            <div class="section-body" style="display: flex; flex-direction: column;">
-                {% if payroll_history %}
-                    <canvas id="payrollTrendChart" style="flex: 1; min-height: 0;"></canvas>
-                    <div style="margin-top: 0.3rem;">
-                        <a href="/dashboard/hr-manager/generate-payroll" class="btn btn-success" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">
-                            Generate Payroll
-                        </a>
-                    </div>
-                {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <p>No payroll records</p>
-                    </div>
-                {% endif %}
-            </div>
+            <!-- OT Approval Pending (Manager) -->
+            <a href="/ot/manager-approval" class="ot-action-card ot-manager-approval" style="padding: 0.45rem; position: relative;">
+                <i class="fas fa-user-check" style="font-size: 1rem;"></i>
+                <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval (Manager)</div>
+                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
+                    <span style="color: #27ae60;">Review</span>
+                </div>
+            </a>
+
+            <!-- OT Attendance -->
+            <a href="/dashboard/hr-manager/ot-attendance?company_id={{ selected_company.id }}" class="ot-action-card ot-attendance" style="padding: 0.45rem;">
+                <i class="fas fa-list" style="font-size: 1rem;"></i>
+                <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Attendance</div>
+                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Row 3: Payroll Summary (3 sections) -->
+    <div class="ot-management-container">
+        <div class="section-header" style="padding: 0.4rem 0.75rem;">
+            <h3 style="font-size: 0.85rem; margin: 0;"><i class="fas fa-money-bill"></i> Payroll Summary</h3>
+        </div>
+        <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem; grid-template-columns: repeat(3, 1fr);">
+            <!-- Payroll Reminder -->
+            <a href="/dashboard/hr-manager/payroll-reminder?company_id={{ selected_company.id }}" class="ot-action-card payroll-reminder" style="padding: 0.45rem;">
+                <i class="fas fa-bell" style="font-size: 1rem;"></i>
+                <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll Reminder</div>
+                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{month_name}}</div>
+            </a>
+
+            <!-- Generate Payroll -->
+            <a href="/dashboard/hr-manager/generate-payroll" class="ot-action-card generate-payroll" style="padding: 0.45rem;">
+                <i class="fas fa-file-invoice-dollar" style="font-size: 1rem;"></i>
+                <div class="ot-action-card-title" style="font-size: 0.65rem;">Generate Payroll</div>
+                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">New Run</div>
+            </a>
+
+            <!-- Payroll History -->
+            <a href="#payroll-history" class="ot-action-card payroll-history" style="padding: 0.45rem;">
+                <i class="fas fa-history" style="font-size: 1rem;"></i>
+                <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll History</div>
+                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">Last 6 Mo</div>
+            </a>
         </div>
     </div>
 
@@ -862,97 +803,15 @@
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', options);
 
-    // Initialize Payroll Trend Chart
-    const payrollChartCanvas = document.getElementById('payrollTrendChart');
-    if (payrollChartCanvas) {
-        const payrollData = {{ payroll_history_json | safe }};
+    // Refresh Dashboard Function
+    function refreshDashboard() {
+        const refreshBtn = document.querySelector('.refresh-btn');
+        refreshBtn.classList.add('loading');
+        refreshBtn.disabled = true;
         
-        if (payrollData && payrollData.length > 0) {
-            const months = payrollData.map(p => {
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                return monthNames[p.month - 1] + " '" + String(p.year).slice(-2);
-            });
-            
-            const salaries = payrollData.map(p => Math.round(p.total_salary));
-            const empCounts = payrollData.map(p => p.emp_count);
-            
-            new Chart(payrollChartCanvas, {
-                type: 'bar',
-                data: {
-                    labels: months,
-                    datasets: [
-                        {
-                            label: 'Total Salary (Paid)',
-                            data: salaries,
-                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
-                            borderColor: 'rgba(52, 152, 219, 1)',
-                            borderWidth: 1,
-                            borderRadius: 3,
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'Employees Paid',
-                            data: empCounts,
-                            backgroundColor: 'rgba(46, 204, 113, 0.7)',
-                            borderColor: 'rgba(46, 204, 113, 1)',
-                            borderWidth: 1,
-                            borderRadius: 3,
-                            yAxisID: 'y1'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                            labels: { font: { size: 11 }, padding: 8, usePointStyle: true }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 8,
-                            titleFont: { size: 11 },
-                            bodyFont: { size: 10 },
-                            displayColors: true,
-                            callbacks: {
-                                label: function(context) {
-                                    if (context.datasetIndex === 0) {
-                                        return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString('en-IN');
-                                    } else {
-                                        return context.dataset.label + ': ' + context.parsed.y;
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: { display: true, text: 'Salary (₹)', font: { size: 10 } },
-                            ticks: { font: { size: 9 }, callback: function(v) { return '₹' + (v/100000).toFixed(1) + 'L'; } },
-                            grid: { drawBorder: false, color: 'rgba(0, 0, 0, 0.05)' }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: { display: true, text: 'Employee Count', font: { size: 10 } },
-                            ticks: { font: { size: 9 } },
-                            grid: { drawOnChartArea: false }
-                        },
-                        x: {
-                            ticks: { font: { size: 9 } },
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
-        }
+        setTimeout(() => {
+            location.reload();
+        }, 300);
     }
 
     // Modal Functions
@@ -1017,15 +876,163 @@
         }
     }
 
-    // Check if company selector has options
+    // Check if company selector has options (with safety check)
     const companySelect = document.querySelector('select[name="company_id"]');
     if (companySelect && companySelect.options.length === 0) {
-        showNotification('No company mapped. Please contact administrator.', 'warning');
+        if (typeof showNotification === 'function') {
+            showNotification('No company mapped. Please contact administrator.', 'warning');
+        }
     }
 
-    // Auto-refresh dashboard every 5 minutes
-    setTimeout(function() {
-        location.reload();
-    }, 5 * 60 * 1000);
+    // Attendance Modal Functions
+    let presentData = {{ today_summary.present_details_json | safe }};
+    console.log('Present data from backend:', presentData, 'Type:', typeof presentData);
+    
+    // Ensure present data is an array
+    if (!Array.isArray(presentData)) {
+        console.warn('Present data is not an array, converting...');
+        presentData = [];
+    }
+    
+    let attendanceModalCache = {
+        'Present': presentData,
+        'Absent': null,
+        'Late': null,
+        'leaves': null,
+        'not_updated': null
+    };
+
+    console.log('Initial cache:', attendanceModalCache);
+
+    function openAttendanceModal(status, count) {
+        console.log(`openAttendanceModal called: status=${status}, count=${count}, cached=${attendanceModalCache[status]}`);
+        
+        if (count === 0) {
+            if (typeof showNotification === 'function') {
+                showNotification(`No ${status} employees today`, 'info');
+            }
+            return;
+        }
+
+        const modal = document.getElementById('attendanceDetailModal');
+        const titleEl = document.getElementById('attendanceModalTitle');
+        const bodyEl = document.getElementById('attendanceModalBody');
+
+        if (!modal || !titleEl || !bodyEl) {
+            console.error('Modal elements not found!');
+            return;
+        }
+
+        // Set title
+        const titleMap = {
+            'Present': 'Present Employees',
+            'Absent': 'Absent Employees',
+            'Late': 'Late Employees',
+            'leaves': 'Employees on Leave',
+            'not_updated': 'Attendance Not Updated'
+        };
+        titleEl.textContent = titleMap[status] || status;
+
+        // Check cache
+        if (attendanceModalCache[status] !== null && attendanceModalCache[status] !== undefined) {
+            console.log('Using cached data:', attendanceModalCache[status]);
+            displayAttendanceData(attendanceModalCache[status], bodyEl);
+            modal.style.display = 'block';
+        } else {
+            // Fetch via AJAX
+            bodyEl.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            modal.style.display = 'block';
+
+            const company_id = document.querySelector('select[name="company_id"]').value;
+            const endpoint = (status === 'leaves') 
+                ? `/api/leave-details?company_id=${company_id}` 
+                : `/api/attendance-details?status=${status}&company_id=${company_id}`;
+
+            fetch(endpoint)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        bodyEl.innerHTML = `<div style="text-align: center; padding: 2rem; color: #e74c3c;"><i class="fas fa-exclamation-circle"></i> Error: ${data.error}</div>`;
+                    } else {
+                        attendanceModalCache[status] = data.data;
+                        displayAttendanceData(data.data, bodyEl);
+                    }
+                })
+                .catch(error => {
+                    bodyEl.innerHTML = `<div style="text-align: center; padding: 2rem; color: #e74c3c;"><i class="fas fa-exclamation-circle"></i> Failed to load data</div>`;
+                    console.error('Error:', error);
+                });
+        }
+    }
+
+    function displayAttendanceData(data, container) {
+        console.log('displayAttendanceData called with:', data);
+        
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #95a5a6;"><i class="fas fa-check-circle"></i> No employees found</div>';
+            return;
+        }
+
+        let html = `
+            <table class="detail-table" style="width: 100%; margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>ID</th>
+                        <th>Department</th>
+                        <th>Designation</th>
+                        <th>Time/Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.forEach(emp => {
+            html += `
+                <tr>
+                    <td><strong>${emp.name}</strong></td>
+                    <td>${emp.id}</td>
+                    <td>${emp.department}</td>
+                    <td>${emp.designation}</td>
+                    <td>${emp.time}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        console.log('Setting container HTML');
+        container.innerHTML = html;
+    }
+
+    function closeAttendanceModal() {
+        const modal = document.getElementById('attendanceDetailModal');
+        modal.style.display = 'none';
+    }
+
+    // Close attendance modal when clicking outside
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('attendanceDetailModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
 </script>
+
+<!-- Attendance Details Modal -->
+<div id="attendanceDetailModal" class="detail-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="attendanceModalTitle">Employee Details</h3>
+            <button class="modal-close" onclick="closeAttendanceModal()">&times;</button>
+        </div>
+        <div id="attendanceModalBody">
+            <!-- Content will be populated via JavaScript -->
+        </div>
+    </div>
+</div>
+
 {% endblock %}

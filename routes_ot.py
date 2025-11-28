@@ -1494,10 +1494,10 @@ def get_attendance_detail(attendance_id):
             'id': record.id,
             'employee_id': record.employee_id,
             'date': record.ot_date.isoformat() if hasattr(record.ot_date, 'isoformat') else str(record.ot_date),
-            'check_in': record.check_in_time.isoformat() if hasattr(record, 'check_in_time') and record.check_in_time else None,
-            'check_out': record.check_out_time.isoformat() if hasattr(record, 'check_out_time') and record.check_out_time else None,
+            'check_in': record.ot_in_time.isoformat() if hasattr(record, 'ot_in_time') and record.ot_in_time else None,
+            'check_out': record.ot_out_time.isoformat() if hasattr(record, 'ot_out_time') and record.ot_out_time else None,
             'hours': float(record.ot_hours) if hasattr(record, 'ot_hours') else 0,
-            'reason': record.reason if hasattr(record, 'reason') else '',
+            'reason': record.notes if hasattr(record, 'notes') else '',
             'status': record.status if hasattr(record, 'status') else 'pending'
         })
     

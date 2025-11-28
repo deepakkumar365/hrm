@@ -2324,7 +2324,16 @@ def attendance_mark():
                     attendance.employee_id = employee_id
                     attendance.date = today
                     attendance.clock_in = current_time
-                    attendance.status = 'Present'
+                    
+                    # Determine status based on grace period logic
+                    # Working hours: 9:00 AM to 6:00 PM
+                    # Grace period: 15 minutes (9:15 AM)
+                    grace_period_end = time(9, 15)  # 9:15 AM
+                    if current_time >= grace_period_end:
+                        attendance.status = 'Late'
+                    else:
+                        attendance.status = 'Present'
+                    
                     attendance.timezone = timezone_str
 
                     # Get location if provided
@@ -2623,7 +2632,17 @@ def attendance_bulk_manage():
                         attendance.overtime_hours = 0
                         attendance.total_hours = 0
                     else:
-                        attendance.status = 'Present'
+                        # Determine status based on grace period logic
+                        # If employee has clocked in, check against grace period
+                        if attendance.clock_in:
+                            grace_period_end = time(9, 15)  # 9:15 AM
+                            if attendance.clock_in >= grace_period_end:
+                                attendance.status = 'Late'
+                            else:
+                                attendance.status = 'Present'
+                        else:
+                            attendance.status = 'Present'
+                        
                         # For present employees, set default 8 hours if not manually clocked
                         if not attendance.clock_in and not attendance.clock_out:
                             attendance.regular_hours = 8
@@ -2807,41 +2826,30 @@ def api_attendance_calendar_data():
 
         leave_records = Leave.query.filter(
             Leave.employee_id == employee_id,
-            Leave.status == 'Approved',
-            Leave.start_date <= end_date,
-            Leave.end_date >= start_date
+            Leave.start_date.between(start_date, end_date),
+            Leave.status == 'Approved'
         ).all()
-
-        # Process data into a dictionary for quick lookup, prioritizing leaves over attendance
-        events_dict = {}
-
-        # First, add leave records
+        
+        # Format data for calendar
+        calendar_data = []
+        for record in attendance_records:
+            calendar_data.append({
+                'date': record.date.isoformat(),
+                'type': 'attendance',
+                'status': record.status
+            })
+        
         for leave in leave_records:
             current_date = leave.start_date
             while current_date <= leave.end_date:
-                if start_date <= current_date <= end_date:
-                    events_dict[current_date] = {
-                        'date': current_date.isoformat(),
-                        'status': 'Leave',
-                        'leave_type': leave.leave_type,
-                        'remarks': leave.reason or ''
-                    }
+                calendar_data.append({
+                    'date': current_date.isoformat(),
+                    'type': 'leave',
+                    'leave_type': leave.leave_type
+                })
                 current_date += timedelta(days=1)
-
-
-        # Then, add attendance records, only if a leave is not already on that day
-        for record in attendance_records:
-            if record.date not in events_dict:
-                events_dict[record.date] = {
-                    'date': record.date.isoformat(),
-                    'status': record.status,
-                    'clock_in': record.clock_in.strftime('%H:%M') if record.clock_in else 'N/A',
-                    'clock_out': record.clock_out.strftime('%H:%M') if record.clock_out else 'N/A'
-                }
         
-        # Convert to list and return
-        events_list = list(events_dict.values())
-        return jsonify(events_list)
-    
+        return jsonify({'data': calendar_data})
     except Exception as e:
+        logger.error(f"Error fetching calendar data: {e}")
         return jsonify({'error': str(e)}), 500
