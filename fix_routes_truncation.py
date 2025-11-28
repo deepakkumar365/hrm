@@ -1,42 +1,41 @@
-#!/usr/bin/env python3
-"""Fix the truncated routes.py file"""
+#!/usr/bin/env python
+# Fix truncated routes.py file
 
-# Read the file up to the truncation point
-with open('D:/Projects/HRMS/hrm/routes.py', 'r') as f:
-    content = f.read()
+# Read the incomplete file
+with open('D:/DEV/HRM/hrm/routes.py', 'r', encoding='utf-8', errors='ignore') as f:
+    lines = f.readlines()
 
-# Find where it's truncated (at the unterminated string)
-# The file should end with: request.form.get('r
+# Complete the truncated function - start from line 2830 (index 2829)
+# We need to reconstruct from line 2831 onwards
 
-# Complete the appraisal_create function
-completion = """eview_period_start'))
-            appraisal.review_period_end = parse_date(
-                request.form.get('review_period_end'))
-            appraisal.comments = request.form.get('comments')
-            
-            db.session.add(appraisal)
-            db.session.commit()
-            flash('Appraisal created successfully!', 'success')
-            return redirect(url_for('appraisal_list'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error creating appraisal: {str(e)}', 'error')
-    
-    employees = Employee.query.all()
-    return render_template('appraisal/create.html', employees=employees)
-"""
+fixed_lines = lines[:2830]  # Keep everything up to line 2830
 
-# The file ends with: request.form.get('r
-# We need to remove 'r and complete it
+# Add the complete fixed section
+fixed_lines.extend([
+    "\n",
+    "        # Then, add attendance records, only if a leave is not already on that day\n",
+    "        for record in attendance_records:\n",
+    "            if record.date not in events_dict:\n",
+    "                events_dict[record.date] = {\n",
+    "                    'date': record.date.isoformat(),\n",
+    "                    'status': record.status,\n",
+    "                    'clock_in': record.clock_in.strftime('%H:%M') if record.clock_in else 'N/A',\n",
+    "                    'clock_out': record.clock_out.strftime('%H:%M') if record.clock_out else 'N/A'\n",
+    "                }\n",
+    "        \n",
+    "        # Convert to list and return\n",
+    "        events_list = list(events_dict.values())\n",
+    "        return jsonify(events_list)\n",
+    "    \n",
+    "    except Exception as e:\n",
+    "        return jsonify({'error': str(e)}), 500\n",
+])
 
-if content.endswith("request.form.get('r"):
-    # Remove the 'r and add the completion
-    content = content[:-len("request.form.get('r")] + completion
-    
-    with open('D:/Projects/HRMS/hrm/routes.py', 'w') as f:
-        f.write(content)
-    print("✅ routes.py has been fixed!")
-    print(f"New file size: {len(content)} characters")
-else:
-    print("File doesn't end as expected, manual review needed")
-    print(f"Last 100 chars: {repr(content[-100:])}")
+# Write the fixed file
+with open('D:/DEV/HRM/hrm/routes.py', 'w', encoding='utf-8') as f:
+    f.writelines(fixed_lines)
+
+print(f"✓ File fixed! Total lines: {len(fixed_lines)}")
+print(f"✓ Last 5 lines:")
+for i, line in enumerate(fixed_lines[-5:]):
+    print(f"  {len(fixed_lines)-5+i+1}: {line.rstrip()}")

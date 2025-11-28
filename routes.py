@@ -2828,10 +2828,20 @@ def api_attendance_calendar_data():
                     }
                 current_date += timedelta(days=1)
 
+
         # Then, add attendance records, only if a leave is not already on that day
         for record in attendance_records:
             if record.date not in events_dict:
                 events_dict[record.date] = {
                     'date': record.date.isoformat(),
                     'status': record.status,
-                    'clock_in': record.clock_in.strftime('%H:%M') if
+                    'clock_in': record.clock_in.strftime('%H:%M') if record.clock_in else 'N/A',
+                    'clock_out': record.clock_out.strftime('%H:%M') if record.clock_out else 'N/A'
+                }
+        
+        # Convert to list and return
+        events_list = list(events_dict.values())
+        return jsonify(events_list)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

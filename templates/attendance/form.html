@@ -803,9 +803,31 @@
     <!-- Action Cards -->
     <div class="action-grid">
                 <form id="attendanceForm" method="POST" class="hidden-form">
+                    <!-- Timezone -->
+                    <input type="hidden" name="timezone" id="timezoneInput">
+                    
+                    <!-- Geolocation (Coordinates) -->
                     <input type="hidden" name="latitude" id="latitude">
                     <input type="hidden" name="longitude" id="longitude">
-                    <!-- Timezone is now automatically set from company configuration -->
+                    
+                    <!-- Location Enable Toggle -->
+                    <input type="hidden" name="location_enabled" id="location_enabled">
+                    
+                    <!-- Location Data - Clock In -->
+                    <input type="hidden" id="clock_in_city" name="clock_in_city">
+                    <input type="hidden" id="clock_in_latitude" name="clock_in_latitude">
+                    <input type="hidden" id="clock_in_longitude" name="clock_in_longitude">
+                    
+                    <!-- Location Data - Break Start -->
+                    <input type="hidden" id="break_start_city" name="break_start_city">
+                    
+                    <!-- Location Data - Break End -->
+                    <input type="hidden" id="break_end_city" name="break_end_city">
+                    
+                    <!-- Location Data - Clock Out -->
+                    <input type="hidden" id="clock_out_city" name="clock_out_city">
+                    <input type="hidden" id="clock_out_latitude" name="clock_out_latitude">
+                    <input type="hidden" id="clock_out_longitude" name="clock_out_longitude">
                 </form>
 
         <!-- Clock In Card -->
