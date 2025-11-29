@@ -22,7 +22,6 @@
     .hr-dashboard-container {
         max-width: 100%;
         margin: 0;
-        padding: 0.75rem;
         display: flex;
         flex-direction: column;
         gap: 0.75rem;
@@ -676,7 +675,7 @@
     </div>
 
     <!-- Main Dashboard Content -->
-    <div class="dashboard-content" style="grid-template-columns: 1fr;">
+    <div >
         <!-- Row 1: Today's Summary -->
         <div class="today-summary-wrapper">
             <div class="today-summary-header">
@@ -808,7 +807,7 @@
         const refreshBtn = document.querySelector('.refresh-btn');
         refreshBtn.classList.add('loading');
         refreshBtn.disabled = true;
-        
+
         setTimeout(() => {
             location.reload();
         }, 300);
@@ -819,9 +818,9 @@
         const modal = document.getElementById('detailModal');
         const modalTitle = document.getElementById('modalTitle');
         const modalBody = document.getElementById('modalBody');
-        
+
         const companyId = '{{ selected_company.id }}';
-        
+
         if (type === 'attendance') {
             modalTitle.textContent = `${period} ${label} Attendance - ${count} Employees`;
             modalBody.innerHTML = `
@@ -859,7 +858,7 @@
                 </table>
             `;
         }
-        
+
         modal.style.display = 'block';
     }
 
@@ -887,13 +886,13 @@
     // Attendance Modal Functions
     let presentData = {{ today_summary.present_details_json | safe }};
     console.log('Present data from backend:', presentData, 'Type:', typeof presentData);
-    
+
     // Ensure present data is an array
     if (!Array.isArray(presentData)) {
         console.warn('Present data is not an array, converting...');
         presentData = [];
     }
-    
+
     let attendanceModalCache = {
         'Present': presentData,
         'Absent': null,
@@ -906,7 +905,7 @@
 
     function openAttendanceModal(status, count) {
         console.log(`openAttendanceModal called: status=${status}, count=${count}, cached=${attendanceModalCache[status]}`);
-        
+
         if (count === 0) {
             if (typeof showNotification === 'function') {
                 showNotification(`No ${status} employees today`, 'info');
@@ -944,8 +943,8 @@
             modal.style.display = 'block';
 
             const company_id = document.querySelector('select[name="company_id"]').value;
-            const endpoint = (status === 'leaves') 
-                ? `/api/leave-details?company_id=${company_id}` 
+            const endpoint = (status === 'leaves')
+                ? `/api/leave-details?company_id=${company_id}`
                 : `/api/attendance-details?status=${status}&company_id=${company_id}`;
 
             fetch(endpoint)
@@ -967,7 +966,7 @@
 
     function displayAttendanceData(data, container) {
         console.log('displayAttendanceData called with:', data);
-        
+
         if (!data || data.length === 0) {
             container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #95a5a6;"><i class="fas fa-check-circle"></i> No employees found</div>';
             return;
