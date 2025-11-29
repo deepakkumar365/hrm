@@ -190,12 +190,23 @@ def mark_ot_attendance():
                 return redirect(url_for('mark_ot_attendance'))
         
         # GET request - Show form
-        # Get active OT types for this company
-        ot_types = OTType.query.filter_by(company_id=company_id, is_active=True).order_by(OTType.display_order).all()
+        # Get active OT types for this tenant (applicable to all companies in tenant)
+        company = Company.query.get(company_id)
+        tenant_id = company.tenant_id if company else None
+        
+        if tenant_id:
+            # Get all companies in the tenant
+            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+            ot_types = OTType.query.filter(
+                OTType.company_id.in_(company_ids),
+                OTType.is_active == True
+            ).order_by(OTType.display_order).all()
+        else:
+            ot_types = []
         
         # Check if OT types are configured
         if not ot_types:
-            flash('⚠️  No OT types are configured for your company. Please contact your HR Manager or Tenant Admin to set up OT types first in Masters > OT Types.', 'warning')
+            flash('⚠️  No OT types are configured for your tenant. Please contact your Tenant Admin to set up OT types first in Masters > OT Types.', 'warning')
         
         # Get today's date for default
         today = datetime.now().date()
@@ -241,7 +252,7 @@ def mark_ot_attendance():
         # Get recent OT records for this employee
         recent_ots = OTAttendance.query.filter_by(
             employee_id=employee.id
-        ).order_by(OTAttendance.ot_date.desc()).limit(10).all()
+        ).order_by(OTAttendance.ot_date.desc()).limit(3).all()
         
         # Get company timezone
         company = Company.query.get(company_id)
@@ -260,6 +271,159 @@ def mark_ot_attendance():
         logger.error(f"Error in mark_ot_attendance: {str(e)}")
         flash('Error accessing OT marking form', 'danger')
         return redirect(url_for('dashboard'))
+
+
+# ============ SAVE OT DRAFT (Partial - Set In Only) ============
+@app.route('/api/ot/save-draft', methods=['POST'])
+@login_required
+def save_ot_draft():
+    """
+    Save OT attendance as draft with only Set In date.
+    Allows user to update Set Out date later without losing data on page refresh.
+    """
+    try:
+        # Get employee profile
+        if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+            return jsonify({'success': False, 'message': 'Employee profile required'}), 403
+        
+        employee = current_user.employee_profile
+        company_id = employee.company_id
+        
+        data = request.get_json()
+        ot_date_str = data.get('ot_date')
+        ot_in_time_str = data.get('ot_in_time')
+        ot_type_id = data.get('ot_type_id')
+        notes = data.get('notes', '')
+        
+        # Validate required fields for draft
+        if not ot_date_str:
+            return jsonify({'success': False, 'message': 'OT date is required'}), 400
+        
+        if not ot_in_time_str:
+            return jsonify({'success': False, 'message': 'Set In time is required'}), 400
+        
+        try:
+            ot_date = datetime.strptime(ot_date_str, '%Y-%m-%d').date()
+            ot_in_time = datetime.strptime(ot_in_time_str, '%H:%M').time()
+            ot_in_dt = datetime.combine(ot_date, ot_in_time)
+        except ValueError as e:
+            return jsonify({'success': False, 'message': f'Invalid date/time format: {str(e)}'}), 400
+        
+        # Check if OT draft already exists for this date
+        existing_ot = OTAttendance.query.filter_by(
+            employee_id=employee.id,
+            ot_date=ot_date,
+            status='Draft'
+        ).first()
+        
+        if existing_ot:
+            # Update existing draft
+            existing_ot.ot_in_time = ot_in_dt
+            existing_ot.ot_type_id = ot_type_id
+            existing_ot.notes = notes
+            existing_ot.status = 'Draft'
+            existing_ot.modified_at = datetime.now()
+            logger.info(f"Updated OT draft for employee {employee.id} on {ot_date}")
+        else:
+            # Check if a submitted/approved record exists for this date
+            submitted_ot = OTAttendance.query.filter_by(
+                employee_id=employee.id,
+                ot_date=ot_date
+            ).filter(OTAttendance.status.in_(['Submitted', 'Approved', 'Rejected'])).first()
+            
+            if submitted_ot:
+                return jsonify({
+                    'success': False, 
+                    'message': f'Cannot save as draft. An OT record with status "{submitted_ot.status}" already exists for this date. Please edit the existing record or contact your manager.'
+                }), 400
+            
+            # Create new OT attendance record as draft
+            ot_record = OTAttendance(
+                employee_id=employee.id,
+                company_id=company_id,
+                ot_date=ot_date,
+                ot_in_time=ot_in_dt,
+                ot_type_id=ot_type_id,
+                status='Draft',
+                notes=notes,
+                created_by=current_user.username
+            )
+            db.session.add(ot_record)
+            logger.info(f"Created new OT draft for employee {employee.id} on {ot_date}")
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'OT Set In time saved as draft successfully!',
+            'ot_date': ot_date_str,
+            'ot_in_time': ot_in_time_str
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving OT draft: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error saving draft: {str(e)}'}), 500
+
+
+# ============ GET OT DRAFT ============
+@app.route('/api/ot/get-draft', methods=['GET'])
+@login_required
+def get_ot_draft():
+    """
+    Get existing OT draft for a specific date to populate the form on page load.
+    """
+    try:
+        # Get employee profile
+        if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
+            return jsonify({'success': False, 'message': 'Employee profile required'}), 403
+        
+        employee = current_user.employee_profile
+        ot_date_str = request.args.get('ot_date')
+        
+        if not ot_date_str:
+            return jsonify({'success': False, 'message': 'OT date is required'}), 400
+        
+        try:
+            ot_date = datetime.strptime(ot_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Invalid date format'}), 400
+        
+        # Find existing draft for this date (status must be 'Draft')
+        ot_record = OTAttendance.query.filter_by(
+            employee_id=employee.id,
+            ot_date=ot_date,
+            status='Draft'
+        ).first()
+        
+        if not ot_record:
+            return jsonify({'success': False, 'message': 'No draft found'}), 404
+        
+        # Build response
+        response = {
+            'success': True,
+            'ot_date': ot_date_str,
+            'ot_id': ot_record.id,
+            'status': ot_record.status,
+            'ot_type_id': ot_record.ot_type_id,
+            'notes': ot_record.notes or ''
+        }
+        
+        # Include times only if they exist
+        if ot_record.ot_in_time:
+            response['ot_in_time'] = ot_record.ot_in_time.strftime('%H:%M')
+        
+        if ot_record.ot_out_time:
+            response['ot_out_time'] = ot_record.ot_out_time.strftime('%H:%M')
+        
+        if ot_record.ot_hours:
+            response['ot_hours'] = ot_record.ot_hours
+        
+        return jsonify(response), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting OT draft: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error retrieving draft: {str(e)}'}), 500
 
 
 # ============ OT ATTENDANCE ============
@@ -1541,3 +1705,72 @@ def get_request_detail(request_id):
     except Exception as e:
         logger.error(f"Error in get_request_detail: {str(e)}")
         return jsonify({'error': 'Server error'}), 500
+
+
+# ============ DELETE DRAFT OT ATTENDANCE ============
+@app.route('/api/ot/delete-draft/<int:attendance_id>', methods=['POST'])
+@login_required
+def delete_draft_ot(attendance_id):
+    """Delete a draft OT attendance record - Only allows deletion of records in 'Draft' status"""
+    try:
+        # Get the OT attendance record
+        ot_record = OTAttendance.query.get(attendance_id)
+        
+        if not ot_record:
+            return jsonify({
+                'success': False,
+                'message': 'OT record not found'
+            }), 404
+        
+        # Security check: Only the record owner or admin can delete
+        user_role = current_user.role.name if current_user.role else None
+        
+        # Get current user's employee ID (not User ID)
+        current_user_employee_id = None
+        if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            current_user_employee_id = current_user.employee_profile.id
+        
+        is_owner = ot_record.employee_id == current_user_employee_id if current_user_employee_id else False
+        is_admin = user_role in ['Tenant Admin', 'Super Admin']
+        
+        if not (is_owner or is_admin):
+            logger.warning(f"[OT DELETE] Access denied for user {current_user.id}: not owner (employee_id {current_user_employee_id} vs {ot_record.employee_id}) and not admin (role: {user_role})")
+            return jsonify({
+                'success': False,
+                'message': 'You do not have permission to delete this record'
+            }), 403
+        
+        # Only allow deletion of Draft records
+        if ot_record.status != 'Draft':
+            return jsonify({
+                'success': False,
+                'message': f'Cannot delete {ot_record.status} records. Only Draft records can be deleted.'
+            }), 400
+        
+        # Delete the record
+        try:
+            record_date = ot_record.ot_date.strftime('%d %b %Y') if ot_record.ot_date else 'Unknown date'
+            db.session.delete(ot_record)
+            db.session.commit()
+            
+            logger.info(f"[OT DELETE] User {current_user.id} deleted draft OT record {attendance_id} for date {record_date}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Draft OT record for {record_date} has been deleted successfully'
+            }), 200
+        
+        except Exception as db_error:
+            db.session.rollback()
+            logger.error(f"Database error deleting OT record: {str(db_error)}")
+            return jsonify({
+                'success': False,
+                'message': 'Database error: Could not delete record'
+            }), 500
+    
+    except Exception as e:
+        logger.error(f"Error deleting draft OT attendance: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500

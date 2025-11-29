@@ -603,22 +603,26 @@ def work_schedule_delete(work_schedule_id):
 @app.route('/masters/ot-types')
 @require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def ot_type_list():
-    """List all OT types for the company with search and pagination"""
+    """List all OT types for the tenant (applicable to all companies in tenant) with search and pagination"""
     from flask_login import current_user
+    from sqlalchemy import and_
     
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
     
-    # Get company_id from employee profile
+    # Get tenant_id from current user's company
+    tenant_id = None
     if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-        company_id = current_user.employee_profile.company_id
-    else:
-        # Super Admin without employee profile - no company filter
-        company_id = None
+        company = Company.query.get(current_user.employee_profile.company_id)
+        if company:
+            tenant_id = company.tenant_id
     
     query = OTType.query
-    if company_id:
-        query = query.filter_by(company_id=company_id)
+    
+    if tenant_id:
+        # Filter OT Types by all companies in the same tenant (tenant-level)
+        company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+        query = query.filter(OTType.company_id.in_(company_ids))
     
     if search:
         query = query.filter(
@@ -658,17 +662,27 @@ def ot_type_add():
             flash('OT Type name and code are required', 'error')
             return redirect(url_for('ot_type_add'))
         
-        # Get company_id from employee profile
+        # Get company_id and tenant_id from employee profile
         if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
             company_id = current_user.employee_profile.company_id
+            company = Company.query.get(company_id)
+            tenant_id = company.tenant_id if company else None
         else:
             flash('Error: User must be associated with a company through an employee profile', 'error')
             return redirect(url_for('ot_type_add'))
         
-        # Check if OT type with same code already exists for this company
-        existing_ot = OTType.query.filter_by(company_id=company_id, code=code).first()
+        if not tenant_id:
+            flash('Error: User must be associated with a tenant', 'error')
+            return redirect(url_for('ot_type_add'))
+        
+        # Check if OT type with same code already exists for this tenant (since OT Types are tenant-level)
+        company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+        existing_ot = OTType.query.filter(
+            OTType.company_id.in_(company_ids),
+            OTType.code == code
+        ).first()
         if existing_ot:
-            flash(f'OT Type with code "{code}" already exists for this company', 'error')
+            flash(f'OT Type with code "{code}" already exists for your tenant', 'error')
             return redirect(url_for('ot_type_add'))
         
         try:
@@ -704,12 +718,18 @@ def ot_type_edit(ot_type_id):
     
     ot_type = OTType.query.get_or_404(ot_type_id)
     
-    # Check access - only allow if user is from same company or is Super Admin
-    user_company_id = None
+    # Check access - only allow if user is from same tenant or is Super Admin
+    user_tenant_id = None
     if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-        user_company_id = current_user.employee_profile.company_id
+        company = Company.query.get(current_user.employee_profile.company_id)
+        if company:
+            user_tenant_id = company.tenant_id
     
-    if user_company_id and ot_type.company_id != user_company_id:
+    # Get the OT Type's tenant (via its company)
+    ot_company = Company.query.get(ot_type.company_id)
+    ot_tenant_id = ot_company.tenant_id if ot_company else None
+    
+    if user_tenant_id and ot_tenant_id and ot_tenant_id != user_tenant_id:
         flash('Access Denied', 'error')
         return redirect(url_for('ot_type_list'))
     
@@ -727,14 +747,15 @@ def ot_type_edit(ot_type_id):
             flash('OT Type name and code are required', 'error')
             return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
         
-        # Check if another OT type with same code exists for this company
+        # Check if another OT type with same code exists for this tenant (since OT Types are tenant-level)
+        company_ids = db.session.query(Company.id).filter_by(tenant_id=ot_tenant_id).subquery()
         existing_ot = OTType.query.filter(
-            OTType.company_id == ot_type.company_id,
+            OTType.company_id.in_(company_ids),
             OTType.code == code,
             OTType.id != ot_type_id
         ).first()
         if existing_ot:
-            flash(f'Another OT Type with code "{code}" already exists for this company', 'error')
+            flash(f'Another OT Type with code "{code}" already exists for your tenant', 'error')
             return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
         
         try:
@@ -768,12 +789,18 @@ def ot_type_delete(ot_type_id):
     
     ot_type = OTType.query.get_or_404(ot_type_id)
     
-    # Check access
-    user_company_id = None
+    # Check access - only allow if user is from same tenant or is Super Admin
+    user_tenant_id = None
     if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-        user_company_id = current_user.employee_profile.company_id
+        company = Company.query.get(current_user.employee_profile.company_id)
+        if company:
+            user_tenant_id = company.tenant_id
     
-    if user_company_id and ot_type.company_id != user_company_id:
+    # Get the OT Type's tenant (via its company)
+    ot_company = Company.query.get(ot_type.company_id)
+    ot_tenant_id = ot_company.tenant_id if ot_company else None
+    
+    if user_tenant_id and ot_tenant_id and ot_tenant_id != user_tenant_id:
         flash('Access Denied', 'error')
         return redirect(url_for('ot_type_list'))
     

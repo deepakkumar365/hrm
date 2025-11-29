@@ -642,11 +642,26 @@ def check_edit_permission(user_role, module_name, menu_name=None):
 def manage_user_companies():
     """Display page to manage which companies users have access to"""
     try:
-        users = User.query.filter(
-            User.id != 1  # Exclude super admin (ID 1)
+        # Always filter by tenant - consistency across all roles
+        # Get current user's tenant
+        current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+        
+        if not current_tenant_id:
+            flash('Your organization is not assigned to a tenant', 'danger')
+            return redirect(url_for('index'))
+        
+        # Get users from same tenant (excluding self)
+        users = User.query.join(
+            Organization, User.organization_id == Organization.id
+        ).filter(
+            Organization.tenant_id == current_tenant_id,
+            User.id != current_user.id  # Exclude self
         ).order_by(User.username).all()
         
-        companies = Company.query.order_by(Company.name).all()
+        # Get companies from same tenant
+        companies = Company.query.filter_by(
+            tenant_id=current_tenant_id
+        ).order_by(Company.name).all()
         
         return render_template(
             'access_control/manage_user_companies.html',
@@ -670,6 +685,13 @@ def get_user_companies(user_id):
         if not user:
             return jsonify({'success': False, 'message': 'User not found'}), 404
         
+        # Verify user belongs to same tenant as current user (consistent for all roles)
+        current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+        user_tenant_id = user.organization.tenant_id if user.organization else None
+        
+        if current_tenant_id != user_tenant_id:
+            return jsonify({'success': False, 'message': 'Unauthorized: User is not in your tenant'}), 403
+        
         companies = [
             {
                 'id': str(access.company.id),
@@ -686,7 +708,7 @@ def get_user_companies(user_id):
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
-                'role': user.roles[0].name if user.roles else 'N/A'
+                'role': user.role.name if user.role else 'N/A'
             },
             'companies': companies,
             'total_companies': len(companies)
@@ -715,6 +737,14 @@ def add_company_to_user():
             return jsonify({'success': False, 'message': 'User not found'}), 404
         if not company:
             return jsonify({'success': False, 'message': 'Company not found'}), 404
+        
+        # Verify tenant access - consistent for all roles
+        current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+        user_tenant_id = user.organization.tenant_id if user.organization else None
+        company_tenant_id = company.tenant_id
+        
+        if current_tenant_id != user_tenant_id or current_tenant_id != company_tenant_id:
+            return jsonify({'success': False, 'message': 'Unauthorized: User and Company must be in your tenant'}), 403
         
         # Check if user already has access to this company
         existing_access = UserCompanyAccess.query.filter_by(
@@ -787,6 +817,14 @@ def remove_company_from_user():
         if not company:
             return jsonify({'success': False, 'message': 'Company not found'}), 404
         
+        # Verify tenant access - consistent for all roles
+        current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+        user_tenant_id = user.organization.tenant_id if user.organization else None
+        company_tenant_id = company.tenant_id
+        
+        if current_tenant_id != user_tenant_id or current_tenant_id != company_tenant_id:
+            return jsonify({'success': False, 'message': 'Unauthorized: User and Company must be in your tenant'}), 403
+        
         # Find the access record
         access = UserCompanyAccess.query.filter_by(
             user_id=user_id,
@@ -835,11 +873,20 @@ def get_available_companies(user_id):
         if not user:
             return jsonify({'success': False, 'message': 'User not found'}), 404
         
+        # Get current user's tenant - always filter by tenant for consistency
+        current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+        user_tenant_id = user.organization.tenant_id if user.organization else None
+        
+        # Verify user belongs to same tenant as current user
+        if current_tenant_id != user_tenant_id:
+            return jsonify({'success': False, 'message': 'Unauthorized: User is not in your tenant'}), 403
+        
         # Get user's current companies
         user_company_ids = [access.company_id for access in user.company_access]
         
-        # Get all other companies
+        # Get companies from same tenant only (not assigned to user)
         available_companies = Company.query.filter(
+            Company.tenant_id == current_tenant_id,
             ~Company.id.in_(user_company_ids)
         ).order_by(Company.name).all()
         

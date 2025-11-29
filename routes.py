@@ -17,7 +17,7 @@ from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                     Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation, EmployeeGroup,
-                    OTType, OTAttendance, OTRequest, OTApproval, PayrollOTSummary, OTDailySummary)
+                    OTType, OTAttendance, OTRequest, OTApproval, PayrollOTSummary, OTDailySummary, UserCompanyAccess)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -144,16 +144,16 @@ def initialize_default_data():
 
             # Only proceed if the hrm_users table exists
             if 'hrm_users' not in tables:
-                print("⚠️  Database tables not yet created. Skipping default data initialization.")
+                print("[WARNING] Database tables not yet created. Skipping default data initialization.")
                 print("Run 'flask db upgrade' to create tables, then restart the application.")
                 return
 
             if create_default_users():
-                print("✅ Default users created successfully!")
+                print("[OK] Default users created successfully!")
             if create_default_master_data():
-                print("✅ Default master data created successfully!")
+                print("[OK] Default master data created successfully!")
     except Exception as e:
-        print(f"⚠️  Warning: Could not initialize default data: {e}")
+        print(f"[WARNING] Could not initialize default data: {e}")
         print("This is normal if the database is not yet set up or tables haven't been created.")
         print("Run 'flask db upgrade' to create tables, then restart the application.")
 
@@ -473,14 +473,38 @@ def dashboard():
                     'date': leave.created_at
                 })
 
+    # Get recent attendance record for current user
+    recent_attendance = None
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        recent_attendance = Attendance.query.filter_by(
+            employee_id=current_user.employee_profile.id
+        ).order_by(Attendance.date.desc(), Attendance.id.desc()).first()
+
     default_calendar_endpoint = 'leave_calendar' if 'leave_calendar' in app.view_functions else 'leave_request'
     leave_calendar_url = url_for(default_calendar_endpoint)
+
+    # Get OT Types for dashboard form (from user's tenant)
+    from models import OTType
+    ot_types = []
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        company = Company.query.get(current_user.employee_profile.company_id)
+        if company:
+            tenant_id = company.tenant_id
+            # Get all companies in the tenant
+            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+            ot_types = OTType.query.filter(
+                OTType.company_id.in_(company_ids),
+                OTType.is_active == True
+            ).order_by(OTType.display_order).all()
 
     return render_template('dashboard.html',
                            stats=stats,
                            recent_activities=recent_activities,
+                           recent_attendance=recent_attendance,
                            moment=datetime.now,
-                           leave_calendar_url=leave_calendar_url)
+                           leave_calendar_url=leave_calendar_url,
+                           ot_types=ot_types,
+                           now=datetime.now())
 
 
 # Employee Management Routes
@@ -493,6 +517,11 @@ def employee_list():
     department = request.args.get('department', '', type=str)
     sort_by = request.args.get('sort_by', 'id', type=str)
     sort_order = request.args.get('sort_order', 'desc', type=str)
+    per_page = request.args.get('per_page', 15, type=int)
+    
+    # Validate per_page - only allow specific values
+    if per_page not in [15, 25, 50, 100]:
+        per_page = 15
 
     # Join with Company and Tenant to get tenant_name and company_name
     query = db.session.query(
@@ -517,11 +546,22 @@ def employee_list():
     if department:
         query = query.filter(Employee.department == department)
 
-    # Role-based filtering
+    # Role-based filtering for HR Manager
+    # HR Manager can only access employees from companies they are mapped to
     if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
                                                   'employee_profile') and current_user.employee_profile:
-        query = query.filter(
-            Employee.organization_id == current_user.organization_id)
+        # Get companies that HR Manager has access to via UserCompanyAccess
+        accessible_company_ids = db.session.query(UserCompanyAccess.company_id).filter(
+            UserCompanyAccess.user_id == current_user.id
+        ).all()
+        accessible_company_ids = [c[0] for c in accessible_company_ids]
+        
+        if accessible_company_ids:
+            # Filter employees to only those from accessible companies
+            query = query.filter(Employee.company_id.in_(accessible_company_ids))
+        else:
+            # If HR Manager has no company access, return empty result
+            query = query.filter(False)
 
     # Sorting
     if sort_by == 'tenant_name':
@@ -534,6 +574,10 @@ def employee_list():
         sort_column = Employee.designation_id
     elif sort_by == 'department':
         sort_column = Employee.department
+    elif sort_by == 'email':
+        sort_column = Employee.email
+    elif sort_by == 'employment_type':
+        sort_column = Employee.employment_type
     elif sort_by == 'id':
         sort_column = Employee.id
     else:
@@ -545,7 +589,7 @@ def employee_list():
     query = query.order_by(sort_column)
 
     # Paginate the results
-    pagination = query.paginate(page=page, per_page=20, error_out=False)
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
     # Extract employee objects with company and tenant names
     employees_data = []
@@ -591,7 +635,8 @@ def employee_list():
                            department=department,
                            departments=departments,
                            sort_by=sort_by,
-                           sort_order=sort_order)
+                           sort_order=sort_order,
+                           per_page=per_page)
 
 
 @app.route('/employees/export')
@@ -2210,6 +2255,13 @@ def attendance_list_view():
     page = request.args.get('page', 1, type=int)
     date_filter = request.args.get('date', type=str)
     employee_filter = request.args.get('employee', type=int)
+    per_page = request.args.get('per_page', 15, type=int)
+    sort_by = request.args.get('sort_by', 'date', type=str)
+    sort_order = request.args.get('sort_order', 'desc', type=str)
+    
+    # Validate per_page parameter
+    if per_page not in [15, 25, 50, 100]:
+        per_page = 15
 
     query = Attendance.query.join(Employee)
 
@@ -2243,8 +2295,27 @@ def attendance_list_view():
         # Super Admin: Can see all attendance records
         pass
 
-    attendance_records = query.order_by(Attendance.date.desc()).paginate(
-        page=page, per_page=20, error_out=False)
+    # Apply sorting
+    if sort_by == 'employee':
+        order_col = Employee.first_name
+    elif sort_by == 'status':
+        order_col = Attendance.status
+    elif sort_by == 'clock_in':
+        order_col = Attendance.clock_in
+    elif sort_by == 'clock_out':
+        order_col = Attendance.clock_out
+    elif sort_by == 'total_hours':
+        order_col = Attendance.total_hours
+    else:
+        order_col = Attendance.date
+    
+    if sort_order == 'asc':
+        query = query.order_by(order_col.asc())
+    else:
+        query = query.order_by(order_col.desc())
+
+    attendance_records = query.paginate(
+        page=page, per_page=per_page, error_out=False)
 
     # Get employees for filter dropdown based on role
     employees = []
@@ -2266,7 +2337,10 @@ def attendance_list_view():
                            attendance_records=attendance_records,
                            employees=employees,
                            date_filter=date_filter,
-                           employee_filter=employee_filter)
+                           employee_filter=employee_filter,
+                           per_page=per_page,
+                           sort_by=sort_by,
+                           sort_order=sort_order)
 
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])
@@ -2438,11 +2512,15 @@ def attendance_mark():
                     return redirect(url_for('attendance_mark'))
 
             db.session.commit()
+            # Redirect back to dashboard after successful action
+            return redirect(url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error marking attendance: {str(e)}', 'error')
+            return redirect(url_for('dashboard'))
 
+    # GET request - render the mark attendance form
     # Get today's attendance record
     today_attendance = None
     company_timezone = 'UTC'  # Default timezone
@@ -2766,68 +2844,4 @@ def create_daily_attendance_records(target_date, employees=None):
 
 
 def auto_create_daily_attendance():
-    """Auto-create attendance records for all active employees for today"""
-    today = date.today()
-    employees = Employee.query.filter_by(is_active=True).all()
-    return create_daily_attendance_records(today, employees)
-
-
-@app.route('/attendance/auto-create', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
-def attendance_auto_create():
-    """Manual trigger for creating daily attendance records - useful for Render deployment"""
-    try:
-        target_date_str = request.form.get('date')
-        if target_date_str:
-            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
-        else:
-            target_date = date.today()
-
-        # Get all active employees
-        employees = Employee.query.filter_by(is_active=True).all()
-
-        # Create attendance records
-        created_count = create_daily_attendance_records(target_date, employees)
-
-        if created_count > 0:
-            flash(f'Successfully created attendance records for {created_count} employees on {target_date}', 'success')
-        else:
-            flash(f'Attendance records already exist for all employees on {target_date}', 'info')
-
-    except ValueError:
-        flash('Invalid date format. Please use YYYY-MM-DD format.', 'error')
-    except Exception as e:
-        flash(f'Error creating attendance records: {str(e)}', 'error')
-
-    return redirect(url_for('attendance_bulk_manage'))
-
-@app.route('/attendance')
-@require_login
-def attendance_calendar():
-    """Render the attendance calendar view."""
-    # Default to the current user if not an admin
-    default_employee_id = ''
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        default_employee_id = current_user.employee_profile.id
-
-    # Get employees for filter dropdown if user has permission
-    employees = []
-    user_role = current_user.role.name if current_user.role else None
-
-    if user_role in ['Super Admin', 'Admin']:
-        employees = Employee.query.filter_by(is_active=True).order_by(Employee.first_name).all()
-    elif user_role == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        # HR Manager can see all employees in their organization
-        if current_user.employee_profile.organization_id:
-            employees = Employee.query.filter(
-                Employee.organization_id == current_user.employee_profile.organization_id,
-                Employee.is_active == True
-            ).order_by(Employee.first_name).all()
-
-    return render_template('attendance/calendar.html',
-                           employees=employees,
-                           default_employee_id=default_employee_id)
-
-
-@app.route('/api/attendance/calendar-data')
-@r
+    """Auto-create attendance records for all active employees for today"""

@@ -3,6 +3,130 @@
 {% block title %}Employee List - Nexar{% endblock %}
 
 {% block content %}
+<style>
+    body, .container-fluid, .card, .table, .pagination, .btn, .form-control, .form-select {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
+    }
+
+    .compact-table-card {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .table-compact {
+        font-size: 0.95rem;
+        margin-bottom: 0;
+    }
+
+    .table-compact thead th {
+        padding: 0.6rem !important;
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .table-compact tbody td {
+        padding: 0.5rem !important;
+        height: 1.8rem;
+        line-height: 1rem;
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .table-compact tbody tr {
+        height: 1.8rem;
+    }
+
+    .table-compact thead th a {
+        color: #333;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .table-compact thead th a:hover {
+        color: #0066cc;
+    }
+
+    .table-compact thead th a i {
+        font-size: 0.85rem;
+        opacity: 0.5;
+    }
+
+    .table-compact thead th a i.fa-sort-up,
+    .table-compact thead th a i.fa-sort-down {
+        opacity: 1;
+        color: #0066cc;
+    }
+
+    .pagination-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.8rem;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        margin-top: 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    .pagination-info {
+        flex: 0 0 auto;
+        color: #666;
+    }
+
+    .pagination-controls {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        gap: 0.2rem;
+    }
+
+    .pagination-controls .pagination {
+        margin: 0;
+        gap: 0.2rem;
+    }
+
+    .pagination-controls .page-link {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .records-per-page {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .records-per-page select {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.85rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+
+    .filter-card {
+        margin-bottom: 0.8rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+
+    .filter-card .card-body {
+        padding: 0.8rem;
+    }
+
+    .summary-cards {
+        display: none;
+    }
+</style>
+
 <div class="container-fluid">
     <!-- Header with search and actions -->
     <div class="row mb-1">
@@ -125,72 +249,101 @@
 
     <!-- Desktop table -->
     <div class="d-none d-md-block">
-        <div class="card">
+        <div class="card compact-table-card">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-compact table-hover mb-0">
                     <thead>
                         <tr>
                             <th>
-                                <a href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
-                                   class="text-decoration-none text-dark">
+                                <a href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
                                     Employee ID
                                     {% if sort_by == 'employee_id' %}
                                         <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% else %}
+                                        <i class="fas fa-sort"></i>
                                     {% endif %}
                                 </a>
                             </th>
                             <th>
-                                <a href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
-                                   class="text-decoration-none text-dark">
+                                <a href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
                                     Name
                                     {% if sort_by == 'first_name' %}
                                         <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% else %}
+                                        <i class="fas fa-sort"></i>
                                     {% endif %}
                                 </a>
                             </th>
                             {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
                             <th>
-                                <a href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
-                                   class="text-decoration-none text-dark">
+                                <a href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
                                     Tenant Name
                                     {% if sort_by == 'tenant_name' %}
                                         <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% else %}
+                                        <i class="fas fa-sort"></i>
                                     {% endif %}
                                 </a>
                             </th>
                             {% endif %}
                             {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Tenant Admin', 'HR Manager'] %}
                             <th>
-                                <a href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
-                                   class="text-decoration-none text-dark">
+                                <a href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
                                     Company Name
                                     {% if sort_by == 'company_name' %}
                                         <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% else %}
+                                        <i class="fas fa-sort"></i>
                                     {% endif %}
                                 </a>
                             </th>
                             {% endif %}
                             <th>
-                                <a href="?sort_by=designation&sort_order={{ 'desc' if sort_by == 'designation' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
-                                   class="text-decoration-none text-dark">
+                                <a href="?sort_by=designation&sort_order={{ 'desc' if sort_by == 'designation' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
                                     Designation
                                     {% if sort_by == 'designation' %}
                                         <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% else %}
+                                        <i class="fas fa-sort"></i>
                                     {% endif %}
                                 </a>
                             </th>
                             <th>
-                                <a href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}"
-                                   class="text-decoration-none text-dark">
+                                <a href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
                                     Department
                                     {% if sort_by == 'department' %}
                                         <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% else %}
+                                        <i class="fas fa-sort"></i>
                                     {% endif %}
                                 </a>
                             </th>
-                            <th>Email</th>
-                            <th>Type</th>
-                            <th>Actions</th>
+                            <th>
+                                <a href="?sort_by=email&sort_order={{ 'desc' if sort_by == 'email' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    Email
+                                    {% if sort_by == 'email' %}
+                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% else %}
+                                        <i class="fas fa-sort"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?sort_by=employment_type&sort_order={{ 'desc' if sort_by == 'employment_type' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    Type
+                                    {% if sort_by == 'employment_type' %}
+                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                    {% else %}
+                                        <i class="fas fa-sort"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
+                            <th>
+                                <span style="display: flex; align-items: center; gap: 0.3rem;">
+                                    Actions
+                                    <i class="fas fa-sort" style="opacity: 0.2;"></i>
+                                </span>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -260,48 +413,67 @@
     </div>
     {% endif %}
 
-    <!-- Pagination -->
-    {% if employees.pages > 1 %}
-    <nav aria-label="Employee pagination" class="mt-1">
-        <ul class="pagination justify-content-center">
-            {% if employees.has_prev %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('employee_list', page=employees.prev_num, search=search, department=department) }}">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>
-            {% endif %}
+    <!-- Enhanced Pagination Section -->
+    <div class="pagination-section">
+        <!-- Left: Record count info -->
+        <div class="pagination-info">
+            Showing {{ ((employees.page - 1) * per_page) + 1 }} to {{ ((employees.page - 1) * per_page) + employees.items|length }} of {{ employees.total }} records
+        </div>
 
-            {% for page_num in employees.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num != employees.page %}
+        <!-- Center: Page navigation -->
+        <div class="pagination-controls">
+            <nav aria-label="Employee pagination">
+                <ul class="pagination">
+                    {% if employees.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('employee_list', page=page_num, search=search, department=department) }}">
-                            {{ page_num }}
+                        <a class="page-link" href="{{ url_for('employee_list', page=employees.prev_num, search=search, department=department, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
+                            <i class="fas fa-chevron-left"></i>
                         </a>
                     </li>
-                    {% else %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ page_num }}</span>
+                    {% endif %}
+
+                    {% for page_num in employees.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != employees.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('employee_list', page=page_num, search=search, department=department, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if employees.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('employee_list', page=employees.next_num, search=search, department=department, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
                     </li>
                     {% endif %}
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-                {% endif %}
-            {% endfor %}
+                </ul>
+            </nav>
+        </div>
 
-            {% if employees.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('employee_list', page=employees.next_num, search=search, department=department) }}">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
+        <!-- Right: Records-per-page selector -->
+        <div class="records-per-page">
+            <label for="per_page_select" style="margin: 0; white-space: nowrap;">Per page:</label>
+            <select id="per_page_select" class="form-select" style="width: auto;" onchange="changeRecordsPerPage(this.value)">
+                <option value="15" {% if per_page == 15 %}selected{% endif %}>15</option>
+                <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </div>
+    </div>
 </div>
 
 <!-- Password Reset Confirmation Modal -->
@@ -423,5 +595,13 @@ document.getElementById('confirmResetBtn').addEventListener('click', function() 
         }, 5000);
     });
 });
+
+function changeRecordsPerPage(perPage) {
+    // Construct URL with per_page parameter and reset to page 1
+    const url = new URL(window.location.href);
+    url.searchParams.set('per_page', perPage);
+    url.searchParams.set('page', 1);  // Reset to first page
+    window.location.href = url.toString();
+}
 </script>
 {% endblock %}

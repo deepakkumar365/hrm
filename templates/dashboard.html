@@ -2,486 +2,754 @@
 
 {% block title %}Dashboard - Nexar{% endblock %}
 
+{% block head %}
+<style>
+    :root {
+        --primary: #667eea;
+        --primary-dark: #764ba2;
+        --success: #2ecc71;
+        --warning: #f39c12;
+        --danger: #e74c3c;
+        --info: #3498db;
+        --light: #f8f9fa;
+        --dark: #2c3e50;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    .dashboard-wrapper {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: calc(100vh - 70px);
+        padding: 1rem 1rem;
+    }
+
+    /* ============= Header Section ============= */
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        padding: 1.2rem 1.5rem;
+        border-radius: 16px;
+        margin-bottom: 1.2rem;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        animation: slideDown 0.5s ease-out;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin: 0 0 0.2rem 0;
+        letter-spacing: -0.5px;
+    }
+
+    .dashboard-header p {
+        font-size: 0.8rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    /* ============= Quick Actions Grid ============= */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .quick-action-btn {
+        background: white;
+        border: 2px solid transparent;
+        padding: 1.2rem;
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        text-decoration: none;
+        color: var(--dark);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .quick-action-btn:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        border-color: var(--primary);
+    }
+
+    .quick-action-btn i {
+        font-size: 1.8rem;
+        color: var(--primary);
+    }
+
+    /* ============= Main Content Grid ============= */
+    .dashboard-main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .dashboard-card {
+        background: white;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    .dashboard-card:hover {
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #f0f4ff 100%);
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .card-header i {
+        font-size: 1rem;
+        color: var(--primary);
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 6px;
+    }
+
+    .card-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--dark);
+        margin: 0;
+    }
+
+    .card-body {
+        padding: 0.8rem 1rem;
+    }
+
+    /* ============= Quick Attendance ============= */
+    .attendance-buttons-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.6rem;
+    }
+
+    .attendance-btn {
+        padding: 0.8rem 0.3rem;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.65rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        color: white;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+        min-height: 75px;
+    }
+
+    .attendance-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.15);
+    }
+
+    .attendance-btn i {
+        font-size: 1.4rem;
+    }
+
+    .btn-clock-in {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .btn-clock-out {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    }
+
+    .btn-break-in {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    }
+
+    .btn-break-out {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+
+    /* ============= Recent Attendance Record ============= */
+    .recent-attendance-section {
+        margin-top: 0.8rem;
+        padding-top: 0.8rem;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .recent-attendance-label {
+        font-size: 0.65rem;
+        color: #999;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        margin-bottom: 0.4rem;
+        display: block;
+    }
+
+    .recent-attendance-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .recent-attendance-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    .recent-attendance-label-small {
+        font-size: 0.6rem;
+        color: #bbb;
+        font-weight: 600;
+    }
+
+    .recent-attendance-value {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--dark);
+    }
+
+    .recent-attendance-status {
+        padding: 0.3rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-align: center;
+        color: white;
+    }
+
+    .status-clock-in {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .status-clock-out {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    }
+
+    .status-break-start {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    }
+
+    .status-break-end {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    }
+
+    .status-no-record {
+        background: #bbb;
+        font-size: 0.65rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    /* ============= Stats Section ============= */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--primary);
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card.success {
+        border-left-color: var(--success);
+    }
+
+    .stat-card.warning {
+        border-left-color: var(--warning);
+    }
+
+    .stat-card.danger {
+        border-left-color: var(--danger);
+    }
+
+    .stat-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-bottom: 0.6rem;
+    }
+
+    .stat-card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .stat-card-icon.primary {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    }
+
+    .stat-card-icon.success {
+        background: linear-gradient(135deg, var(--success) 0%, #27ae60 100%);
+    }
+
+    .stat-card-icon.warning {
+        background: linear-gradient(135deg, var(--warning) 0%, #e67e22 100%);
+    }
+
+    .stat-card-icon.danger {
+        background: linear-gradient(135deg, var(--danger) 0%, #c0392b 100%);
+    }
+
+    .stat-card-label {
+        font-size: 0.7rem;
+        color: #999;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .stat-card-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--dark);
+    }
+
+    .stat-card-action {
+        display: inline-block;
+        margin-top: 0.8rem;
+        font-size: 0.85rem;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card-action:hover {
+        color: var(--primary-dark);
+        transform: translateX(2px);
+    }
+
+    /* ============= Events Section ============= */
+    .events-container {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        animation: fadeInUp 0.7s ease-out;
+    }
+
+    .events-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #f0f4ff 100%);
+        padding: 0.8rem 1rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .events-header h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--dark);
+    }
+
+    .events-list {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
+    .event-item {
+        padding: 0.7rem 0.8rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        transition: all 0.3s ease;
+    }
+
+    .event-item:last-child {
+        border-bottom: none;
+    }
+
+    .event-item:hover {
+        background-color: #f9f9f9;
+    }
+
+    .event-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .event-content {
+        flex: 1;
+    }
+
+    .event-title {
+        font-weight: 600;
+        color: var(--dark);
+        font-size: 0.8rem;
+        margin: 0 0 0.05rem 0;
+    }
+
+    .event-time {
+        font-size: 0.7rem;
+        color: #999;
+        margin: 0;
+    }
+
+    /* ============= Animations ============= */
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ============= Responsive Design ============= */
+    @media (max-width: 1200px) {
+        .dashboard-main {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .attendance-buttons-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .events-list {
+            max-height: 250px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-wrapper {
+            padding: 0.8rem;
+        }
+
+        .dashboard-header {
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 1.1rem;
+        }
+
+        .dashboard-header p {
+            font-size: 0.7rem;
+        }
+
+        .quick-actions-grid {
+            grid-template-columns: repeat(2, 1fr);
+            margin-bottom: 0.8rem;
+        }
+
+        .quick-action-btn {
+            padding: 0.8rem;
+            font-size: 0.8rem;
+        }
+
+        .quick-action-btn i {
+            font-size: 1.4rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .stat-card {
+            padding: 0.8rem;
+        }
+
+        .stat-card-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 1rem;
+        }
+
+        .stat-card-value {
+            font-size: 0.95rem;
+        }
+
+        .attendance-buttons-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+        }
+
+        .attendance-btn {
+            min-height: 80px;
+            padding: 0.8rem 0.3rem;
+            font-size: 0.7rem;
+        }
+
+        .attendance-btn i {
+            font-size: 1.4rem;
+        }
+
+        .event-item {
+            padding: 0.6rem 1rem;
+            gap: 0.6rem;
+        }
+
+        .event-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 0.9rem;
+        }
+
+        .event-title {
+            font-size: 0.8rem;
+        }
+
+        .event-time {
+            font-size: 0.7rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="dashboard-wrapper">
     <!-- Dashboard Header -->
     <div class="dashboard-header">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
-            <div>
-                <h1 class="dashboard-title">Welcome back, {{ current_user.first_name or 'Team Member' }}!</h1>
-                <p class="dashboard-subtitle">Here's what's happening with your work today</p>
-            </div>
-            <div class="d-flex gap-3 flex-wrap">
-                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-clock"></i>
-                    Mark Attendance
-                </a>
-                <a href="{{ url_for('mark_ot_attendance') }}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-hourglass-end"></i>
-                    Mark OT
-                </a>
-                <a href="{{ url_for('leave_request') }}" class="btn btn-outline-primary btn-lg">
-                    <i class="fas fa-plane-departure"></i>
-                    Request Leave
-                </a>
-            </div>
-        </div>
+        <h1>👋 Welcome back, {{ current_user.first_name or 'Team Member' }}!</h1>
+        <p>{{ "{:%A, %B %d, %Y}".format(now) if now else "Have a productive day!" }}</p>
     </div>
 
-    <!-- Key Metrics Grid - Enhanced Design -->
-    <div class="dashboard-grid mb-8">
-        <!-- Attendance Rate -->
-        <div class="col-span-3">
-            <div class="stat-card stat-card-enhanced">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon primary">
-                        <i class="fas fa-calendar-check"></i>
+    <!-- Quick Actions -->
+    <div class="quick-actions-grid">
+        <a href="{{ url_for('attendance_list_view') }}" class="quick-action-btn">
+            <i class="fas fa-calendar-check"></i>
+            View Attendance
+        </a>
+        <a href="{{ url_for('leave_list') }}" class="quick-action-btn">
+            <i class="fas fa-plane-departure"></i>
+            Leave Requests
+        </a>
+        <a href="{{ url_for('payroll_view') if 'payroll_view' in config.get('routes', []) else '#' }}" class="quick-action-btn">
+            <i class="fas fa-file-invoice-dollar"></i>
+            Payslips
+        </a>
+        <a href="{{ url_for('profile') }}" class="quick-action-btn">
+            <i class="fas fa-user-circle"></i>
+            My Profile
+        </a>
+    </div>
+
+    <!-- Main Content: Attendance & Events -->
+    <div class="dashboard-main">
+        <!-- Quick Attendance Panel -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <i class="fas fa-clock"></i>
+                <h3 class="card-title">Quick Attendance</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('attendance_mark') }}" id="attendance-form">
+                    <div class="attendance-buttons-grid">
+                        <button type="submit" name="action" value="clock_in" class="attendance-btn btn-clock-in">
+                            <i class="fas fa-sign-in-alt"></i> Clock In
+                        </button>
+                        <button type="submit" name="action" value="clock_out" class="attendance-btn btn-clock-out">
+                            <i class="fas fa-sign-out-alt"></i> Clock Out
+                        </button>
+                        <button type="submit" name="action" value="break_start" class="attendance-btn btn-break-in">
+                            <i class="fas fa-pause"></i> Break In
+                        </button>
+                        <button type="submit" name="action" value="break_end" class="attendance-btn btn-break-out">
+                            <i class="fas fa-play"></i> Break Out
+                        </button>
                     </div>
-                    <span class="stat-card-badge badge bg-primary">This Month</span>
-                </div>
-                <div class="stat-card-content">
-                    <div class="stat-card-value">{{ stats.attendance_rate if stats.attendance_rate is defined else stats.attendance_percentage if stats.attendance_percentage is defined else '95' }}%</div>
-                    <div class="stat-card-label">Attendance Rate</div>
-                    <div class="stat-card-change positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>+2.5% from last month</span>
+                </form>
+
+                <!-- Recent Attendance Record -->
+                {% if recent_attendance %}
+                <div class="recent-attendance-section">
+                    <span class="recent-attendance-label">Last Record</span>
+                    <div class="recent-attendance-grid">
+                        <div class="recent-attendance-item">
+                            <span class="recent-attendance-label-small">DATE</span>
+                            <span class="recent-attendance-value">{{ recent_attendance.date.strftime('%d %b %Y') if recent_attendance.date else 'N/A' }}</span>
+                        </div>
+                        <div class="recent-attendance-item">
+                            <span class="recent-attendance-label-small">STATUS</span>
+                            {% if recent_attendance.clock_in %}
+                                {% if recent_attendance.break_end %}
+                                    <span class="recent-attendance-status status-break-end">Break Ended</span>
+                                {% elif recent_attendance.break_start %}
+                                    <span class="recent-attendance-status status-break-start">On Break</span>
+                                {% elif recent_attendance.clock_out %}
+                                    <span class="recent-attendance-status status-clock-out">Clocked Out</span>
+                                {% else %}
+                                    <span class="recent-attendance-status status-clock-in">Clocked In</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="recent-attendance-status status-no-record">No Record</span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Leave Balance -->
-        <div class="col-span-3">
-            <div class="stat-card stat-card-enhanced">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon success">
-                        <i class="fas fa-leaf"></i>
-                    </div>
-                    <span class="stat-card-badge badge bg-success">Available</span>
-                </div>
-                <div class="stat-card-content">
-                    <div class="stat-card-value">{{ stats.leave_balance if stats.leave_balance is defined else '12' }}</div>
-                    <div class="stat-card-label">Days Leave Balance</div>
-                    <div class="stat-card-change">
-                        <i class="fas fa-info-circle"></i>
-                        <span>{{ stats.leave_balance_text if stats.leave_balance_text is defined else 'Annual leave remaining' }}</span>
-                    </div>
-                </div>
+        <!-- Events Section -->
+        <div class="events-container">
+            <div class="events-header">
+                <h3>📅 Upcoming Events & Reminders</h3>
             </div>
-        </div>
-
-        <!-- This Month Leaves -->
-        <div class="col-span-3">
-            <div class="stat-card stat-card-enhanced">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon warning">
-                        <i class="fas fa-calendar-times"></i>
-                    </div>
-                    <span class="stat-card-badge badge bg-warning">This Month</span>
-                </div>
-                <div class="stat-card-content">
-                    <div class="stat-card-value">{{ stats.leaves_taken_month if stats.leaves_taken_month is defined else '2' }}</div>
-                    <div class="stat-card-label">Leaves Taken</div>
-                    <div class="stat-card-change">
+            <ul class="events-list">
+                <li class="event-item">
+                    <div class="event-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                         <i class="fas fa-calendar"></i>
-                        <span>{{ stats.upcoming_leaves if stats.upcoming_leaves is defined else '1' }} upcoming</span>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Working Hours -->
-        <div class="col-span-3">
-            <div class="stat-card stat-card-enhanced">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon info">
-                        <i class="fas fa-clock"></i>
+                    <div class="event-content">
+                        <p class="event-title">Next Leave Day</p>
+                        <p class="event-time">{{ stats.next_leave_date if stats.next_leave_date is defined else 'December 25, 2024' }}</p>
                     </div>
-                    <span class="stat-card-badge badge bg-info">Average</span>
-                </div>
-                <div class="stat-card-content">
-                    <div class="stat-card-value">{{ stats.working_hours if stats.working_hours is defined else '8.5' }}h</div>
-                    <div class="stat-card-label">Daily Hours</div>
-                    <div class="stat-card-change positive">
-                        <i class="fas fa-check-circle"></i>
-                        <span>On track this week</span>
+                </li>
+                <li class="event-item">
+                    <div class="event-icon" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white;">
+                        <i class="fas fa-birthday-cake"></i>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Stats Summary -->
-    <div class="dashboard-grid mb-8">
-        <div class="col-span-12">
-            <div class="quick-stats-container">
-                <div class="quick-stat-item">
-                    <div class="quick-stat-icon">
-                        <i class="fas fa-file-invoice"></i>
+                    <div class="event-content">
+                        <p class="event-title">Team Birthday</p>
+                        <p class="event-time">Sarah's birthday - December 22</p>
                     </div>
-                    <div class="quick-stat-content">
-                        <span class="quick-stat-label">Recent Payslip</span>
-                        <span class="quick-stat-value">{{ stats.recent_payslip if stats.recent_payslip is defined else 'December 2024' }}</span>
+                </li>
+                <li class="event-item">
+                    <div class="event-icon" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white;">
+                        <i class="fas fa-trophy"></i>
                     </div>
-                    <a href="#" class="quick-stat-action">
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-                <div class="quick-stat-item">
-                    <div class="quick-stat-icon">
-                        <i class="fas fa-umbrella-beach"></i>
+                    <div class="event-content">
+                        <p class="event-title">Company Event</p>
+                        <p class="event-time">Year-end celebration - December 30</p>
                     </div>
-                    <div class="quick-stat-content">
-                        <span class="quick-stat-label">Upcoming Holiday</span>
-                        <span class="quick-stat-value">{{ stats.next_holiday if stats.next_holiday is defined else 'Christmas - Dec 25' }}</span>
-                    </div>
-                    <a href="#" class="quick-stat-action">
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-                <div class="quick-stat-item">
-                    <div class="quick-stat-icon">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="quick-stat-content">
-                        <span class="quick-stat-label">Today's Status</span>
-                        <span class="quick-stat-value">{{ stats.today_status if stats and stats.today_status is defined else 'Present' }}</span>
-                    </div>
-                    <a href="{{ url_for('attendance_list_view') }}" class="quick-stat-action">
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-                <div class="quick-stat-item">
-                    <div class="quick-stat-icon">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <div class="quick-stat-content">
-                        <span class="quick-stat-label">Pending Requests</span>
-                        <span class="quick-stat-value">{{ stats.pending_requests if stats.pending_requests is defined else '0' }}</span>
-                    </div>
-                    <a href="{{ url_for('leave_list') }}" class="quick-stat-action">
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-            </div>
+                </li>
+            </ul>
         </div>
     </div>
 
-    <!-- Charts and Analytics -->
-    <div class="dashboard-grid">
-        <!-- Attendance Trend Chart -->
-        <div class="col-span-8">
-            <div class="chart-card">
-                <div class="chart-card-header">
-                    <div>
-                        <h3 class="chart-card-title">Attendance Trend</h3>
-                        <p class="text-muted mb-0">Monthly attendance percentage over the last 6 months</p>
-                    </div>
-                    <div class="badge bg-success">{{ stats.attendance_rate if stats.attendance_rate is defined else '95' }}% This Month</div>
+    <!-- Stats Section -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-icon primary">
+                    <i class="fas fa-file-invoice"></i>
                 </div>
-                <div class="chart-container">
-                    <canvas id="attendanceTrendChart"></canvas>
+                <div>
+                    <p class="stat-card-label">Recent Payslip</p>
+                    <p class="stat-card-value">{{ stats.recent_payslip if stats.recent_payslip is defined else 'Dec 2024' }}</p>
                 </div>
             </div>
+            <a href="{{ url_for('payroll_view') if 'payroll_view' in config.get('routes', []) else '#' }}" class="stat-card-action">View Details →</a>
         </div>
 
-        <!-- Leave Summary -->
-        <div class="col-span-4">
-            <div class="chart-card">
-                <div class="chart-card-header">
-                    <h3 class="chart-card-title">Leave Summary</h3>
-                    <p class="text-muted mb-0">Annual leave breakdown</p>
+        <div class="stat-card success">
+            <div class="stat-card-header">
+                <div class="stat-card-icon success">
+                    <i class="fas fa-umbrella-beach"></i>
                 </div>
-                <div class="chart-container">
-                    <canvas id="leaveSummaryChart"></canvas>
-                </div>
-                <div class="mt-4">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted">Used</span>
-                        <span class="fw-semibold">{{ stats.leave_used if stats.leave_used is defined else '8' }} days</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted">Remaining</span>
-                        <span class="fw-semibold">{{ stats.leave_balance if stats.leave_balance is defined else '12' }} days</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">Total Allocation</span>
-                        <span class="fw-semibold">{{ stats.leave_total if stats.leave_total is defined else '20' }} days</span>
-                    </div>
+                <div>
+                    <p class="stat-card-label">Next Holiday</p>
+                    <p class="stat-card-value">{{ stats.next_holiday if stats.next_holiday is defined else 'Jan 2025' }}</p>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Recent Activity and Quick Actions -->
-    <div class="dashboard-grid">
-        <!-- Recent Activity -->
-        <div class="col-span-8">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Recent Activity</h3>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="stat-card-icon success" style="width: 40px; height: 40px; font-size: 1rem;">
-                            <i class="fas fa-check"></i>
-                        </div>
-                        <div>
-                            <div class="fw-semibold">Attendance marked for today</div>
-                            <div class="text-muted small">{{ moment().strftime('%I:%M %p') if moment else '9:15 AM' }} - On time</div>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <div class="stat-card-icon primary" style="width: 40px; height: 40px; font-size: 1rem;">
-                            <i class="fas fa-plane-departure"></i>
-                        </div>
-                        <div>
-                            <div class="fw-semibold">Leave request approved</div>
-                            <div class="text-muted small">Annual Leave - Dec 25-26, 2024</div>
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="stat-card-icon warning" style="width: 40px; height: 40px; font-size: 1rem;">
-                            <i class="fas fa-bell"></i>
-                        </div>
-                        <div>
-                            <div class="fw-semibold">Reminder: Team meeting</div>
-                            <div class="text-muted small">Tomorrow at 2:00 PM - Conference Room A</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <a href="#" class="stat-card-action">View Calendar →</a>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="col-span-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Quick Actions</h3>
+        <div class="stat-card warning">
+            <div class="stat-card-header">
+                <div class="stat-card-icon warning">
+                    <i class="fas fa-clock"></i>
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-3">
-                        <a href="{{ url_for('attendance_list_view') }}" class="btn btn-outline-primary d-flex align-items-center gap-2">
-                            <i class="fas fa-list"></i>
-                            View Attendance Records
-                        </a>
-                        <a href="{{ url_for('leave_list') }}" class="btn btn-outline-primary d-flex align-items-center gap-2">
-                            <i class="fas fa-calendar-alt"></i>
-                            My Leave Requests
-                        </a>
-                        {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile %}
-                        <a href="{{ url_for('profile') }}" class="btn btn-outline-primary d-flex align-items-center gap-2">
-                            <i class="fas fa-user"></i>
-                            Update Profile
-                        </a>
-                        {% endif %}
-                        {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                        <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
-                            <i class="fas fa-users"></i>
-                            Manage Employees
-                        </a>
-                        {% endif %}
-                    </div>
+                <div>
+                    <p class="stat-card-label">Today's Status</p>
+                    <p class="stat-card-value">{{ stats.today_status if stats and stats.today_status is defined else 'Present' }}</p>
                 </div>
             </div>
+            <a href="{{ url_for('attendance_list_view') }}" class="stat-card-action">View Details →</a>
         </div>
-    </div>
 
-    <!-- Upcoming Events -->
-    <div class="dashboard-grid">
-        <div class="col-span-12">
-            <div class="card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="card-title">Upcoming Events & Reminders</h3>
-                        <a href="#" class="btn btn-sm btn-outline-primary">View Calendar</a>
-                    </div>
+        <div class="stat-card danger">
+            <div class="stat-card-header">
+                <div class="stat-card-icon danger">
+                    <i class="fas fa-tasks"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row g-4">
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="stat-card-icon primary" style="width: 48px; height: 48px;">
-                                    <i class="fas fa-calendar"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-semibold">Next Leave Day</div>
-                                    <div class="text-muted">{{ stats.next_leave_date if stats.next_leave_date is defined else 'December 25, 2024' }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="stat-card-icon warning" style="width: 48px; height: 48px;">
-                                    <i class="fas fa-birthday-cake"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-semibold">Team Birthday</div>
-                                    <div class="text-muted">Sarah's birthday - Dec 22</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="stat-card-icon success" style="width: 48px; height: 48px;">
-                                    <i class="fas fa-trophy"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-semibold">Company Event</div>
-                                    <div class="text-muted">Year-end celebration - Dec 30</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                    <p class="stat-card-label">Pending Requests</p>
+                    <p class="stat-card-value">{{ stats.pending_requests if stats.pending_requests is defined else '0' }}</p>
                 </div>
             </div>
+            <a href="{{ url_for('leave_list') }}" class="stat-card-action">View Requests →</a>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Attendance Trend Chart
-    const attendanceCtx = document.getElementById('attendanceTrendChart');
-    if (attendanceCtx) {
-        const attendanceLabels = {{ stats.attendance_labels|tojson(indent=0) if stats is defined and stats.attendance_labels is defined else ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']|tojson(indent=0) }};
-        const attendanceData = {{ stats.attendance_data|tojson(indent=0) if stats is defined and stats.attendance_data is defined else [92, 95, 88, 94, 97, 95]|tojson(indent=0) }};
-
-        new Chart(attendanceCtx, {
-            type: 'line',
-            data: {
-                labels: attendanceLabels,
-                datasets: [{
-                    label: 'Attendance %',
-                    data: attendanceData,
-                    tension: 0.4,
-                    fill: true,
-                    backgroundColor: 'rgba(45, 106, 79, 0.1)',
-                    borderColor: 'var(--primary-green)',
-                    borderWidth: 3,
-                    pointBackgroundColor: 'var(--primary-green)',
-                    pointBorderColor: '#ffffff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'var(--white)',
-                        titleColor: 'var(--grey-800)',
-                        bodyColor: 'var(--grey-700)',
-                        borderColor: 'var(--grey-200)',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.parsed.y}% attendance`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            stepSize: 20,
-                            callback: function(value) {
-                                return value + '%';
-                            },
-                            color: 'var(--grey-500)',
-                            font: {
-                                family: 'Inter',
-                                size: 12
-                            }
-                        },
-                        grid: {
-                            color: 'var(--grey-200)',
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            color: 'var(--grey-500)',
-                            font: {
-                                family: 'Inter',
-                                size: 12
-                            }
-                        },
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Leave Summary Doughnut Chart
-    const leaveCtx = document.getElementById('leaveSummaryChart');
-    if (leaveCtx) {
-        const leaveUsed = {{ stats.leave_used if stats.leave_used is defined else 8 }};
-        const leaveBalance = {{ stats.leave_balance if stats.leave_balance is defined else 12 }};
-
-        new Chart(leaveCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Used', 'Remaining'],
-                datasets: [{
-                    data: [leaveUsed, leaveBalance],
-                    backgroundColor: [
-                        'var(--primary-green)',
-                        'var(--success-green)'
-                    ],
-                    borderWidth: 0,
-                    cutout: '70%'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            padding: 20,
-                            font: {
-                                family: 'Inter',
-                                size: 12
-                            },
-                            color: 'var(--grey-700)'
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'var(--white)',
-                        titleColor: 'var(--grey-800)',
-                        bodyColor: 'var(--grey-700)',
-                        borderColor: 'var(--grey-200)',
-                        borderWidth: 1,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.label}: ${context.parsed} days`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-});
+    // Dashboard scripts
 </script>
 {% endblock %}

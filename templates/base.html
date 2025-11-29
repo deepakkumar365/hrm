@@ -189,10 +189,6 @@
                                     <i class="fas fa-list"></i>
                                     View Records
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('attendance_calendar') }}">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    Calendar View
-                                </a></li>
                                 <!-- Mark OT Attendance - Visible to all users for self-service -->
                                 {% if not is_super_admin %}
                                 <li><hr class="dropdown-divider"></li>
