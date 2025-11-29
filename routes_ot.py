@@ -208,8 +208,13 @@ def mark_ot_attendance():
         if not ot_types:
             flash('⚠️  No OT types are configured for your tenant. Please contact your Tenant Admin to set up OT types first in Masters > OT Types.', 'warning')
         
-        # Get today's date for default
-        today = datetime.now().date()
+        # Get today's date in company timezone
+        from pytz import timezone, utc
+        company = Company.query.get(company_id)
+        timezone_str = company.timezone if company else 'UTC'
+        company_tz = timezone(timezone_str)
+        now_utc = datetime.now(utc)
+        today = now_utc.astimezone(company_tz).date()
         
         # Get today's attendance record for timeline
         today_attendance = Attendance.query.filter_by(

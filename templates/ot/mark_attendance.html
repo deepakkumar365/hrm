@@ -1081,6 +1081,54 @@
 
         <!-- Right Sidebar (Recent OT Records) -->
         <div class="right-sidebar">
+            <!-- Today's Attendance Timeline Card -->
+            <div class="timeline-card">
+                <div class="timeline-title">
+                    <i class="fas fa-clock"></i>
+                    Today's Attendance
+                </div>
+                <div class="timeline-list" id="attendanceTimeline">
+                    {% if attendance_data %}
+                        {% for activity in attendance_data %}
+                        <div class="timeline-item" style="padding: 0.6rem; border-bottom: 1px solid #e8eef5; display: flex; align-items: center; gap: 0.6rem;">
+                            <div style="flex-shrink: 0;">
+                                {% if activity.activity_type == 'Clock In' %}
+                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #27ae60 0%, #229954 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-sign-in-alt" style="color: white; font-size: 0.85rem;"></i>
+                                    </div>
+                                {% elif activity.activity_type == 'Clock Out' %}
+                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-sign-out-alt" style="color: white; font-size: 0.85rem;"></i>
+                                    </div>
+                                {% elif activity.activity_type == 'Start Break' %}
+                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-pause-circle" style="color: white; font-size: 0.85rem;"></i>
+                                    </div>
+                                {% elif activity.activity_type == 'End Break' %}
+                                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-play-circle" style="color: white; font-size: 0.85rem;"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 0.8rem; color: #2c3e50;">
+                                    {{ activity.activity }}
+                                </div>
+                                <div style="font-size: 0.7rem; color: #667eea; margin-top: 0.2rem;">
+                                    {{ activity.activity_time }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="no-activity" style="padding: 1rem; text-align: center;">
+                        <i class="fas fa-inbox" style="font-size: 1.5rem; opacity: 0.5; margin-bottom: 0.5rem; display: block;"></i>
+                        <p style="font-size: 0.8rem; color: #999;">No attendance recorded today</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
             <!-- Recent OT Records Card -->
             <div class="timeline-card">
                 <div class="timeline-title">

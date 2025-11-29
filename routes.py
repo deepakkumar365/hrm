@@ -2358,13 +2358,14 @@ def attendance_mark():
                       'error')
                 return redirect(url_for('dashboard'))
 
-            # Get employee's timezone, default to UTC
-            employee_tz_str = current_user.employee_profile.timezone or 'UTC'
-            employee_tz = timezone(employee_tz_str)
+            # Get timezone from user's company configuration
+            # Use company timezone for consistent date calculation across all employees
+            timezone_str = current_user.company.timezone if current_user.company else 'UTC'
+            company_tz = timezone(timezone_str)
 
-            # Get current time in UTC and employee's local date
+            # Get current time in UTC and company's local date
             now_utc = datetime.now(utc)
-            today = now_utc.astimezone(employee_tz).date()
+            today = now_utc.astimezone(company_tz).date()
             employee_id = current_user.employee_profile.id
 
             # Check if already marked today
@@ -2373,9 +2374,8 @@ def attendance_mark():
 
             action = request.form.get(
                 'action')  # clock_in, clock_out, break_start, break_end
-            # Get timezone from user's company configuration, not from form
-            timezone_str = current_user.company.timezone if current_user.company else 'UTC'
-            current_time = now_utc.time()
+            # Get current time in company's timezone (not UTC)
+            current_time = now_utc.astimezone(company_tz).time()
 
             if action == 'clock_in':
                 # Check for incomplete attendance from previous day(s)
@@ -2826,22 +2826,4 @@ def create_daily_attendance_records(target_date, employees=None):
             # Create new attendance record with default Present status
             attendance = Attendance()
             attendance.employee_id = employee.id
-            attendance.date = target_date
-            attendance.status = 'Present'
-            attendance.regular_hours = 8  # Default 8 hours for present employees
-            attendance.total_hours = 8
-            attendance.overtime_hours = 0
-            attendance.remarks = 'Auto-generated attendance record'
-
-            db.session.add(attendance)
-            created_count += 1
-
-    if created_count > 0:
-        db.session.commit()
-        print(f"Created {created_count} attendance records for {target_date}")
-
-    return created_count
-
-
-def auto_create_daily_attendance():
-    """Auto-create attendance records for all active employees for today"""
+            attendance.da

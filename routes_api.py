@@ -580,7 +580,17 @@ def mobile_api_mark_attendance():
         if not employee:
             return api_response('error', 'Employee not found', None, 404)
         
-        today = date.today()
+        # Get company timezone for consistent date calculation
+        from pytz import timezone, utc
+        company = employee.company
+        timezone_str = company.timezone if company else 'UTC'
+        company_tz = timezone(timezone_str)
+        
+        # Get today's date in company timezone
+        now_utc = datetime.now(utc)
+        today = now_utc.astimezone(company_tz).date()
+        current_time = now_utc.astimezone(company_tz)
+        
         attendance = Attendance.query.filter_by(
             employee_id=employee_id,
             date=today
@@ -590,17 +600,19 @@ def mobile_api_mark_attendance():
             attendance = Attendance(
                 employee_id=employee_id,
                 date=today,
-                status='present'
+                status='present',
+                timezone=timezone_str
             )
             db.session.add(attendance)
-        
-        now = datetime.now()
+        else:
+            # Update timezone on existing records
+            attendance.timezone = timezone_str
         
         if action == 'check_in':
-            attendance.check_in = now
+            attendance.clock_in = current_time.time()
             attendance.status = 'present'
         elif action == 'check_out':
-            attendance.check_out = now
+            attendance.clock_out = current_time.time()
         else:
             return api_response('error', 'Invalid action. Must be check_in or check_out', None, 400)
         
@@ -609,8 +621,8 @@ def mobile_api_mark_attendance():
         return api_response('success', f'Attendance {action} recorded', {
             'employee_id': attendance.employee_id,
             'date': attendance.date.isoformat(),
-            'check_in': attendance.check_in.isoformat() if attendance.check_in else None,
-            'check_out': attendance.check_out.isoformat() if attendance.check_out else None
+            'clock_in': attendance.clock_in.isoformat() if attendance.clock_in else None,
+            'clock_out': attendance.clock_out.isoformat() if attendance.clock_out else None
         }, 200)
     
     except Exception as e:
