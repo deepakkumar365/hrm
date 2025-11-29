@@ -3,192 +3,480 @@
 {% block title %}Payroll Configuration - Nexar{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="{{ url_for('payroll_list') }}">Payroll</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Configuration</li>
-                        </ol>
-                    </nav>
-                </div>
-                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>Back to Payroll
+<style>
+    /* Payroll Configuration Grid Styles */
+    :root {
+        --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    .payroll-config-container {
+        font-family: var(--font-primary);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+        background: #f5f5f5;
+    }
+
+    .payroll-header {
+        background: white;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e0e0;
+        flex-shrink: 0;
+    }
+
+    .payroll-header h3 {
+        margin: 0;
+        font-family: var(--font-primary);
+        font-size: 18px;
+        font-weight: 600;
+        color: #004d4d;
+    }
+
+    .payroll-header p {
+        margin: 2px 0 0 0;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .payroll-toolbar {
+        background: white;
+        padding: 8px 12px;
+        border-bottom: 1px solid #e0e0e0;
+        flex-shrink: 0;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .payroll-toolbar input {
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        border-radius: 2px;
+        font-family: var(--font-primary);
+        font-size: 11px;
+        height: 24px;
+    }
+
+    .payroll-toolbar button {
+        padding: 4px 10px;
+        border: 1px solid #ddd;
+        background: white;
+        color: #333;
+        border-radius: 2px;
+        cursor: pointer;
+        font-family: var(--font-primary);
+        font-size: 10px;
+        height: 24px;
+        transition: all 0.15s;
+    }
+
+    .payroll-toolbar button:hover {
+        background: #f0f0f0;
+        border-color: #999;
+    }
+
+    .payroll-content {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 8px 12px;
+    }
+
+    .grid-wrapper {
+        flex: 1;
+        overflow: auto;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+    }
+
+    .payroll-grid {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--font-primary);
+        font-size: 12px;
+    }
+
+    .payroll-grid thead {
+        background: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .payroll-grid th {
+        padding: 4px 6px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 1px solid #ddd;
+        border-right: 1px solid #eee;
+        white-space: nowrap;
+        user-select: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        height: 24px;
+    }
+
+    .payroll-grid th:last-child {
+        border-right: none;
+    }
+
+    /* Stronger separation between Name and Designation columns */
+    .payroll-grid th:nth-child(3) {
+        border-right: 2px solid #008080;
+    }
+
+    .payroll-grid td:nth-child(3) {
+        border-right: 2px solid #d0e0df;
+    }
+
+    .payroll-grid th:hover {
+        background: #f0f0f0;
+    }
+
+    .payroll-grid th.sortable::after {
+        content: ' ⇅';
+        opacity: 0.4;
+        font-size: 10px;
+    }
+
+    .payroll-grid th.sorted-asc::after {
+        content: ' ↑';
+        opacity: 1;
+        color: #008080;
+        font-size: 11px;
+    }
+
+    .payroll-grid th.sorted-desc::after {
+        content: ' ↓';
+        opacity: 1;
+        color: #008080;
+        font-size: 11px;
+    }
+
+    .payroll-grid tbody tr {
+        height: 24px;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.15s;
+    }
+
+    .payroll-grid tbody tr:hover {
+        background: #f9f9f9;
+    }
+
+    .payroll-grid td {
+        padding: 3px 5px;
+        border-right: 1px solid #eee;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+
+    .payroll-grid td:last-child {
+        border-right: none;
+    }
+
+    .payroll-grid tbody tr.editing td {
+        padding: 2px 4px;
+    }
+
+    /* Input fields in edit mode */
+    .payroll-grid input[type="text"],
+    .payroll-grid input[type="number"] {
+        width: 100%;
+        padding: 2px 4px;
+        border: 1px solid #008080;
+        border-radius: 2px;
+        font-family: var(--font-primary);
+        font-size: 11px;
+        box-sizing: border-box;
+    }
+
+    .payroll-grid input[type="number"] {
+        text-align: right;
+    }
+
+    /* Numeric columns - right aligned */
+    .numeric {
+        text-align: right;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+        display: flex;
+        gap: 2px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-edit, .btn-save, .btn-cancel {
+        padding: 3px 5px;
+        border: none;
+        border-radius: 2px;
+        font-size: 10px;
+        font-family: var(--font-primary);
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+        min-width: 30px;
+        height: 20px;
+        line-height: 14px;
+    }
+
+    .btn-edit {
+        background: #008080;
+        color: white;
+        border: 1px solid #008080;
+        min-width: 38px;
+    }
+
+    .btn-edit:hover {
+        background: #006666;
+    }
+
+    .btn-save {
+        background: #28a745;
+        color: white;
+        border: 1px solid #28a745;
+        min-width: 38px;
+    }
+
+    .btn-save:hover {
+        background: #218838;
+    }
+
+    .btn-cancel {
+        background: #dc3545;
+        color: white;
+        border: 1px solid #dc3545;
+        min-width: 22px;
+        padding: 3px 4px;
+        font-weight: bold;
+    }
+
+    .btn-cancel:hover {
+        background: #c82333;
+    }
+
+    /* Footer with pagination and records per page */
+    .payroll-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: white;
+        border-top: 1px solid #ddd;
+        margin-top: 8px;
+        border-radius: 3px;
+        font-family: var(--font-primary);
+        font-size: 11px;
+        flex-shrink: 0;
+    }
+
+    .pagination-info {
+        color: #666;
+        flex: 0 0 auto;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        flex: 1;
+        justify-content: center;
+    }
+
+    .pagination-controls button {
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        background: white;
+        color: #333;
+        border-radius: 2px;
+        cursor: pointer;
+        font-family: var(--font-primary);
+        font-size: 11px;
+        transition: all 0.15s;
+    }
+
+    .pagination-controls button:hover:not(:disabled) {
+        background: #f0f0f0;
+        border-color: #999;
+    }
+
+    .pagination-controls button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-input {
+        width: 35px;
+        padding: 3px 6px;
+        border: 1px solid #ddd;
+        border-radius: 2px;
+        text-align: center;
+        font-family: var(--font-primary);
+        font-size: 11px;
+    }
+
+    .records-per-page {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+    }
+
+    .records-per-page label {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .records-per-page select {
+        padding: 4px 6px;
+        border: 1px solid #ddd;
+        border-radius: 2px;
+        background: white;
+        cursor: pointer;
+        font-family: var(--font-primary);
+        font-size: 11px;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        color: #999;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .payroll-config-container {
+            height: auto;
+        }
+
+        .payroll-content {
+            height: auto;
+        }
+
+        .grid-wrapper {
+            height: auto;
+            max-height: 500px;
+        }
+    }
+</style>
+
+<div class="payroll-config-container">
+    <!-- Header Section -->
+    <div class="payroll-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3>
+                    <i class="fas fa-dollar-sign me-2" style="color: #008080;"></i>Payroll Configuration
+                </h3>
+                <p style="font-family: 'Segoe UI'; margin: 2px 0 0 0; font-size: 12px; color: #666;">Manage salary components and CPF contributions</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary" style="font-family: 'Segoe UI'; font-size: 11px; padding: 4px 8px;">
+                    <i class="fas fa-arrow-left me-1"></i>Back
                 </a>
             </div>
-
-            <hr class="mt-2 mb-3">
-
-            <!-- Search -->
-            <form method="GET" class="mb-3">
-                <div class="row g-2">
-                    <div class="col-md-6">
-                        <input type="text" name="search" class="form-control"
-                               placeholder="Search by employee name or ID..."
-                               value="{{ search }}">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-1"></i>Search
-                        </button>
-                    </div>
-                    {% if search %}
-                    <div class="col-md-2">
-                        <a href="{{ url_for('payroll_config') }}" class="btn btn-outline-secondary w-100">
-                            <i class="fas fa-times me-1"></i>Clear
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </form>
         </div>
     </div>
 
-    <!-- Configuration Table -->
-    <div class="card">
-        <div class="card-header bg-light">
-            <h6 class="mb-0"><i class="fas fa-table me-2"></i>Employee Salary Configuration</h6>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+    <!-- Toolbar Section -->
+    <div class="payroll-toolbar">
+        <form method="GET" style="display: flex; gap: 8px; align-items: center; flex: 1;">
+            <input type="text" name="search" placeholder="Search employee..." value="{{ search }}" style="flex: 1; max-width: 300px;">
+            <button type="submit" style="background: #008080; color: white; border-color: #008080;">
+                <i class="fas fa-search"></i> Search
+            </button>
+            {% if search %}
+            <a href="{{ url_for('payroll_config') }}" style="padding: 4px 10px; border: 1px solid #ddd; background: white; color: #333; border-radius: 2px; cursor: pointer; font-family: 'Segoe UI'; font-size: 10px; height: 24px; display: flex; align-items: center; text-decoration: none;">
+                <i class="fas fa-times"></i> Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Content Section -->
+    <div class="payroll-content">
+        {% if employees and employees.items|length > 0 %}
+        <div class="grid-wrapper">
+            <table class="payroll-grid">
+                <thead>
                     <tr>
-                        <th style="min-width: 120px;">Employee ID</th>
-                        <th style="min-width: 150px;">Employee Name</th>
-                        <th style="min-width: 130px;">Base Salary</th>
-                        <th style="min-width: 130px;">Transport Allow.</th>
-                        <th style="min-width: 130px;">Housing Allow.</th>
-                        <th style="min-width: 130px;">Meal Allow.</th>
-                        <th style="min-width: 130px;">Other Allow.</th>
-                        <th style="min-width: 130px;">Levy Allow.</th>
-                        <th style="min-width: 130px;">OT Rate/Hour</th>
-                        <th style="min-width: 130px;">Employer CPF</th>
-                        <th style="min-width: 130px;">Employee CPF</th>
-                        <th style="min-width: 130px;">Net Salary</th>
-                        <th style="min-width: 150px;">Remarks</th>
-                        <th style="min-width: 150px;">Actions</th>
+                        <th class="sortable" data-column="employee_id" style="width: 70px;">Emp ID</th>
+                        <th class="sortable" data-column="first_name" style="width: 130px;">Employee Name</th>
+                        <th class="sortable" data-column="designation" style="width: 140px;">Job Title</th>
+                        <th class="sortable numeric" data-column="basic_salary" style="width: 100px;">Basic Salary</th>
+                        <th class="sortable numeric" style="width: 80px;">Transport</th>
+                        <th class="sortable numeric" style="width: 80px;">Housing</th>
+                        <th class="sortable numeric" style="width: 80px;">Meal</th>
+                        <th class="sortable numeric" style="width: 80px;">Other</th>
+                        <th class="sortable numeric" data-column="ot_rate_per_hour" style="width: 75px;">OT Rate</th>
+                        <th class="sortable numeric" style="width: 80px;">Emp. CPF</th>
+                        <th class="sortable numeric" style="width: 80px;">Net Salary</th>
+                        <th style="width: 70px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for employee in employees.items %}
-                    <tr id="row-{{ employee.id }}" data-employee-id="{{ employee.id }}">
-                        <td>
-                            <strong>{{ employee.employee_id }}</strong>
+                    <tr data-employee-id="{{ employee.id }}">
+                        <td>{{ employee.employee_id }}</td>
+                        <td>{{ employee.first_name }} {{ employee.last_name }}</td>
+                        <td>{{ employee.designation.name if employee.designation else '-' }}</td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(employee.basic_salary or 0) }}</span>
+                            <input type="number" class="edit-value" name="basic_salary" value="{{ employee.basic_salary or 0 }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_1_amount if employee.payroll_config else 0) }}</span>
+                            <input type="number" class="edit-value" name="allowance_1_amount" value="{{ employee.payroll_config.allowance_1_amount if employee.payroll_config else 0 }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_2_amount if employee.payroll_config else 0) }}</span>
+                            <input type="number" class="edit-value" name="allowance_2_amount" value="{{ employee.payroll_config.allowance_2_amount if employee.payroll_config else 0 }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_3_amount if employee.payroll_config else 0) }}</span>
+                            <input type="number" class="edit-value" name="allowance_3_amount" value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_4_amount if employee.payroll_config else 0) }}</span>
+                            <input type="number" class="edit-value" name="allowance_4_amount" value="{{ employee.payroll_config.allowance_4_amount if employee.payroll_config else 0 }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else 0) }}</span>
+                            <input type="number" class="edit-value" name="ot_rate_per_hour" value="{{ employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else 0 }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.employee_cpf if employee.payroll_config else 0) }}</span>
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.net_salary if employee.payroll_config else 0) }}</span>
                         </td>
                         <td>
-                            <div>
-                                {{ employee.first_name }} {{ employee.last_name }}
-                                <br><small class="text-muted">{{ employee.designation.name if employee.designation else '-' }}</small>
-                            </div>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm editable-field"
-                                   data-field="basic_salary"
-                                   value="{{ employee.basic_salary or 0 }}"
-                                   disabled>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm editable-field"
-                                   data-field="allowance_1_amount"
-                                   value="{{ employee.payroll_config.allowance_1_amount if employee.payroll_config else 0 }}"
-                                   disabled>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm editable-field"
-                                   data-field="allowance_2_amount"
-                                   value="{{ employee.payroll_config.allowance_2_amount if employee.payroll_config else 0 }}"
-                                   disabled>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm editable-field"
-                                   data-field="allowance_3_amount"
-                                   value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}"
-                                   disabled>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm editable-field"
-                                   data-field="allowance_4_amount"
-                                   value="{{ employee.payroll_config.allowance_4_amount if employee.payroll_config else 0 }}"
-                                   disabled>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm editable-field"
-                                   data-field="levy_allowance_amount"
-                                   value="{{ employee.payroll_config.levy_allowance_amount if employee.payroll_config else 0 }}"
-                                   disabled>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm editable-field"
-                                   data-field="ot_rate_per_hour"
-                                   value="{{ employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else '' }}"
-                                   placeholder="Default"
-                                   disabled>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm"
-                                   data-field="employer_cpf"
-                                   value="{{ employee.payroll_config.employer_cpf if employee.payroll_config else 0 }}"
-                                   readonly>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm"
-                                   data-field="employee_cpf"
-                                   value="{{ employee.payroll_config.employee_cpf if employee.payroll_config else 0 }}"
-                                   readonly>
-                        </td>
-                        <td>
-                            <input type="number" step="0.01" min="0"
-                                   class="form-control form-control-sm"
-                                   data-field="net_salary"
-                                   value="{{ employee.payroll_config.net_salary if employee.payroll_config else 0 }}"
-                                   readonly>
-                        </td>
-                        <td>
-                            <input type="text"
-                                   class="form-control form-control-sm editable-field"
-                                   data-field="remarks"
-                                   value="{{ employee.payroll_config.remarks if employee.payroll_config else '' }}"
-                                   placeholder="Optional notes"
-                                   disabled>
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit"
-                                        onclick="enableEdit({{ employee.id }})"
-                                        title="Edit Configuration">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-success btn-save"
-                                        onclick="saveConfig({{ employee.id }})"
-                                        title="Save Changes"
-                                        style="display: none;">
-                                    <i class="fas fa-save"></i>
-                                </button>
-                                <button class="btn btn-secondary btn-cancel"
-                                        onclick="cancelEdit({{ employee.id }})"
-                                        title="Cancel"
-                                        style="display: none;">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                                <button class="btn btn-outline-info"
-                                        onclick="openBankInfoModal({{ employee.id }})"
-                                        title="Bank Information">
-                                    <i class="fas fa-university"></i>
-                                </button>
+                            <div class="action-buttons">
+                                <button class="btn-edit" onclick="enableEdit(this)" title="Edit">Edit</button>
+                                <button class="btn-save" style="display:none;" onclick="saveConfig(this, {{ employee.id }})" title="Save">Save</button>
+                                <button class="btn-cancel" style="display:none;" onclick="cancelEdit(this)" title="Cancel">✕</button>
                             </div>
                         </td>
                     </tr>
@@ -196,216 +484,133 @@
                 </tbody>
             </table>
         </div>
-    </div>
 
-    {% if not employees.items %}
-    <div class="text-center py-5">
-        <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
-        <h5 class="text-muted">No employees found</h5>
-        <p class="text-muted">Try adjusting your search criteria</p>
-    </div>
-    {% endif %}
-
-    <!-- Pagination -->
-    {% if employees.pages > 1 %}
-    <nav aria-label="Employee pagination" class="mt-4">
-        <ul class="pagination justify-content-center">
-            {% if employees.has_prev %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('payroll_config', page=employees.prev_num, search=search) }}">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-            </li>
-            {% endif %}
-
-            {% for page_num in employees.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num != employees.page %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('payroll_config', page=page_num, search=search) }}">
-                            {{ page_num }}
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ page_num }}</span>
-                    </li>
-                    {% endif %}
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-                {% endif %}
-            {% endfor %}
-
-            {% if employees.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('payroll_config', page=employees.next_num, search=search) }}">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
-</div>
-
-<!-- Bank Info Modal -->
-<div class="modal fade" id="bankInfoModal" tabindex="-1" aria-labelledby="bankInfoModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="bankInfoModalLabel">
-                    <i class="fas fa-university me-2"></i>Bank Information
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <!-- Footer with Pagination and Records Per Page -->
+        <div class="payroll-footer">
+            <div class="pagination-info">
+                Showing {{ (employees.page - 1) * employees.per_page + 1 }}-{{ [employees.page * employees.per_page, employees.total]|min }} of {{ employees.total }} records
             </div>
-            <div class="modal-body">
-                <form id="bankInfoForm">
-                    <input type="hidden" id="bank_employee_id" name="employee_id">
 
-                    <div class="mb-3">
-                        <label for="bank_account_name" class="form-label">Bank Account Name *</label>
-                        <input type="text" class="form-control" id="bank_account_name" name="bank_account_name" required>
-                        <small class="text-muted">Full name as per bank account</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="bank_account_number" class="form-label">Bank Account Number *</label>
-                        <input type="text" class="form-control" id="bank_account_number" name="bank_account_number" required>
-                        <small class="text-muted">Enter account number without spaces</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="bank_code" class="form-label">Bank Code</label>
-                        <input type="text" class="form-control" id="bank_code" name="bank_code" placeholder="e.g., 7171">
-                        <small class="text-muted">Bank's SWIFT/BIC code or local bank code</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="paynow_no" class="form-label">PayNow Number</label>
-                        <input type="text" class="form-control" id="paynow_no" name="paynow_no" placeholder="e.g., +65 9123 4567">
-                        <small class="text-muted">Mobile number or UEN registered with PayNow</small>
-                    </div>
-                </form>
+            <div class="pagination-controls">
+                <button {% if not employees.has_prev %}disabled{% endif %} onclick="goToPage(1)">First</button>
+                <button {% if not employees.has_prev %}disabled{% endif %} onclick="goToPage({{ employees.prev_num }})">Previous</button>
+                
+                <input type="number" class="pagination-input" id="pageInput" value="{{ employees.page }}" min="1" max="{{ employees.pages }}" onchange="goToPage(this.value)">
+                
+                <span style="color: #999;">of {{ employees.pages }}</span>
+                
+                <button {% if not employees.has_next %}disabled{% endif %} onclick="goToPage({{ employees.next_num }})">Next</button>
+                <button {% if not employees.has_next %}disabled{% endif %} onclick="goToPage({{ employees.pages }})">Last</button>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cancel
-                </button>
-                <button type="button" class="btn btn-primary" onclick="saveBankInfo()">
-                    <i class="fas fa-save me-1"></i>Save Bank Info
-                </button>
+
+            <div class="records-per-page">
+                <label for="perPageSelect">Records per page:</label>
+                <select id="perPageSelect" onchange="changePerPage(this.value)">
+                    <option value="15" {% if per_page == 15 %}selected{% endif %}>15</option>
+                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Toast notification -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <i class="fas fa-check-circle text-success me-2"></i>
-            <strong class="me-auto">Success</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No employees found</p>
         </div>
-        <div class="toast-body">
-            Configuration saved successfully!
-        </div>
+        {% endif %}
     </div>
 </div>
 
 <script>
-// Store original values for cancel functionality
-const originalValues = {};
-
-function calculateNetSalary(employeeId) {
-    const row = document.getElementById(`row-${employeeId}`);
-    
-    // Get all allowance and salary values
-    const baseSalary = parseFloat(row.querySelector('[data-field="basic_salary"]').value) || 0;
-    const allowance1 = parseFloat(row.querySelector('[data-field="allowance_1_amount"]').value) || 0;
-    const allowance2 = parseFloat(row.querySelector('[data-field="allowance_2_amount"]').value) || 0;
-    const allowance3 = parseFloat(row.querySelector('[data-field="allowance_3_amount"]').value) || 0;
-    const allowance4 = parseFloat(row.querySelector('[data-field="allowance_4_amount"]').value) || 0;
-    const levyAllowance = parseFloat(row.querySelector('[data-field="levy_allowance_amount"]').value) || 0;
-    const otRate = parseFloat(row.querySelector('[data-field="ot_rate_per_hour"]').value) || 0;
-    
-    // Get CPF values
-    const employeeCpf = parseFloat(row.querySelector('[data-field="employee_cpf"]').value) || 0;
-    
-    // Formula: (Base + Transport + Housing + Meal + Other + Levy + OT Rate) - Employee CPF
-    const netSalary = (baseSalary + allowance1 + allowance2 + allowance3 + allowance4 + levyAllowance + otRate) - employeeCpf;
-    
-    // Update net salary field
-    row.querySelector('[data-field="net_salary"]').value = Math.max(0, netSalary).toFixed(2);
+function goToPage(pageNum) {
+    const search = new URLSearchParams(window.location.search).get('search') || '';
+    const perPage = document.getElementById('perPageSelect').value;
+    const sortBy = new URLSearchParams(window.location.search).get('sort_by') || 'employee_id';
+    const sortOrder = new URLSearchParams(window.location.search).get('sort_order') || 'asc';
+    const url = new URL(window.location);
+    url.searchParams.set('page', pageNum);
+    url.searchParams.set('per_page', perPage);
+    url.searchParams.set('sort_by', sortBy);
+    url.searchParams.set('sort_order', sortOrder);
+    if (search) url.searchParams.set('search', search);
+    window.location.href = url.toString();
 }
 
-function enableEdit(employeeId) {
-    const row = document.getElementById(`row-${employeeId}`);
-    const inputs = row.querySelectorAll('.editable-field');
+function changePerPage(value) {
+    const url = new URL(window.location);
+    url.searchParams.set('page', 1);
+    url.searchParams.set('per_page', value);
+    window.location.href = url.toString();
+}
 
-    // Store original values
-    originalValues[employeeId] = {};
-    inputs.forEach(input => {
-        originalValues[employeeId][input.dataset.field] = input.value;
-        input.disabled = false;
-        input.classList.add('border-primary');
+// Sorting functionality
+document.querySelectorAll('.payroll-grid th.sortable').forEach(th => {
+    th.addEventListener('click', function() {
+        const column = this.dataset.column;
+        const currentSort = new URLSearchParams(window.location.search).get('sort_by') || 'employee_id';
+        const currentOrder = new URLSearchParams(window.location.search).get('sort_order') || 'asc';
         
-        // Add event listener for real-time calculation on allowance fields
-        const fieldName = input.dataset.field;
-        if (['allowance_1_amount', 'allowance_2_amount', 'allowance_3_amount', 'allowance_4_amount', 'levy_allowance_amount', 'ot_rate_per_hour'].includes(fieldName)) {
-            input.addEventListener('input', function() {
-                calculateNetSalary(employeeId);
-            });
+        let newOrder = 'asc';
+        if (column === currentSort && currentOrder === 'asc') {
+            newOrder = 'desc';
         }
+        
+        const url = new URL(window.location);
+        url.searchParams.set('sort_by', column);
+        url.searchParams.set('sort_order', newOrder);
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
     });
+});
 
-    // Toggle buttons
+// Edit/Save functionality
+function enableEdit(btn) {
+    const row = btn.closest('tr');
+    row.classList.add('editing');
+    
+    row.querySelectorAll('.edit-value').forEach(input => {
+        input.style.display = 'block';
+    });
+    
+    row.querySelectorAll('.display-value').forEach(span => {
+        span.style.display = 'none';
+    });
+    
     row.querySelector('.btn-edit').style.display = 'none';
     row.querySelector('.btn-save').style.display = 'inline-block';
     row.querySelector('.btn-cancel').style.display = 'inline-block';
-    
-    // Initial calculation
-    calculateNetSalary(employeeId);
 }
 
-function cancelEdit(employeeId) {
-    const row = document.getElementById(`row-${employeeId}`);
-    const inputs = row.querySelectorAll('.editable-field');
-
-    // Restore original values
-    inputs.forEach(input => {
-        input.value = originalValues[employeeId][input.dataset.field];
-        input.disabled = true;
-        input.classList.remove('border-primary');
+function cancelEdit(btn) {
+    const row = btn.closest('tr');
+    row.classList.remove('editing');
+    
+    row.querySelectorAll('.edit-value').forEach(input => {
+        input.style.display = 'none';
     });
-
-    // Toggle buttons
+    
+    row.querySelectorAll('.display-value').forEach(span => {
+        span.style.display = 'block';
+    });
+    
     row.querySelector('.btn-edit').style.display = 'inline-block';
     row.querySelector('.btn-save').style.display = 'none';
     row.querySelector('.btn-cancel').style.display = 'none';
-
-    delete originalValues[employeeId];
 }
 
-function saveConfig(employeeId) {
-    const row = document.getElementById(`row-${employeeId}`);
-    const inputs = row.querySelectorAll('.editable-field');
+function saveConfig(btn, employeeId) {
+    const row = btn.closest('tr');
+    const data = {
+        employee_id: employeeId,
+        basic_salary: row.querySelector('input[name="basic_salary"]').value,
+        allowance_1_amount: row.querySelector('input[name="allowance_1_amount"]').value,
+        allowance_2_amount: row.querySelector('input[name="allowance_2_amount"]').value,
+        allowance_3_amount: row.querySelector('input[name="allowance_3_amount"]').value,
+        allowance_4_amount: row.querySelector('input[name="allowance_4_amount"]').value,
+        ot_rate_per_hour: row.querySelector('input[name="ot_rate_per_hour"]').value
+    };
 
-    // Collect data
-    const data = { employee_id: employeeId };
-    inputs.forEach(input => {
-        data[input.dataset.field] = input.value || null;
-    });
-
-    // Disable save button and show loading
-    const saveBtn = row.querySelector('.btn-save');
-    const originalHtml = saveBtn.innerHTML;
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-    // Send AJAX request
     fetch('{{ url_for("payroll_config_update") }}', {
         method: 'POST',
         headers: {
@@ -416,133 +621,30 @@ function saveConfig(employeeId) {
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            // Disable inputs
-            inputs.forEach(input => {
-                input.disabled = true;
-                input.classList.remove('border-primary');
-            });
-
-            // Toggle buttons
-            row.querySelector('.btn-edit').style.display = 'inline-block';
-            row.querySelector('.btn-save').style.display = 'none';
-            row.querySelector('.btn-cancel').style.display = 'none';
-
-            // Show success toast
-            const toast = new bootstrap.Toast(document.getElementById('saveToast'));
-            toast.show();
-
-            delete originalValues[employeeId];
-        } else {
-            alert('Error: ' + result.message);
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalHtml;
-        }
-    })
-    .catch(error => {
-        alert('Error saving configuration. Please try again.');
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalHtml;
-    });
-}
-
-// Bank Info Modal Functions
-function openBankInfoModal(employeeId) {
-    // Set employee ID
-    document.getElementById('bank_employee_id').value = employeeId;
-
-    // Clear form
-    document.getElementById('bankInfoForm').reset();
-    document.getElementById('bank_employee_id').value = employeeId;
-
-    // Fetch existing bank info
-    fetch('{{ url_for("get_bank_info", employee_id=0) }}'.replace('0', employeeId))
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.data) {
-                document.getElementById('bank_account_name').value = data.data.bank_account_name || '';
-                document.getElementById('bank_account_number').value = data.data.bank_account_number || '';
-                document.getElementById('bank_code').value = data.data.bank_code || '';
-                document.getElementById('paynow_no').value = data.data.paynow_no || '';
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching bank info:', error);
-        });
-
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('bankInfoModal'));
-    modal.show();
-}
-
-function saveBankInfo() {
-    const form = document.getElementById('bankInfoForm');
-
-    // Validate form
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
-
-    const employeeId = document.getElementById('bank_employee_id').value;
-    const data = {
-        employee_id: employeeId,
-        bank_account_name: document.getElementById('bank_account_name').value,
-        bank_account_number: document.getElementById('bank_account_number').value,
-        bank_code: document.getElementById('bank_code').value,
-        paynow_no: document.getElementById('paynow_no').value
-    };
-
-    // Show loading state
-    const saveBtn = event.target;
-    const originalHtml = saveBtn.innerHTML;
-    saveBtn.disabled = true;
-    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
-
-    // Send AJAX request
-    fetch('{{ url_for("get_bank_info", employee_id=0) }}'.replace('0', employeeId), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            // Hide modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('bankInfoModal'));
-            modal.hide();
-
-            // Show success toast
-            const toast = new bootstrap.Toast(document.getElementById('saveToast'));
-            document.querySelector('#saveToast .toast-body').textContent = 'Bank information saved successfully!';
-            toast.show();
+            alert('Configuration saved successfully!');
+            location.reload();
         } else {
             alert('Error: ' + result.message);
         }
-
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalHtml;
     })
     .catch(error => {
-        alert('Error saving bank information. Please try again.');
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = originalHtml;
+        alert('Error saving configuration: ' + error);
     });
 }
+
+// Highlight sort column
+function highlightSortColumn() {
+    const sortBy = new URLSearchParams(window.location.search).get('sort_by') || 'employee_id';
+    const sortOrder = new URLSearchParams(window.location.search).get('sort_order') || 'asc';
+    
+    document.querySelectorAll('.payroll-grid th.sortable').forEach(th => {
+        if (th.dataset.column === sortBy) {
+            th.classList.add(sortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', highlightSortColumn);
 </script>
 
-<style>
-.editable-field:not(:disabled) {
-    background-color: #FFF9E6;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-.form-control-sm {
-    font-size: 0.875rem;
-}
-</style>
 {% endblock %}

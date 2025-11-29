@@ -146,13 +146,14 @@ def report_employee_history():
 @app.route('/reports/payroll-configuration')
 @require_role(['Super Admin', 'Admin', 'HR Manager'])
 def report_payroll_configuration():
-    """Payroll Configuration Report"""
+    """Payroll Configuration Report with Pagination and Sorting"""
     try:
         # Get current user's organization and company for tenant filtering
         user_org = current_user.organization
         if not user_org:
             flash('No organization assigned to your account. Please contact administrator.', 'warning')
-            return render_template('reports/payroll_configuration.html', configs=[])
+            return render_template('reports/payroll_configuration.html', 
+                                 configs=[], total=0, page=1, per_page=15, total_pages=1)
         
         # Get company associated with this organization's tenant
         company = None
@@ -161,44 +162,117 @@ def report_payroll_configuration():
         
         if not company:
             flash('No company found for your organization. Please contact administrator.', 'warning')
-            return render_template('reports/payroll_configuration.html', configs=[])
+            return render_template('reports/payroll_configuration.html', 
+                                 configs=[], total=0, page=1, per_page=15, total_pages=1)
         
-        # Filter by company
-        configs = PayrollConfiguration.query.join(Employee).filter(
+        # Get pagination and sorting parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 15, type=int)
+        sort_by = request.args.get('sort_by', 'employee_id')
+        sort_order = request.args.get('sort_order', 'asc')
+        
+        # Validate per_page
+        if per_page not in [15, 25, 50, 100]:
+            per_page = 15
+        
+        # Build query
+        query = PayrollConfiguration.query.join(Employee).filter(
             Employee.company_id == company.id,
             Employee.is_active == True
-        ).all()
+        )
+        
+        # Apply sorting
+        sort_column = getattr(PayrollConfiguration, sort_by, PayrollConfiguration.id)
+        if sort_order.lower() == 'desc':
+            query = query.order_by(sort_column.desc())
+        else:
+            query = query.order_by(sort_column.asc())
+        
+        # Get total count
+        total = query.count()
+        total_pages = (total + per_page - 1) // per_page
+        
+        # Apply pagination
+        configs = query.offset((page - 1) * per_page).limit(per_page).all()
         
         report_data = []
         for config in configs:
             emp = config.employee
+            designation = emp.designation.designation_name if emp.designation else 'N/A'
             report_data.append({
+                'id': config.id,
                 'employee_id': emp.employee_id,
+                'first_name': emp.first_name,
+                'last_name': emp.last_name,
                 'name': f"{emp.first_name} {emp.last_name}",
-                'basic_salary': emp.basic_salary,
-                'allowance_1': f"{config.allowance_1_name}: {config.allowance_1_amount}",
-                'allowance_2': f"{config.allowance_2_name}: {config.allowance_2_amount}",
-                'allowance_3': f"{config.allowance_3_name}: {config.allowance_3_amount}",
-                'allowance_4': f"{config.allowance_4_name}: {config.allowance_4_amount}",
-                'employer_cpf': config.employer_cpf,
-                'employee_cpf': config.employee_cpf,
-                'net_salary': config.net_salary,
-                'ot_rate': config.ot_rate_per_hour,
-                'remarks': config.remarks
+                'designation': designation,
+                'basic_salary': float(emp.basic_salary or 0),
+                'allowances': float((config.allowance_1_amount or 0) + (config.allowance_2_amount or 0) + 
+                                   (config.allowance_3_amount or 0) + (config.allowance_4_amount or 0)),
+                'employer_cpf': float(config.employer_cpf or 0),
+                'employee_cpf': float(config.employee_cpf or 0),
+                'gross_salary': float((emp.basic_salary or 0) + 
+                                     (config.allowance_1_amount or 0) + (config.allowance_2_amount or 0) + 
+                                     (config.allowance_3_amount or 0) + (config.allowance_4_amount or 0)),
+                'net_salary': float(config.net_salary or 0),
+                'ot_rate': float(config.ot_rate_per_hour or 0),
+                'remarks': config.remarks or ''
             })
         
         # Export if requested
         if request.args.get('export') == 'csv':
             return export_payroll_config_csv(report_data)
         
-        return render_template('reports/payroll_configuration.html', configs=report_data)
+        return render_template('reports/payroll_configuration.html', 
+                             configs=report_data, 
+                             total=total, 
+                             page=page, 
+                             per_page=per_page, 
+                             total_pages=total_pages,
+                             sort_by=sort_by,
+                             sort_order=sort_order)
     
     except Exception as e:
         print(f"[ERROR] Payroll Configuration Report: {str(e)}")
         import traceback
         traceback.print_exc()
         flash(f'Error loading payroll configuration report: {str(e)}', 'error')
-        return render_template('reports/payroll_configuration.html', configs=[])
+        return render_template('reports/payroll_configuration.html', 
+                             configs=[], total=0, page=1, per_page=15, total_pages=1)
+
+
+@app.route('/reports/payroll-configuration/update/<int:config_id>', methods=['POST'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+def update_payroll_configuration(config_id):
+    """Update payroll configuration inline"""
+    try:
+        config = PayrollConfiguration.query.get(config_id)
+        if not config:
+            return jsonify({'success': False, 'message': 'Configuration not found'}), 404
+        
+        data = request.get_json()
+        
+        # Update fields based on what was sent
+        if 'basic_salary' in data:
+            config.employee.basic_salary = float(data['basic_salary'])
+        if 'employer_cpf' in data:
+            config.employer_cpf = float(data['employer_cpf'])
+        if 'employee_cpf' in data:
+            config.employee_cpf = float(data['employee_cpf'])
+        if 'net_salary' in data:
+            config.net_salary = float(data['net_salary'])
+        if 'ot_rate' in data:
+            config.ot_rate_per_hour = float(data['ot_rate'])
+        if 'remarks' in data:
+            config.remarks = data['remarks']
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Configuration updated successfully'})
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Update Payroll Configuration: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @app.route('/reports/attendance')

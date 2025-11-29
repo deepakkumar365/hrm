@@ -1,8 +1,367 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<!-- saved from url=(0014)about:internet -->
+<html lang="en" style="--vh: 6.3100000000000005px;"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Generate Payroll - Nexar</title>
 
-{% block title %}Generate Payroll - Nexar{% endblock %}
+    <!-- Bootstrap CSS -->
+    <link href="./Generate Payroll - Nexar_files/bootstrap.min.css" rel="stylesheet">
 
-{% block content %}
+    <!-- Font Awesome Icons -->
+    <link href="./Generate Payroll - Nexar_files/all.min.css" rel="stylesheet">
+
+    <!-- Roboto & Inter fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com/">
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+    <link href="./Generate Payroll - Nexar_files/css2" rel="stylesheet">
+
+    <!-- Main CSS - includes responsive design -->
+    <link href="./Generate Payroll - Nexar_files/styles.css" rel="stylesheet">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="http://10.96.136.201:5000/static/manifest.json">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns=&#39;http://www.w3.org/2000/svg&#39; viewBox=&#39;0 0 100 100&#39;&gt;&lt;text y=&#39;.9em&#39; font-size=&#39;90&#39;&gt;%F0%9F%8F%A2&lt;/text&gt;&lt;/svg&gt;">
+
+    
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Professional Corporate Header -->
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="http://10.96.136.201:5000/dashboard">
+                    <i class="fas fa-building"></i>
+                    Nexar
+                </a>
+
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+
+                    <ul class="navbar-nav me-auto">
+                        <!-- Dashboard - Visible to all -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="http://10.96.136.201:5000/dashboard">
+                                <i class="fas fa-home"></i>
+                                Dashboard
+                            </a>
+                        </li>
+
+                        <!-- HR Manager Dashboard - Visible only to Tenant Admin -->
+                        
+
+                        <!-- Super Admin Menu - Only Dashboard and Masters -->
+                        
+
+                        <!-- Regular Admin/Manager/User Menus -->
+                        
+
+                        <!-- My Team - Visible to Manager and User roles -->
+                        
+
+                        <!-- Documents - Visible only to User role -->
+                        
+                         <!-- Employees - Hidden from User role -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.96.136.201:5000/payroll/generate#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-users"></i>
+                                Employees
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/employees/add">
+                                    <i class="fas fa-user-plus"></i>
+                                    Add Employee
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/employees">
+                                    <i class="fas fa-users"></i>
+                                    All Employees
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/employees/bulk-upload">
+                                    <i class="fas fa-file-upload"></i>
+                                    Employee Bulk Upload
+                                </a></li>
+                            </ul>
+                        </li>
+                        
+
+                        <!-- Attendance -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.96.136.201:5000/payroll/generate#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-calendar-check"></i>
+                                Attendance
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/attendance/mark">
+                                    <i class="fas fa-clock"></i>
+                                    Mark Attendance
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/attendance/list">
+                                    <i class="fas fa-list"></i>
+                                    View Records
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/attendance">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Calendar View
+                                </a></li>
+                                <!-- Mark OT Attendance - Visible to all users for self-service -->
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/ot/mark">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    Mark OT Attendance
+                                </a></li>
+                                
+                                <!-- Bulk Attendance - Visible only to HR Manager -->
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/attendance/bulk">
+                                    <i class="fas fa-check-double"></i>
+                                    Bulk Attendance
+                                </a></li>
+                                
+                            </ul>
+                        </li>
+
+                        <!-- Leave - Hidden from Tenant Admin, Visible to Manager and User -->
+                        
+
+                        <!-- Leave Management - Visible to HR Manager and Tenant Admin -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.96.136.201:5000/payroll/generate#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-plane-departure"></i>
+                                Leave Management
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/leave-config">
+                                    <i class="fas fa-cog"></i>
+                                    Configure Leave Types
+                                </a></li>
+                            </ul>
+                        </li>
+                        
+
+                        <!-- OT Management - Visible to HR Manager, Tenant Admin, and Reporting Managers -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.96.136.201:5000/payroll/generate#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-clock"></i>
+                                OT Management
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <!-- Full OT Management menu for HR Manager and Tenant Admin -->
+                                
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/ot/attendance">
+                                    <i class="fas fa-list"></i>
+                                    OT Attendance
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/ot/requests">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    OT Requests
+                                </a></li>
+                                
+                                <!-- OT Approvals - Available to both HR Manager/Admin and Reporting Managers -->
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/ot/approval">
+                                    <i class="fas fa-check-circle"></i>
+                                    OT Approvals
+                                </a></li>
+                                <!-- Additional menu items only for HR Manager and Tenant Admin -->
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/ot/daily-summary">
+                                    <i class="fas fa-table"></i>
+                                    Payroll Summary (Grid)
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/ot/payroll-summary">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Payroll Summary (Report)
+                                </a></li>
+                                
+                            </ul>
+                        </li>
+                        
+
+                        <!-- Payroll -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.96.136.201:5000/payroll/generate#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-dollar-sign"></i>
+                                Payroll
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/payroll">
+                                    <i class="fas fa-list"></i>
+                                    Payroll List
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/payroll/generate">
+                                    <i class="fas fa-calculator"></i>
+                                    Generate Payroll
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/payroll/config">
+                                    <i class="fas fa-sliders-h"></i>
+                                    Payroll Configuration
+                                </a></li>
+                            </ul>
+                        </li>
+                        
+
+                        <!-- Reports -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.96.136.201:5000/payroll/generate#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-chart-bar"></i>
+                                Reports
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/reports">
+                                    <i class="fas fa-th-large"></i>
+                                    All Reports
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/reports/employee-history">
+                                    <i class="fas fa-user-clock"></i>
+                                    Employee History
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/reports/payroll-configuration">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Payroll Configuration
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/reports/attendance">
+                                    <i class="fas fa-calendar-check"></i>
+                                    Attendance Report
+                                </a></li>
+                            </ul>
+                        </li>
+                        
+
+
+
+                        <!-- Masters -->
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.96.136.201:5000/payroll/generate#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cogs"></i>
+                                Masters
+                            </a>
+                            <ul class="dropdown-menu mobile-friendly">
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/tenants">
+                                    <i class="fas fa-sitemap"></i>
+                                    Tenants
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/companies">
+                                    <i class="fas fa-building"></i>
+                                    Companies
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/masters/roles">
+                                    <i class="fas fa-user-tag"></i>
+                                    Roles
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/masters/departments">
+                                    <i class="fas fa-briefcase"></i>
+                                    Departments
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/masters/working-hours">
+                                    <i class="fas fa-clock"></i>
+                                    Working Hours
+                                </a></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/masters/work-schedules">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Work Schedules
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/masters/ot-types">
+                                    <i class="fas fa-hourglass-end"></i>
+                                    OT Types
+                                </a></li>
+                                <!-- Access Control - Moved under Masters for Tenant Admin and HR Manager -->
+                                
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/access-control/manage-user-companies">
+                                    <i class="fas fa-shield-alt"></i>
+                                    Access Control
+                                </a></li>
+                                
+                            </ul>
+                        </li>
+                        
+
+                        
+                        <!-- End of Regular Admin/Manager/User Menus -->
+                    </ul>
+
+                    <!-- Profile Dropdown + Logout Icon -->
+                    <ul class="navbar-nav">
+                        <!-- Profile Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="http://10.96.136.201:5000/payroll/generate#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="profile-image-container">
+                                    
+                                    <div class="avatar-placeholder">
+                                        H
+                                    </div>
+                                    
+                                </span>
+                                HR
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end mobile-friendly">
+                                
+                                <li><span class="dropdown-item-text">
+                                    <small style="color: var(--grey-500);">HR Manager</small>
+                                </span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                
+                                
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/profile">
+                                    <i class="fas fa-user"></i>
+                                    My Profile
+                                </a></li>
+                                
+                                <li><a class="dropdown-item" href="http://10.96.136.201:5000/logout">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    Logout
+                                </a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Direct Logout Icon -->
+                        <li class="nav-item">
+                            <a class="nav-link logout-icon-btn" href="http://10.96.136.201:5000/logout" title="Logout">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="page-container">
+            
+                
+        
+        
 <style>
     * {
         font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
@@ -184,16 +543,6 @@
     .p-2 {
         padding: 0.4rem !important;
     }
-
-    /* Color indication for already-generated payroll */
-    #payrollTable tbody tr.payroll-generated {
-        background-color: #e8f5e9 !important;
-        border-left: 4px solid #4caf50;
-    }
-
-    #payrollTable tbody tr.payroll-generated:hover {
-        background-color: #d4edda !important;
-    }
 </style>
 <div class="container-fluid">
     <!-- Header -->
@@ -203,13 +552,13 @@
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="{{ url_for('payroll_list') }}">Payroll</a></li>
+                            <li class="breadcrumb-item"><a href="http://10.96.136.201:5000/dashboard">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="http://10.96.136.201:5000/payroll">Payroll</a></li>
                             <li class="breadcrumb-item active" aria-current="page">Generate</li>
                         </ol>
                     </nav>
                     </div>
-                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
+                <a href="http://10.96.136.201:5000/payroll" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i>Back to Payroll
                 </a>
             </div>
@@ -223,45 +572,85 @@
         <div class="row mb-2" style="gap: 0.5rem; align-items: flex-end;">
             <div class="col-md-2">
                 <label for="company" class="form-label">Select Company *</label>
-                <select name="company" id="company" class="form-select" required>
+                <select name="company" id="company" class="form-select" required="">
                     <option value="">-- Select Company --</option>
-                    {% for company in companies %}
-                    <option value="{{ company.id }}">{{ company.name }}</option>
-                    {% endfor %}
+                    
+                    <option value="7c725fc2-2dfd-45b0-aa5b-55ca1a054652">AKS BUSINESS SOLUTIONS PTE LTD</option>
+                    
+                    <option value="8b28e2c2-7bb4-4998-a9d9-66a722d7c746">AKS LOGISTICS PTE LTD</option>
+                    
+                    <option value="ec793736-1907-48e9-b02d-3217a80accf9">Nexar Human Resource Solution</option>
+                    
+                    <option value="5aabcd43-346d-4fa6-afee-07e782bc36c5">Test Tenant Company Ind</option>
+                    
                 </select>
-                {% if not companies %}
-                <div class="alert alert-warning mt-2 mb-0 p-2" role="alert">
-                    <small>
-                        <i class="fas fa-exclamation-circle me-1"></i>
-                        <strong>No companies found!</strong><br>
-                        This usually means:<br>
-                        • Your organization is not linked to a tenant<br>
-                        • No companies exist for your organization's tenant<br>
-                        <br>
-                        <strong>Solution:</strong> Run the fix script:<br>
-                        <code>python fix_company_dropdown.py</code>
-                    </small>
-                </div>
-                {% endif %}
+                
             </div>
             <div class="col-md-2">
                 <label for="month" class="form-label">Select Month *</label>
-                <select name="month" id="month" class="form-select" required>
+                <select name="month" id="month" class="form-select" required="">
                     <option value="">-- Select Month --</option>
-                    {% for i in range(1, 13) %}
-                    <option value="{{ i }}" {% if i == current_month %}selected{% endif %}>
-                        {{ ['', 'January', 'February', 'March', 'April', 'May', 'June',
-                            'July', 'August', 'September', 'October', 'November', 'December'][i] }}
+                    
+                    <option value="1">
+                        January
                     </option>
-                    {% endfor %}
+                    
+                    <option value="2">
+                        February
+                    </option>
+                    
+                    <option value="3">
+                        March
+                    </option>
+                    
+                    <option value="4">
+                        April
+                    </option>
+                    
+                    <option value="5">
+                        May
+                    </option>
+                    
+                    <option value="6">
+                        June
+                    </option>
+                    
+                    <option value="7">
+                        July
+                    </option>
+                    
+                    <option value="8">
+                        August
+                    </option>
+                    
+                    <option value="9">
+                        September
+                    </option>
+                    
+                    <option value="10">
+                        October
+                    </option>
+                    
+                    <option value="11" selected="">
+                        November
+                    </option>
+                    
+                    <option value="12">
+                        December
+                    </option>
+                    
                 </select>
             </div>
             <div class="col-md-2">
                 <label for="year" class="form-label">Select Year *</label>
-                <select name="year" id="year" class="form-select" required>
-                    {% for y in range(current_year - 1, current_year + 2) %}
-                    <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
-                    {% endfor %}
+                <select name="year" id="year" class="form-select" required="">
+                    
+                    <option value="2024">2024</option>
+                    
+                    <option value="2025" selected="">2025</option>
+                    
+                    <option value="2026">2026</option>
+                    
                 </select>
             </div>
             <div class="col-md-2">
@@ -289,13 +678,13 @@
                             <th style="width: 36px;">
                                 <input type="checkbox" id="selectAllHeader" class="form-check-input">
                             </th>
-                            <th style="width: 70px; cursor: pointer;" onclick="sortTable('employee_id')" title="Click to sort">
+                            <th style="width: 70px; cursor: pointer;" onclick="sortTable(&#39;employee_id&#39;)" title="Click to sort">
                                 Emp ID <span class="sort-indicator" id="sort-employee_id"></span>
                             </th>
-                            <th style="width: 110px; cursor: pointer;" onclick="sortTable('name')" title="Click to sort">
+                            <th style="width: 110px; cursor: pointer;" onclick="sortTable(&#39;name&#39;)" title="Click to sort">
                                 Name <span class="sort-indicator" id="sort-name"></span>
                             </th>
-                            <th style="width: 75px; cursor: pointer;" onclick="sortTable('basic_salary')" title="Click to sort">
+                            <th style="width: 75px; cursor: pointer;" onclick="sortTable(&#39;basic_salary&#39;)" title="Click to sort">
                                 Base <span class="sort-indicator" id="sort-basic_salary"></span>
                             </th>
                             <th style="width: 60px;">Trans</th>
@@ -305,7 +694,7 @@
                             <th style="width: 55px;">Levy</th>
                             <th style="width: 60px;">OT Hrs</th>
                             <th style="width: 65px;">OT Amt</th>
-                            <th style="width: 75px;">OT Allow</th>
+                            <th style="width: 75px;">Allow</th>
                             <th style="width: 60px;">Att Dy</th>
                             <th style="width: 55px;">Abs</th>
                             <th style="width: 60px;">LOP</th>
@@ -318,7 +707,7 @@
                     </thead>
                     <tbody id="employeeTableBody">
                         <tr>
-                            <td colspan="12" class="text-center py-5">
+                            <td colspan="12" class="text-center py-5" data-label="">
                                 <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
                                 <p class="text-muted mb-0">Select a month and click "Load Employee Data" to preview payroll</p>
                             </td>
@@ -415,13 +804,13 @@
         <!-- Action Buttons -->
         <div class="row mt-3">
             <div class="col-12 text-end">
-                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
+                <a href="http://10.96.136.201:5000/payroll" class="btn btn-outline-secondary">
                     <i class="fas fa-times me-1"></i>Cancel
                 </a>
                 <button type="button" class="btn btn-info" id="saveBtn" onclick="saveAllChanges()" style="display: none;">
                     <i class="fas fa-save me-1"></i>Save Changes
                 </button>
-                <button type="submit" class="btn btn-success" id="generateBtn" disabled>
+                <button type="submit" class="btn btn-success" id="generateBtn" disabled="">
                     <i class="fas fa-check me-1"></i>Generate Payslips
                 </button>
             </div>
@@ -542,12 +931,6 @@ function loadEmployeeData() {
         .then(data => {
             if (data.success) {
                 employeeData = data.employees;
-                // Debug log to verify payroll_generated flag
-                console.log('Payroll data received:', {
-                    total_employees: employeeData.length,
-                    generated_payroll_count: employeeData.filter(e => e.payroll_generated).length,
-                    sample: employeeData.slice(0, 2).map(e => ({name: e.name, payroll_generated: e.payroll_generated, id: e.id}))
-                });
                 currentPage = 1; // Reset to first page
                 renderEmployeeTable();
             } else {
@@ -614,27 +997,15 @@ function renderEmployeeTable() {
         const lowAttendance = emp.attendance_days < 20;
         const attendanceBgClass = lowAttendance ? 'table-warning' : '';
         
-        // Determine if payroll is already generated
-        const payrollGeneratedClass = emp.payroll_generated ? 'payroll-generated' : '';
-        const rowClass = (attendanceBgClass || payrollGeneratedClass) ? `${attendanceBgClass} ${payrollGeneratedClass}`.trim() : '';
-        
-        // Debug: Log rows that should have payroll-generated class
-        if (emp.payroll_generated) {
-            console.log(`Row ${emp.id} (${emp.name}): payroll_generated=${emp.payroll_generated}, rowClass="${rowClass}"`);
-        }
-        
         return `
-        <tr class="${rowClass}" id="row-${emp.id}">
+        <tr class="${attendanceBgClass}" id="row-${emp.id}">
             <td>
                 <input type="checkbox" class="form-check-input employee-checkbox"
                        name="employees" value="${emp.id}"
                        onchange="updateSummary()">
             </td>
             <td style="font-size: 0.75rem; font-weight: 500;">${emp.employee_id}</td>
-            <td class="employee-name-cell" style="font-size: 0.75rem;">
-                <strong>${emp.name}</strong>
-                ${emp.payroll_generated ? '<span class="badge bg-success" style="font-size: 0.65rem; margin-left: 0.3rem;">Generated</span>' : ''}
-            </td>
+            <td class="employee-name-cell" style="font-size: 0.75rem;"><strong>${emp.name}</strong></td>
             <td>$${parseFloat(emp.basic_salary).toFixed(2)}</td>
             <!-- Transport -->
             <td>
@@ -683,7 +1054,7 @@ function renderEmployeeTable() {
             </td>
             <td>${parseFloat(emp.ot_hours || 0).toFixed(2)}</td>
             <td>$${parseFloat(emp.ot_amount || 0).toFixed(2)}</td>
-            <td class="total-allow-${emp.id}" title="Total allowances including: Transport, Housing, Meal, Other, Levy, and OT Allowance (${emp.ot_allowance ? '$' + parseFloat(emp.ot_allowance).toFixed(2) : '$0.00'})">$${parseFloat(emp.total_allowances || 0).toFixed(2)}</td>
+            <td class="total-allow-${emp.id}">$${parseFloat(emp.total_allowances || 0).toFixed(2)}</td>
             <td class="${lowAttendance ? 'text-danger fw-bold' : ''}">
                 ${emp.attendance_days || 0}
             </td>
@@ -1204,4 +1575,182 @@ document.getElementById('payrollForm').addEventListener('submit', function(e) {
     padding: 0.35rem 0.6rem;
 }
 </style>
-{% endblock %}
+
+    </main>
+
+    <!-- Mobile Floating Action Button -->
+    
+
+    <!-- Global Loader -->
+    <div id="global-loader" class="global-loader">
+        <div class="loader-overlay"></div>
+        <div class="loader-container">
+            <div class="loader-spinner"></div>
+            <p class="loader-text">Loading...</p>
+        </div>
+    </div>
+    </div>
+    <!-- Bootstrap JS -->
+    <script src="./Generate Payroll - Nexar_files/bootstrap.bundle.min.js.download"></script>
+
+    <!-- Mobile dropdown fix -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile dropdown handler
+        function handleMobileDropdowns() {
+            const dropdownToggles = document.querySelectorAll('.navbar-nav .dropdown-toggle');
+
+            dropdownToggles.forEach(toggle => {
+                // Remove existing listeners
+                toggle.removeEventListener('click', handleDropdownClick);
+
+                // Add new listener for mobile
+                if (window.innerWidth <= 991) {
+                    toggle.addEventListener('click', handleDropdownClick);
+                }
+            });
+        }
+
+        function handleDropdownClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const dropdown = this.closest('.dropdown');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            const isOpen = dropdown.classList.contains('show');
+
+            // Close all dropdowns first
+            document.querySelectorAll('.navbar-nav .dropdown').forEach(d => {
+                d.classList.remove('show');
+            });
+
+            // Toggle current dropdown if it wasn't open
+            if (!isOpen) {
+                dropdown.classList.add('show');
+            }
+        }
+
+        // Initialize
+        handleMobileDropdowns();
+
+        // Re-initialize on window resize
+        window.addEventListener('resize', handleMobileDropdowns);
+    });
+    </script>
+
+    <!-- Global Loader Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loader = document.getElementById('global-loader');
+
+        if (!loader) return; // Exit if loader not found
+
+        // Function to show loader
+        function showLoader() {
+            loader.classList.add('show');
+        }
+
+        // Function to hide loader
+        function hideLoader() {
+            loader.classList.remove('show');
+        }
+
+        // Improved loader hiding: Wait until browser is completely idle
+        function waitForPageComplete() {
+            if (document.readyState === 'complete') {
+                // Use Performance API to check if all resources are loaded
+                if (performance && performance.getEntriesByType) {
+                    // Wait a bit more for any pending requests
+                    setTimeout(hideLoader, 500);
+                } else {
+                    hideLoader();
+                }
+            } else {
+                // Check again soon
+                setTimeout(waitForPageComplete, 100);
+            }
+        }
+
+        // Start checking when page is ready
+        if (document.readyState === 'complete') {
+            waitForPageComplete();
+        } else {
+            document.addEventListener('readystatechange', function() {
+                if (document.readyState === 'complete') {
+                    waitForPageComplete();
+                }
+            });
+        }
+
+        // Show loader on form submission
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                // Validate form before showing loader
+                if (form.checkValidity() === false) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                } else {
+                    showLoader();
+                }
+            });
+        });
+
+        // Show loader on button clicks (for AJAX or page navigation)
+        // Common action buttons: Save, Submit, Update, Delete, Generate, etc.
+        const actionButtons = document.querySelectorAll(
+            'button[type="submit"], ' +
+            'button[type="button"][onclick], ' +
+            'a[href*="delete"], ' +
+            'a[href*="update"], ' +
+            'a[href*="generate"], ' +
+            '.btn-primary, ' +
+            '.btn-success, ' +
+            '.action-btn'
+        );
+
+        actionButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                // Check if it's an anchor tag for page navigation
+                if (this.tagName === 'A' && this.href && !this.hasAttribute('onclick')) {
+                    // Only show loader if it's not a hash link or external link
+                    if (!this.href.includes('#') && !this.target === '_blank') {
+                        showLoader();
+                    }
+                }
+            });
+        });
+
+        // Show loader on navigation with Ctrl+Click or Middle-click check
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('a');
+            if (link && link.href && !link.href.includes('#') && !link.hasAttribute('onclick')) {
+                // Don't show loader if new tab/window is being opened
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey && link.target !== '_blank') {
+                    showLoader();
+                }
+            }
+        });
+
+        // Hide loader if navigation is cancelled (back button, etc.)
+        window.addEventListener('beforeunload', function() {
+            // Keep loader visible during navigation
+        });
+
+        // Safety timeout: Hide loader after 60 seconds if still showing
+        setTimeout(function() {
+            if (loader.classList.contains('show')) {
+                hideLoader();
+            }
+        }, 60000);
+    });
+    </script>
+
+    <!-- Custom JS -->
+    <script src="./Generate Payroll - Nexar_files/app.js.download"></script>
+
+    <!-- Form Validation Framework -->
+    <script src="./Generate Payroll - Nexar_files/form-validation.js.download"></script>
+
+    
+
+</body></html>

@@ -1763,6 +1763,13 @@ def payroll_config():
     """Payroll configuration page - manage employee salary allowances and OT rates"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
+    per_page = request.args.get('per_page', 15, type=int)
+    sort_by = request.args.get('sort_by', 'employee_id')
+    sort_order = request.args.get('sort_order', 'asc')
+
+    # Validate per_page
+    if per_page not in [15, 25, 50, 100]:
+        per_page = 15
 
     # Query active employees
     query = Employee.query.filter_by(is_active=True)
@@ -1776,8 +1783,15 @@ def payroll_config():
             )
         )
 
-    employees = query.order_by(Employee.employee_id).paginate(
-        page=page, per_page=20, error_out=False
+    # Apply sorting
+    sort_column = getattr(Employee, sort_by, Employee.employee_id)
+    if sort_order.lower() == 'desc':
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
+
+    employees = query.paginate(
+        page=page, per_page=per_page, error_out=False
     )
 
     # Get or create payroll configurations for each employee
@@ -1792,7 +1806,8 @@ def payroll_config():
         db.session.rollback()
         print(f"Error creating payroll configs: {e}")
 
-    return render_template('payroll/config.html', employees=employees, search=search)
+    return render_template('payroll/config.html', employees=employees, search=search, 
+                         per_page=per_page, sort_by=sort_by, sort_order=sort_order)
 
 
 @app.route('/payroll/config/update', methods=['POST'])
@@ -1885,6 +1900,14 @@ def payroll_preview_api():
         employee_data = []
         for emp in employees:
             try:
+                # Check if payroll is already generated for this month
+                existing_payroll = Payroll.query.filter_by(
+                    employee_id=emp.id
+                ).filter(
+                    Payroll.pay_period_start.between(pay_period_start, pay_period_end)
+                ).first()
+                payroll_generated = existing_payroll is not None
+                
                 # Get payroll config
                 config = emp.payroll_config
 
@@ -1893,7 +1916,18 @@ def payroll_preview_api():
                 allowance_2 = float(config.allowance_2_amount or 0) if config and config.allowance_2_amount else 0
                 allowance_3 = float(config.allowance_3_amount or 0) if config and config.allowance_3_amount else 0
                 allowance_4 = float(config.allowance_4_amount or 0) if config and config.allowance_4_amount else 0
-                total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
+                
+                # Get OT allowance from OT summary (total approved OT allowances for this month)
+                ot_allowance = 0
+                ot_summary = PayrollOTSummary.query.filter_by(
+                    employee_id=emp.id
+                ).filter(
+                    PayrollOTSummary.payroll_period_start.between(pay_period_start, pay_period_end)
+                ).first()
+                if ot_summary and ot_summary.total_ot_allowance:
+                    ot_allowance = float(ot_summary.total_ot_allowance or 0)
+                
+                total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4 + ot_allowance
 
                 # Get attendance data for the month
                 attendance_records = Attendance.query.filter_by(
@@ -1934,6 +1968,7 @@ def payroll_preview_api():
                     'allowance_2': allowance_2,
                     'allowance_3': allowance_3,
                     'allowance_4': allowance_4,
+                    'ot_allowance': ot_allowance,
                     'total_allowances': total_allowances,
                     'ot_hours': total_ot_hours,
                     'ot_rate': ot_rate,
@@ -1942,7 +1977,8 @@ def payroll_preview_api():
                     'gross_salary': gross_salary,
                     'cpf_deduction': cpf_deduction,
                     'total_deductions': total_deductions,
-                    'net_salary': net_salary
+                    'net_salary': net_salary,
+                    'payroll_generated': payroll_generated
                 })
             except Exception as emp_error:
                 # Log the error but continue with other employees
@@ -2794,62 +2830,4 @@ def attendance_calendar():
 
 
 @app.route('/api/attendance/calendar-data')
-@require_login
-def api_attendance_calendar_data():
-    """API endpoint to fetch attendance data for the calendar."""
-    try:
-        employee_id = request.args.get('employee_id', type=int)
-        start_str = request.args.get('start')
-        end_str = request.args.get('end')
-
-        if not employee_id:
-            return jsonify({'error': 'Employee ID is required'}), 400
-
-        # Permission check
-        user_role = current_user.role.name if current_user.role else None
-        if user_role in ['User', 'Employee']:
-            if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.id == employee_id):
-                return jsonify({'error': 'Permission denied'}), 403
-        elif user_role == 'HR Manager':
-            employee_to_view = Employee.query.get(employee_id)
-            if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and employee_to_view and employee_to_view.organization_id == current_user.employee_profile.organization_id):
-                 return jsonify({'error': 'Permission denied'}), 403
-
-        start_date = datetime.fromisoformat(start_str.split('T')[0]).date()
-        end_date = datetime.fromisoformat(end_str.split('T')[0]).date()
-
-        # Fetch attendance and approved leaves for the date range
-        attendance_records = Attendance.query.filter(
-            Attendance.employee_id == employee_id,
-            Attendance.date.between(start_date, end_date)
-        ).all()
-
-        leave_records = Leave.query.filter(
-            Leave.employee_id == employee_id,
-            Leave.start_date.between(start_date, end_date),
-            Leave.status == 'Approved'
-        ).all()
-        
-        # Format data for calendar
-        calendar_data = []
-        for record in attendance_records:
-            calendar_data.append({
-                'date': record.date.isoformat(),
-                'type': 'attendance',
-                'status': record.status
-            })
-        
-        for leave in leave_records:
-            current_date = leave.start_date
-            while current_date <= leave.end_date:
-                calendar_data.append({
-                    'date': current_date.isoformat(),
-                    'type': 'leave',
-                    'leave_type': leave.leave_type
-                })
-                current_date += timedelta(days=1)
-        
-        return jsonify({'data': calendar_data})
-    except Exception as e:
-        logger.error(f"Error fetching calendar data: {e}")
-        return jsonify({'error': str(e)}), 500
+@r

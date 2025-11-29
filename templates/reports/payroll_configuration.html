@@ -1,118 +1,616 @@
 {% extends "base.html" %}
 
-{% block title %}Payroll Configuration Report - Nexar{% endblock %}
+{% block title %}Payroll Configuration - Nexar{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3>
-                <i class="fas fa-dollar-sign me-2"></i>Payroll Configuration Report
-            </h3>
-            <p class="text-muted mb-0">Salary components and CPF contributions</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('reports_menu') }}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-1"></i>Back to Reports
-            </a>
-            <a href="{{ url_for('report_payroll_configuration', export='csv') }}" class="btn btn-success">
-                <i class="fas fa-file-csv me-1"></i>Export CSV
-            </a>
+<style>
+    /* Payroll Configuration Grid Styles */
+    :root {
+        --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    .payroll-config-container {
+        font-family: var(--font-primary);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+        background: #f5f5f5;
+    }
+
+    .payroll-header {
+        background: white;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e0e0;
+        flex-shrink: 0;
+    }
+
+    .payroll-header h3 {
+        margin: 0;
+        font-family: var(--font-primary);
+        font-size: 18px;
+        font-weight: 600;
+        color: #004d4d;
+    }
+
+    .payroll-header p {
+        margin: 2px 0 0 0;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .payroll-content {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        padding: 8px 12px;
+    }
+
+    .grid-wrapper {
+        flex: 1;
+        overflow: auto;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+    }
+
+    .payroll-grid {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--font-primary);
+        font-size: 12px;
+    }
+
+    .payroll-grid thead {
+        background: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .payroll-grid th {
+        padding: 4px 6px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 1px solid #ddd;
+        border-right: 1px solid #eee;
+        white-space: nowrap;
+        user-select: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        height: 24px;
+    }
+
+    .payroll-grid th:last-child {
+        border-right: none;
+    }
+
+    /* Stronger separation between Name and Designation columns */
+    .payroll-grid th:nth-child(2) {
+        border-right: 2px solid #008080;
+    }
+
+    .payroll-grid td:nth-child(2) {
+        border-right: 2px solid #d0e0df;
+    }
+
+    .payroll-grid th:hover {
+        background: #f0f0f0;
+    }
+
+    .payroll-grid th.sortable::after {
+        content: ' ⇅';
+        opacity: 0.4;
+        font-size: 10px;
+    }
+
+    .payroll-grid th.sorted-asc::after {
+        content: ' ↑';
+        opacity: 1;
+        color: #008080;
+        font-size: 11px;
+    }
+
+    .payroll-grid th.sorted-desc::after {
+        content: ' ↓';
+        opacity: 1;
+        color: #008080;
+        font-size: 11px;
+    }
+
+    .payroll-grid tbody tr {
+        height: 24px;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.15s;
+    }
+
+    .payroll-grid tbody tr:hover {
+        background: #f9f9f9;
+    }
+
+    .payroll-grid td {
+        padding: 3px 5px;
+        border-right: 1px solid #eee;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+
+    .payroll-grid td:last-child {
+        border-right: none;
+    }
+
+    .payroll-grid tbody tr.editing td {
+        padding: 2px 4px;
+    }
+
+    /* Input fields in edit mode */
+    .payroll-grid input[type="text"],
+    .payroll-grid input[type="number"] {
+        width: 100%;
+        padding: 2px 4px;
+        border: 1px solid #008080;
+        border-radius: 2px;
+        font-family: var(--font-primary);
+        font-size: 11px;
+        box-sizing: border-box;
+    }
+
+    .payroll-grid input[type="number"] {
+        text-align: right;
+    }
+
+    /* Numeric columns - right aligned */
+    .numeric {
+        text-align: right;
+    }
+
+    /* Action buttons */
+    .action-buttons {
+        display: flex;
+        gap: 2px;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-edit, .btn-save, .btn-cancel, .btn-delete {
+        padding: 3px 5px;
+        border: none;
+        border-radius: 2px;
+        font-size: 10px;
+        font-family: var(--font-primary);
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+        min-width: 30px;
+        height: 20px;
+        line-height: 14px;
+    }
+
+    .btn-edit {
+        background: #008080;
+        color: white;
+        border: 1px solid #008080;
+        min-width: 38px;
+    }
+
+    .btn-edit:hover {
+        background: #006666;
+    }
+
+    .btn-save {
+        background: #28a745;
+        color: white;
+        border: 1px solid #28a745;
+        min-width: 38px;
+    }
+
+    .btn-save:hover {
+        background: #218838;
+    }
+
+    .btn-cancel {
+        background: #dc3545;
+        color: white;
+        border: 1px solid #dc3545;
+        min-width: 22px;
+        padding: 3px 4px;
+        font-weight: bold;
+    }
+
+    .btn-cancel:hover {
+        background: #c82333;
+    }
+
+    /* Footer with pagination and records per page */
+    .payroll-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: white;
+        border-top: 1px solid #ddd;
+        margin-top: 8px;
+        border-radius: 3px;
+        font-family: var(--font-primary);
+        font-size: 11px;
+        flex-shrink: 0;
+    }
+
+    .pagination-info {
+        color: #666;
+        flex: 0 0 auto;
+    }
+
+    .pagination-controls {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        flex: 1;
+        justify-content: center;
+    }
+
+    .pagination-controls button {
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        background: white;
+        color: #333;
+        border-radius: 2px;
+        cursor: pointer;
+        font-family: var(--font-primary);
+        font-size: 11px;
+        transition: all 0.15s;
+    }
+
+    .pagination-controls button:hover:not(:disabled) {
+        background: #f0f0f0;
+        border-color: #999;
+    }
+
+    .pagination-controls button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-input {
+        width: 35px;
+        padding: 3px 6px;
+        border: 1px solid #ddd;
+        border-radius: 2px;
+        text-align: center;
+        font-family: var(--font-primary);
+        font-size: 11px;
+    }
+
+    .records-per-page {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+    }
+
+    .records-per-page label {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    .records-per-page select {
+        padding: 4px 6px;
+        border: 1px solid #ddd;
+        border-radius: 2px;
+        background: white;
+        cursor: pointer;
+        font-family: var(--font-primary);
+        font-size: 11px;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        color: #999;
+    }
+
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .payroll-config-container {
+            height: auto;
+        }
+
+        .payroll-content {
+            height: auto;
+        }
+
+        .grid-wrapper {
+            height: auto;
+            max-height: 500px;
+        }
+    }
+</style>
+
+<div class="payroll-config-container">
+    <!-- Header Section -->
+    <div class="payroll-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3>
+                    <i class="fas fa-dollar-sign me-2" style="color: #008080;"></i>Payroll Configuration
+                </h3>
+                <p class="text-muted mb-0" style="font-family: 'Segoe UI';">Manage salary components and CPF contributions</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('reports_menu') }}" class="btn btn-outline-secondary" style="font-family: 'Segoe UI'; font-size: 11px; padding: 4px 8px;">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+                <a href="{{ url_for('report_payroll_configuration', export='csv') }}" class="btn btn-success" style="font-family: 'Segoe UI'; font-size: 11px; padding: 4px 8px;">
+                    <i class="fas fa-file-csv me-1"></i>Export CSV
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- Report Table -->
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover table-striped">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Employee ID</th>
-                            <th>Name</th>
-                            <th>Basic Salary</th>
-                            <th>Allowances</th>
-                            <th>Employer CPF</th>
-                            <th>Employee CPF</th>
-                            <th>Gross Salary</th>
-                            <th>Net Salary</th>
-                            <th>Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% if configurations %}
-                            {% for config in configurations %}
-                            <tr>
-                                <td>{{ config.employee.employee_id or 'N/A' }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        {% if config.employee.profile_image %}
-                                        <img src="{{ url_for('static', filename='uploads/profiles/' + config.employee.profile_image) }}" 
-                                             alt="{{ config.employee.first_name }}" 
-                                             class="rounded-circle me-2" 
-                                             style="width: 32px; height: 32px; object-fit: cover;">
-                                        {% else %}
-                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center me-2" 
-                                             style="width: 32px; height: 32px; font-size: 14px;">
-                                            {{ config.employee.first_name[0] }}{{ config.employee.last_name[0] }}
-                                        </div>
-                                        {% endif %}
-                                        <span>{{ config.employee.first_name }} {{ config.employee.last_name }}</span>
-                                    </div>
-                                </td>
-                                <td class="text-end">${{ "%.2f"|format(config.basic_salary or 0) }}</td>
-                                <td class="text-end">${{ "%.2f"|format(config.allowances or 0) }}</td>
-                                <td class="text-end">${{ "%.2f"|format(config.employer_cpf or 0) }}</td>
-                                <td class="text-end">${{ "%.2f"|format(config.employee_cpf or 0) }}</td>
-                                <td class="text-end fw-bold">${{ "%.2f"|format((config.basic_salary or 0) + (config.allowances or 0)) }}</td>
-                                <td class="text-end fw-bold text-success">${{ "%.2f"|format(config.net_salary or 0) }}</td>
-                                <td>{{ config.remarks or '-' }}</td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="9" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                                    No payroll configurations found
-                                </td>
-                            </tr>
-                        {% endif %}
-                    </tbody>
-                    {% if configurations %}
-                    <tfoot class="table-light">
-                        <tr>
-                            <th colspan="2">Total</th>
-                            <th class="text-end">${{ "%.2f"|format(configurations|sum(attribute='basic_salary') or 0) }}</th>
-                            <th class="text-end">${{ "%.2f"|format(configurations|sum(attribute='allowances') or 0) }}</th>
-                            <th class="text-end">${{ "%.2f"|format(configurations|sum(attribute='employer_cpf') or 0) }}</th>
-                            <th class="text-end">${{ "%.2f"|format(configurations|sum(attribute='employee_cpf') or 0) }}</th>
-                            <th class="text-end fw-bold">${{ "%.2f"|format((configurations|sum(attribute='basic_salary') or 0) + (configurations|sum(attribute='allowances') or 0)) }}</th>
-                            <th class="text-end fw-bold text-success">${{ "%.2f"|format(configurations|sum(attribute='net_salary') or 0) }}</th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                    {% endif %}
-                </table>
+    <!-- Content Section -->
+    <div class="payroll-content">
+        {% if configs and configs|length > 0 %}
+        <div class="grid-wrapper">
+            <table class="payroll-grid">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-column="employee_id" style="width: 65px;">Emp ID</th>
+                        <th class="sortable" data-column="first_name" style="width: 120px;">Employee Name</th>
+                        <th class="sortable" data-column="designation" style="width: 130px;">Job Title</th>
+                        <th class="sortable numeric" data-column="basic_salary" style="width: 90px;">Basic Salary</th>
+                        <th class="sortable numeric" data-column="allowances" style="width: 80px;">Allowances</th>
+                        <th class="sortable numeric" data-column="employer_cpf" style="width: 90px;">Emp. CPF %</th>
+                        <th class="sortable numeric" data-column="employee_cpf" style="width: 90px;">Emp. CPF</th>
+                        <th class="sortable numeric" data-column="gross_salary" style="width: 85px;">Gross</th>
+                        <th class="sortable numeric" data-column="net_salary" style="width: 85px;">Net Salary</th>
+                        <th class="sortable numeric" data-column="ot_rate" style="width: 75px;">OT Rate</th>
+                        <th class="sortable" data-column="remarks" style="width: 120px;">Remarks</th>
+                        <th style="width: 70px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for config in configs %}
+                    <tr data-config-id="{{ config.id }}">
+                        <td>{{ config.employee_id }}</td>
+                        <td>{{ config.name }}</td>
+                        <td>{{ config.designation }}</td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(config.basic_salary) }}</span>
+                            <input type="number" class="edit-value" name="basic_salary" value="{{ config.basic_salary }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(config.allowances) }}</span>
+                            <input type="number" class="edit-value" name="allowances" value="{{ config.allowances }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(config.employer_cpf) }}</span>
+                            <input type="number" class="edit-value" name="employer_cpf" value="{{ config.employer_cpf }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(config.employee_cpf) }}</span>
+                            <input type="number" class="edit-value" name="employee_cpf" value="{{ config.employee_cpf }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(config.gross_salary) }}</span>
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(config.net_salary) }}</span>
+                            <input type="number" class="edit-value" name="net_salary" value="{{ config.net_salary }}" step="0.01" style="display:none;">
+                        </td>
+                        <td class="numeric">
+                            <span class="display-value">${{ "%.2f"|format(config.ot_rate) }}</span>
+                            <input type="number" class="edit-value" name="ot_rate" value="{{ config.ot_rate }}" step="0.01" style="display:none;">
+                        </td>
+                        <td>
+                            <span class="display-value" title="{{ config.remarks }}">{{ config.remarks[:20] if config.remarks else '-' }}</span>
+                            <input type="text" class="edit-value" name="remarks" value="{{ config.remarks }}" style="display:none;">
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-edit" onclick="editRow(this)" title="Edit row">Edit</button>
+                                <button class="btn-save" onclick="saveRow(this)" style="display:none;" title="Save changes">Save</button>
+                                <button class="btn-cancel" onclick="cancelEdit(this)" style="display:none;" title="Cancel edit">✕</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer with Pagination and Records Per Page -->
+        <div class="payroll-footer">
+            <div class="pagination-info">
+                Showing <strong>{{ (page - 1) * per_page + 1 }}-{{ [page * per_page, total]|min }}</strong> of <strong>{{ total }}</strong> records
             </div>
 
-            <!-- Summary -->
-            {% if configurations %}
-            <div class="mt-3 p-3 bg-light rounded">
-                <div class="row">
-                    <div class="col-md-4">
-                        <strong>Total Employees:</strong> {{ configurations|length }}
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Total Monthly Payroll:</strong> ${{ "%.2f"|format((configurations|sum(attribute='basic_salary') or 0) + (configurations|sum(attribute='allowances') or 0)) }}
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Total CPF (Employer + Employee):</strong> ${{ "%.2f"|format((configurations|sum(attribute='employer_cpf') or 0) + (configurations|sum(attribute='employee_cpf') or 0)) }}
-                    </div>
-                </div>
+            <div class="pagination-controls">
+                <button onclick="goToPage(1)" {% if page <= 1 %}disabled{% endif %}>First</button>
+                <button onclick="goToPage({{ page - 1 }})" {% if page <= 1 %}disabled{% endif %}>← Previous</button>
+                <input type="number" class="pagination-input" id="pageInput" value="{{ page }}" min="1" max="{{ total_pages }}" onchange="goToPage(this.value)">
+                <span>of {{ total_pages }}</span>
+                <button onclick="goToPage({{ page + 1 }})" {% if page >= total_pages %}disabled{% endif %}>Next →</button>
+                <button onclick="goToPage({{ total_pages }})" {% if page >= total_pages %}disabled{% endif %}>Last</button>
             </div>
-            {% endif %}
+
+            <div class="records-per-page">
+                <label>Records per page:</label>
+                <select onchange="changeRecordsPerPage(this.value)">
+                    <option value="15" {% if per_page == 15 %}selected{% endif %}>15</option>
+                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
         </div>
+
+        {% else %}
+        <div class="grid-wrapper">
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No payroll configurations found</p>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+<script>
+    let currentSort = {
+        column: '{{ sort_by }}',
+        order: '{{ sort_order }}'
+    };
+
+    // Initialize sort indicators
+    document.addEventListener('DOMContentLoaded', function() {
+        updateSortIndicators();
+    });
+
+    function updateSortIndicators() {
+        document.querySelectorAll('.payroll-grid th.sortable').forEach(th => {
+            th.classList.remove('sorted-asc', 'sorted-desc');
+            if (th.dataset.column === currentSort.column) {
+                th.classList.add(currentSort.order === 'asc' ? 'sorted-asc' : 'sorted-desc');
+            }
+        });
+    }
+
+    // Sorting
+    document.querySelectorAll('.payroll-grid th.sortable').forEach(th => {
+        th.addEventListener('click', function() {
+            const column = this.dataset.column;
+            let order = 'asc';
+            
+            if (currentSort.column === column && currentSort.order === 'asc') {
+                order = 'desc';
+            }
+            
+            const url = new URL(window.location);
+            url.searchParams.set('sort_by', column);
+            url.searchParams.set('sort_order', order);
+            url.searchParams.set('page', 1);
+            url.searchParams.set('per_page', '{{ per_page }}');
+            window.location.href = url.toString();
+        });
+    });
+
+    // Edit Row
+    function editRow(button) {
+        const row = button.closest('tr');
+        row.classList.add('editing');
+
+        // Show edit inputs and hide display values
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-value').forEach(el => el.style.display = 'block');
+
+        // Show save/cancel, hide edit
+        row.querySelector('.btn-edit').style.display = 'none';
+        row.querySelector('.btn-save').style.display = 'inline-block';
+        row.querySelector('.btn-cancel').style.display = 'inline-block';
+
+        // Focus first edit field
+        row.querySelector('.edit-value')?.focus();
+    }
+
+    // Cancel Edit
+    function cancelEdit(button) {
+        const row = button.closest('tr');
+        row.classList.remove('editing');
+
+        // Show display values, hide edit inputs
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'inline');
+        row.querySelectorAll('.edit-value').forEach(el => el.style.display = 'none');
+
+        // Show edit, hide save/cancel
+        row.querySelector('.btn-edit').style.display = 'inline-block';
+        row.querySelector('.btn-save').style.display = 'none';
+        row.querySelector('.btn-cancel').style.display = 'none';
+    }
+
+    // Save Row
+    function saveRow(button) {
+        const row = button.closest('tr');
+        const configId = row.dataset.configId;
+
+        // Collect edited values
+        const data = {};
+        row.querySelectorAll('.edit-value').forEach(input => {
+            data[input.name] = input.value;
+        });
+
+        // Send to server
+        fetch(`{{ url_for('update_payroll_configuration', config_id='__CONFIG_ID__') }}`.replace('__CONFIG_ID__', configId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Update display values with new values
+                row.querySelectorAll('.edit-value').forEach(input => {
+                    const displayEl = input.parentElement.querySelector('.display-value');
+                    if (displayEl) {
+                        if (input.type === 'number') {
+                            displayEl.textContent = '$' + parseFloat(input.value).toFixed(2);
+                        } else {
+                            displayEl.textContent = input.value || '-';
+                            displayEl.title = input.value;
+                        }
+                    }
+                });
+
+                cancelEdit(button);
+                alert('Configuration updated successfully!');
+            } else {
+                alert('Error: ' + result.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error saving configuration');
+        });
+    }
+
+    // Pagination
+    function goToPage(pageNum) {
+        const url = new URL(window.location);
+        url.searchParams.set('page', pageNum);
+        url.searchParams.set('per_page', '{{ per_page }}');
+        url.searchParams.set('sort_by', currentSort.column);
+        url.searchParams.set('sort_order', currentSort.order);
+        window.location.href = url.toString();
+    }
+
+    function changeRecordsPerPage(value) {
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', value);
+        url.searchParams.set('page', 1);
+        url.searchParams.set('sort_by', currentSort.column);
+        url.searchParams.set('sort_order', currentSort.order);
+        window.location.href = url.toString();
+    }
+</script>
+
 {% endblock %}
