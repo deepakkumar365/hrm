@@ -824,7 +824,9 @@
                     <div class="timeline-content">
                         <div class="timeline-label">Clock In</div>
                         <div class="timeline-time" id="timelineClockIn">
-                            {% if today_attendance and today_attendance.clock_in %}
+                            {% if today_attendance and today_attendance.clock_in_display %}
+                                {{ today_attendance.clock_in_display.strftime('%H:%M:%S') }}
+                            {% elif today_attendance and today_attendance.clock_in %}
                                 {{ today_attendance.clock_in.strftime('%H:%M:%S') }}
                             {% else %}
                                 --:--:--
@@ -840,7 +842,9 @@
                     <div class="timeline-content">
                         <div class="timeline-label">Break Start</div>
                         <div class="timeline-time" id="timelineBreakStart">
-                            {% if today_attendance and today_attendance.break_start %}
+                            {% if today_attendance and today_attendance.break_start_display %}
+                                {{ today_attendance.break_start_display.strftime('%H:%M:%S') }}
+                            {% elif today_attendance and today_attendance.break_start %}
                                 {{ today_attendance.break_start.strftime('%H:%M:%S') }}
                             {% else %}
                                 --:--:--
@@ -856,7 +860,9 @@
                     <div class="timeline-content">
                         <div class="timeline-label">Break End</div>
                         <div class="timeline-time" id="timelineBreakEnd">
-                            {% if today_attendance and today_attendance.break_end %}
+                            {% if today_attendance and today_attendance.break_end_display %}
+                                {{ today_attendance.break_end_display.strftime('%H:%M:%S') }}
+                            {% elif today_attendance and today_attendance.break_end %}
                                 {{ today_attendance.break_end.strftime('%H:%M:%S') }}
                             {% else %}
                                 --:--:--
@@ -872,7 +878,9 @@
                     <div class="timeline-content">
                         <div class="timeline-label">Clock Out</div>
                         <div class="timeline-time" id="timelineClockOut">
-                            {% if today_attendance and today_attendance.clock_out %}
+                            {% if today_attendance and today_attendance.clock_out_display %}
+                                {{ today_attendance.clock_out_display.strftime('%H:%M:%S') }}
+                            {% elif today_attendance and today_attendance.clock_out %}
                                 {{ today_attendance.clock_out.strftime('%H:%M:%S') }}
                             {% else %}
                                 --:--:--

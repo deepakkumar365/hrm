@@ -49,17 +49,17 @@
                                     </td>
                                     <td>
                                         <span class="badge bg-success">
-                                            {{ record.clock_in.strftime('%I:%M %p') }}
+                                            {{ record.clock_in_display.strftime('%I:%M %p') if record.clock_in_display else record.clock_in.strftime('%I:%M %p') }}
                                         </span>
                                     </td>
                                     <td>
                                         {% if record.break_start and record.break_end %}
                                             <span class="badge bg-info">
-                                                {{ record.break_start.strftime('%I:%M') }} - {{ record.break_end.strftime('%I:%M %p') }}
+                                                {{ record.break_start_display.strftime('%I:%M') if record.break_start_display else record.break_start.strftime('%I:%M') }} - {{ record.break_end_display.strftime('%I:%M %p') if record.break_end_display else record.break_end.strftime('%I:%M %p') }}
                                             </span>
                                         {% elif record.break_start %}
                                             <span class="badge bg-warning">
-                                                Started {{ record.break_start.strftime('%I:%M %p') }}
+                                                Started {{ record.break_start_display.strftime('%I:%M %p') if record.break_start_display else record.break_start.strftime('%I:%M %p') }}
                                             </span>
                                         {% else %}
                                             <span class="text-muted">No break</span>

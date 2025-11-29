@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
-import py_compile
+import ast
 import sys
 
 try:
-    py_compile.compile('routes.py', doraise=True)
-    print("✅ routes.py - Syntax OK")
-    sys.exit(0)
-except py_compile.PyCompileError as e:
-    print(f"❌ Syntax Error in routes.py:")
-    print(e)
+    print("Checking routes.py syntax...")
+    with open('routes.py', 'r', encoding='utf-8') as f:
+        code = f.read()
+    
+    ast.parse(code)
+    print("✅ No syntax errors found!")
+    
+    # Also show file info
+    lines = code.split('\n')
+    print(f"Total lines: {len(lines)}")
+    
+except SyntaxError as e:
+    print(f"❌ Syntax Error: {e}")
+    print(f"   Line {e.lineno}: {e.text}")
+    if e.offset:
+        print(f"   {' ' * (e.offset - 1)}^")
+    sys.exit(1)
+except Exception as e:
+    print(f"❌ Error: {e}")
     sys.exit(1)

@@ -174,10 +174,10 @@
                                 {{ record.status }}
                             </td>
                             <td>
-                                {{ record.clock_in.strftime('%I:%M %p') if record.clock_in else '-' }}
+                                {{ record.clock_in_display.strftime('%I:%M %p') if record.clock_in_display else (record.clock_in.strftime('%I:%M %p') if record.clock_in else '-') }}
                             </td>
                             <td>
-                                {{ record.clock_out.strftime('%I:%M %p') if record.clock_out else '-' }}
+                                {{ record.clock_out_display.strftime('%I:%M %p') if record.clock_out_display else (record.clock_out.strftime('%I:%M %p') if record.clock_out else '-') }}
                             </td>
                             <td>
                                 {{ record.total_hours or 0 }}h
@@ -238,11 +238,11 @@
                     </div>
                     <div class="col-6">
                         <small class="text-muted d-block">Clock In</small>
-                        <div>{{ record.clock_in.strftime('%I:%M %p') if record.clock_in else '-' }}</div>
+                        <div>{{ record.clock_in_display.strftime('%I:%M %p') if record.clock_in_display else (record.clock_in.strftime('%I:%M %p') if record.clock_in else '-') }}</div>
                     </div>
                     <div class="col-6">
                         <small class="text-muted d-block">Clock Out</small>
-                        <div>{{ record.clock_out.strftime('%I:%M %p') if record.clock_out else '-' }}</div>
+                        <div>{{ record.clock_out_display.strftime('%I:%M %p') if record.clock_out_display else (record.clock_out.strftime('%I:%M %p') if record.clock_out else '-') }}</div>
                     </div>
                 </div>
 

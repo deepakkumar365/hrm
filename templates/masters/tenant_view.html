@@ -199,7 +199,36 @@
                             </select>
                             <small class="text-muted">Used for all payroll calculations</small>
                         </div>
-                        <div class="col-md-6"></div>
+                        <div class="col-md-6 mb-3">
+                            <label for="companyTimezone" class="form-label">Timezone *</label>
+                            <select class="form-control" id="companyTimezone" required>
+                                <option value="">-- Select Timezone --</option>
+                                <option value="UTC">UTC</option>
+                                <option value="Asia/Singapore">Asia/Singapore</option>
+                                <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
+                                <option value="Asia/Tokyo">Asia/Tokyo</option>
+                                <option value="Asia/Bangkok">Asia/Bangkok</option>
+                                <option value="Asia/Manila">Asia/Manila</option>
+                                <option value="Asia/Jakarta">Asia/Jakarta</option>
+                                <option value="Asia/Kolkata">Asia/Kolkata</option>
+                                <option value="Asia/Dubai">Asia/Dubai</option>
+                                <option value="America/New_York">America/New_York</option>
+                                <option value="America/Chicago">America/Chicago</option>
+                                <option value="America/Los_Angeles">America/Los_Angeles</option>
+                                <option value="America/Denver">America/Denver</option>
+                                <option value="America/Toronto">America/Toronto</option>
+                                <option value="Europe/London">Europe/London</option>
+                                <option value="Europe/Paris">Europe/Paris</option>
+                                <option value="Europe/Berlin">Europe/Berlin</option>
+                                <option value="Europe/Amsterdam">Europe/Amsterdam</option>
+                                <option value="Europe/Istanbul">Europe/Istanbul</option>
+                                <option value="Australia/Sydney">Australia/Sydney</option>
+                                <option value="Australia/Melbourne">Australia/Melbourne</option>
+                                <option value="Pacific/Auckland">Pacific/Auckland</option>
+                                <option value="Pacific/Fiji">Pacific/Fiji</option>
+                            </select>
+                            <small class="text-muted">Used for attendance and OT time display</small>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="companyAddress" class="form-label">Address</label>
@@ -282,7 +311,36 @@
                             </select>
                             <small class="text-muted">Used for all payroll calculations</small>
                         </div>
-                        <div class="col-md-6"></div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editCompanyTimezone" class="form-label">Timezone *</label>
+                            <select class="form-control" id="editCompanyTimezone" required>
+                                <option value="">-- Select Timezone --</option>
+                                <option value="UTC">UTC</option>
+                                <option value="Asia/Singapore">Asia/Singapore</option>
+                                <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
+                                <option value="Asia/Tokyo">Asia/Tokyo</option>
+                                <option value="Asia/Bangkok">Asia/Bangkok</option>
+                                <option value="Asia/Manila">Asia/Manila</option>
+                                <option value="Asia/Jakarta">Asia/Jakarta</option>
+                                <option value="Asia/Kolkata">Asia/Kolkata</option>
+                                <option value="Asia/Dubai">Asia/Dubai</option>
+                                <option value="America/New_York">America/New_York</option>
+                                <option value="America/Chicago">America/Chicago</option>
+                                <option value="America/Los_Angeles">America/Los_Angeles</option>
+                                <option value="America/Denver">America/Denver</option>
+                                <option value="America/Toronto">America/Toronto</option>
+                                <option value="Europe/London">Europe/London</option>
+                                <option value="Europe/Paris">Europe/Paris</option>
+                                <option value="Europe/Berlin">Europe/Berlin</option>
+                                <option value="Europe/Amsterdam">Europe/Amsterdam</option>
+                                <option value="Europe/Istanbul">Europe/Istanbul</option>
+                                <option value="Australia/Sydney">Australia/Sydney</option>
+                                <option value="Australia/Melbourne">Australia/Melbourne</option>
+                                <option value="Pacific/Auckland">Pacific/Auckland</option>
+                                <option value="Pacific/Fiji">Pacific/Fiji</option>
+                            </select>
+                            <small class="text-muted">Used for attendance and OT time display</small>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="editCompanyAddress" class="form-label">Address</label>
@@ -314,6 +372,7 @@ function saveCompany() {
         email: document.getElementById('companyEmail').value,
         website: document.getElementById('companyWebsite').value,
         currency_code: document.getElementById('companyCurrency').value,
+        timezone: document.getElementById('companyTimezone').value,
         address: document.getElementById('companyAddress').value,
         is_active: document.getElementById('companyActive').checked
     };
@@ -361,6 +420,7 @@ function editCompany(companyId) {
                 document.getElementById('editCompanyEmail').value = company.email || '';
                 document.getElementById('editCompanyWebsite').value = company.website || '';
                 document.getElementById('editCompanyCurrency').value = company.currency_code || 'SGD';
+                document.getElementById('editCompanyTimezone').value = company.timezone || 'UTC';
                 document.getElementById('editCompanyAddress').value = company.address || '';
                 document.getElementById('editCompanyActive').checked = company.is_active;
                 
@@ -388,6 +448,7 @@ function updateCompany() {
         email: document.getElementById('editCompanyEmail').value,
         website: document.getElementById('editCompanyWebsite').value,
         currency_code: document.getElementById('editCompanyCurrency').value,
+        timezone: document.getElementById('editCompanyTimezone').value,
         address: document.getElementById('editCompanyAddress').value,
         is_active: document.getElementById('editCompanyActive').checked
     };

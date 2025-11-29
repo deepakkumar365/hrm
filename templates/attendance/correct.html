@@ -38,12 +38,12 @@
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label"><strong>Clock In:</strong></label>
-                                        <p>{{ attendance.clock_in.strftime('%I:%M %p') if attendance.clock_in else 'Not recorded' }}</p>
+                                        <p>{{ attendance.clock_in_display.strftime('%I:%M %p') if attendance.clock_in_display else (attendance.clock_in.strftime('%I:%M %p') if attendance.clock_in else 'Not recorded') }}</p>
                                     </div>
                                     <div class="col-md-6">
                                         <label for="clock_out" class="form-label"><strong>Clock Out:</strong></label>
                                         {% if attendance.clock_out %}
-                                            <p>{{ attendance.clock_out.strftime('%I:%M %p') }}</p>
+                                            <p>{{ attendance.clock_out_display.strftime('%I:%M %p') if attendance.clock_out_display else attendance.clock_out.strftime('%I:%M %p') }}</p>
                                         {% else %}
                                             <input type="time" 
                                                    class="form-control" 
@@ -60,11 +60,11 @@
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label"><strong>Break Start:</strong></label>
-                                        <p>{{ attendance.break_start.strftime('%I:%M %p') if attendance.break_start else 'Not taken' }}</p>
+                                        <p>{{ attendance.break_start_display.strftime('%I:%M %p') if attendance.break_start_display else (attendance.break_start.strftime('%I:%M %p') if attendance.break_start else 'Not taken') }}</p>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label"><strong>Break End:</strong></label>
-                                        <p>{{ attendance.break_end.strftime('%I:%M %p') if attendance.break_end else 'Not ended' }}</p>
+                                        <p>{{ attendance.break_end_display.strftime('%I:%M %p') if attendance.break_end_display else (attendance.break_end.strftime('%I:%M %p') if attendance.break_end else 'Not ended') }}</p>
                                     </div>
                                 </div>
                                 {% endif %}
