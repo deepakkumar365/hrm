@@ -218,7 +218,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-card-value">
-                    {% set total_hours = ot_records.items | map(attribute='ot_hours') | sum %}
+                    {% set total_hours = ot_records.items | map(attribute='ot_hours') | map('default', 0) | sum %}
                     {{ "%.1f" | format(total_hours) }}h
                 </div>
                 <div class="stat-card-label">Total OT Hours</div>
@@ -249,7 +249,7 @@
                             <td>{{ record.ot_date.strftime('%d/%m/%Y') }}</td>
                             <td>{{ record.in_time or 'N/A' }}</td>
                             <td>{{ record.out_time or 'N/A' }}</td>
-                            <td><strong>{{ "%.2f" | format(record.ot_hours) }}h</strong></td>
+                            <td><strong>{% if record.ot_hours %}{{ "%.2f" | format(record.ot_hours) }}h{% else %}0.00h{% endif %}</strong></td>
                             <td>{{ record.ot_type.name if record.ot_type else 'N/A' }}</td>
                             <td>
                                 <span class="status-badge status-approved">Recorded</span>

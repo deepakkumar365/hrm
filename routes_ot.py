@@ -297,6 +297,7 @@ def save_ot_draft():
         data = request.get_json()
         ot_date_str = data.get('ot_date')
         ot_in_time_str = data.get('ot_in_time')
+        ot_out_time_str = data.get('ot_out_time')
         ot_type_id = data.get('ot_type_id')
         notes = data.get('notes', '')
         
@@ -311,6 +312,12 @@ def save_ot_draft():
             ot_date = datetime.strptime(ot_date_str, '%Y-%m-%d').date()
             ot_in_time = datetime.strptime(ot_in_time_str, '%H:%M').time()
             ot_in_dt = datetime.combine(ot_date, ot_in_time)
+            
+            # Parse out time if provided
+            ot_out_dt = None
+            if ot_out_time_str:
+                ot_out_time = datetime.strptime(ot_out_time_str, '%H:%M').time()
+                ot_out_dt = datetime.combine(ot_date, ot_out_time)
         except ValueError as e:
             return jsonify({'success': False, 'message': f'Invalid date/time format: {str(e)}'}), 400
         
@@ -324,6 +331,10 @@ def save_ot_draft():
         if existing_ot:
             # Update existing draft
             existing_ot.ot_in_time = ot_in_dt
+            if ot_out_dt:
+                existing_ot.ot_out_time = ot_out_dt
+                # Recalculate OT hours if both times are set
+                existing_ot.calculate_ot_hours()
             existing_ot.ot_type_id = ot_type_id
             existing_ot.notes = notes
             existing_ot.status = 'Draft'
@@ -348,22 +359,32 @@ def save_ot_draft():
                 company_id=company_id,
                 ot_date=ot_date,
                 ot_in_time=ot_in_dt,
+                ot_out_time=ot_out_dt,
                 ot_type_id=ot_type_id,
                 status='Draft',
                 notes=notes,
                 created_by=current_user.username
             )
+            # Calculate OT hours if both times are set
+            if ot_out_dt:
+                ot_record.calculate_ot_hours()
             db.session.add(ot_record)
             logger.info(f"Created new OT draft for employee {employee.id} on {ot_date}")
         
         db.session.commit()
         
-        return jsonify({
+        response_data = {
             'success': True,
-            'message': 'OT Set In time saved as draft successfully!',
+            'message': 'OT draft saved successfully!',
             'ot_date': ot_date_str,
             'ot_in_time': ot_in_time_str
-        }), 200
+        }
+        
+        # Include ot_out_time in response if provided
+        if ot_out_time_str:
+            response_data['ot_out_time'] = ot_out_time_str
+        
+        return jsonify(response_data), 200
         
     except Exception as e:
         db.session.rollback()
@@ -431,6 +452,66 @@ def get_ot_draft():
         return jsonify({'success': False, 'message': f'Error retrieving draft: {str(e)}'}), 500
 
 
+# ============ HELPER FUNCTION: Get Approval Statuses (Cached) ============
+def get_approval_statuses_batch(ot_attendance_records):
+    """
+    ⚡ OPTIMIZED: Get manager and HR manager approval statuses for multiple OT records in one query.
+    This eliminates N+1 query problem by loading all approvals at once.
+    """
+    # Build map of (employee_id, ot_date) -> record for quick lookup
+    record_map = {(r.employee_id, r.ot_date): r for r in ot_attendance_records}
+    
+    # Get all OT requests for these records
+    emp_dates = list(record_map.keys())
+    if not emp_dates:
+        return
+    
+    try:
+        from sqlalchemy import and_, or_
+        
+        # Build OR conditions for all employee_id, ot_date pairs
+        conditions = [and_(OTRequest.employee_id == emp_id, OTRequest.ot_date == ot_date) 
+                     for emp_id, ot_date in emp_dates]
+        
+        ot_requests = OTRequest.query.filter(or_(*conditions)).all()
+        
+        # Get all approvals for these requests in one query
+        request_ids = [r.id for r in ot_requests]
+        if request_ids:
+            approvals = OTApproval.query.filter(
+                OTApproval.ot_request_id.in_(request_ids)
+            ).all()
+            
+            # Build lookup dicts
+            request_map = {(r.employee_id, r.ot_date): r for r in ot_requests}
+            approval_map = {}
+            for approval in approvals:
+                key = (approval.ot_request_id, approval.approval_level)
+                approval_map[key] = approval.status
+            
+            # Attach statuses to records
+            for record in ot_attendance_records:
+                key = (record.employee_id, record.ot_date)
+                ot_request = request_map.get(key)
+                
+                if ot_request:
+                    manager_approval_status = approval_map.get((ot_request.id, 1))
+                    hr_approval_status = approval_map.get((ot_request.id, 2))
+                else:
+                    manager_approval_status = None
+                    hr_approval_status = None
+                
+                record.manager_approval_status = manager_approval_status
+                record.hr_approval_status = hr_approval_status
+    
+    except Exception as e:
+        logger.error(f"Error getting approval statuses: {str(e)}")
+        # Fallback: set all to None
+        for record in ot_attendance_records:
+            record.manager_approval_status = None
+            record.hr_approval_status = None
+
+
 # ============ OT ATTENDANCE ============
 @app.route('/ot/attendance', methods=['GET'])
 @login_required
@@ -480,6 +561,9 @@ def ot_attendance():
         # Get paginated results
         page = request.args.get('page', 1, type=int)
         ot_records = query.order_by(OTAttendance.ot_date.desc()).paginate(page=page, per_page=20)
+        
+        # ⚡ OPTIMIZED: Enrich ALL records with approval statuses in single batch query
+        get_approval_statuses_batch(ot_records.items)
         
         # Get employees for filter dropdown
         employees = []
@@ -541,13 +625,19 @@ def submit_ot_attendance(attendance_id):
             flash('❌ Cannot submit: No reporting manager assigned to your profile. Contact HR.', 'danger')
             return redirect(url_for('mark_ot_attendance'))
         
-        manager = Employee.query.get(employee.manager_id)
-        if not manager or not manager.user_id:
-            flash('❌ Your reporting manager does not have a user account. Contact HR.', 'danger')
-            return redirect(url_for('mark_ot_attendance'))
-        
         try:
-            # Check if already submitted
+            # ⚡ OPTIMIZED: Fetch manager with eager-loaded user relationship
+            from sqlalchemy.orm import joinedload
+            manager = Employee.query.options(
+                joinedload(Employee.user)
+            ).filter_by(id=employee.manager_id).first()
+            
+            if not manager or not manager.user_id:
+                flash('❌ Your reporting manager does not have a user account. Contact HR.', 'danger')
+                return redirect(url_for('mark_ot_attendance'))
+            
+            # ⚡ OPTIMIZED: Combine multiple checks into single query operations
+            # Check if already submitted + get OT type + validate in one logical flow
             existing_request = OTRequest.query.filter_by(
                 employee_id=employee.id,
                 ot_date=ot_attendance.ot_date
@@ -557,11 +647,9 @@ def submit_ot_attendance(attendance_id):
                 flash('⚠️  OT for this date already in approval workflow', 'warning')
                 return redirect(url_for('mark_ot_attendance'))
             
-            # Validate OT Type exists
-            ot_type = OTType.query.get(ot_attendance.ot_type_id)
-            if not ot_type:
-                flash('❌ Error: OT Type is invalid or no longer exists. Please select a valid OT Type.', 'danger')
-                return redirect(url_for('mark_ot_attendance'))
+            # ⚡ OPTIMIZED: Store manager name BEFORE commit to avoid post-commit lazy loading
+            manager_name = manager.user.full_name if manager.user else manager.first_name
+            requested_hours = float(ot_attendance.ot_hours) if ot_attendance.ot_hours else 0
             
             # Create OT Request with pending_manager status
             ot_request = OTRequest(
@@ -569,7 +657,7 @@ def submit_ot_attendance(attendance_id):
                 company_id=employee.company_id,
                 ot_date=ot_attendance.ot_date,
                 ot_type_id=ot_attendance.ot_type_id,
-                requested_hours=float(ot_attendance.ot_hours) if ot_attendance.ot_hours else 0,
+                requested_hours=requested_hours,
                 reason=ot_attendance.notes or 'OT submitted for approval',
                 status='pending_manager',
                 created_by=current_user.username
@@ -593,7 +681,6 @@ def submit_ot_attendance(attendance_id):
             
             db.session.commit()
             
-            manager_name = manager.user.full_name if manager.user else manager.first_name
             flash(f'✅ OT submitted to {manager_name} for approval. Hours: {ot_attendance.ot_hours}', 'success')
             return redirect(url_for('mark_ot_attendance'))
         
@@ -652,16 +739,24 @@ def submit_ot_for_manager_approval(attendance_id):
             return redirect(url_for('ot_attendance'))
         
         try:
-            # Get employee and their reporting manager
+            # ⚡ OPTIMIZED: Get employee with eager-loaded manager.user relationship
+            from sqlalchemy.orm import joinedload
             employee = ot_attendance.employee
             if not employee or not employee.manager_id:
                 flash('Employee has no reporting manager assigned. Cannot submit for approval.', 'danger')
                 return redirect(url_for('ot_attendance'))
             
-            manager = Employee.query.get(employee.manager_id)
+            manager = Employee.query.options(
+                joinedload(Employee.user)
+            ).filter_by(id=employee.manager_id).first()
+            
             if not manager or not manager.user_id:
                 flash('Manager does not have a user account. Cannot submit.', 'danger')
                 return redirect(url_for('ot_attendance'))
+            
+            # ⚡ OPTIMIZED: Store manager name BEFORE commit
+            manager_name = manager.user.full_name if manager.user else manager.first_name
+            requested_hours = ot_attendance.ot_hours or 0
             
             # Create OT Request with pending_manager status
             ot_request = OTRequest(
@@ -669,7 +764,7 @@ def submit_ot_for_manager_approval(attendance_id):
                 company_id=ot_attendance.company_id,
                 ot_date=ot_attendance.ot_date,
                 ot_type_id=ot_attendance.ot_type_id,
-                requested_hours=ot_attendance.ot_hours or 0,
+                requested_hours=requested_hours,
                 reason=ot_attendance.notes or 'OT submitted for approval',
                 status='pending_manager',  # Status: Pending Manager Approval
                 created_by=current_user.username
@@ -693,7 +788,6 @@ def submit_ot_for_manager_approval(attendance_id):
             
             db.session.commit()
             
-            manager_name = manager.user.full_name if manager.user else manager.first_name
             flash(f'✓ OT submitted to {manager_name} for approval. Hours: {ot_attendance.ot_hours}', 'success')
             return redirect(url_for('ot_attendance'))
         
@@ -1256,6 +1350,12 @@ def ot_payroll_summary():
     Accessible to HR Manager, Tenant Admin, Super Admin
     
     Only includes: OT with status = 'hr_approved' (final approval complete)
+    Filters: Company, User Name, Month, Year
+    
+    Multi-Company Support:
+    - Super Admin: Can see all companies
+    - HR Manager: Can see all companies they have access to (via UserCompanyAccess)
+    - Tenant Admin: Can see all companies
     """
     try:
         # Check access control
@@ -1267,16 +1367,44 @@ def ot_payroll_summary():
         # Get filter parameters
         month = request.args.get('month', datetime.now().month, type=int)
         year = request.args.get('year', datetime.now().year, type=int)
+        selected_company_id = request.args.get('company_id', '')
+        selected_user_id = request.args.get('user_id', '')
         
         # Build summary query - Only HR-APPROVED OT (status = 'hr_approved')
         query = OTRequest.query.filter_by(status='hr_approved')
         
-        user_company_id = None
-        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-            user_company_id = current_user.employee_profile.company_id
+        # Get list of available companies for dropdown
+        # Super Admin sees all companies
+        if user_role == 'Super Admin':
+            available_companies = Company.query.all()
+        # HR Manager and Tenant Admin see all companies they have access to
+        else:
+            available_companies = current_user.get_accessible_companies()
         
-        if user_company_id:
-            query = query.filter_by(company_id=user_company_id)
+        # Determine which company to filter by
+        if selected_company_id:
+            query = query.filter_by(company_id=selected_company_id)
+            filter_company_id = selected_company_id
+        elif available_companies:
+            # Default to first available company if user doesn't have access to selected one
+            first_company_id = available_companies[0].id if available_companies else None
+            if first_company_id:
+                query = query.filter_by(company_id=first_company_id)
+                filter_company_id = first_company_id
+            else:
+                filter_company_id = None
+        else:
+            filter_company_id = None
+        
+        # Get list of available users/employees for dropdown (based on filtered company)
+        if filter_company_id:
+            available_employees = Employee.query.filter_by(company_id=filter_company_id).all()
+        else:
+            available_employees = []
+        
+        # Apply employee/user filter
+        if selected_user_id:
+            query = query.filter_by(employee_id=selected_user_id)
         
         # Filter by month/year (based on OT date, not approval date)
         start_date = datetime(year, month, 1).date()
@@ -1340,6 +1468,10 @@ def ot_payroll_summary():
                              total_amount=total_amount,
                              month=month,
                              year=year,
+                             available_companies=available_companies,
+                             available_employees=available_employees,
+                             selected_company_id=selected_company_id,
+                             selected_user_id=selected_user_id,
                              status_label='HR Approved')
     
     except Exception as e:

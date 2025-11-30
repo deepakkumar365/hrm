@@ -1,38 +1,25 @@
-from flask import session, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import session, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import current_user
 from sqlalchemy import func, extract, and_, text
-import uuid
 from datetime import datetime, date, time, timedelta
 import calendar
 import os
 import time as pytime
+import subprocess
 from werkzeug.utils import secure_filename
-from io import BytesIO
-import logging
-
-
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
-                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation, EmployeeGroup,
-                    OTType, OTAttendance, OTRequest, OTApproval, PayrollOTSummary, OTDailySummary, UserCompanyAccess)
+                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date,
-                   validate_nric, validate_email, generate_employee_id, get_company_employee_id, check_permission,
-                   mobile_optimized_pagination, get_current_month_dates, validate_phone_number)
+                   validate_nric, generate_employee_id, check_permission,
+                   mobile_optimized_pagination, get_current_month_dates)
 from constants import DEFAULT_USER_PASSWORD
-
-logger = logging.getLogger(__name__)
-
-def get_current_user_email():
-    """Get current user's email for audit fields"""
-    if current_user and current_user.is_authenticated:
-        return current_user.email
-    return 'system'
 
 # Helper to validate image extension
 def _allowed_image(filename: str) -> bool:
@@ -43,14 +30,6 @@ def _allowed_image(filename: str) -> bool:
 
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
-
-# A list of common timezones for dropdowns
-common_timezones = [
-    "UTC", "Asia/Singapore", "Asia/Kolkata", "Asia/Dubai", "Asia/Shanghai",
-    "Asia/Tokyo", "Europe/London", "Europe/Paris", "Europe/Berlin",
-    "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
-    "Australia/Sydney", "Australia/Perth"
-]
 
 
 @app.route('/health')
@@ -133,6 +112,8 @@ def create_default_master_data():
         db.session.rollback()
         return False
 
+
+
 def initialize_default_data():
     """Initialize default users and master data - call this after ensuring DB is ready"""
     try:
@@ -155,25 +136,12 @@ def initialize_default_data():
     except Exception as e:
         print(f"[WARNING] Could not initialize default data: {e}")
         print("This is normal if the database is not yet set up or tables haven't been created.")
-        print("Run 'flask db upgrade' to create tables, then restart the application.")
 
-# Only initialize default data if we're running the app (not during imports for migrations, etc.)
+# Initialize database and data on startup (only if not skipped)
 if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
+    # Initialize default data
     initialize_default_data()
 
-@app.context_processor
-def inject_user_profile_info():
-    """
-    Injects user profile information into the context of all templates.
-    This makes `profile_image_path` and `user_full_name` available globally.
-    """
-    profile_image_path = None
-    user_full_name = None
-    if current_user.is_authenticated and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        profile_image_path = current_user.employee_profile.profile_image_path
-        user_full_name = f"{current_user.employee_profile.first_name} {current_user.employee_profile.last_name}"
-
-    return dict(profile_image_path=profile_image_path, user_full_name=user_full_name)
 
 @app.before_request
 def make_session_permanent():
@@ -394,10 +362,6 @@ def dashboard():
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
 
-    if user_role_name in ['HR Manager', 'Tenant Admin']:
-        # Redirect HR Manager and Tenant Admin to their specialized dashboard
-        return redirect(url_for('hr_manager_dashboard'))
-
     # Get basic statistics
     stats = {
         'total_employees': Employee.query.filter_by(is_active=True).count(),
@@ -441,22 +405,21 @@ def dashboard():
                 'date': leave.created_at
             })
 
-    elif user_role_name == 'HR Manager':
+    elif user_role_name == 'Manager':
         # Team member activities
-        if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-            team_leaves = Leave.query.join(Employee).filter(
-                Employee.manager_id == current_user.employee_profile.id,
-                Leave.status == 'Pending').order_by(
-                    Leave.created_at.desc()).limit(5).all()
+        team_leaves = Leave.query.join(Employee).filter(
+            Employee.manager_id == current_user.employee_profile.id,
+            Leave.status == 'Pending').order_by(
+                Leave.created_at.desc()).limit(5).all()
 
-            for leave in team_leaves:
-                recent_activities.append({
-                    'type': 'team_leave',
-                    'employee':
-                    f"{leave.employee.first_name} {leave.employee.last_name}",
-                    'details': f"{leave.leave_type} leave request",
-                    'date': leave.created_at
-                })
+        for leave in team_leaves:
+            recent_activities.append({
+                'type': 'team_leave',
+                'employee':
+                f"{leave.employee.first_name} {leave.employee.last_name}",
+                'details': f"{leave.leave_type} leave request",
+                'date': leave.created_at
+            })
 
     else:  # Employee
         # Own recent activities
@@ -473,38 +436,14 @@ def dashboard():
                     'date': leave.created_at
                 })
 
-    # Get recent attendance record for current user
-    recent_attendance = None
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        recent_attendance = Attendance.query.filter_by(
-            employee_id=current_user.employee_profile.id
-        ).order_by(Attendance.date.desc(), Attendance.id.desc()).first()
-
     default_calendar_endpoint = 'leave_calendar' if 'leave_calendar' in app.view_functions else 'leave_request'
     leave_calendar_url = url_for(default_calendar_endpoint)
-
-    # Get OT Types for dashboard form (from user's tenant)
-    from models import OTType
-    ot_types = []
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        company = Company.query.get(current_user.employee_profile.company_id)
-        if company:
-            tenant_id = company.tenant_id
-            # Get all companies in the tenant
-            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
-            ot_types = OTType.query.filter(
-                OTType.company_id.in_(company_ids),
-                OTType.is_active == True
-            ).order_by(OTType.display_order).all()
 
     return render_template('dashboard.html',
                            stats=stats,
                            recent_activities=recent_activities,
-                           recent_attendance=recent_attendance,
                            moment=datetime.now,
-                           leave_calendar_url=leave_calendar_url,
-                           ot_types=ot_types,
-                           now=datetime.now())
+                           leave_calendar_url=leave_calendar_url)
 
 
 # Employee Management Routes
@@ -515,13 +454,8 @@ def employee_list():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     department = request.args.get('department', '', type=str)
-    sort_by = request.args.get('sort_by', 'id', type=str)
-    sort_order = request.args.get('sort_order', 'desc', type=str)
-    per_page = request.args.get('per_page', 15, type=int)
-    
-    # Validate per_page - only allow specific values
-    if per_page not in [15, 25, 50, 100]:
-        per_page = 15
+    sort_by = request.args.get('sort_by', 'first_name', type=str)
+    sort_order = request.args.get('sort_order', 'asc', type=str)
 
     # Join with Company and Tenant to get tenant_name and company_name
     query = db.session.query(
@@ -546,22 +480,11 @@ def employee_list():
     if department:
         query = query.filter(Employee.department == department)
 
-    # Role-based filtering for HR Manager
-    # HR Manager can only access employees from companies they are mapped to
-    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                  'employee_profile') and current_user.employee_profile:
-        # Get companies that HR Manager has access to via UserCompanyAccess
-        accessible_company_ids = db.session.query(UserCompanyAccess.company_id).filter(
-            UserCompanyAccess.user_id == current_user.id
-        ).all()
-        accessible_company_ids = [c[0] for c in accessible_company_ids]
-        
-        if accessible_company_ids:
-            # Filter employees to only those from accessible companies
-            query = query.filter(Employee.company_id.in_(accessible_company_ids))
-        else:
-            # If HR Manager has no company access, return empty result
-            query = query.filter(False)
+    # Role-based filtering
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                  'employee_profile'):
+        query = query.filter(
+            Employee.manager_id == current_user.employee_profile.id)
 
     # Sorting
     if sort_by == 'tenant_name':
@@ -574,12 +497,6 @@ def employee_list():
         sort_column = Employee.designation_id
     elif sort_by == 'department':
         sort_column = Employee.department
-    elif sort_by == 'email':
-        sort_column = Employee.email
-    elif sort_by == 'employment_type':
-        sort_column = Employee.employment_type
-    elif sort_by == 'id':
-        sort_column = Employee.id
     else:
         sort_column = Employee.first_name
 
@@ -589,7 +506,7 @@ def employee_list():
     query = query.order_by(sort_column)
 
     # Paginate the results
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    pagination = query.paginate(page=page, per_page=20, error_out=False)
 
     # Extract employee objects with company and tenant names
     employees_data = []
@@ -635,64 +552,7 @@ def employee_list():
                            department=department,
                            departments=departments,
                            sort_by=sort_by,
-                           sort_order=sort_order,
-                           per_page=per_page)
-
-
-@app.route('/employees/export')
-@require_login
-def export_employees():
-    """Export employees list to CSV"""
-    try:
-        # Get search and filter parameters
-        search = request.args.get('search', '', type=str)
-        department = request.args.get('department', '', type=str)
-
-        # Build query
-        query = db.session.query(Employee).filter(Employee.is_active == True)
-
-        if search:
-            query = query.filter(
-                db.or_(Employee.first_name.ilike(f'%{search}%'),
-                       Employee.last_name.ilike(f'%{search}%'),
-                       Employee.employee_id.ilike(f'%{search}%'),
-                       Employee.email.ilike(f'%{search}%')))
-
-        if department:
-            query = query.filter(Employee.department == department)
-
-        # Role-based filtering
-        if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                      'employee_profile') and current_user.employee_profile:
-            query = query.filter(
-                Employee.organization_id == current_user.organization_id)
-
-        employees = query.order_by(Employee.first_name).all()
-
-        # Prepare data for CSV export
-        export_data = []
-        for emp in employees:
-            export_data.append({
-                'Employee ID': emp.employee_id or '',
-                'First Name': emp.first_name or '',
-                'Last Name': emp.last_name or '',
-                'Email': emp.email or '',
-                'Phone': emp.phone or '',
-                'Designation': emp.designation.name if emp.designation else '',
-                'Department': emp.department or '',
-                'Company': emp.company.name if emp.company else '',
-                'Hire Date': format_date(emp.hire_date) if emp.hire_date else '',
-                'NRIC': emp.nric or '',
-                'Status': 'Active' if emp.is_active else 'Inactive'
-            })
-
-        # Export to CSV
-        return export_to_csv(export_data, 'employees.csv')
-
-    except Exception as e:
-        print(f"Error exporting employees: {str(e)}")
-        flash(f'Error exporting employees: {str(e)}', 'error')
-        return redirect(url_for('employee_list'))
+                           sort_order=sort_order)
 
 
 @app.route('/employees/add', methods=['GET', 'POST'])
@@ -701,40 +561,9 @@ def employee_add():
     """Add new employee"""
     if request.method == 'POST':
         try:
-            # Ensure we start with a clean transaction state
-            db.session.rollback()
-
-            # Validation: Check required fields
-            first_name = request.form.get('first_name', '').strip()
-            last_name = request.form.get('last_name', '').strip()
-            designation_id = request.form.get('designation_id', '').strip()
-            company_id = request.form.get('company_id', '').strip()
-
-            if not first_name:
-                flash('First Name is required', 'error')
-                return redirect(url_for('employee_add'))
-
-            if not last_name:
-                flash('Last Name is required', 'error')
-                return redirect(url_for('employee_add'))
-
-            if not company_id:
-                flash('Company is required', 'error')
-                return redirect(url_for('employee_add'))
-
-            if not designation_id:
-                flash('Designation is required', 'error')
-                return redirect(url_for('employee_add'))
-
-            # Validation: Email format if provided
-            email = request.form.get('email', '').strip()
-            if email and not validate_email(email):
-                flash('Invalid email format', 'error')
-                return redirect(url_for('employee_add'))
-
-            # Validate NRIC (optional field)
+            # Validate NRIC
             nric = request.form.get('nric', '').upper()
-            if nric and not validate_nric(nric):
+            if not validate_nric(nric):
                 flash('Invalid NRIC format', 'error')
                 # Load master data and preserve form data for re-rendering
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
@@ -745,7 +574,6 @@ def employee_add():
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -755,12 +583,10 @@ def employee_add():
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
                                        managers=managers,
-                                       companies=companies,
-                                       leave_groups=leave_groups,
-                                       current_user=current_user)
+                                       companies=companies)
 
-            # Check for duplicate NRIC (only if NRIC is provided)
-            if nric and Employee.query.filter_by(nric=nric).first():
+            # Check for duplicate NRIC
+            if Employee.query.filter_by(nric=nric).first():
                 flash('Employee with this NRIC already exists', 'error')
                 # Load master data and preserve form data for re-rendering
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
@@ -772,7 +598,6 @@ def employee_add():
                 # Position field removed - use designation_id instead
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                 companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -782,82 +607,34 @@ def employee_add():
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
                                        managers=managers,
-                                       companies=companies,
-                                       leave_groups=leave_groups,
-                                       current_user=current_user)
+                                       companies=companies)
 
             # Create new employee
             employee = Employee()
             employee.organization_id = current_user.organization_id
 
             # Set company_id from form
+            company_id = request.form.get('company_id')
             if company_id:
                 employee.company_id = company_id
 
-            # Generate company-specific employee ID
-            if company_id:
-                company = Company.query.get(company_id)
-                if company:
-                    # Use company-specific ID sequence
-                    try:
-                        employee.employee_id = get_company_employee_id(company_id, company.code, db.session)
-                    except Exception as id_error:
-                        # If ID generation fails, rollback and use fallback method
-                        db.session.rollback()
-                        employee.employee_id = generate_employee_id(company.code)
-                else:
-                    # Company not found
-                    flash('Company not found', 'error')
-                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                    return render_template('employees/form.html',
-                                           form_data=request.form,
-                                           roles=roles,
-                                           user_roles=user_roles,
-                                           designations=designations,
-                                           departments=departments,
-                                           working_hours=working_hours,
-                                           work_schedules=work_schedules,
-                                           managers=managers,
-                                           companies=companies)
+            # Get employee_id from form (auto-generated by frontend)
+            # Format: <CompanyCode><ID> (e.g., ACME001)
+            employee_id_from_form = request.form.get('employee_id', '').strip()
+            if employee_id_from_form:
+                employee.employee_id = employee_id_from_form
             else:
-                # No company selected
-                flash('Company selection is required', 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
-                return render_template('employees/form.html',
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       designations=designations,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies,
-                                       leave_groups=leave_groups,
-                                       current_user=current_user)
+                # Fallback if employee_id not provided in form
+                company = Company.query.get(company_id) if company_id else None
+                company_code = company.code if company else 'EMP'
+                employee.employee_id = generate_employee_id(company_code)
 
             employee.first_name = request.form.get('first_name')
             employee.last_name = request.form.get('last_name')
             email = request.form.get('email', '').strip()
-            phone = request.form.get('phone', '').strip()
             employee.email = email if email else None
             employee.phone = request.form.get('phone')
-            employee.nric = nric if nric else None
+            employee.nric = nric
             employee.date_of_birth = parse_date(
                 request.form.get('date_of_birth'))
             employee.gender = request.form.get('gender')
@@ -869,7 +646,7 @@ def employee_add():
             employee.hire_date = parse_date(request.form.get('hire_date'))
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
-
+            
             work_permit_number = request.form.get('work_permit_number')
             if work_permit_number:
                 employee.work_permit_number = work_permit_number
@@ -877,8 +654,6 @@ def employee_add():
             work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
-            else:
-                employee.work_permit_expiry = None
 
             # Handle certifications and pass renewals
             hazmat_expiry = request.form.get('hazmat_expiry')
@@ -889,8 +664,9 @@ def employee_add():
             if airport_pass_expiry:
                 employee.airport_pass_expiry = parse_date(airport_pass_expiry)
 
-            psa_pass_number = request.form.get('psa_pass_number', '').strip()
-            employee.psa_pass_number = psa_pass_number if psa_pass_number else None
+            psa_pass_number = request.form.get('psa_pass_number')
+            if psa_pass_number:
+                employee.psa_pass_number = psa_pass_number
 
             psa_pass_expiry = request.form.get('psa_pass_expiry')
             if psa_pass_expiry:
@@ -899,11 +675,9 @@ def employee_add():
             employee.basic_salary = float(request.form.get('basic_salary', 0))
             employee.allowances = float(request.form.get('allowances', 0))
 
-            hourly_rate = request.form.get('hourly_rate', '').strip()
+            hourly_rate = request.form.get('hourly_rate')
             if hourly_rate:
                 employee.hourly_rate = float(hourly_rate)
-            else:
-                employee.hourly_rate = None
 
             employee.cpf_account = request.form.get('cpf_account')
             employee.bank_name = request.form.get('bank_name')
@@ -929,18 +703,8 @@ def employee_add():
             if manager_id:
                 employee.manager_id = int(manager_id)
 
-            # Set timezone
-            employee.timezone = request.form.get('timezone') or 'UTC'
-
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
-
-            # Set leave group
-            employee_group_id = request.form.get('employee_group_id')
-            if employee_group_id:
-                employee.employee_group_id = int(employee_group_id)
-            else:
-                employee.employee_group_id = None
 
             # Handle profile image upload (optional)
             file = request.files.get('profile_image')
@@ -955,7 +719,6 @@ def employee_add():
                     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                     managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
                     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                    leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
                     return render_template('employees/form.html',
                                            form_data=request.form,
                                            roles=roles,
@@ -965,8 +728,7 @@ def employee_add():
                                            working_hours=working_hours,
                                            work_schedules=work_schedules,
                                            managers=managers,
-                                           companies=companies,
-                                           leave_groups=leave_groups)
+                                           companies=companies)
 
                 # Save image with unique name based on employee_id and timestamp
                 original = secure_filename(file.filename)
@@ -983,7 +745,7 @@ def employee_add():
             try:
                 # Generate username from employee_id (case sensitive)
                 username = employee.employee_id
-
+                
                 # Check if username already exists (should be unique)
                 if User.query.filter_by(username=username).first():
                     raise ValueError(f"User account with username '{username}' already exists")
@@ -1054,8 +816,8 @@ def employee_add():
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
-                                   managers=managers, companies=companies,
-                                   timezones=common_timezones)
+                                   managers=managers,
+                                   companies=companies)
 
     # Get managers for dropdown
     # Load master data for dropdowns
@@ -1087,14 +849,14 @@ def employee_view(employee_id):
 
     # Check permission
     if (current_user.role.name if current_user.role else None) == 'Employee':
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
+        if not (hasattr(current_user, 'employee_profile')
                 and current_user.employee_profile.id == employee_id):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
-    elif (current_user.role.name if current_user.role else None) == 'HR Manager':
-        # HR Manager can view any employee within the same organization.
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile and
-                employee.organization_id == current_user.employee_profile.organization_id):
+    elif (current_user.role.name if current_user.role else None) == 'Manager':
+        if not (hasattr(current_user, 'employee_profile') and
+                (current_user.employee_profile.id == employee_id
+                 or employee.manager_id == current_user.employee_profile.id)):
             flash('You do not have permission to view this employee.', 'error')
             return redirect(url_for('dashboard'))
 
@@ -1112,7 +874,7 @@ def employee_view(employee_id):
                            employee=employee,
                            recent_payslips=recent_payslips,
                            recent_attendance=recent_attendance,
-                           today=date.today()) # Pass today's date to the template
+                           today=date.today())
 
 
 @app.route('/profile')
@@ -1182,145 +944,37 @@ def profile():
     # of working_hours_list, working_hours_add, working_hours_edit and
     # working_hours_delete.
 
-    return render_template('employees/view.html',
-                           employee=employee,
-                           stats=stats,
-                           activities=activities,
-                           today=date.today()) # Pass today's date to the template
-
-
-@app.route('/profile/edit', methods=['GET', 'POST'])
-@require_login
-def profile_edit():
-    """Edit user's own profile information"""
-    if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
-        flash('Profile not found. Please contact your administrator.', 'error')
-        return redirect(url_for('profile'))
-
-    employee = current_user.employee_profile
-
-    if request.method == 'POST':
-        try:
-            # Update basic employee information
-            employee.first_name = request.form.get('first_name', '').strip()
-            employee.last_name = request.form.get('last_name', '').strip()
-
-            # Update banking details (Account Holder Name is OPTIONAL)
-            employee.bank_name = request.form.get('bank_name', '').strip()
-            employee.bank_account = request.form.get('bank_account', '').strip()
-            employee.account_holder_name = request.form.get('account_holder_name', '').strip() or None
-            employee.swift_code = request.form.get('swift_code', '').strip()
-            employee.ifsc_code = request.form.get('ifsc_code', '').strip()
-
-            # Update user information
-            current_user.first_name = employee.first_name
-            current_user.last_name = employee.last_name
-
-            db.session.commit()
-            flash('Profile updated successfully!', 'success')
-            return redirect(url_for('profile'))
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error updating profile: {str(e)}', 'error')
-            return redirect(url_for('profile_edit'))
-
-    # GET request - render the edit form
-    return render_template('profile_edit.html', employee=employee)
+    return redirect(url_for('profile'))
 
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin','HR Manager'])
+@require_role(['Super Admin', 'Admin'])
 def employee_edit(employee_id):
     """Edit employee details"""
     employee = Employee.query.get_or_404(employee_id)
 
     if request.method == 'POST':
         try:
-            # Ensure we start with a clean transaction state
-            db.session.rollback()
-
-            # Validation: Check required fields
-            first_name = request.form.get('first_name', '').strip()
-            last_name = request.form.get('last_name', '').strip()
-            designation_id = request.form.get('designation_id', '').strip()
-            company_id = request.form.get('company_id', '').strip()
-
-            if not first_name:
-                flash('First Name is required', 'error')
-                return redirect(url_for('employee_edit', employee_id=employee_id))
-
-            if not last_name:
-                flash('Last Name is required', 'error')
-                return redirect(url_for('employee_edit', employee_id=employee_id))
-
-            if not company_id:
-                flash('Company is required', 'error')
-                return redirect(url_for('employee_edit', employee_id=employee_id))
-
-            if not designation_id:
-                flash('Designation is required', 'error')
-                return redirect(url_for('employee_edit', employee_id=employee_id))
-
-            # Validation: Email format if provided
-            email = request.form.get('email', '').strip()
-            if email and not validate_email(email):
-                flash('Invalid email format', 'error')
-                return redirect(url_for('employee_edit', employee_id=employee_id))
-
-            # Update validated fields
-            employee.first_name = first_name
-            employee.last_name = last_name
-            employee.email = email if email else None
-
             # Update company_id from form
+            company_id = request.form.get('company_id')
             if company_id:
                 employee.company_id = company_id
             else:
                 employee.company_id = None
 
-            # Update designation_id
-            employee.designation_id = designation_id
-
-            phone = request.form.get('phone', '').strip()
-            employee.phone = phone if phone else None
-
-            # Validate NRIC (optional field)
-            nric = request.form.get('nric', '').upper()
-            if nric and not validate_nric(nric):
-                flash('Invalid NRIC format', 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-                leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
-                return render_template('employees/form.html',
-                                       form_data=request.form,
-                                       employee=employee,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       designations=designations,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies,
-                                       leave_groups=leave_groups,
-                                       current_user=current_user)
-
-            employee.nric = nric if nric else None # Set to None if empty
-            address = request.form.get('address', '').strip()
-            employee.address = address if address else None
-            postal_code = request.form.get('postal_code', '').strip()
-            employee.postal_code = postal_code if postal_code else None
+            employee.first_name = request.form.get('first_name')
+            employee.last_name = request.form.get('last_name')
+            email = request.form.get('email', '').strip()
+            employee.email = email if email else None
+            employee.phone = request.form.get('phone')
+            employee.nric = request.form.get('nric')
+            employee.address = request.form.get('address')
+            employee.postal_code = request.form.get('postal_code')
             employee.department = request.form.get('department')
             # Position field removed - use designation_id instead
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
-
+            
             work_permit_number = request.form.get('work_permit_number')
             if work_permit_number:
                 employee.work_permit_number = work_permit_number
@@ -1341,8 +995,6 @@ def employee_edit(employee_id):
             work_permit_expiry = request.form.get('work_permit_expiry')
             if work_permit_expiry:
                 employee.work_permit_expiry = parse_date(work_permit_expiry)
-            else:
-                employee.work_permit_expiry = None
 
             # Handle certifications and pass renewals
             hazmat_expiry = request.form.get('hazmat_expiry')
@@ -1357,8 +1009,11 @@ def employee_edit(employee_id):
             else:
                 employee.airport_pass_expiry = None
 
-            psa_pass_number = request.form.get('psa_pass_number', '').strip()
-            employee.psa_pass_number = psa_pass_number if psa_pass_number else None
+            psa_pass_number = request.form.get('psa_pass_number')
+            if psa_pass_number:
+                employee.psa_pass_number = psa_pass_number
+            else:
+                employee.psa_pass_number = None
 
             psa_pass_expiry = request.form.get('psa_pass_expiry')
             if psa_pass_expiry:
@@ -1366,40 +1021,12 @@ def employee_edit(employee_id):
             else:
                 employee.psa_pass_expiry = None
 
-            # Validate and convert salary fields
-            basic_salary = request.form.get('basic_salary', '').strip()
-            try:
-                employee.basic_salary = float(basic_salary) if basic_salary else 0
-                if employee.basic_salary < 0:
-                    flash('Basic Salary cannot be negative', 'error')
-                    return redirect(url_for('employee_edit', employee_id=employee_id))
-            except ValueError:
-                flash('Invalid Basic Salary value', 'error')
-                return redirect(url_for('employee_edit', employee_id=employee_id))
+            employee.basic_salary = float(request.form.get('basic_salary', 0))
+            employee.allowances = float(request.form.get('allowances', 0))
 
-            allowances = request.form.get('allowances', '').strip()
-            try:
-                employee.allowances = float(allowances) if allowances else 0
-                if employee.allowances < 0:
-                    flash('Allowances cannot be negative', 'error')
-                    return redirect(url_for('employee_edit', employee_id=employee_id))
-            except ValueError:
-                flash('Invalid Allowances value', 'error')
-                return redirect(url_for('employee_edit', employee_id=employee_id))
-
-            hourly_rate = request.form.get('hourly_rate', '').strip()
-            try:
-                if hourly_rate:
-                    hourly_rate_val = float(hourly_rate)
-                    if hourly_rate_val < 0:
-                        flash('Hourly Rate cannot be negative', 'error')
-                        return redirect(url_for('employee_edit', employee_id=employee_id))
-                    employee.hourly_rate = hourly_rate_val
-                else:
-                    employee.hourly_rate = None
-            except ValueError:
-                flash('Invalid Hourly Rate value', 'error')
-                return redirect(url_for('employee_edit', employee_id=employee_id))
+            hourly_rate = request.form.get('hourly_rate')
+            if hourly_rate:
+                employee.hourly_rate = float(hourly_rate)
 
             employee.cpf_account = request.form.get('cpf_account')
             employee.bank_name = request.form.get('bank_name')
@@ -1408,13 +1035,36 @@ def employee_edit(employee_id):
             employee.swift_code = request.form.get('swift_code')
             employee.ifsc_code = request.form.get('ifsc_code')
 
+            # Validate mandatory banking field
+            if not (employee.account_holder_name and employee.account_holder_name.strip()):
+                flash('Account Holder Name is required', 'error')
+                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+                # Position field removed - use designation_id instead
+                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                return render_template('employees/form.html',
+                                       form_data=request.form,
+                                       roles=roles,
+                                       user_roles=user_roles,
+                                       designations=designations,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers,
+                                       companies=companies)
+
             # Optional profile image replace on edit
             file = request.files.get('profile_image')
             if file and file.filename.strip():
                 if not _allowed_image(file.filename):
                     flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
                     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
                     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1432,8 +1082,7 @@ def employee_edit(employee_id):
                                            working_hours=working_hours,
                                            work_schedules=work_schedules,
                                            managers=managers,
-                                           companies=companies,
-                                           current_user=current_user)
+                                           companies=companies)
                 # Save new image
                 original = secure_filename(file.filename)
                 ext = original.rsplit('.', 1)[1].lower()
@@ -1475,18 +1124,8 @@ def employee_edit(employee_id):
             else:
                 employee.manager_id = None
 
-            # Set timezone
-            employee.timezone = request.form.get('timezone') or 'UTC'
-
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
-
-            # Set leave group
-            employee_group_id = request.form.get('employee_group_id')
-            if employee_group_id:
-                employee.employee_group_id = int(employee_group_id)
-            else:
-                employee.employee_group_id = None
 
             # Update user role if changed
             user_role_id = request.form.get('user_role_id')
@@ -1509,14 +1148,13 @@ def employee_edit(employee_id):
             flash(f'Error updating employee: {str(e)}', 'error')
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+            user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
             designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
             managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
             companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-            leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
             return render_template('employees/form.html',
                                    employee=employee,
                                    form_data=request.form,
@@ -1527,20 +1165,17 @@ def employee_edit(employee_id):
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
-                                   companies=companies,
-                                   leave_groups=leave_groups,
-                                   current_user=current_user)
+                                   companies=companies)
 
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
     managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
     companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-    leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.name).all()
 
     return render_template('employees/form.html',
                            employee=employee,
@@ -1551,63 +1186,12 @@ def employee_edit(employee_id):
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
-                           companies=companies,
-                           leave_groups=leave_groups)
-
-
-@app.route('/api/employees/<employee_id>', methods=['DELETE'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
-def delete_employee(employee_id):
-    """Delete an employee via DELETE method"""
-    try:
-        employee = Employee.query.get_or_404(employee_id)
-        employee_name = f"{employee.first_name} {employee.last_name}"
-        employee_id_str = employee.employee_id
-
-        db.session.delete(employee)
-        db.session.commit()
-
-        logger.warning(f"Employee deleted: {employee_name} ({employee_id_str}) by {get_current_user_email()}")
-
-        return jsonify({
-            'success': True,
-            'message': f'Employee {employee_name} deleted successfully'
-        }), 200
-
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error deleting employee: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/api/employees/<int:employee_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
-def delete_employee_post(employee_id):
-    """Delete an employee via POST method (alternative endpoint)"""
-    try:
-        employee = Employee.query.get_or_404(employee_id)
-        employee_name = f"{employee.first_name} {employee.last_name}"
-        employee_id_str = employee.employee_id
-
-        db.session.delete(employee)
-        db.session.commit()
-
-        logger.warning(f"Employee deleted: {employee_name} ({employee_id_str}) by {get_current_user_email()}")
-
-        return jsonify({
-            'success': True,
-            'message': f'Employee {employee_name} deleted successfully'
-        }), 200
-
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error deleting employee: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+                           companies=companies)
 
 
 # Payroll Management Routes
 @app.route('/payroll')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager', 'HR Manager'])
 def payroll_list():
     """List payroll records"""
     page = request.args.get('page', 1, type=int)
@@ -1622,8 +1206,8 @@ def payroll_list():
             extract('year', Payroll.pay_period_end) == year)
 
     # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                  'employee_profile') and current_user.employee_profile:
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                  'employee_profile'):
         # Manager: Their own payroll + their team's payroll
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -1662,7 +1246,7 @@ def payroll_generate():
             pay_period_end = date(year, month, last_day)
 
             generated_count = 0
-            updated_count = 0
+            skipped_count = 0
 
             for emp_id in selected_employees:
                 employee = Employee.query.get(int(emp_id))
@@ -1675,29 +1259,17 @@ def payroll_generate():
                     pay_period_start=pay_period_start,
                     pay_period_end=pay_period_end).first()
 
+                if existing:
+                    skipped_count += 1
+                    continue
+
                 # Get payroll config
                 config = employee.payroll_config
 
-                # Calculate allowances from both sources
+                # Calculate allowances
                 total_allowances = 0
-                ot_allowances = 0
-
-                # Get OT Daily Summary records for this period
-                ot_daily_records = OTDailySummary.query.filter_by(
-                    employee_id=employee.id).filter(
-                        OTDailySummary.ot_date.between(pay_period_start,
-                                                       pay_period_end)).all()
-
-                # Sum OT allowances from Daily Summary
-                for ot_record in ot_daily_records:
-                    ot_allowances += float(ot_record.total_allowances or 0)
-
-                # Get allowances from payroll config
                 if config:
                     total_allowances = float(config.get_total_allowances())
-
-                # Total allowances = config allowances + OT special allowances
-                total_allowances = total_allowances + ot_allowances
 
                 # Get attendance data for overtime calculation
                 attendance_records = Attendance.query.filter_by(
@@ -1708,19 +1280,9 @@ def payroll_generate():
                 total_overtime = sum(float(record.overtime_hours or 0)
                                      for record in attendance_records)
 
-                # Also add OT hours from OT Daily Summary
-                ot_from_daily_summary = sum(float(record.ot_hours or 0)
-                                           for record in ot_daily_records)
-                total_overtime += ot_from_daily_summary
-
-                # Calculate OT pay - use the amount from daily summary if available
-                overtime_pay = sum(float(record.ot_amount or 0)
-                                  for record in ot_daily_records)
-
-                # If no daily summary OT, calculate from attendance
-                if overtime_pay == 0 and total_overtime > 0:
-                    ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
-                    overtime_pay = (total_overtime - ot_from_daily_summary) * ot_rate
+                # Calculate OT pay
+                ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
+                overtime_pay = total_overtime * ot_rate
 
                 # Calculate gross pay
                 basic_pay = float(employee.basic_salary)
@@ -1733,53 +1295,64 @@ def payroll_generate():
                 # Calculate net pay
                 net_pay = gross_pay - employee_cpf
 
-                # Update or create payroll record
-                if existing:
-                    # Update existing payroll
-                    existing.basic_pay = basic_pay
-                    existing.overtime_pay = overtime_pay
-                    existing.allowances = total_allowances
-                    existing.bonuses = 0
-                    existing.gross_pay = gross_pay
-                    existing.employee_cpf = employee_cpf
-                    existing.employer_cpf = employer_cpf
-                    existing.income_tax = 0
-                    existing.other_deductions = 0
-                    existing.net_pay = net_pay
-                    existing.overtime_hours = total_overtime
-                    existing.days_worked = len(attendance_records)
-                    existing.generated_by = current_user.id
-                    existing.status = 'Draft'
-                    updated_count += 1
-                else:
-                    # Create new payroll record
-                    payroll = Payroll()
-                    payroll.employee_id = employee.id
-                    payroll.pay_period_start = pay_period_start
-                    payroll.pay_period_end = pay_period_end
-                    payroll.basic_pay = basic_pay
-                    payroll.overtime_pay = overtime_pay
-                    payroll.allowances = total_allowances
-                    payroll.bonuses = 0
-                    payroll.gross_pay = gross_pay
-                    payroll.employee_cpf = employee_cpf
-                    payroll.employer_cpf = employer_cpf
-                    payroll.income_tax = 0
-                    payroll.other_deductions = 0
-                    payroll.net_pay = net_pay
-                    payroll.overtime_hours = total_overtime
-                    payroll.days_worked = len(attendance_records)
-                    payroll.generated_by = current_user.id
-                    payroll.status = 'Draft'
-                    db.session.add(payroll)
-                    generated_count += 1
+                # Create payroll record
+                payroll = Payroll()
+                payroll.employee_id = employee.id
+                payroll.pay_period_start = pay_period_start
+                payroll.pay_period_end = pay_period_end
+                payroll.basic_pay = basic_pay
+                payroll.overtime_pay = overtime_pay
+                payroll.allowances = total_allowances
+                payroll.bonuses = 0
+                payroll.gross_pay = gross_pay
+                payroll.employee_cpf = employee_cpf
+                payroll.employer_cpf = employer_cpf
+                payroll.income_tax = 0
+                payroll.other_deductions = 0
+                payroll.net_pay = net_pay
+                payroll.overtime_hours = total_overtime
+                payroll.days_worked = len(attendance_records)
+                payroll.generated_by = current_user.id
+                payroll.status = 'Draft'
+
+                db.session.add(payroll)
+                generated_count += 1
 
             db.session.commit()
 
-            message = f'Payroll processed: {generated_count} new employee(s) created'
-            if updated_count > 0:
-                message += f', {updated_count} updated with recalculated values'
-            message += '.'
+            # Create salary slip documents for newly generated payrolls
+            for emp_id in selected_employees:
+                employee = Employee.query.get(int(emp_id))
+                if not employee:
+                    continue
+
+                # Check if salary slip document already exists for this period
+                existing_doc = EmployeeDocument.query.filter_by(
+                    employee_id=employee.id,
+                    document_type='Salary Slip',
+                    month=month,
+                    year=year
+                ).first()
+
+                # Create salary slip document if it doesn't exist
+                if not existing_doc:
+                    salary_slip_doc = EmployeeDocument(
+                        employee_id=employee.id,
+                        document_type='Salary Slip',
+                        file_path=f'payroll/{year}/{month:02d}/{employee.id}',
+                        issue_date=datetime.now().date(),
+                        month=month,
+                        year=year,
+                        description=f"Salary Slip for {datetime(year, month, 1).strftime('%B %Y')}",
+                        uploaded_by=current_user.id
+                    )
+                    db.session.add(salary_slip_doc)
+
+            db.session.commit()
+
+            message = f'Generated payroll for {generated_count} employee(s)'
+            if skipped_count > 0:
+                message += f'. Skipped {skipped_count} employee(s) with existing payroll.'
 
             flash(message, 'success')
             return redirect(url_for('payroll_list'))
@@ -1792,9 +1365,16 @@ def payroll_generate():
     from datetime import datetime as dt
     current_month = dt.now().month
     current_year = dt.now().year
-
-    # Fetch active companies for dropdown
-    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+    
+    # Get companies for current user's organization/tenant
+    companies = []
+    if current_user and current_user.organization:
+        tenant_id = current_user.organization.tenant_id
+        if tenant_id:
+            companies = Company.query.filter_by(
+                tenant_id=tenant_id,
+                is_active=True
+            ).order_by(Company.name).all()
 
     return render_template('payroll/generate.html',
                          current_month=current_month,
@@ -1808,13 +1388,6 @@ def payroll_config():
     """Payroll configuration page - manage employee salary allowances and OT rates"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
-    per_page = request.args.get('per_page', 15, type=int)
-    sort_by = request.args.get('sort_by', 'employee_id')
-    sort_order = request.args.get('sort_order', 'asc')
-
-    # Validate per_page
-    if per_page not in [15, 25, 50, 100]:
-        per_page = 15
 
     # Query active employees
     query = Employee.query.filter_by(is_active=True)
@@ -1828,15 +1401,8 @@ def payroll_config():
             )
         )
 
-    # Apply sorting
-    sort_column = getattr(Employee, sort_by, Employee.employee_id)
-    if sort_order.lower() == 'desc':
-        query = query.order_by(sort_column.desc())
-    else:
-        query = query.order_by(sort_column.asc())
-
-    employees = query.paginate(
-        page=page, per_page=per_page, error_out=False
+    employees = query.order_by(Employee.employee_id).paginate(
+        page=page, per_page=20, error_out=False
     )
 
     # Get or create payroll configurations for each employee
@@ -1851,8 +1417,7 @@ def payroll_config():
         db.session.rollback()
         print(f"Error creating payroll configs: {e}")
 
-    return render_template('payroll/config.html', employees=employees, search=search, 
-                         per_page=per_page, sort_by=sort_by, sort_order=sort_order)
+    return render_template('payroll/config.html', employees=employees, search=search)
 
 
 @app.route('/payroll/config/update', methods=['POST'])
@@ -1912,23 +1477,21 @@ def payroll_config_update():
 def payroll_preview_api():
     """API endpoint to preview payroll data for selected month"""
     try:
-        company_id = request.args.get('company_id')
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        company_id = request.args.get('company_id', type=str)
 
-        if not company_id or not month or not year:
+        if not month or not year:
             return jsonify({
                 'success': False,
-                'message': 'Company ID, month, and year are required'
+                'message': 'Month and year are required'
             }), 400
 
-        # Verify company exists
-        company = Company.query.get(company_id)
-        if not company:
+        if not company_id:
             return jsonify({
                 'success': False,
-                'message': 'Selected company not found'
-            }), 404
+                'message': 'Company ID is required'
+            }), 400
 
         # Calculate pay period
         from calendar import monthrange
@@ -1944,92 +1507,60 @@ def payroll_preview_api():
 
         employee_data = []
         for emp in employees:
-            try:
-                # Check if payroll is already generated for this month
-                existing_payroll = Payroll.query.filter_by(
-                    employee_id=emp.id
-                ).filter(
-                    Payroll.pay_period_start.between(pay_period_start, pay_period_end)
-                ).first()
-                payroll_generated = existing_payroll is not None
-                
-                # Get payroll config
-                config = emp.payroll_config
+            # Get payroll config
+            config = emp.payroll_config
 
-                # Calculate allowances - safely handle None values
-                allowance_1 = float(config.allowance_1_amount or 0) if config and config.allowance_1_amount else 0
-                allowance_2 = float(config.allowance_2_amount or 0) if config and config.allowance_2_amount else 0
-                allowance_3 = float(config.allowance_3_amount or 0) if config and config.allowance_3_amount else 0
-                allowance_4 = float(config.allowance_4_amount or 0) if config and config.allowance_4_amount else 0
-                
-                # Get OT allowance from OT summary (total approved OT allowances for this month)
-                ot_allowance = 0
-                ot_summary = PayrollOTSummary.query.filter_by(
-                    employee_id=emp.id
-                ).filter(
-                    PayrollOTSummary.payroll_period_start.between(pay_period_start, pay_period_end)
-                ).first()
-                if ot_summary and ot_summary.total_ot_allowance:
-                    ot_allowance = float(ot_summary.total_ot_allowance or 0)
-                
-                total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4 + ot_allowance
+            # Calculate allowances
+            allowance_1 = float(config.allowance_1_amount) if config else 0
+            allowance_2 = float(config.allowance_2_amount) if config else 0
+            allowance_3 = float(config.allowance_3_amount) if config else 0
+            allowance_4 = float(config.allowance_4_amount) if config else 0
+            total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
 
-                # Get attendance data for the month
-                attendance_records = Attendance.query.filter_by(
-                    employee_id=emp.id
-                ).filter(
-                    Attendance.date.between(pay_period_start, pay_period_end)
-                ).all()
+            # Get attendance data for the month
+            attendance_records = Attendance.query.filter_by(
+                employee_id=emp.id
+            ).filter(
+                Attendance.date.between(pay_period_start, pay_period_end)
+            ).all()
 
-                attendance_days = len(attendance_records)
-                total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
+            attendance_days = len(attendance_records)
+            total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
 
-                # Calculate OT amount - safely handle None values
-                ot_rate = 0
-                if config and config.ot_rate_per_hour:
-                    ot_rate = float(config.ot_rate_per_hour)
-                elif emp.hourly_rate:
-                    ot_rate = float(emp.hourly_rate)
-                ot_amount = total_ot_hours * ot_rate
+            # Calculate OT amount
+            ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(emp.hourly_rate or 0)
+            ot_amount = total_ot_hours * ot_rate
 
-                # Calculate gross salary - safely handle None values
-                basic_salary = float(emp.basic_salary or 0)
-                gross_salary = basic_salary + total_allowances + ot_amount
+            # Calculate gross salary
+            basic_salary = float(emp.basic_salary)
+            gross_salary = basic_salary + total_allowances + ot_amount
 
-                # Calculate CPF deductions - safely handle None values
-                cpf_rate = float(emp.employee_cpf_rate or 20.0)
-                cpf_deduction = gross_salary * (cpf_rate / 100)
+            # Calculate CPF deductions (simplified - using employee rate)
+            cpf_deduction = gross_salary * (float(emp.employee_cpf_rate) / 100)
 
-                # Calculate net salary
-                total_deductions = cpf_deduction
-                net_salary = gross_salary - total_deductions
+            # Calculate net salary
+            total_deductions = cpf_deduction
+            net_salary = gross_salary - total_deductions
 
-                employee_data.append({
-                    'id': emp.id,
-                    'employee_id': emp.employee_id,
-                    'name': f"{emp.first_name} {emp.last_name}",
-                    'basic_salary': basic_salary,
-                    'allowance_1': allowance_1,
-                    'allowance_2': allowance_2,
-                    'allowance_3': allowance_3,
-                    'allowance_4': allowance_4,
-                    'ot_allowance': ot_allowance,
-                    'total_allowances': total_allowances,
-                    'ot_hours': total_ot_hours,
-                    'ot_rate': ot_rate,
-                    'ot_amount': ot_amount,
-                    'attendance_days': attendance_days,
-                    'gross_salary': gross_salary,
-                    'cpf_deduction': cpf_deduction,
-                    'total_deductions': total_deductions,
-                    'net_salary': net_salary,
-                    'payroll_generated': payroll_generated
-                })
-            except Exception as emp_error:
-                # Log the error but continue with other employees
-                import logging
-                logging.error(f"Error processing employee {emp.id}: {str(emp_error)}")
-                continue
+            employee_data.append({
+                'id': emp.id,
+                'employee_id': emp.employee_id,
+                'name': f"{emp.first_name} {emp.last_name}",
+                'basic_salary': basic_salary,
+                'allowance_1': allowance_1,
+                'allowance_2': allowance_2,
+                'allowance_3': allowance_3,
+                'allowance_4': allowance_4,
+                'total_allowances': total_allowances,
+                'ot_hours': total_ot_hours,
+                'ot_rate': ot_rate,
+                'ot_amount': ot_amount,
+                'attendance_days': attendance_days,
+                'gross_salary': gross_salary,
+                'cpf_deduction': cpf_deduction,
+                'total_deductions': total_deductions,
+                'net_salary': net_salary
+            })
 
         return jsonify({
             'success': True,
@@ -2039,8 +1570,6 @@ def payroll_preview_api():
         })
 
     except Exception as e:
-        import logging
-        logging.error(f"Payroll preview API error: {str(e)}")
         return jsonify({
             'success': False,
             'message': f'Error loading payroll preview: {str(e)}'
@@ -2048,28 +1577,26 @@ def payroll_preview_api():
 
 
 @app.route('/payroll/<int:payroll_id>/payslip')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
 @require_login
 def payroll_payslip(payroll_id):
     """View/download payslip"""
     payroll = Payroll.query.get_or_404(payroll_id)
 
     # Check permission
-    user_role = current_user.role.name if current_user.role else None
-
-    if user_role == 'Employee':
-        # Employees can only view their own payslips
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
+    if (current_user.role.name if current_user.role else None) == 'Employee':
+        if not (hasattr(current_user, 'employee_profile')
                 and current_user.employee_profile.id == payroll.employee_id):
             flash('You do not have permission to view this payslip.', 'error')
             return redirect(url_for('dashboard'))
-    elif user_role in ['HR Manager', 'Admin', 'Super Admin']:
-        # HR Manager, Admin and Super Admin: Can view all payslips
+    elif (current_user.role.name if current_user.role else None) == 'Manager':
+        if not (hasattr(current_user, 'employee_profile')
+                and payroll.employee.manager_id
+                == current_user.employee_profile.id):
+            flash('You do not have permission to view this payslip.', 'error')
+            return redirect(url_for('dashboard'))
+    elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin']:
+        # Admin and Super Admin: Can view all payslips
         pass  # No restriction - they can see all
-    else:
-        # Any other role cannot view payslips
-        flash('You do not have permission to view this payslip.', 'error')
-        return redirect(url_for('dashboard'))
 
     # Prepare data for template
     employee = payroll.employee
@@ -2130,105 +1657,6 @@ def payroll_payslip(payroll_id):
                          deductions=deductions)
 
 
-@app.route('/payroll/<int:payroll_id>/download-pdf')
-@require_role(['Super Admin', 'Admin', 'HR Manager', 'Employee'])
-@require_login
-def payroll_download_pdf(payroll_id):
-    """Download payslip as PDF (or view as printable HTML)"""
-
-    payroll = Payroll.query.get_or_404(payroll_id)
-
-    # Check permission
-    user_role = current_user.role.name if current_user.role else None
-
-    if user_role == 'Employee':
-        # Employees can only download their own payslips
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile
-                and current_user.employee_profile.id == payroll.employee_id):
-            return jsonify({'error': 'Permission denied'}), 403
-    elif user_role in ['HR Manager', 'Admin', 'Super Admin']:
-        # HR Manager, Admin and Super Admin: Can download all payslips
-        pass
-    else:
-        return jsonify({'error': 'Permission denied'}), 403
-
-    try:
-        # Prepare data for template
-        employee = payroll.employee
-        company = employee.organization
-
-        # Calculate pay date (end of pay period)
-        pay_date = payroll.pay_period_end.strftime('%d %b %Y')
-
-        # Prepare employee data
-        employee_data = {
-            'name': f"{employee.first_name} {employee.last_name}",
-            'employee_id': employee.employee_id,
-            'designation': employee.designation.name if employee.designation else 'N/A',
-            'department': employee.department.name if employee.department else 'N/A',
-            'nric': employee.nric or 'N/A'
-        }
-
-        # Prepare earnings data
-        earnings = {
-            'regular_pay_rate': f"{float(employee.basic_salary):,.2f}",
-            'regular_pay_amount': f"{float(payroll.basic_pay):,.2f}",
-            'overtime_pay_rate': f"{float(employee.hourly_rate or 0):,.2f}" if employee.hourly_rate else "0.00",
-            'overtime_hours': f"{float(payroll.overtime_hours):,.2f}",
-            'overtime_amount': f"{float(payroll.overtime_pay):,.2f}",
-            'holiday_pay': "0.00",
-            'vacation_pay': "0.00",
-            'others': f"{float(payroll.allowances + payroll.bonuses):,.2f}"
-        }
-
-        # Prepare deductions data
-        deductions = {
-            'income_tax': f"{float(payroll.income_tax):,.2f}",
-            'medical': "0.00",
-            'life_insurance': "0.00",
-            'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
-            'others': f"{float(payroll.other_deductions):,.2f}"
-        }
-
-        # Prepare company data
-        company_data = {
-            'name': company.name,
-            'address': company.address or 'N/A',
-            'uen': company.uen or 'N/A'
-        }
-
-        # Prepare payroll summary
-        payroll_data = {
-            'pay_date': pay_date,
-            'total_earnings': f"{float(payroll.gross_pay):,.2f}",
-            'total_deductions': f"{float(payroll.employee_cpf + payroll.income_tax + payroll.other_deductions):,.2f}",
-            'net_pay': f"{float(payroll.net_pay):,.2f}"
-        }
-
-        # Render HTML
-        html_string = render_template('payroll/payslip.html',
-                                     payroll=payroll_data,
-                                     employee=employee_data,
-                                     company=company_data,
-                                     earnings=earnings,
-                                     deductions=deductions,
-                                     is_printable=True)
-
-        # Return printable HTML view
-        # User can print to PDF using Ctrl+P or browser print menu
-        return render_template('payroll/payslip_print.html',
-                             payroll=payroll_data,
-                             employee=employee_data,
-                             company=company_data,
-                             earnings=earnings,
-                             deductions=deductions,
-                             can_print=True)
-
-    except Exception as e:
-        logging.error(f"Payroll PDF download failed: {str(e)}")
-        return jsonify({'error': f'Download failed: {str(e)}'}), 500
-
-
 @app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])
 @require_role(['Super Admin', 'Admin'])
 def payroll_approve(payroll_id):
@@ -2248,20 +1676,13 @@ def payroll_approve(payroll_id):
 
 
 # Attendance Management Routes
-@app.route('/attendance/list')
+@app.route('/attendance', endpoint='attendance_list_view')
 @require_login
-def attendance_list_view():
-    """List attendance records (List View)"""
+def attendance_list():
+    """List attendance records"""
     page = request.args.get('page', 1, type=int)
     date_filter = request.args.get('date', type=str)
     employee_filter = request.args.get('employee', type=int)
-    per_page = request.args.get('per_page', 15, type=int)
-    sort_by = request.args.get('sort_by', 'date', type=str)
-    sort_order = request.args.get('sort_order', 'desc', type=str)
-    
-    # Validate per_page parameter
-    if per_page not in [15, 25, 50, 100]:
-        per_page = 15
 
     query = Attendance.query.join(Employee)
 
@@ -2278,7 +1699,7 @@ def attendance_list_view():
         # Employee: Only their own attendance
         employee_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == employee_id)
-    elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager: Their own attendance + their team's attendance
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -2295,27 +1716,8 @@ def attendance_list_view():
         # Super Admin: Can see all attendance records
         pass
 
-    # Apply sorting
-    if sort_by == 'employee':
-        order_col = Employee.first_name
-    elif sort_by == 'status':
-        order_col = Attendance.status
-    elif sort_by == 'clock_in':
-        order_col = Attendance.clock_in
-    elif sort_by == 'clock_out':
-        order_col = Attendance.clock_out
-    elif sort_by == 'total_hours':
-        order_col = Attendance.total_hours
-    else:
-        order_col = Attendance.date
-    
-    if sort_order == 'asc':
-        query = query.order_by(order_col.asc())
-    else:
-        query = query.order_by(order_col.desc())
-
-    attendance_records = query.paginate(
-        page=page, per_page=per_page, error_out=False)
+    attendance_records = query.order_by(Attendance.date.desc()).paginate(
+        page=page, per_page=20, error_out=False)
 
     # Get employees for filter dropdown based on role
     employees = []
@@ -2323,7 +1725,7 @@ def attendance_list_view():
         # Super Admin can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
-    elif (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager can filter by themselves and their team
         manager_id = current_user.employee_profile.id
         employees = Employee.query.filter(
@@ -2337,18 +1739,13 @@ def attendance_list_view():
                            attendance_records=attendance_records,
                            employees=employees,
                            date_filter=date_filter,
-                           employee_filter=employee_filter,
-                           per_page=per_page,
-                           sort_by=sort_by,
-                           sort_order=sort_order)
+                           employee_filter=employee_filter)
 
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])
 @require_login
 def attendance_mark():
     """Mark attendance (for employees)"""
-    from pytz import timezone, utc
-
     if request.method == 'POST':
         try:
             if not hasattr(
@@ -2358,14 +1755,7 @@ def attendance_mark():
                       'error')
                 return redirect(url_for('dashboard'))
 
-            # Get timezone from user's company configuration
-            # Use company timezone for consistent date calculation across all employees
-            timezone_str = current_user.company.timezone if current_user.company else 'UTC'
-            company_tz = timezone(timezone_str)
-
-            # Get current time in UTC and company's local date
-            now_utc = datetime.now(utc)
-            today = now_utc.astimezone(company_tz).date()
+            today = date.today()
             employee_id = current_user.employee_profile.id
 
             # Check if already marked today
@@ -2374,8 +1764,7 @@ def attendance_mark():
 
             action = request.form.get(
                 'action')  # clock_in, clock_out, break_start, break_end
-            # Get current time in company's timezone (not UTC)
-            current_time = now_utc.astimezone(company_tz).time()
+            current_time = datetime.now().time()
 
             if action == 'clock_in':
                 # Check for incomplete attendance from previous day(s)
@@ -2434,17 +1823,7 @@ def attendance_mark():
                     attendance.employee_id = employee_id
                     attendance.date = today
                     attendance.clock_in = current_time
-                    
-                    # Determine status based on grace period logic
-                    # Working hours: 9:00 AM to 6:00 PM
-                    # Grace period: 15 minutes (9:15 AM)
-                    grace_period_end = time(9, 15)  # 9:15 AM
-                    if current_time >= grace_period_end:
-                        attendance.status = 'Late'
-                    else:
-                        attendance.status = 'Present'
-                    
-                    attendance.timezone = timezone_str
+                    attendance.status = 'Present'
 
                     # Get location if provided
                     lat = request.form.get('latitude')
@@ -2458,9 +1837,6 @@ def attendance_mark():
                 else:
                     flash('Already clocked in for today', 'warning')
             elif existing:
-                # Update timezone for existing record
-                existing.timezone = timezone_str
-
                 # Update existing record
                 if action == 'clock_out':
                     existing.clock_out = current_time
@@ -2512,56 +1888,39 @@ def attendance_mark():
                     return redirect(url_for('attendance_mark'))
 
             db.session.commit()
-            # Redirect back to dashboard after successful action
-            return redirect(url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error marking attendance: {str(e)}', 'error')
-            return redirect(url_for('dashboard'))
 
-    # GET request - render the mark attendance form
     # Get today's attendance record
     today_attendance = None
-    company_timezone = 'UTC'  # Default timezone
     if hasattr(current_user,
                'employee_profile') and current_user.employee_profile:
-        # Get company timezone and calculate their current date
-        employee = current_user.employee_profile
-        company_id = employee.company_id
-        from models import Company
-        company = Company.query.get(company_id) if company_id else None
-        company_timezone = company.timezone if company and company.timezone else 'UTC'
-        
-        from pytz import timezone, utc
-        company_tz_obj = timezone(company_timezone)
-        employee_today = datetime.now(utc).astimezone(company_tz_obj).date()
-
         today_attendance = Attendance.query.filter_by(
-            employee_id=employee.id,
-            date=employee_today).first()
+            employee_id=current_user.employee_profile.id,
+            date=date.today()).first()
     else:
         flash(
             'You need an employee profile to mark attendance. Contact your administrator.',
             'warning')
 
     return render_template('attendance/form.html',
-                           today_attendance=today_attendance,
-                           company_timezone=company_timezone)
+                           today_attendance=today_attendance)
 
 
 @app.route('/attendance/correct/<int:attendance_id>', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def attendance_correct(attendance_id):
     """Correct incomplete attendance records (Manager only)"""
     attendance = Attendance.query.get_or_404(attendance_id)
 
     # Check if manager can access this employee's record
-    if (current_user.role.name if current_user.role else None) == 'HR Manager':
-        if not (hasattr(current_user, 'employee_profile') and current_user.employee_profile) or \
+    if (current_user.role.name if current_user.role else None) == 'Manager':
+        if not hasattr(current_user, 'employee_profile') or \
            attendance.employee.manager_id != current_user.employee_profile.id:
             flash('Access denied', 'error')
-            return redirect(url_for('attendance_list_view'))
+            return redirect(url_for('attendance_list'))
 
     if request.method == 'POST':
         try:
@@ -2609,7 +1968,7 @@ def attendance_correct(attendance_id):
 
             db.session.commit()
             flash('Attendance record corrected successfully', 'success')
-            return redirect(url_for('attendance_list_view'))
+            return redirect(url_for('attendance_list'))
 
         except Exception as e:
             db.session.rollback()
@@ -2664,7 +2023,7 @@ def auto_complete_incomplete_attendance():
 
 
 @app.route('/attendance/incomplete')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def attendance_incomplete():
     """View incomplete attendance records that need correction"""
     # Find incomplete attendance records from the last 7 days
@@ -2675,10 +2034,10 @@ def attendance_incomplete():
         Attendance.clock_out.is_(None)).join(Employee)
 
     # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user,
-                                                  'employee_profile') and current_user.employee_profile:
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                  'employee_profile'):
         query = query.filter(
-            Employee.organization_id == current_user.organization_id)
+            Employee.manager_id == current_user.employee_profile.id)
 
     incomplete_records = query.order_by(Attendance.date.desc()).all()
 
@@ -2687,7 +2046,7 @@ def attendance_incomplete():
 
 
 @app.route('/attendance/bulk', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
 def attendance_bulk_manage():
     """Bulk attendance management - mark employees as absent for a specific date"""
     selected_date = request.args.get('date') or request.form.get('date')
@@ -2711,7 +2070,7 @@ def attendance_bulk_manage():
             employees_query = Employee.query.filter_by(is_active=True)
 
             # Apply role-based filtering
-            if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
                 # Manager: Can manage their team + themselves
                 manager_id = current_user.employee_profile.id
                 employees_query = employees_query.filter(
@@ -2746,17 +2105,7 @@ def attendance_bulk_manage():
                         attendance.overtime_hours = 0
                         attendance.total_hours = 0
                     else:
-                        # Determine status based on grace period logic
-                        # If employee has clocked in, check against grace period
-                        if attendance.clock_in:
-                            grace_period_end = time(9, 15)  # 9:15 AM
-                            if attendance.clock_in >= grace_period_end:
-                                attendance.status = 'Late'
-                            else:
-                                attendance.status = 'Present'
-                        else:
-                            attendance.status = 'Present'
-                        
+                        attendance.status = 'Present'
                         # For present employees, set default 8 hours if not manually clocked
                         if not attendance.clock_in and not attendance.clock_out:
                             attendance.regular_hours = 8
@@ -2778,7 +2127,7 @@ def attendance_bulk_manage():
     employees_query = Employee.query.filter_by(is_active=True)
 
     # Apply role-based filtering for display
-    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         manager_id = current_user.employee_profile.id
         employees_query = employees_query.filter(
             db.or_(
@@ -2826,4 +2175,520 @@ def create_daily_attendance_records(target_date, employees=None):
             # Create new attendance record with default Present status
             attendance = Attendance()
             attendance.employee_id = employee.id
-            attendance.da
+            attendance.date = target_date
+            attendance.status = 'Present'
+            attendance.regular_hours = 8  # Default 8 hours for present employees
+            attendance.total_hours = 8
+            attendance.overtime_hours = 0
+            attendance.remarks = 'Auto-generated attendance record'
+
+            db.session.add(attendance)
+            created_count += 1
+
+    if created_count > 0:
+        db.session.commit()
+        print(f"Created {created_count} attendance records for {target_date}")
+
+    return created_count
+
+
+def auto_create_daily_attendance():
+    """Auto-create attendance records for all active employees for today"""
+    today = date.today()
+    employees = Employee.query.filter_by(is_active=True).all()
+    return create_daily_attendance_records(today, employees)
+
+
+@app.route('/attendance/auto-create', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def attendance_auto_create():
+    """Manual trigger for creating daily attendance records - useful for Render deployment"""
+    try:
+        target_date_str = request.form.get('date')
+        if target_date_str:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        else:
+            target_date = date.today()
+
+        # Get all active employees
+        employees = Employee.query.filter_by(is_active=True).all()
+
+        # Create attendance records
+        created_count = create_daily_attendance_records(target_date, employees)
+
+        if created_count > 0:
+            flash(f'Successfully created attendance records for {created_count} employees on {target_date}', 'success')
+        else:
+            flash(f'Attendance records already exist for all employees on {target_date}', 'info')
+
+    except ValueError:
+        flash('Invalid date format. Please use YYYY-MM-DD format.', 'error')
+    except Exception as e:
+        flash(f'Error creating attendance records: {str(e)}', 'error')
+
+    return redirect(url_for('attendance_bulk_manage'))
+
+
+@app.route('/api/attendance/auto-create', methods=['POST'])
+def api_attendance_auto_create():
+    """API endpoint for creating daily attendance records - for external cron services"""
+    try:
+        # Simple API key authentication (you should set this in environment variables)
+        api_key = request.headers.get('X-API-Key') or request.form.get('api_key')
+        expected_api_key = os.environ.get('ATTENDANCE_API_KEY', 'your-secret-api-key-here')
+
+        if api_key != expected_api_key:
+            return {'error': 'Invalid API key'}, 401
+
+        target_date_str = request.form.get('date') or request.json.get('date') if request.is_json else None
+        if target_date_str:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        else:
+            target_date = date.today()
+
+        # Get all active employees
+        employees = Employee.query.filter_by(is_active=True).all()
+
+        # Create attendance records
+        created_count = create_daily_attendance_records(target_date, employees)
+
+        return {
+            'success': True,
+            'message': f'Created attendance records for {created_count} employees on {target_date}',
+            'date': target_date.strftime('%Y-%m-%d'),
+            'created_count': created_count
+        }, 200
+
+    except ValueError:
+        return {'error': 'Invalid date format. Please use YYYY-MM-DD format.'}, 400
+    except Exception as e:
+        return {'error': f'Error creating attendance records: {str(e)}'}, 500
+
+
+# Leave Management Routes have been moved to routes_leave.py
+# See routes_leave.py for leave_list, leave_request, leave_edit, leave_approve
+
+
+# Claims Management Routes
+@app.route('/claims')
+@require_login
+def claims_list():
+    """List claims"""
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', type=str)
+
+    query = Claim.query.join(Employee)
+
+    if status_filter:
+        query = query.filter(Claim.status == status_filter)
+
+    # Role-based filtering
+    if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
+                                                   'employee_profile'):
+        query = query.filter(
+            Claim.employee_id == current_user.employee_profile.id)
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                    'employee_profile'):
+        query = query.filter(
+            Employee.manager_id == current_user.employee_profile.id)
+
+    claims = query.order_by(Claim.created_at.desc()).paginate(page=page,
+                                                              per_page=20,
+                                                              error_out=False)
+
+    return render_template('claims/list.html',
+                           claims=claims,
+                           status_filter=status_filter)
+
+
+@app.route('/claims/submit', methods=['GET', 'POST'])
+@require_login
+def claims_submit():
+    """Submit new claim"""
+    if request.method == 'POST':
+        try:
+            if not hasattr(
+                    current_user,
+                    'employee_profile') or not current_user.employee_profile:
+                flash('Employee profile required for attendance marking',
+                      'error')
+                return redirect(url_for('dashboard'))
+
+            claim = Claim()
+            claim.employee_id = current_user.employee_profile.id
+            claim.claim_type = request.form.get('claim_type')
+            amount_str = request.form.get('amount')
+            claim.amount = float(amount_str) if amount_str else 0.0
+            claim.claim_date = parse_date(request.form.get('claim_date'))
+            claim.description = request.form.get('description')
+            claim.receipt_number = request.form.get('receipt_number')
+            claim.submitted_by = current_user.id
+
+            db.session.add(claim)
+            db.session.commit()
+
+            flash('Claim submitted successfully', 'success')
+            return redirect(url_for('claims_list'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error submitting claim: {str(e)}', 'error')
+
+    return render_template('claims/form.html')
+
+
+@app.route('/claims/<int:claim_id>/approve', methods=['POST'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
+def claims_approve(claim_id):
+    """Approve/reject claim"""
+    claim = Claim.query.get_or_404(claim_id)
+
+    try:
+        action = request.form.get('action')
+
+        if action == 'approve':
+            claim.status = 'Approved'
+            claim.approved_by = current_user.id
+            claim.approved_at = datetime.now()
+            flash('Claim approved', 'success')
+
+        elif action == 'reject':
+            claim.status = 'Rejected'
+            claim.approved_by = current_user.id
+            claim.approved_at = datetime.now()
+            claim.rejection_reason = request.form.get('rejection_reason')
+            flash('Claim rejected', 'success')
+
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error processing claim: {str(e)}', 'error')
+
+    return redirect(url_for('claims_list'))
+
+
+# Appraisal Management Routes
+@app.route('/appraisal')
+@require_login
+def appraisal_list():
+    """List appraisals"""
+    page = request.args.get('page', 1, type=int)
+
+    query = Appraisal.query.join(Employee)
+
+    # Role-based filtering
+    if (current_user.role.name if current_user.role else None) == 'Employee' and hasattr(current_user,
+                                                   'employee_profile'):
+        query = query.filter(
+            Appraisal.employee_id == current_user.employee_profile.id)
+    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                    'employee_profile'):
+        query = query.filter(
+            Employee.manager_id == current_user.employee_profile.id)
+
+    appraisals = query.order_by(Appraisal.created_at.desc()).paginate(
+        page=page, per_page=20, error_out=False)
+
+    return render_template('appraisal/list.html', appraisals=appraisals)
+
+
+@app.route('/appraisal/create', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Admin', 'Manager'])
+def appraisal_create():
+    """Create new appraisal"""
+    if request.method == 'POST':
+        try:
+            appraisal = Appraisal()
+            employee_id_str = request.form.get('employee_id')
+            appraisal.employee_id = int(
+                employee_id_str) if employee_id_str else 0
+            appraisal.review_period_start = parse_date(
+                request.form.get('review_period_start'))
+            appraisal.review_period_end = parse_date(
+                request.form.get('review_period_end'))
+            appraisal.performance_rating = int(
+                request.form.get('performance_rating', '0'))
+            appraisal.goals_achievement = int(
+                request.form.get('goals_achievement', '0'))
+            appraisal.teamwork_rating = int(
+                request.form.get('teamwork_rating', '0'))
+            appraisal.communication_rating = int(
+                request.form.get('communication_rating', '0'))
+
+            # Calculate overall rating
+            ratings = [
+                appraisal.performance_rating, appraisal.goals_achievement,
+                appraisal.teamwork_rating, appraisal.communication_rating
+            ]
+            appraisal.overall_rating = sum(ratings) / len(ratings)
+
+            appraisal.manager_feedback = request.form.get('manager_feedback')
+            appraisal.development_goals = request.form.get('development_goals')
+            appraisal.training_recommendations = request.form.get(
+                'training_recommendations')
+            appraisal.reviewed_by = current_user.id
+            appraisal.status = 'Completed'
+            appraisal.completed_at = datetime.now()
+
+            db.session.add(appraisal)
+            db.session.commit()
+
+            flash('Appraisal created successfully', 'success')
+            return redirect(url_for('appraisal_list'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating appraisal: {str(e)}', 'error')
+
+    # Get employees for appraisal
+    employees = Employee.query.filter_by(is_active=True)
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
+                                                  'employee_profile'):
+        employees = employees.filter(
+            Employee.manager_id == current_user.employee_profile.id)
+    employees = employees.order_by(Employee.first_name).all()
+
+    return render_template('appraisal/form.html', employees=employees)
+
+
+# Compliance and Reports
+@app.route('/compliance')
+@require_role(['Super Admin', 'Admin'])
+def compliance_dashboard():
+    """Compliance dashboard"""
+
+    # Get current month for defaults
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+
+    # Recent compliance reports
+    recent_reports = ComplianceReport.query.order_by(
+        ComplianceReport.generated_at.desc()).limit(10).all()
+
+    # Upcoming deadlines (simplified)
+    deadlines = [{
+        'type':
+        'CPF Submission',
+        'date':
+        f"14/{current_month + 1 if current_month < 12 else 1}/{current_year if current_month < 12 else current_year + 1}"
+    }, {
+        'type': 'AIS Filing',
+        'date': f"31/03/{current_year + 1}"
+    }, {
+        'type':
+        'MOM OED',
+        'date':
+        f"15/{current_month + 1 if current_month < 12 else 1}/{current_year if current_month < 12 else current_year + 1}"
+    }]
+
+    return render_template('compliance/dashboard.html',
+                           recent_reports=recent_reports,
+                           deadlines=deadlines,
+                           current_month=current_month,
+                           current_year=current_year)
+
+
+@app.route('/compliance/generate/<report_type>')
+@require_role(['Super Admin', 'Admin'])
+def compliance_generate(report_type):
+    """Generate compliance reports"""
+    month = request.args.get('month', datetime.now().month, type=int)
+    year = request.args.get('year', datetime.now().year, type=int)
+
+    try:
+        # Get payroll records for the period
+        payrolls = Payroll.query.filter(
+            extract('month', Payroll.pay_period_end) == month,
+            extract('year', Payroll.pay_period_end) == year,
+            Payroll.status == 'Approved').all()
+
+        if not payrolls:
+            flash('No approved payroll records found for the selected period',
+                  'warning')
+            return redirect(url_for('compliance_dashboard'))
+
+        if report_type == 'cpf':
+            data = payroll_calc.generate_cpf_file(payrolls, month, year)
+            filename = f"CPF_Submission_{year}_{month:02d}.csv"
+
+            # Prepare CSV data
+            csv_data = []
+            for record in data['records']:
+                csv_data.append([
+                    record['employee_id'], record['name'], record['nric'],
+                    record['cpf_account'], record['gross_salary'],
+                    record['employee_cpf'], record['employer_cpf'],
+                    record['total_cpf']
+                ])
+
+            headers = [
+                'Employee ID', 'Name', 'NRIC', 'CPF Account', 'Gross Salary',
+                'Employee CPF', 'Employer CPF', 'Total CPF'
+            ]
+
+            return export_to_csv(csv_data, filename, headers)
+
+        elif report_type == 'ais':
+            data = payroll_calc.generate_ais_file(payrolls, year)
+            filename = f"AIS_Report_{year}.csv"
+
+            csv_data = []
+            for record in data['records']:
+                csv_data.append([
+                    record['employee_id'], record['name'], record['nric'],
+                    record['annual_income'], record['employment_period']
+                ])
+
+            headers = [
+                'Employee ID', 'Name', 'NRIC', 'Annual Income',
+                'Employment Period'
+            ]
+
+            return export_to_csv(csv_data, filename, headers)
+
+        elif report_type == 'oed':
+            data = payroll_calc.generate_oed_file(payrolls, month, year)
+            filename = f"OED_Report_{year}_{month:02d}.csv"
+
+            csv_data = []
+            for record in data['records']:
+                csv_data.append([
+                    record['employee_id'], record['name'],
+                    record['passport_number'], record['work_permit_type'],
+                    record['work_permit_expiry'], record['gross_salary'],
+                    record['nationality'], record['designation']
+                ])
+
+            headers = [
+                'Employee ID', 'Name', 'Passport/ID', 'Work Permit Type',
+                'Work Permit Expiry', 'Gross Salary', 'Nationality', 'Designation'
+            ]
+
+            return export_to_csv(csv_data, filename, headers)
+
+        elif report_type == 'bank':
+            data = payroll_calc.generate_bank_file(payrolls)
+            filename = f"Bank_Transfer_{year}_{month:02d}.csv"
+
+            csv_data = []
+            for record in data['records']:
+                csv_data.append([
+                    record['employee_id'], record['name'],
+                    record['bank_account'], record['bank_name'],
+                    record['amount'], record['reference']
+                ])
+
+            headers = [
+                'Employee ID', 'Name', 'Bank Account', 'Bank Name', 'Amount',
+                'Reference'
+            ]
+
+            return export_to_csv(csv_data, filename, headers)
+
+        else:
+            flash('Invalid report type', 'error')
+            return redirect(url_for('compliance_dashboard'))
+
+    except Exception as e:
+        flash(f'Error generating {report_type.upper()} report: {str(e)}',
+              'error')
+        return redirect(url_for('compliance_dashboard'))
+
+
+# Export routes
+@app.route('/users')
+@require_role(['Super Admin', 'Admin'])
+def user_management():
+    """User management for admins"""
+    users = User.query.order_by(User.first_name).all()
+    return render_template('users/list.html', users=users)
+
+
+@app.route('/users/<user_id>/role', methods=['POST'])
+@require_role(['Super Admin', 'Admin'])
+def update_user_role(user_id):
+    """Update user role"""
+    user = User.query.get_or_404(user_id)
+    new_role = request.form.get('role')
+
+    if new_role in ['Super Admin', 'Admin', 'Manager', 'User']:
+        user.role = new_role
+        db.session.commit()
+        flash(f'User role updated to {new_role}', 'success')
+    else:
+        flash('Invalid role specified', 'error')
+
+    return redirect(url_for('user_management'))
+
+
+@app.route('/export/employees')
+@require_role(['Super Admin', 'Admin', 'Manager'])
+def export_employees():
+    """Export employees to CSV"""
+    employees = Employee.query.filter_by(is_active=True).all()
+
+    csv_data = []
+    for emp in employees:
+        csv_data.append([
+            emp.employee_id, emp.first_name, emp.last_name, emp.email,
+            emp.nric, emp.designation.name if emp.designation else '', emp.department,
+            format_date(emp.hire_date), emp.employment_type,
+            emp.work_permit_type,
+            format_currency(emp.basic_salary)
+        ])
+
+    headers = [
+        'Employee ID', 'First Name', 'Last Name', 'Email', 'NRIC', 'Designation',
+        'Department', 'Hire Date', 'Employment Type', 'Work Permit Type',
+        'Basic Salary'
+    ]
+
+    return export_to_csv(csv_data, 'employees_export.csv', headers)
+
+
+# Mobile API routes for PWA functionality
+@app.route('/api/attendance/check')
+@require_login
+def api_attendance_check():
+    """Check today's attendance status for mobile"""
+    if not hasattr(current_user, 'employee_profile'):
+        return jsonify({'error': 'Employee profile not found'}), 400
+
+    today = date.today()
+    attendance = Attendance.query.filter_by(
+        employee_id=current_user.employee_profile.id, date=today).first()
+
+    if attendance:
+        return jsonify({
+            'clocked_in':
+            attendance.clock_in is not None,
+            'clocked_out':
+            attendance.clock_out is not None,
+            'on_break':
+            attendance.break_start is not None
+            and attendance.break_end is None,
+            'clock_in_time':
+            attendance.clock_in.strftime('%H:%M')
+            if attendance.clock_in else None,
+            'clock_out_time':
+            attendance.clock_out.strftime('%H:%M')
+            if attendance.clock_out else None
+        })
+    else:
+        return jsonify({
+            'clocked_in': False,
+            'clocked_out': False,
+            'on_break': False
+        })
+
+
+# Master Data Management Routes
+# Role routes moved to `routes_masters.py` to avoid duplicate endpoint
+# registrations. See `routes_masters.py` for the canonical implementations
+# of role_list, role_add, role_edit and role_delete.
+
+# Department routes moved to `routes_masters.py` to avoid duplicate endpoint
+# registrations. See `routes_masters.py` for the canonical implementations
+# of department_list, department_add, department_edit and department_delete.
+# Note: Working Hours Management Routes have been moved to routes_masters.py

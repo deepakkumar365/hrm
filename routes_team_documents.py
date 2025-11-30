@@ -3,7 +3,7 @@ Routes for Team and Documents modules
 """
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import current_user
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, extract
 from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
@@ -180,6 +180,8 @@ def documents_list():
 @require_login
 def document_download(document_id):
     """Download a document"""
+    from models import Payroll
+    
     document = EmployeeDocument.query.get_or_404(document_id)
     
     # Security check: ensure user can only download their own documents
@@ -196,7 +198,23 @@ def document_download(document_id):
             flash('You can only download your own documents.', 'danger')
             return redirect(url_for('documents_list'))
     
-    # Build file path
+    # Handle Salary Slip documents - redirect to payroll view
+    if document.document_type == 'Salary Slip' and document.month and document.year:
+        # Find the corresponding payroll record
+        payroll = Payroll.query.filter_by(
+            employee_id=document.employee_id
+        ).filter(
+            extract('month', Payroll.pay_period_end) == document.month,
+            extract('year', Payroll.pay_period_end) == document.year
+        ).first()
+        
+        if payroll:
+            return redirect(url_for('payroll_payslip', payroll_id=payroll.id))
+        else:
+            flash('Payroll record not found for this salary slip.', 'danger')
+            return redirect(url_for('documents_list'))
+    
+    # Handle other document types - serve from file system
     file_path = os.path.join(app.root_path, 'static', document.file_path)
     
     if not os.path.exists(file_path):

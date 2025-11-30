@@ -258,10 +258,6 @@
                                     <i class="fas fa-list"></i>
                                     OT Attendance
                                 </a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('ot_requests') }}">
-                                    <i class="fas fa-hourglass-end"></i>
-                                    OT Requests
-                                </a></li>
                                 {% endif %}
                                 <!-- OT Approvals - Available to both HR Manager/Admin and Reporting Managers -->
                                 <li><a class="dropdown-item" href="{% if is_admin %}{{ url_for('ot_approval') }}{% else %}{{ url_for('ot_manager_approval') }}{% endif %}">
@@ -271,13 +267,9 @@
                                 <!-- Additional menu items only for HR Manager and Tenant Admin -->
                                 {% if is_admin %}
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('ot_daily_summary') }}">
-                                    <i class="fas fa-table"></i>
-                                    Payroll Summary (Grid)
-                                </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('ot_payroll_summary') }}">
                                     <i class="fas fa-dollar-sign"></i>
-                                    Payroll Summary (Report)
+                                    Payroll Summary
                                 </a></li>
                                 {% endif %}
                             </ul>

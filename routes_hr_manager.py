@@ -285,7 +285,7 @@ def get_payroll_history(company_id, months=3):
 
 
 def get_ot_pending_approvals(company_id, limit=10):
-    """Get pending OT approvals for the company"""
+    """Get pending OT approvals for the company (Level 2 - HR Manager approval)"""
     pending = db.session.query(
         OTApproval.id,
         OTRequest.ot_date,
@@ -296,7 +296,8 @@ def get_ot_pending_approvals(company_id, limit=10):
         Employee, OTRequest.employee_id == Employee.id
     ).filter(
         Employee.company_id == company_id,
-        OTApproval.status == 'Pending'
+        OTApproval.approval_level == 2,
+        OTApproval.status == 'pending_hr'
     ).order_by(OTApproval.created_at.desc()).limit(limit).all()
     
     return pending

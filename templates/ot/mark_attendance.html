@@ -1542,6 +1542,7 @@
     async function saveDraft() {
         const otDate = document.getElementById('ot_date').value;
         const otInTime = document.getElementById('ot_in_time').value;
+        const otOutTime = document.getElementById('ot_out_time').value;
         const otTypeId = document.getElementById('ot_type_id').value;
         const notes = document.getElementById('notes').value;
         
@@ -1589,6 +1590,7 @@
                 body: JSON.stringify({
                     ot_date: otDate,
                     ot_in_time: otInTime,
+                    ot_out_time: otOutTime,
                     ot_type_id: otTypeId,
                     notes: notes
                 })

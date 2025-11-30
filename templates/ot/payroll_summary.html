@@ -16,12 +16,14 @@
         gap: 15px;
         margin-bottom: 20px;
         align-items: flex-end;
+        flex-wrap: wrap;
     }
     
     .form-group-inline {
         display: flex;
         flex-direction: column;
         gap: 5px;
+        min-width: 150px;
     }
     
     .form-group-inline label {
@@ -182,9 +184,27 @@
         </div>
     </div>
 
-    <!-- Month Selector -->
+    <!-- Filters -->
     <div class="summary-container mb-4">
         <form method="GET" action="{{ url_for('ot_payroll_summary') }}" class="month-selector">
+            <div class="form-group-inline">
+                <label for="company">Company</label>
+                <select name="company_id" id="company" onchange="this.form.submit()">
+                    <option value="">-- Select Company --</option>
+                    {% for company in available_companies %}
+                    <option value="{{ company.id }}" {% if selected_company_id and selected_company_id|string == company.id|string %}selected{% elif not selected_company_id and loop.first %}selected{% endif %}>{{ company.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group-inline">
+                <label for="user">User Name</label>
+                <select name="user_id" id="user" onchange="this.form.submit()">
+                    <option value="">-- All Users --</option>
+                    {% for employee in available_employees %}
+                    <option value="{{ employee.id }}" {% if selected_user_id == employee.id|string %}selected{% endif %}>{{ employee.first_name }} {{ employee.last_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="form-group-inline">
                 <label for="month">Month</label>
                 <select name="month" id="month" onchange="this.form.submit()">

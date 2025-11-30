@@ -121,13 +121,15 @@
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
-                    <th style="width: 15%;">Employee</th>
-                    <th style="width: 12%;">Date</th>
-                    <th style="width: 12%;">Check In</th>
-                    <th style="width: 12%;">Check Out</th>
-                    <th style="width: 10%;">Hours</th>
-                    <th style="width: 25%;">Reason</th>
-                    <th style="width: 10%;">Status</th>
+                    <th style="width: 12%;">Employee</th>
+                    <th style="width: 10%;">Date</th>
+                    <th style="width: 10%;">Check In</th>
+                    <th style="width: 10%;">Check Out</th>
+                    <th style="width: 8%;">Hours</th>
+                    <th style="width: 15%;">Reason</th>
+                    <th style="width: 8%;">OT Status</th>
+                    <th style="width: 10%;">Manager Action Status</th>
+                    <th style="width: 10%;">HR Manager Action Status</th>
                     <th style="width: 4%; text-align: center;">Action</th>
                 </tr>
             </thead>
@@ -160,6 +162,36 @@
                                 <span class="badge bg-secondary">{{ record.status }}</span>
                             {% endif %}
                         </td>
+                        <td>
+                            {% if record.manager_approval_status %}
+                                {% if record.manager_approval_status == 'Approved' or record.manager_approval_status == 'manager_approved' %}
+                                    <span class="badge-approved">Approved</span>
+                                {% elif record.manager_approval_status == 'Rejected' or record.manager_approval_status == 'manager_rejected' %}
+                                    <span class="badge-rejected">Rejected</span>
+                                {% elif record.manager_approval_status == 'Pending' or record.manager_approval_status == 'pending_manager' %}
+                                    <span class="badge-pending">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ record.manager_approval_status }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-light text-muted" style="border: 1px solid #ccc;">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.hr_approval_status %}
+                                {% if record.hr_approval_status == 'Approved' or record.hr_approval_status == 'hr_approved' %}
+                                    <span class="badge-approved">Approved</span>
+                                {% elif record.hr_approval_status == 'Rejected' or record.hr_approval_status == 'hr_rejected' %}
+                                    <span class="badge-rejected">Rejected</span>
+                                {% elif record.hr_approval_status == 'Pending' or record.hr_approval_status == 'pending_hr' %}
+                                    <span class="badge-pending">Pending</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ record.hr_approval_status }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-light text-muted" style="border: 1px solid #ccc;">-</span>
+                            {% endif %}
+                        </td>
                         <td style="text-align: center;">
                             {% if record.status == 'Draft' %}
                                 <button type="button" class="btn btn-sm btn-success" 
@@ -179,7 +211,7 @@
                     {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="8" class="text-center py-4 text-muted">
+                    <td colspan="10" class="text-center py-4 text-muted">
                         <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.5;"></i>
                         <p class="mt-2">No OT attendance records found</p>
                     </td>
