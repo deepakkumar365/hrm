@@ -46,33 +46,65 @@
         </div>
         <div class="card-body">
             <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Search by employee name or ID..." value="{{ search }}">
-                </div>
+                <!-- Company Filter -->
                 <div class="col-md-3">
-                    <select name="document_type" class="form-select">
-                        <option value="">All Document Types</option>
-                        <option value="Offer Letter" {% if document_type == 'Offer Letter' %}selected{% endif %}>Offer Letter</option>
-                        <option value="Appraisal Letter" {% if document_type == 'Appraisal Letter' %}selected{% endif %}>Appraisal Letter</option>
-                        <option value="Salary Slip" {% if document_type == 'Salary Slip' %}selected{% endif %}>Salary Slip</option>
-                        <option value="ID Card" {% if document_type == 'ID Card' %}selected{% endif %}>ID Card</option>
-                        <option value="Contract" {% if document_type == 'Contract' %}selected{% endif %}>Contract</option>
-                        <option value="Other" {% if document_type == 'Other' %}selected{% endif %}>Other</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select name="year" class="form-select">
-                        <option value="">All Years</option>
-                        {% for y in range(2020, 2031) %}
-                        <option value="{{ y }}" {% if year == y|string %}selected{% endif %}>{{ y }}</option>
+                    <select name="company_id" class="form-select">
+                        <option value="">All Companies</option>
+                        {% for company in accessible_companies %}
+                        <option value="{{ company.id|string }}" {% if selected_company_id == company.id|string %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
+                
+                <!-- Year Filter (Fixed) -->
+                <div class="col-md-2">
+                    <select name="year" class="form-select">
+                        <option value="">All Years</option>
+                        {% for y in available_years %}
+                        <option value="{{ y }}" {% if selected_year|int == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- User/Employee Filter -->
                 <div class="col-md-3">
+                    <select name="user_id" class="form-select">
+                        <option value="">All Employees</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if selected_user_id|int == emp.id %}selected{% endif %}>
+                            {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Document Type Filter -->
+                <div class="col-md-2">
+                    <select name="document_type" class="form-select">
+                        <option value="">All Types</option>
+                        {% for doc_type in document_types %}
+                        <option value="{{ doc_type }}" {% if selected_document_type == doc_type %}selected{% endif %}>
+                            {{ doc_type }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Search & Filter Button -->
+                <div class="col-md-2">
                     <button type="submit" class="btn btn-outline-primary w-100">
                         <i class="fas fa-search me-1"></i>Filter
                     </button>
+                </div>
+            </div>
+            
+            <!-- Optional: Text search for quick employee lookup -->
+            <div class="row g-2 mt-2">
+                <div class="col-md-12">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Quick search by employee name or ID..." value="{{ search }}">
                 </div>
             </div>
         </div>
@@ -132,8 +164,8 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if doc.uploaded_by_user %}
-                            {{ doc.uploaded_by_user.username }}
+                            {% if doc.uploader %}
+                            {{ doc.uploader.username }}
                             {% else %}
                             -
                             {% endif %}

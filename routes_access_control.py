@@ -455,13 +455,36 @@ def import_access_matrix():
 
 @access_control_bp.route('/user-roles', methods=['GET'])
 @login_required
-@require_role('Super Admin')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def manage_user_roles():
     """Display user role mapping interface"""
     try:
-        users = User.query.filter_by(is_active=True).all()
+        # Get users based on role
+        if current_user.role and current_user.role.name == 'Super Admin':
+            # Super Admin sees all users
+            users = User.query.order_by(User.first_name, User.last_name).all()
+            companies = Company.query.filter_by(is_active=True).all()
+        else:
+            # Tenant Admin/HR Manager see only users from their tenant
+            current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+            if current_tenant_id:
+                # Get all users in the same tenant
+                users = db.session.query(User).join(
+                    Organization, User.organization_id == Organization.id
+                ).filter(
+                    Organization.tenant_id == current_tenant_id
+                ).order_by(User.first_name, User.last_name).all()
+                
+                # Get only companies in the same tenant
+                companies = Company.query.filter_by(
+                    tenant_id=current_tenant_id,
+                    is_active=True
+                ).all()
+            else:
+                users = []
+                companies = []
+        
         roles = Role.query.all()
-        companies = Company.query.filter_by(is_active=True).all()
         
         # Get all user role mappings
         user_mappings = {}
@@ -904,6 +927,60 @@ def get_available_companies(user_id):
             'total_available': len(companies)
         })
     except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# =====================================================================
+# ROUTE: Toggle User Active Status
+# =====================================================================
+
+@access_control_bp.route('/api/toggle-user-status/<int:user_id>', methods=['POST'])
+@login_required
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def toggle_user_status(user_id):
+    """API: Toggle user active/inactive status"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        # Get current user's tenant - verify authorization
+        current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+        user_tenant_id = user.organization.tenant_id if user.organization else None
+        
+        # Only Super Admin can manage users from other tenants; Tenant Admin/HR Manager only within their tenant
+        if current_user.role.name != 'Super Admin' and current_tenant_id != user_tenant_id:
+            return jsonify({'success': False, 'message': 'Unauthorized: User is not in your tenant'}), 403
+        
+        # Don't allow deactivating self
+        if user_id == current_user.id and not user.is_active:
+            return jsonify({'success': False, 'message': 'Cannot deactivate your own account'}), 400
+        
+        # Toggle status
+        old_status = user.is_active
+        user.is_active = not user.is_active
+        db.session.commit()
+        
+        # Log the action
+        log_audit(
+            action='TOGGLE_USER_STATUS',
+            resource_type='User',
+            resource_id=str(user_id),
+            changes=json.dumps({
+                'user_id': user_id,
+                'user_name': user.username,
+                'old_status': old_status,
+                'new_status': user.is_active
+            })
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'User {user.username} is now {"Active" if user.is_active else "Inactive"}',
+            'is_active': user.is_active
+        })
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

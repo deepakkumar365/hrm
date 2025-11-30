@@ -1,0 +1,464 @@
+{% extends 'base.html' %}
+
+{% block title %}User Status Toggle - Masters{% endblock %}
+
+{% block head %}
+<style>
+    .user-status-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .status-badge.active {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .status-badge.inactive {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .toggle-btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .toggle-btn.activate {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .toggle-btn.activate:hover {
+        background-color: #218838;
+    }
+
+    .toggle-btn.deactivate {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .toggle-btn.deactivate:hover {
+        background-color: #c82333;
+    }
+
+    .toggle-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .stats-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-around;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    .table-responsive {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow-x: auto;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .table thead th {
+        font-weight: 600;
+        color: #2c3e50;
+        padding: 15px;
+        border: none;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+
+    .table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-name {
+        font-weight: 500;
+        color: #2c3e50;
+    }
+
+    .user-email {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .search-box {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    .search-box i {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #999;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+    }
+
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0 0 20px 0;
+        margin-bottom: 0;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .page-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="user-status-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item">Masters</li>
+            <li class="breadcrumb-item active">User Status Toggle</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-toggle-on"></i>
+            User Status Toggle
+        </h1>
+        <div class="action-buttons">
+            <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-card">
+        <div class="stat-item">
+            <div class="stat-number">{{ total_users }}</div>
+            <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number" style="color: #28a745;">{{ active_users }}</div>
+            <div class="stat-label">Active Users</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number" style="color: #dc3545;">{{ inactive_users }}</div>
+            <div class="stat-label">Inactive Users</div>
+        </div>
+    </div>
+
+    <!-- Search Box -->
+    <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search by name, email, or username..." 
+               onkeyup="filterTable()">
+    </div>
+
+    <!-- Users Table -->
+    {% if users %}
+    <div class="table-responsive">
+        <table class="table table-hover" id="usersTable">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr class="user-row" data-user-id="{{ user.id }}">
+                    <td>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                {{ user.first_name[0] if user.first_name else 'U' }}
+                            </div>
+                            <div class="user-details">
+                                <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>
+                        {% if user.role %}
+                            <span class="badge" style="background-color: #e9ecef; color: #495057;">
+                                {{ user.role.name }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge {% if user.is_active %}active{% else %}inactive{% endif %}">
+                            {% if user.is_active %}
+                                <i class="fas fa-check-circle"></i> Active
+                            {% else %}
+                                <i class="fas fa-times-circle"></i> Inactive
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="toggle-btn {% if user.is_active %}deactivate{% else %}activate{% endif %}"
+                                onclick="toggleUserStatus({{ user.id }}, this)"
+                                {% if current_user.id == user.id %}disabled title="Cannot change your own status"{% endif %}>
+                            {% if user.is_active %}
+                                <i class="fas fa-toggle-off"></i> Deactivate
+                            {% else %}
+                                <i class="fas fa-toggle-on"></i> Activate
+                            {% endif %}
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="no-data">
+        <i class="fas fa-inbox fa-3x" style="color: #ddd; margin-bottom: 15px;"></i>
+        <p>No users found</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function filterTable() {
+    const input = document.getElementById('searchInput');
+    const filter = input.value.toUpperCase();
+    const table = document.getElementById('usersTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        let match = false;
+        
+        for (let j = 0; j < cells.length - 1; j++) {  // Exclude action column
+            const text = cells[j].textContent || cells[j].innerText;
+            if (text.toUpperCase().indexOf(filter) > -1) {
+                match = true;
+                break;
+            }
+        }
+        
+        rows[i].style.display = match ? '' : 'none';
+    }
+}
+
+function toggleUserStatus(userId, button) {
+    // Check if user is trying to change their own status
+    if (button.disabled) {
+        alert('You cannot change your own status');
+        return;
+    }
+
+    // Confirm action
+    const isActive = button.classList.contains('deactivate');
+    const action = isActive ? 'deactivate' : 'activate';
+    const userName = button.closest('tr').querySelector('.user-name').textContent;
+    
+    if (!confirm(`Are you sure you want to ${action} ${userName}?`)) {
+        return;
+    }
+
+    // Show loading state
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    button.disabled = true;
+
+    // Call API to toggle status
+    fetch(`/access-control/api/toggle-user-status/${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrf_token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the status badge
+            const row = button.closest('tr');
+            const statusBadge = row.querySelector('.status-badge');
+            const newStatus = data.is_active;
+
+            // Update badge
+            if (newStatus) {
+                statusBadge.classList.remove('inactive');
+                statusBadge.classList.add('active');
+                statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> Active';
+                button.classList.remove('deactivate');
+                button.classList.add('activate');
+                button.innerHTML = '<i class="fas fa-toggle-on"></i> Activate';
+            } else {
+                statusBadge.classList.remove('active');
+                statusBadge.classList.add('inactive');
+                statusBadge.innerHTML = '<i class="fas fa-times-circle"></i> Inactive';
+                button.classList.remove('activate');
+                button.classList.add('deactivate');
+                button.innerHTML = '<i class="fas fa-toggle-off"></i> Deactivate';
+            }
+
+            // Show success message
+            showNotification('User status updated successfully', 'success');
+            
+            // Re-enable button
+            button.disabled = false;
+        } else {
+            showNotification(data.message || 'Failed to update user status', 'danger');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('An error occurred while updating user status', 'danger');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        let cookie = cookies[i].trim();
+        if (cookie.indexOf(nameEQ) === 0) {
+            return cookie.substring(nameEQ.length);
+        }
+    }
+    return '';
+}
+
+function showNotification(message, type) {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.minWidth = '300px';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

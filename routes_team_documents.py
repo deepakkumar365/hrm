@@ -318,12 +318,28 @@ def admin_document_upload():
 @require_role(['Super Admin', 'Admin', 'HR Manager'])
 def admin_documents_list():
     """List all employee documents (HR/Admin only)"""
+    from models import Company
+    from uuid import UUID
+    
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     document_type = request.args.get('document_type', '', type=str)
+    company_id = request.args.get('company_id', '', type=str)
+    year = request.args.get('year', '', type=str)
+    user_id = request.args.get('user_id', '', type=str)
     
+    # Get accessible companies for the current user (for HR Managers)
+    accessible_companies = current_user.get_accessible_companies()
+    accessible_company_ids = [c.id for c in accessible_companies]
+    
+    # Build base query
     query = EmployeeDocument.query.join(Employee)
     
+    # Filter by accessible companies - ALWAYS apply this for security
+    if accessible_company_ids:
+        query = query.filter(Employee.company_id.in_(accessible_company_ids))
+    
+    # Filter by search (employee name or ID)
     if search:
         query = query.filter(
             or_(
@@ -333,20 +349,65 @@ def admin_documents_list():
             )
         )
     
+    # Filter by document type
     if document_type:
         query = query.filter(EmployeeDocument.document_type == document_type)
+    
+    # Filter by company (only if explicitly selected and it's in accessible companies)
+    if company_id:
+        try:
+            company_uuid = UUID(company_id) if isinstance(company_id, str) else company_id
+            query = query.filter(Employee.company_id == company_uuid)
+        except (ValueError, TypeError):
+            pass
+    
+    # Filter by year
+    if year:
+        try:
+            year_int = int(year)
+            query = query.filter(EmployeeDocument.year == year_int)
+        except (ValueError, TypeError):
+            pass
+    
+    # Filter by user/employee
+    if user_id:
+        try:
+            user_id_int = int(user_id)
+            query = query.filter(Employee.id == user_id_int)
+        except (ValueError, TypeError):
+            pass
     
     documents = query.order_by(EmployeeDocument.issue_date.desc()).paginate(
         page=page, per_page=20, error_out=False
     )
     
-    document_types = ['Offer Letter', 'Appraisal Letter', 'Salary Slip']
+    # Get available options for filters
+    document_types = ['Offer Letter', 'Appraisal Letter', 'Salary Slip', 'ID Card', 'Contract', 'Other']
+    
+    # Get unique years from documents for accessible companies (sorted descending)
+    years_query = db.session.query(EmployeeDocument.year.distinct()).join(Employee).filter(
+        EmployeeDocument.year.isnot(None),
+        Employee.company_id.in_(accessible_company_ids)
+    ).order_by(EmployeeDocument.year.desc()).all()
+    available_years = sorted([y[0] for y in years_query if y[0]], reverse=True)
+    
+    # Get employees from accessible companies (for user filter)
+    employees_query = Employee.query.filter(
+        Employee.company_id.in_(accessible_company_ids),
+        Employee.is_active == True
+    ).order_by(Employee.first_name, Employee.last_name).all()
     
     return render_template('documents/admin_list.html',
                          documents=documents,
                          document_types=document_types,
                          search=search,
-                         selected_document_type=document_type)
+                         selected_document_type=document_type,
+                         accessible_companies=accessible_companies,
+                         selected_company_id=company_id,
+                         available_years=available_years,
+                         selected_year=year,
+                         employees=employees_query,
+                         selected_user_id=user_id)
 
 
 @app.route('/admin/documents/delete/<int:document_id>', methods=['POST'])

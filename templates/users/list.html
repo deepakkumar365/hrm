@@ -19,12 +19,13 @@
                                     <th>User</th>
                                     <th>Email</th>
                                     <th>Current Role</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for user in users %}
-                                <tr>
+                                <tr id="user-row-{{ user.id }}">
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="profile-image-container me-2" style="width:32px;height:32px;">
@@ -48,19 +49,29 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('update_user_role', user_id=user.id) }}" class="d-inline">
-                                            <div class="input-group input-group-sm" style="width: 200px;">
-                                                <select name="role" class="form-select form-select-sm">
-                                                    <option value="User" {% if user.role == 'User' %}selected{% endif %}>User</option>
-                                                    <option value="Manager" {% if user.role == 'Manager' %}selected{% endif %}>Manager</option>
-                                                    <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
-                                                    <option value="Super Admin" {% if user.role == 'Super Admin' %}selected{% endif %}>Super Admin</option>
-                                                </select>
-                                                <button type="submit" class="btn btn-outline-primary btn-sm">
-                                                    <i class="fas fa-save"></i>
-                                                </button>
-                                            </div>
-                                        </form>
+                                        <span id="status-badge-{{ user.id }}" class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                            {% if user.is_active %}<i class="fas fa-check-circle me-1"></i>Active{% else %}<i class="fas fa-ban me-1"></i>Inactive{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <form method="POST" action="{{ url_for('update_user_role', user_id=user.id) }}" class="d-inline">
+                                                <div class="input-group input-group-sm" style="width: 200px;">
+                                                    <select name="role" class="form-select form-select-sm">
+                                                        <option value="User" {% if user.role == 'User' %}selected{% endif %}>User</option>
+                                                        <option value="Manager" {% if user.role == 'Manager' %}selected{% endif %}>Manager</option>
+                                                        <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
+                                                        <option value="Super Admin" {% if user.role == 'Super Admin' %}selected{% endif %}>Super Admin</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-save"></i>
+                                                    </button>
+                                                </div>
+                                            </form>
+                                            <button class="btn btn-outline-warning btn-sm ms-2" onclick="toggleUserStatus({{ user.id }}, '{{ user.first_name }} {{ user.last_name }}')" title="Toggle active/inactive">
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -72,4 +83,41 @@
         </div>
     </div>
 </div>
+
+<script>
+// Toggle user active/inactive status
+function toggleUserStatus(userId, userName) {
+    if (!confirm(`Are you sure you want to toggle the status of ${userName}?`)) {
+        return;
+    }
+    
+    fetch(`/access-control/api/toggle-user-status/${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the badge
+            const badge = document.getElementById(`status-badge-${userId}`);
+            if (data.is_active) {
+                badge.className = 'badge bg-success';
+                badge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Active';
+            } else {
+                badge.className = 'badge bg-danger';
+                badge.innerHTML = '<i class="fas fa-ban me-1"></i>Inactive';
+            }
+            
+            alert(data.message);
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error toggling user status: ' + error);
+    });
+}
+</script>
 {% endblock %}

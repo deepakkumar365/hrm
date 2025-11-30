@@ -9,7 +9,8 @@ from datetime import datetime
 
 from app import app, db
 from auth import require_login, require_role
-from models import Role, Department, WorkingHours, WorkSchedule, Employee, OTType, Company
+from models import Role, Department, WorkingHours, WorkSchedule, Employee, OTType, Company, User, Organization
+from flask_login import current_user
 
 
 # ============================================================================
@@ -814,3 +815,46 @@ def ot_type_delete(ot_type_id):
         flash(f'Error deleting OT Type: {str(e)}', 'error')
     
     return redirect(url_for('ot_type_list'))
+
+
+# ============================================================================
+# USER STATUS TOGGLE MANAGEMENT
+# ============================================================================
+
+@app.route('/masters/user-status-toggle')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def user_status_toggle():
+    """Manage user active/inactive status"""
+    try:
+        # Get users based on role
+        if current_user.role and current_user.role.name == 'Super Admin':
+            # Super Admin sees all users
+            users = User.query.order_by(User.first_name, User.last_name).all()
+        else:
+            # Tenant Admin/HR Manager see only users from their tenant
+            current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+            if current_tenant_id:
+                # Get all users in the same tenant
+                users = db.session.query(User).join(
+                    Organization, User.organization_id == Organization.id
+                ).filter(
+                    Organization.tenant_id == current_tenant_id
+                ).order_by(User.first_name, User.last_name).all()
+            else:
+                users = []
+        
+        # Count active/inactive
+        total_users = len(users)
+        active_users = sum(1 for u in users if u.is_active)
+        inactive_users = total_users - active_users
+        
+        return render_template(
+            'masters/user_status_toggle.html',
+            users=users,
+            total_users=total_users,
+            active_users=active_users,
+            inactive_users=inactive_users
+        )
+    except Exception as e:
+        flash(f'Error loading user status: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))

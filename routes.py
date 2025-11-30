@@ -12,7 +12,8 @@ from app import app, db
 from auth import require_login, require_role, create_default_users
 from models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
-                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation)
+                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation,
+                    Organization)
 from forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
@@ -353,16 +354,21 @@ def render_super_admin_dashboard():
 @app.route('/dashboard')
 @require_login
 def dashboard():
-    """Main dashboard with HR metrics"""
+    """Main dashboard with HR metrics - Routes to role-specific dashboards"""
 
-    # Check if user is Super Admin
+    # Check user role and route to appropriate dashboard
     user_role_name = current_user.role.name if current_user.role else None
 
     if user_role_name == 'Super Admin':
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
+    
+    elif user_role_name in ['HR Manager', 'Tenant Admin']:
+        # Route to HR Manager Dashboard (handles both HR Manager and Tenant Admin roles)
+        from routes_hr_manager import hr_manager_dashboard
+        return hr_manager_dashboard()
 
-    # Get basic statistics
+    # Get basic statistics (for Employee and other roles)
     stats = {
         'total_employees': Employee.query.filter_by(is_active=True).count(),
         'pending_leaves': Leave.query.filter_by(status='Pending').count(),
@@ -1194,16 +1200,51 @@ def employee_edit(employee_id):
 @require_role(['Super Admin', 'Admin', 'Manager', 'HR Manager'])
 def payroll_list():
     """List payroll records"""
+    from uuid import UUID
+    
     page = request.args.get('page', 1, type=int)
     month = request.args.get('month', type=int)
     year = request.args.get('year', type=int)
+    company_id = request.args.get('company_id', type=str)
+    employee_id = request.args.get('employee_id', type=int)
 
     query = Payroll.query.join(Employee)
+    
+    # Get accessible companies for HR Manager
+    accessible_companies = []
+    accessible_company_ids = []
+    if (current_user.role.name if current_user.role else None) == 'HR Manager':
+        if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            # HR Manager can see their own company
+            if current_user.employee_profile.company_id:
+                accessible_company_ids = [current_user.employee_profile.company_id]
+                accessible_companies = Company.query.filter_by(
+                    id=current_user.employee_profile.company_id
+                ).all()
+        # Filter query to only include employees from accessible companies
+        query = query.filter(Employee.company_id.in_(accessible_company_ids))
 
     if month and year:
         query = query.filter(
             extract('month', Payroll.pay_period_end) == month,
             extract('year', Payroll.pay_period_end) == year)
+
+    # Company filter for HR Manager
+    if company_id and (current_user.role.name if current_user.role else None) == 'HR Manager':
+        try:
+            company_uuid = UUID(company_id)
+            if company_uuid in accessible_company_ids:
+                query = query.filter(Employee.company_id == company_uuid)
+        except (ValueError, TypeError):
+            pass
+
+    # Employee filter for HR Manager
+    if employee_id and (current_user.role.name if current_user.role else None) == 'HR Manager':
+        try:
+            emp_id = int(employee_id)
+            query = query.filter(Payroll.employee_id == emp_id)
+        except (ValueError, TypeError):
+            pass
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
@@ -1219,6 +1260,19 @@ def payroll_list():
         # Admin and Super Admin: Can see all payroll records
         pass  # No filtering - they can see all
 
+    # Get years for filter dropdown - last 30 years
+    from datetime import datetime
+    current_year = datetime.now().year
+    years = list(range(current_year, current_year - 30, -1))
+
+    # Get employees for filter dropdown (HR Manager only)
+    employees = []
+    if (current_user.role.name if current_user.role else None) == 'HR Manager':
+        employees = Employee.query.filter(
+            Employee.company_id.in_(accessible_company_ids),
+            Employee.is_active == True
+        ).order_by(Employee.first_name).all()
+
     payrolls = query.order_by(Payroll.pay_period_end.desc()).paginate(
         page=page, per_page=20, error_out=False)
 
@@ -1226,7 +1280,12 @@ def payroll_list():
                            payrolls=payrolls,
                            month=month,
                            year=year,
-                           calendar=calendar)
+                           company_id=company_id,
+                           employee_id=employee_id,
+                           calendar=calendar,
+                           companies=accessible_companies,
+                           employees=employees,
+                           years=years)
 
 
 @app.route('/payroll/generate', methods=['GET', 'POST'])
@@ -1658,18 +1717,92 @@ def payroll_payslip(payroll_id):
 
 
 @app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager'])
 def payroll_approve(payroll_id):
-    """Approve payroll record"""
+    """Approve payroll record (Draft -> Approved)"""
     payroll = Payroll.query.get_or_404(payroll_id)
 
     try:
         if payroll.status == 'Draft':
             payroll.status = 'Approved'
             db.session.commit()
+            
+            # ✅ Create EmployeeDocument record when approved so payslip appears in Documents menu
+            try:
+                existing_doc = EmployeeDocument.query.filter_by(
+                    employee_id=payroll.employee_id,
+                    document_type='Salary Slip',
+                    month=payroll.pay_period_start.month,
+                    year=payroll.pay_period_start.year
+                ).first()
+                
+                if not existing_doc:
+                    salary_slip_doc = EmployeeDocument(
+                        employee_id=payroll.employee_id,
+                        document_type='Salary Slip',
+                        file_path=f'payroll/{payroll.id}',  # Virtual path for payroll view
+                        issue_date=datetime.now(),
+                        month=payroll.pay_period_start.month,
+                        year=payroll.pay_period_start.year,
+                        description=f"Salary Slip for {payroll.pay_period_start.strftime('%B %Y')}",
+                        uploaded_by=current_user.id if current_user.is_authenticated else None
+                    )
+                    db.session.add(salary_slip_doc)
+                    db.session.commit()
+            except Exception as doc_error:
+                # Log but don't fail payroll approval if document creation fails
+                print(f"Warning: Could not create salary slip document: {doc_error}")
+            
             return jsonify({'success': True, 'message': 'Payroll approved successfully'}), 200
         else:
-            return jsonify({'success': False, 'message': f'Payroll is already {payroll.status}'}), 400
+            return jsonify({'success': False, 'message': f'Cannot approve. Payroll status is {payroll.status}'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/payroll/<int:payroll_id>/finalize', methods=['POST'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager'])
+def payroll_finalize(payroll_id):
+    """Finalize payroll record (Approved -> Finalized)"""
+    payroll = Payroll.query.get_or_404(payroll_id)
+
+    try:
+        if payroll.status == 'Approved':
+            payroll.status = 'Finalized'
+            payroll.finalized_at = datetime.now()
+            payroll.finalized_by = current_user.username if hasattr(current_user, 'username') else str(current_user.id)
+            db.session.commit()
+            
+            # ✅ Create EmployeeDocument record so payslip appears in Documents menu
+            try:
+                existing_doc = EmployeeDocument.query.filter_by(
+                    employee_id=payroll.employee_id,
+                    document_type='Salary Slip',
+                    month=payroll.pay_period_start.month,
+                    year=payroll.pay_period_start.year
+                ).first()
+                
+                if not existing_doc:
+                    salary_slip_doc = EmployeeDocument(
+                        employee_id=payroll.employee_id,
+                        document_type='Salary Slip',
+                        file_path=f'payroll/{payroll.id}',  # Virtual path for payroll view
+                        issue_date=datetime.now(),
+                        month=payroll.pay_period_start.month,
+                        year=payroll.pay_period_start.year,
+                        description=f"Salary Slip for {payroll.pay_period_start.strftime('%B %Y')}",
+                        uploaded_by=current_user.id if current_user.is_authenticated else None
+                    )
+                    db.session.add(salary_slip_doc)
+                    db.session.commit()
+            except Exception as doc_error:
+                # Log but don't fail payroll finalization if document creation fails
+                print(f"Warning: Could not create salary slip document: {doc_error}")
+            
+            return jsonify({'success': True, 'message': 'Payroll finalized successfully'}), 200
+        else:
+            return jsonify({'success': False, 'message': f'Cannot finalize. Payroll must be Approved. Current status: {payroll.status}'}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -2598,11 +2731,31 @@ def compliance_generate(report_type):
 
 # Export routes
 @app.route('/users')
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
 def user_management():
-    """User management for admins"""
-    users = User.query.order_by(User.first_name).all()
-    return render_template('users/list.html', users=users)
+    """User management for admins and HR managers"""
+    try:
+        # Get users based on role
+        if current_user.role and current_user.role.name == 'Super Admin':
+            # Super Admin sees all users
+            users = User.query.order_by(User.first_name, User.last_name).all()
+        else:
+            # Admin/HR Manager see only users from their tenant
+            current_tenant_id = current_user.organization.tenant_id if current_user.organization else None
+            if current_tenant_id:
+                # Get all users in the same tenant
+                users = db.session.query(User).join(
+                    Organization, User.organization_id == Organization.id
+                ).filter(
+                    Organization.tenant_id == current_tenant_id
+                ).order_by(User.first_name, User.last_name).all()
+            else:
+                users = []
+        
+        return render_template('users/list.html', users=users)
+    except Exception as e:
+        flash(f'Error loading users: {str(e)}', 'error')
+        return redirect(url_for('index'))
 
 
 @app.route('/users/<user_id>/role', methods=['POST'])
