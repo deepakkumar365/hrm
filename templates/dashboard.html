@@ -5,14 +5,15 @@
 {% block head %}
 <style>
     :root {
-        --primary: #667eea;
-        --primary-dark: #764ba2;
-        --success: #2ecc71;
-        --warning: #f39c12;
-        --danger: #e74c3c;
-        --info: #3498db;
+        --primary: #008080;           /* Teal - Application theme */
+        --primary-dark: #004d4d;      /* Darker teal */
+        --secondary: #66b2b2;         /* Light teal */
+        --success: #38a169;           /* Green */
+        --warning: #dd6b20;           /* Orange */
+        --danger: #e53e3e;            /* Red */
+        --info: #3182ce;              /* Blue */
         --light: #f8f9fa;
-        --dark: #2c3e50;
+        --dark: #1a1a1a;
     }
 
     * {
@@ -20,20 +21,21 @@
     }
 
     .dashboard-wrapper {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: #f8f9fa;
         min-height: calc(100vh - 70px);
-        padding: 1rem 1rem;
+        padding: 0.6rem 1rem;
     }
 
     /* ============= Header Section ============= */
     .dashboard-header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-        color: white;
-        padding: 1.2rem 1.5rem;
+        background: white;
+        color: var(--dark);
+        padding: 1rem 1.5rem;
         border-radius: 16px;
-        margin-bottom: 1.2rem;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        margin-bottom: 0.5rem;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
         animation: slideDown 0.5s ease-out;
+        border-left: 4px solid var(--primary);
     }
 
     .dashboard-header h1 {
@@ -45,7 +47,7 @@
 
     .dashboard-header p {
         font-size: 0.8rem;
-        opacity: 0.9;
+        opacity: 0.7;
         margin: 0;
     }
 
@@ -84,7 +86,7 @@
 
     .quick-action-btn i {
         font-size: 1.8rem;
-        color: var(--primary);
+        color: #008080;
     }
 
     /* ============= Main Content Grid ============= */
@@ -102,6 +104,7 @@
         box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
         transition: all 0.3s ease;
         animation: fadeInUp 0.6s ease-out;
+        border-left: 4px solid var(--primary);
     }
 
     .dashboard-card:hover {
@@ -110,7 +113,7 @@
     }
 
     .card-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #f0f4ff 100%);
+        background: linear-gradient(135deg, #f8f9fa 0%, #f5faf9 100%);
         padding: 0.8rem 1rem;
         border-bottom: 1px solid #e9ecef;
         display: flex;
@@ -120,13 +123,13 @@
 
     .card-header i {
         font-size: 1rem;
-        color: var(--primary);
+        color: #008080;
         width: 32px;
         height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(102, 126, 234, 0.1);
+        background: rgba(0, 128, 128, 0.1);
         border-radius: 6px;
     }
 
@@ -138,37 +141,40 @@
     }
 
     .card-body {
-        padding: 0.8rem 1rem;
+        padding: 0.6rem 0.8rem;
+        background: white;
     }
 
     /* ============= Quick Attendance ============= */
     .attendance-buttons-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 0.6rem;
+        gap: 0.5rem;
     }
 
     .attendance-btn {
-        padding: 0.8rem 0.3rem;
+        padding: 0.6rem 0.2rem;
         border: none;
+        border-left: 4px solid transparent;
         border-radius: 10px;
         font-weight: 600;
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         cursor: pointer;
         transition: all 0.3s ease;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.3rem;
-        color: white;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-        min-height: 75px;
+        gap: 0.2rem;
+        color: var(--dark);
+        background: white;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        min-height: 55px;
     }
 
     .attendance-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
     }
 
     .attendance-btn i {
@@ -176,19 +182,35 @@
     }
 
     .btn-clock-in {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-left-color: var(--primary);
+    }
+
+    .btn-clock-in i {
+        color: var(--primary);
     }
 
     .btn-clock-out {
-        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        border-left-color: var(--danger);
+    }
+
+    .btn-clock-out i {
+        color: var(--danger);
     }
 
     .btn-break-in {
-        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        border-left-color: var(--warning);
+    }
+
+    .btn-break-in i {
+        color: var(--warning);
     }
 
     .btn-break-out {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        border-left-color: var(--info);
+    }
+
+    .btn-break-out i {
+        color: var(--info);
     }
 
     /* ============= Recent Attendance Record ============= */
@@ -279,6 +301,9 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         transition: all 0.3s ease;
         border-left: 4px solid var(--primary);
+        border-top: none;
+        border-right: none;
+        border-bottom: none;
         animation: fadeInUp 0.6s ease-out;
     }
 
@@ -313,9 +338,19 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
+        font-size: 1.4rem;
         color: white;
         flex-shrink: 0;
+        position: relative;
+        z-index: 10;
+    }
+
+    .stat-card-icon i {
+        z-index: 11;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .stat-card-icon.primary {
@@ -323,15 +358,15 @@
     }
 
     .stat-card-icon.success {
-        background: linear-gradient(135deg, var(--success) 0%, #27ae60 100%);
+        background: linear-gradient(135deg, var(--success) 0%, #2f855a 100%);
     }
 
     .stat-card-icon.warning {
-        background: linear-gradient(135deg, var(--warning) 0%, #e67e22 100%);
+        background: linear-gradient(135deg, var(--warning) 0%, #c05621 100%);
     }
 
     .stat-card-icon.danger {
-        background: linear-gradient(135deg, var(--danger) 0%, #c0392b 100%);
+        background: linear-gradient(135deg, var(--danger) 0%, #c53030 100%);
     }
 
     .stat-card-label {
@@ -370,10 +405,11 @@
         box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
         overflow: hidden;
         animation: fadeInUp 0.7s ease-out;
+        border-left: 4px solid var(--primary);
     }
 
     .events-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #f0f4ff 100%);
+        background: linear-gradient(135deg, #f8f9fa 0%, #f5faf9 100%);
         padding: 0.8rem 1rem;
         border-bottom: 1px solid #e9ecef;
     }
@@ -382,23 +418,23 @@
         margin: 0;
         font-size: 0.9rem;
         font-weight: 700;
-        color: var(--dark);
+        color: #008080;
     }
 
     .events-list {
         padding: 0;
         margin: 0;
         list-style: none;
-        max-height: 220px;
+        max-height: 160px;
         overflow-y: auto;
     }
 
     .event-item {
-        padding: 0.7rem 0.8rem;
+        padding: 0.5rem 0.6rem;
         border-bottom: 1px solid #f0f0f0;
         display: flex;
         align-items: center;
-        gap: 0.7rem;
+        gap: 0.5rem;
         transition: all 0.3s ease;
     }
 
@@ -583,17 +619,17 @@
             <i class="fas fa-calendar-check"></i>
             View Attendance
         </a>
-        <a href="{{ url_for('leave_list') }}" class="quick-action-btn">
+        <a href="{{ url_for('leave_request') }}" class="quick-action-btn">
             <i class="fas fa-plane-departure"></i>
             Leave Requests
         </a>
-        <a href="{{ url_for('payroll_view') if 'payroll_view' in config.get('routes', []) else '#' }}" class="quick-action-btn">
+        <a href="{{ url_for('documents_list') }}" class="quick-action-btn">
             <i class="fas fa-file-invoice-dollar"></i>
             Payslips
         </a>
-        <a href="{{ url_for('profile') }}" class="quick-action-btn">
-            <i class="fas fa-user-circle"></i>
-            My Profile
+        <a href="{{ url_for('mark_ot_attendance') }}" class="quick-action-btn">
+            <i class="fas fa-hourglass-end"></i>
+            Mark OT
         </a>
     </div>
 
@@ -722,14 +758,14 @@
         <div class="stat-card warning">
             <div class="stat-card-header">
                 <div class="stat-card-icon warning">
-                    <i class="fas fa-clock"></i>
+                    <i class="fas fa-hourglass-end"></i>
                 </div>
                 <div>
-                    <p class="stat-card-label">Today's Status</p>
-                    <p class="stat-card-value">{{ stats.today_status if stats and stats.today_status is defined else 'Present' }}</p>
+                    <p class="stat-card-label">Overtime History</p>
+                    <p class="stat-card-value">View Records</p>
                 </div>
             </div>
-            <a href="{{ url_for('attendance_list_view') }}" class="stat-card-action">View Details →</a>
+            <a href="{{ url_for('mark_ot_attendance') }}" class="stat-card-action">View History →</a>
         </div>
 
         <div class="stat-card danger">

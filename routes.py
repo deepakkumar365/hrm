@@ -442,12 +442,20 @@ def dashboard():
                     'date': leave.created_at
                 })
 
+    # Get recent attendance record for current user
+    recent_attendance = None
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        emp_id = current_user.employee_profile.id
+        recent_attendance = Attendance.query.filter_by(employee_id=emp_id).order_by(
+            Attendance.date.desc()).first()
+
     default_calendar_endpoint = 'leave_calendar' if 'leave_calendar' in app.view_functions else 'leave_request'
     leave_calendar_url = url_for(default_calendar_endpoint)
 
     return render_template('dashboard.html',
                            stats=stats,
                            recent_activities=recent_activities,
+                           recent_attendance=recent_attendance,
                            moment=datetime.now,
                            leave_calendar_url=leave_calendar_url)
 
@@ -2021,11 +2029,27 @@ def attendance_mark():
                     return redirect(url_for('attendance_mark'))
 
             db.session.commit()
+            # Stay on the attendance form and show updated status with success message
+            today_attendance = Attendance.query.filter_by(
+                employee_id=employee_id,
+                date=date.today()).first()
+            return render_template('attendance/form.html',
+                                   today_attendance=today_attendance)
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error marking attendance: {str(e)}', 'error')
+            # Get today's attendance record to show on form
+            today_attendance = None
+            if hasattr(current_user,
+                       'employee_profile') and current_user.employee_profile:
+                today_attendance = Attendance.query.filter_by(
+                    employee_id=current_user.employee_profile.id,
+                    date=date.today()).first()
+            return render_template('attendance/form.html',
+                                   today_attendance=today_attendance)
 
+    # GET request - show attendance form for manual marking
     # Get today's attendance record
     today_attendance = None
     if hasattr(current_user,
