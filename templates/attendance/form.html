@@ -117,7 +117,7 @@
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         text-align: center;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px (0, 0, 0, 0.1);
         animation: slideInRight 0.8s ease-out;
     }
 
@@ -929,8 +929,6 @@
                             <div class="timeline-time" id="timelineClockIn">
                                 {% if today_attendance and today_attendance.clock_in_display %}
                                     {{ today_attendance.clock_in_display.strftime('%H:%M:%S') }}
-                                {% elif today_attendance and today_attendance.clock_in %}
-                                    {{ today_attendance.clock_in.strftime('%H:%M:%S') }}
                                 {% else %}
                                     --:--:--
                                 {% endif %}
@@ -947,8 +945,6 @@
                             <div class="timeline-time" id="timelineBreakStart">
                                 {% if today_attendance and today_attendance.break_start_display %}
                                     {{ today_attendance.break_start_display.strftime('%H:%M:%S') }}
-                                {% elif today_attendance and today_attendance.break_start %}
-                                    {{ today_attendance.break_start.strftime('%H:%M:%S') }}
                                 {% else %}
                                     --:--:--
                                 {% endif %}
@@ -965,8 +961,6 @@
                             <div class="timeline-time" id="timelineBreakEnd">
                                 {% if today_attendance and today_attendance.break_end_display %}
                                     {{ today_attendance.break_end_display.strftime('%H:%M:%S') }}
-                                {% elif today_attendance and today_attendance.break_end %}
-                                    {{ today_attendance.break_end.strftime('%H:%M:%S') }}
                                 {% else %}
                                     --:--:--
                                 {% endif %}
@@ -983,8 +977,6 @@
                             <div class="timeline-time" id="timelineClockOut">
                                 {% if today_attendance and today_attendance.clock_out_display %}
                                     {{ today_attendance.clock_out_display.strftime('%H:%M:%S') }}
-                                {% elif today_attendance and today_attendance.clock_out %}
-                                    {{ today_attendance.clock_out.strftime('%H:%M:%S') }}
                                 {% else %}
                                     --:--:--
                                 {% endif %}
@@ -1025,6 +1017,10 @@
         'Australia/Sydney': 'Australia/Sydney'
     };
 
+    // Company timezone from backend
+    const companyTimezone = '{{ company_timezone }}' || 'UTC';
+    const timezoneOffset = '{{ timezone_offset }}' || '+00:00';
+
     // Get time formatted in a specific timezone using browser's Intl API
     function getTimeInTimezone(timezone) {
         try {
@@ -1052,10 +1048,6 @@
             return new Date().toLocaleTimeString('en-US', { hour12: false });
         }
     }
-
-    // Company timezone from backend
-    const companyTimezone = '{{ company_timezone }}' || 'UTC';
-    const timezoneOffset = '{{ timezone_offset }}' || '+00:00';
 
     // Update live clock based on company timezone
     function updateLiveClock() {
@@ -1153,14 +1145,15 @@
 
     // Update timezone in hidden input and live clock
     function updateTimezone() {
-        const timezoneDropdown = document.getElementById('timezoneDropdown');
         const timezoneInput = document.getElementById('timezoneInput');
-        const timezoneLabel = document.getElementById('timezoneLabel');
+        const timezoneNameLabel = document.getElementById('timezoneNameLabel');
+        const timezoneOffsetLabel = document.getElementById('timezoneOffsetLabel');
 
         // Only update if elements exist (null check for safety)
-        if (timezoneDropdown && timezoneInput && timezoneLabel) {
-            timezoneInput.value = timezoneDropdown.value;
-            timezoneLabel.textContent = timezoneDropdown.value;
+        if (timezoneInput && timezoneNameLabel && timezoneOffsetLabel) {
+            timezoneInput.value = companyTimezone; // This is for form submission, not display
+            timezoneNameLabel.textContent = companyTimezone;
+            timezoneOffsetLabel.textContent = timezoneOffset; // Update the offset display
 
             // Update clock and greeting immediately
             updateLiveClock();
@@ -1173,10 +1166,8 @@
         const form = document.getElementById('attendanceForm');
         const button = event.target.closest('.card-button');
 
-        // Update timezone before submission (with null check)
-        if (document.getElementById('timezoneDropdown')) {
-            updateTimezone();
-        }
+        // Update timezone before submission
+        updateTimezone();
 
         // Add loading state
         button.classList.add('loading');
@@ -1204,6 +1195,7 @@
         updateDate();
         updateStatus();
         getLocation();
+        updateTimezone();
 
         // Update clock every second with timezone awareness
         setInterval(function() {

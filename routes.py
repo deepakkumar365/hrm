@@ -7,6 +7,7 @@ import os
 import time as pytime
 import subprocess
 from werkzeug.utils import secure_filename
+import pytz # Import pytz
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
@@ -19,7 +20,7 @@ from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, check_permission,
-                   mobile_optimized_pagination, get_current_month_dates)
+                   mobile_optimized_pagination, get_current_month_dates, get_employee_local_time) # Import get_employee_local_time
 from constants import DEFAULT_USER_PASSWORD
 
 # Helper to validate image extension
@@ -362,7 +363,7 @@ def dashboard():
     if user_role_name == 'Super Admin':
         # Render Super Admin Dashboard
         return render_super_admin_dashboard()
-    
+
     elif user_role_name in ['HR Manager', 'Tenant Admin']:
         # Route to HR Manager Dashboard (handles both HR Manager and Tenant Admin roles)
         from routes_hr_manager import hr_manager_dashboard
@@ -660,7 +661,7 @@ def employee_add():
             employee.hire_date = parse_date(request.form.get('hire_date'))
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
-            
+
             work_permit_number = request.form.get('work_permit_number')
             if work_permit_number:
                 employee.work_permit_number = work_permit_number
@@ -759,7 +760,7 @@ def employee_add():
             try:
                 # Generate username from employee_id (case sensitive)
                 username = employee.employee_id
-                
+
                 # Check if username already exists (should be unique)
                 if User.query.filter_by(username=username).first():
                     raise ValueError(f"User account with username '{username}' already exists")
@@ -988,7 +989,7 @@ def employee_edit(employee_id):
             # Position field removed - use designation_id instead
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
-            
+
             work_permit_number = request.form.get('work_permit_number')
             if work_permit_number:
                 employee.work_permit_number = work_permit_number
@@ -1209,7 +1210,7 @@ def employee_edit(employee_id):
 def payroll_list():
     """List payroll records"""
     from uuid import UUID
-    
+
     page = request.args.get('page', 1, type=int)
     month = request.args.get('month', type=int)
     year = request.args.get('year', type=int)
@@ -1217,7 +1218,7 @@ def payroll_list():
     employee_id = request.args.get('employee_id', type=int)
 
     query = Payroll.query.join(Employee)
-    
+
     # Get accessible companies for HR Manager
     accessible_companies = []
     accessible_company_ids = []
@@ -1432,7 +1433,7 @@ def payroll_generate():
     from datetime import datetime as dt
     current_month = dt.now().month
     current_year = dt.now().year
-    
+
     # Get companies for current user's organization/tenant
     companies = []
     if current_user and current_user.organization:
@@ -1734,7 +1735,7 @@ def payroll_approve(payroll_id):
         if payroll.status == 'Draft':
             payroll.status = 'Approved'
             db.session.commit()
-            
+
             # ✅ Create EmployeeDocument record when approved so payslip appears in Documents menu
             try:
                 existing_doc = EmployeeDocument.query.filter_by(
@@ -1743,7 +1744,7 @@ def payroll_approve(payroll_id):
                     month=payroll.pay_period_start.month,
                     year=payroll.pay_period_start.year
                 ).first()
-                
+
                 if not existing_doc:
                     salary_slip_doc = EmployeeDocument(
                         employee_id=payroll.employee_id,
@@ -1760,7 +1761,7 @@ def payroll_approve(payroll_id):
             except Exception as doc_error:
                 # Log but don't fail payroll approval if document creation fails
                 print(f"Warning: Could not create salary slip document: {doc_error}")
-            
+
             return jsonify({'success': True, 'message': 'Payroll approved successfully'}), 200
         else:
             return jsonify({'success': False, 'message': f'Cannot approve. Payroll status is {payroll.status}'}), 400
@@ -1781,7 +1782,7 @@ def payroll_finalize(payroll_id):
             payroll.finalized_at = datetime.now()
             payroll.finalized_by = current_user.username if hasattr(current_user, 'username') else str(current_user.id)
             db.session.commit()
-            
+
             # ✅ Create EmployeeDocument record so payslip appears in Documents menu
             try:
                 existing_doc = EmployeeDocument.query.filter_by(
@@ -1790,7 +1791,7 @@ def payroll_finalize(payroll_id):
                     month=payroll.pay_period_start.month,
                     year=payroll.pay_period_start.year
                 ).first()
-                
+
                 if not existing_doc:
                     salary_slip_doc = EmployeeDocument(
                         employee_id=payroll.employee_id,
@@ -1807,7 +1808,7 @@ def payroll_finalize(payroll_id):
             except Exception as doc_error:
                 # Log but don't fail payroll finalization if document creation fails
                 print(f"Warning: Could not create salary slip document: {doc_error}")
-            
+
             return jsonify({'success': True, 'message': 'Payroll finalized successfully'}), 200
         else:
             return jsonify({'success': False, 'message': f'Cannot finalize. Payroll must be Approved. Current status: {payroll.status}'}), 400
@@ -1887,17 +1888,40 @@ def attendance_list():
 @require_login
 def attendance_mark():
     """Mark attendance (for employees)"""
+    # Get company timezone and calculate offset
+    company_timezone = 'UTC'
+    timezone_offset = '+00:00' # Default to UTC offset
+    employee_profile = None
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        employee_profile = current_user.employee_profile
+        if employee_profile.company:
+            company_timezone = employee_profile.company.timezone or 'UTC'
+            try:
+                tz = pytz.timezone(company_timezone)
+                # Get current UTC time
+                utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
+                # Convert to company's local time
+                local_now = utc_now.astimezone(tz)
+                # Get the offset from UTC
+                offset_seconds = local_now.utcoffset().total_seconds()
+                hours = int(offset_seconds // 3600)
+                minutes = int((offset_seconds % 3600) // 60)
+                timezone_offset = f"{'+' if hours >= 0 else '-'}{abs(hours):02d}:{abs(minutes):02d}"
+            except pytz.exceptions.UnknownTimeZoneError:
+                print(f"Warning: Unknown timezone '{company_timezone}'. Defaulting to UTC.")
+            except Exception as e:
+                print(f"Error calculating timezone offset: {e}. Defaulting to UTC.")
+
+
     if request.method == 'POST':
         try:
-            if not hasattr(
-                    current_user,
-                    'employee_profile') or not current_user.employee_profile:
+            if not employee_profile:
                 flash('Employee profile required for attendance marking',
                       'error')
                 return redirect(url_for('dashboard'))
 
             today = date.today()
-            employee_id = current_user.employee_profile.id
+            employee_id = employee_profile.id
 
             # Check if already marked today
             existing = Attendance.query.filter_by(employee_id=employee_id,
@@ -2033,37 +2057,75 @@ def attendance_mark():
             today_attendance = Attendance.query.filter_by(
                 employee_id=employee_id,
                 date=date.today()).first()
+
+            # Convert times for display
+            if today_attendance:
+                if today_attendance.clock_in:
+                    today_attendance.clock_in_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+                if today_attendance.clock_out:
+                    today_attendance.clock_out_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+                if today_attendance.break_start:
+                    today_attendance.break_start_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+                if today_attendance.break_end:
+                    today_attendance.break_end_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+
             return render_template('attendance/form.html',
-                                   today_attendance=today_attendance)
+                                   today_attendance=today_attendance,
+                                   company_timezone=company_timezone,
+                                   timezone_offset=timezone_offset)
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error marking attendance: {str(e)}', 'error')
             # Get today's attendance record to show on form
             today_attendance = None
-            if hasattr(current_user,
-                       'employee_profile') and current_user.employee_profile:
+            if employee_profile:
                 today_attendance = Attendance.query.filter_by(
-                    employee_id=current_user.employee_profile.id,
+                    employee_id=employee_profile.id,
                     date=date.today()).first()
+                # Convert times for display
+                if today_attendance:
+                    if today_attendance.clock_in:
+                        today_attendance.clock_in_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+                    if today_attendance.clock_out:
+                        today_attendance.clock_out_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+                    if today_attendance.break_start:
+                        today_attendance.break_start_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+                    if today_attendance.break_end:
+                        today_attendance.break_end_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+
             return render_template('attendance/form.html',
-                                   today_attendance=today_attendance)
+                                   today_attendance=today_attendance,
+                                   company_timezone=company_timezone,
+                                   timezone_offset=timezone_offset)
 
     # GET request - show attendance form for manual marking
     # Get today's attendance record
     today_attendance = None
-    if hasattr(current_user,
-               'employee_profile') and current_user.employee_profile:
+    if employee_profile:
         today_attendance = Attendance.query.filter_by(
-            employee_id=current_user.employee_profile.id,
+            employee_id=employee_profile.id,
             date=date.today()).first()
+
+        # Convert times for display
+        if today_attendance:
+            if today_attendance.clock_in:
+                today_attendance.clock_in_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+            if today_attendance.clock_out:
+                today_attendance.clock_out_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+            if today_attendance.break_start:
+                today_attendance.break_start_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+            if today_attendance.break_end:
+                today_attendance.break_end_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
     else:
         flash(
             'You need an employee profile to mark attendance. Contact your administrator.',
             'warning')
 
     return render_template('attendance/form.html',
-                           today_attendance=today_attendance)
+                           today_attendance=today_attendance,
+                           company_timezone=company_timezone,
+                           timezone_offset=timezone_offset)
 
 
 @app.route('/attendance/correct/<int:attendance_id>', methods=['GET', 'POST'])
@@ -2775,7 +2837,7 @@ def user_management():
                 ).order_by(User.first_name, User.last_name).all()
             else:
                 users = []
-        
+
         return render_template('users/list.html', users=users)
     except Exception as e:
         flash(f'Error loading users: {str(e)}', 'error')

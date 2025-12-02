@@ -11,7 +11,7 @@ import re
 def export_to_csv(data, filename, headers=None):
     """Export data to CSV and return as downloadable response"""
     output = StringIO()
-    
+
     if headers:
         writer = csv.DictWriter(output, fieldnames=headers)
         writer.writeheader()
@@ -21,23 +21,23 @@ def export_to_csv(data, filename, headers=None):
         writer = csv.writer(output)
         for row in data:
             writer.writerow(row)
-    
+
     response = make_response(output.getvalue())
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     response.headers["Content-Type"] = "text/csv"
-    
+
     return response
 
 def calculate_working_days(start_date, end_date):
     """Calculate working days between two dates (excluding weekends)"""
     working_days = 0
     current_date = start_date
-    
+
     while current_date <= end_date:
         if current_date.weekday() < 5:  # Monday is 0, Sunday is 6
             working_days += 1
         current_date += timedelta(days=1)
-    
+
     return working_days
 
 def format_currency(amount):
@@ -70,12 +70,12 @@ def get_current_month_dates():
     """Get start and end dates of current month"""
     today = date.today()
     start_date = date(today.year, today.month, 1)
-    
+
     if today.month == 12:
         end_date = date(today.year + 1, 1, 1) - timedelta(days=1)
     else:
         end_date = date(today.year, today.month + 1, 1) - timedelta(days=1)
-    
+
     return start_date, end_date
 
 def validate_nric(nric):
@@ -103,16 +103,16 @@ def validate_and_format_phone(phone_string):
 def validate_email(email):
     """
     Validate email format using regex pattern.
-    
+
     Args:
         email: Email string to validate
-    
+
     Returns:
         True if email is valid, False otherwise
     """
     if not email or not isinstance(email, str):
         return False
-    
+
     # Basic email validation regex
     email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(email_pattern, email.strip()))
@@ -121,11 +121,11 @@ def validate_email(email):
 def generate_employee_id(company_code=None, employee_db_id=None):
     """
     Generate employee ID in format: <CompanyCode><hrm_employee_id>
-    
+
     Args:
         company_code: Code of the company (e.g., 'ACME')
         employee_db_id: ID from hrm_employee table (auto-incremented integer)
-    
+
     Returns:
         Formatted employee ID (e.g., 'ACME001') or None if company_code not provided
     """
@@ -133,11 +133,11 @@ def generate_employee_id(company_code=None, employee_db_id=None):
         # Fallback for backward compatibility if company code not available
         from datetime import datetime
         return f"EMP{datetime.now().strftime('%Y%m%d%H%M%S')}"
-    
+
     if employee_db_id:
         # Format: CompanyCode + ID with zero-padding (e.g., ACME001)
         return f"{company_code}{str(employee_db_id).zfill(3)}"
-    
+
     # If only company_code provided, use timestamp for backward compatibility
     from datetime import datetime
     return f"{company_code}{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -146,29 +146,29 @@ def get_company_employee_id(company_id, company_code, db_session):
     """
     Generate a company-specific employee ID using the CompanyEmployeeIdConfig table.
     Each company has its own sequence starting from 1.
-    
+
     Format: CompanyCode + Sequential Number (e.g., ACME001, ACME002, ACME003)
-    
+
     Args:
         company_id: UUID of the company
         company_code: Code of the company (e.g., 'ACME')
         db_session: SQLAlchemy database session
-    
+
     Returns:
         Formatted employee ID (e.g., 'ACME001')
-    
+
     Raises:
         ValueError: If company_code is not provided
     """
     if not company_code:
         raise ValueError("Company code is required to generate employee ID")
-    
+
     # Import here to avoid circular imports
     from models import CompanyEmployeeIdConfig
-    
+
     # Get or create the configuration for this company
     config = CompanyEmployeeIdConfig.query.filter_by(company_id=company_id).first()
-    
+
     if not config:
         # Create new configuration entry for this company
         config = CompanyEmployeeIdConfig(
@@ -179,7 +179,7 @@ def get_company_employee_id(company_id, company_code, db_session):
         )
         db_session.add(config)
         db_session.flush()  # Flush to ensure the config is created before we use it
-    
+
     # Get the next employee ID
     return config.get_next_employee_id()
 
@@ -187,21 +187,21 @@ def check_permission(user, required_permission):
     """Check if user has required permission"""
     if not user or not user.is_authenticated:
         return False
-    
+
     role_permissions = {
         'Admin': ['all'],
         'Manager': ['view_team', 'approve_leave', 'approve_claims', 'view_payroll'],
         'Employee': ['view_self', 'submit_leave', 'submit_claims', 'view_payslip']
     }
-    
+
     user_permissions = role_permissions.get(user.role, [])
-    
+
     return 'all' in user_permissions or required_permission in user_permissions
 
 def mobile_optimized_pagination(page, per_page, total):
     """Generate mobile-friendly pagination info"""
     total_pages = (total + per_page - 1) // per_page
-    
+
     return {
         'page': page,
         'per_page': per_page,
@@ -215,27 +215,27 @@ def mobile_optimized_pagination(page, per_page, total):
 
 class MobileDetector:
     """Simple mobile device detection"""
-    
+
     @staticmethod
     def is_mobile(user_agent):
         mobile_agents = [
-            'Mobile', 'Android', 'iPhone', 'iPad', 'iPod', 
+            'Mobile', 'Android', 'iPhone', 'iPad', 'iPod',
             'BlackBerry', 'Windows Phone', 'Opera Mini'
         ]
-        
+
         return any(agent in str(user_agent) for agent in mobile_agents)
 
 def get_employee_local_time(employee, time_obj, event_date):
     """
-    Convert a UTC time object to the employee's local timezone.
+    Convert a UTC time object to the employee's company's local timezone.
 
     Args:
-        employee (Employee): The employee object with a timezone attribute.
+        employee (Employee): The employee object with a company relationship.
         time_obj (datetime.time): The time object stored in UTC.
         event_date (datetime.date): The date of the event.
 
     Returns:
-        str: Formatted time string in employee's local timezone, or empty string.
+        str: Formatted time string in the company's local timezone, or empty string.
     """
     if not time_obj or not event_date:
         return ""
@@ -244,12 +244,15 @@ def get_employee_local_time(employee, time_obj, event_date):
         # Combine date and time to create a UTC datetime object
         utc_dt = datetime.combine(event_date, time_obj, tzinfo=utc)
 
-        # Get employee's timezone, default to UTC
-        employee_tz_str = employee.timezone or 'UTC'
-        employee_tz = timezone(employee_tz_str)
+        # Get company's timezone, default to UTC
+        company_tz_str = 'UTC'
+        if employee.company and employee.company.timezone:
+            company_tz_str = employee.company.timezone
 
-        # Convert UTC datetime to employee's local timezone
-        local_dt = utc_dt.astimezone(employee_tz)
+        company_tz = timezone(company_tz_str)
+
+        # Convert UTC datetime to company's local timezone
+        local_dt = utc_dt.astimezone(company_tz)
 
         # Format for display
         return local_dt.strftime('%I:%M %p %Z')
