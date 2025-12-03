@@ -7,7 +7,7 @@ import os
 import time as pytime
 import subprocess
 from werkzeug.utils import secure_filename
-import pytz # Import pytz
+import pytz
 
 from app import app, db
 from auth import require_login, require_role, create_default_users
@@ -20,7 +20,7 @@ from flask_login import login_user, logout_user
 from singapore_payroll import SingaporePayrollCalculator
 from utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, check_permission,
-                   mobile_optimized_pagination, get_current_month_dates, get_employee_local_time) # Import get_employee_local_time
+                   mobile_optimized_pagination, get_current_month_dates, get_employee_local_time)
 from constants import DEFAULT_USER_PASSWORD
 
 # Helper to validate image extension
@@ -1888,244 +1888,96 @@ def attendance_list():
 @require_login
 def attendance_mark():
     """Mark attendance (for employees)"""
-    # Get company timezone and calculate offset
     company_timezone = 'UTC'
-    timezone_offset = '+00:00' # Default to UTC offset
+    timezone_offset = '+00:00'
     employee_profile = None
+    local_now = datetime.utcnow()
+
     if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         employee_profile = current_user.employee_profile
         if employee_profile.company:
             company_timezone = employee_profile.company.timezone or 'UTC'
             try:
                 tz = pytz.timezone(company_timezone)
-                # Get current UTC time
                 utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
-                # Convert to company's local time
                 local_now = utc_now.astimezone(tz)
-                # Get the offset from UTC
                 offset_seconds = local_now.utcoffset().total_seconds()
                 hours = int(offset_seconds // 3600)
                 minutes = int((offset_seconds % 3600) // 60)
                 timezone_offset = f"{'+' if hours >= 0 else '-'}{abs(hours):02d}:{abs(minutes):02d}"
-            except pytz.exceptions.UnknownTimeZoneError:
-                print(f"Warning: Unknown timezone '{company_timezone}'. Defaulting to UTC.")
             except Exception as e:
-                print(f"Error calculating timezone offset: {e}. Defaulting to UTC.")
+                print(f"Error with timezone '{company_timezone}': {e}. Defaulting to UTC.")
+                local_now = datetime.utcnow()
 
+    company_local_date = local_now.date()
+    company_local_date_str = company_local_date.strftime("%A, %B %d, %Y")
 
     if request.method == 'POST':
         try:
             if not employee_profile:
-                flash('Employee profile required for attendance marking',
-                      'error')
+                flash('Employee profile required for attendance marking', 'error')
                 return redirect(url_for('dashboard'))
 
-            today = date.today()
+            today = company_local_date
             employee_id = employee_profile.id
-
-            # Check if already marked today
-            existing = Attendance.query.filter_by(employee_id=employee_id,
-                                                  date=today).first()
-
-            action = request.form.get(
-                'action')  # clock_in, clock_out, break_start, break_end
-            current_time = datetime.now().time()
+            existing = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
+            action = request.form.get('action')
+            utc_action_time = datetime.utcnow().time()
 
             if action == 'clock_in':
-                # Check for incomplete attendance from previous day(s)
-                yesterday = today - timedelta(days=1)
-                incomplete_attendance = Attendance.query.filter(
-                    Attendance.employee_id == employee_id, Attendance.date
-                    < today, Attendance.clock_out.is_(None)).order_by(
-                        Attendance.date.desc()).first()
-
-                if incomplete_attendance:
-                    # Auto-complete previous day with default 6PM clock out
-                    default_clock_out = time(18, 0)  # 6:00 PM
-                    incomplete_attendance.clock_out = default_clock_out
-
-                    # Calculate hours for the incomplete day
-                    clock_in_dt = datetime.combine(
-                        incomplete_attendance.date,
-                        incomplete_attendance.clock_in)
-                    clock_out_dt = datetime.combine(incomplete_attendance.date,
-                                                    default_clock_out)
-                    total_seconds = (clock_out_dt -
-                                     clock_in_dt).total_seconds()
-
-                    # Subtract break time if applicable
-                    if incomplete_attendance.break_start and incomplete_attendance.break_end:
-                        break_start_dt = datetime.combine(
-                            incomplete_attendance.date,
-                            incomplete_attendance.break_start)
-                        break_end_dt = datetime.combine(
-                            incomplete_attendance.date,
-                            incomplete_attendance.break_end)
-                        break_seconds = (break_end_dt -
-                                         break_start_dt).total_seconds()
-                        total_seconds -= break_seconds
-
-                    total_hours = total_seconds / 3600
-
-                    # Standard work day is 8 hours
-                    if total_hours > 8:
-                        incomplete_attendance.regular_hours = 8
-                        incomplete_attendance.overtime_hours = total_hours - 8
-                    else:
-                        incomplete_attendance.regular_hours = total_hours
-                        incomplete_attendance.overtime_hours = 0
-
-                    incomplete_attendance.total_hours = total_hours
-                    incomplete_attendance.notes = f"Auto-completed: Forgot to clock out on {incomplete_attendance.date.strftime('%Y-%m-%d')}"
-
-                    flash(
-                        f'Previous incomplete attendance for {incomplete_attendance.date.strftime("%B %d")} has been auto-completed with 6:00 PM clock out.',
-                        'info')
-
                 if not existing:
-                    # Create new attendance record
-                    attendance = Attendance()
-                    attendance.employee_id = employee_id
-                    attendance.date = today
-                    attendance.clock_in = current_time
-                    attendance.status = 'Present'
-
-                    # Get location if provided
-                    lat = request.form.get('latitude')
-                    lng = request.form.get('longitude')
-                    if lat and lng:
-                        attendance.location_lat = lat
-                        attendance.location_lng = lng
-
+                    attendance = Attendance(
+                        employee_id=employee_id,
+                        date=today,
+                        clock_in=utc_action_time,
+                        status='Present',
+                        location_lat=request.form.get('latitude'),
+                        location_lng=request.form.get('longitude')
+                    )
                     db.session.add(attendance)
                     flash('Clocked in successfully', 'success')
                 else:
                     flash('Already clocked in for today', 'warning')
             elif existing:
-                # Update existing record
                 if action == 'clock_out':
-                    existing.clock_out = current_time
-                    # Calculate hours
-                    if existing.clock_in:
-                        clock_in_dt = datetime.combine(today,
-                                                       existing.clock_in)
-                        clock_out_dt = datetime.combine(today, current_time)
-                        total_seconds = (clock_out_dt -
-                                         clock_in_dt).total_seconds()
-
-                        # Subtract break time if applicable
-                        if existing.break_start and existing.break_end:
-                            break_start_dt = datetime.combine(
-                                today, existing.break_start)
-                            break_end_dt = datetime.combine(
-                                today, existing.break_end)
-                            break_seconds = (break_end_dt -
-                                             break_start_dt).total_seconds()
-                            total_seconds -= break_seconds
-
-                        total_hours = total_seconds / 3600
-
-                        # Standard work day is 8 hours
-                        if total_hours > 8:
-                            existing.regular_hours = 8
-                            existing.overtime_hours = total_hours - 8
-                        else:
-                            existing.regular_hours = total_hours
-                            existing.overtime_hours = 0
-
-                        existing.total_hours = total_hours
-
+                    existing.clock_out = utc_action_time
                     flash('Clocked out successfully', 'success')
-
                 elif action == 'break_start':
-                    existing.break_start = current_time
+                    existing.break_start = utc_action_time
                     flash('Break started', 'success')
-
                 elif action == 'break_end':
-                    existing.break_end = current_time
+                    existing.break_end = utc_action_time
                     flash('Break ended', 'success')
             else:
-                # No existing record found for break/clock_out actions
-                if action in ['break_start', 'break_end', 'clock_out']:
-                    flash(
-                        'Please clock in first before performing this action',
-                        'warning')
-                    return redirect(url_for('attendance_mark'))
+                flash('Please clock in first', 'warning')
+                return redirect(url_for('attendance_mark'))
 
             db.session.commit()
-            # Stay on the attendance form and show updated status with success message
-            today_attendance = Attendance.query.filter_by(
-                employee_id=employee_id,
-                date=date.today()).first()
-
-            # Convert times for display
-            if today_attendance:
-                if today_attendance.clock_in:
-                    today_attendance.clock_in_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-                if today_attendance.clock_out:
-                    today_attendance.clock_out_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-                if today_attendance.break_start:
-                    today_attendance.break_start_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-                if today_attendance.break_end:
-                    today_attendance.break_end_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-
-            return render_template('attendance/form.html',
-                                   today_attendance=today_attendance,
-                                   company_timezone=company_timezone,
-                                   timezone_offset=timezone_offset)
+            return redirect(url_for('attendance_mark'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error marking attendance: {str(e)}', 'error')
-            # Get today's attendance record to show on form
-            today_attendance = None
-            if employee_profile:
-                today_attendance = Attendance.query.filter_by(
-                    employee_id=employee_profile.id,
-                    date=date.today()).first()
-                # Convert times for display
-                if today_attendance:
-                    if today_attendance.clock_in:
-                        today_attendance.clock_in_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-                    if today_attendance.clock_out:
-                        today_attendance.clock_out_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-                    if today_attendance.break_start:
-                        today_attendance.break_start_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-                    if today_attendance.break_end:
-                        today_attendance.break_end_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
 
-            return render_template('attendance/form.html',
-                                   today_attendance=today_attendance,
-                                   company_timezone=company_timezone,
-                                   timezone_offset=timezone_offset)
-
-    # GET request - show attendance form for manual marking
-    # Get today's attendance record
     today_attendance = None
     if employee_profile:
         today_attendance = Attendance.query.filter_by(
             employee_id=employee_profile.id,
-            date=date.today()).first()
-
-        # Convert times for display
+            date=company_local_date
+        ).first()
         if today_attendance:
-            if today_attendance.clock_in:
-                today_attendance.clock_in_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-            if today_attendance.clock_out:
-                today_attendance.clock_out_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-            if today_attendance.break_start:
-                today_attendance.break_start_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
-            if today_attendance.break_end:
-                today_attendance.break_end_display = datetime.strptime(get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date).split(' ')[0], '%H:%M:%S').time()
+            today_attendance.clock_in_display = get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date)
+            today_attendance.clock_out_display = get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date)
+            today_attendance.break_start_display = get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date)
+            today_attendance.break_end_display = get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date)
     else:
-        flash(
-            'You need an employee profile to mark attendance. Contact your administrator.',
-            'warning')
+        flash('You need an employee profile to mark attendance.', 'warning')
 
     return render_template('attendance/form.html',
                            today_attendance=today_attendance,
                            company_timezone=company_timezone,
-                           timezone_offset=timezone_offset)
+                           timezone_offset=timezone_offset,
+                           company_local_date_str=company_local_date_str)
 
 
 @app.route('/attendance/correct/<int:attendance_id>', methods=['GET', 'POST'])

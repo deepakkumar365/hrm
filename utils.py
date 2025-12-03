@@ -262,3 +262,39 @@ def get_employee_local_time(employee, time_obj, event_date):
         logging.error(f"Error converting time for employee {employee.id}: {e}")
         # Fallback to UTC time if conversion fails
         return time_obj.strftime('%I:%M %p UTC')
+
+def get_employee_local_date(employee, event_date):
+    """
+    Convert a UTC date to the employee's company's local timezone date.
+
+    Args:
+        employee (Employee): The employee object with a company relationship.
+        event_date (datetime.date): The date of the event.
+
+    Returns:
+        datetime.date: The date in the company's local timezone.
+    """
+    if not event_date:
+        return None
+
+    try:
+        # Create a UTC datetime at midnight
+        utc_dt = datetime.combine(event_date, datetime.min.time(), tzinfo=utc)
+
+        # Get company's timezone, default to UTC
+        company_tz_str = 'UTC'
+        if employee.company and employee.company.timezone:
+            company_tz_str = employee.company.timezone
+
+        company_tz = timezone(company_tz_str)
+
+        # Convert UTC datetime to company's local timezone
+        local_dt = utc_dt.astimezone(company_tz)
+
+        return local_dt.date()
+
+    except Exception as e:
+        # Log the error for debugging purposes
+        logging.error(f"Error converting date for employee {employee.id}: {e}")
+        # Fallback to original date if conversion fails
+        return event_date

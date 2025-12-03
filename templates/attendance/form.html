@@ -117,7 +117,7 @@
         border-radius: 20px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         text-align: center;
-        box-shadow: 0 8px 32px (0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         animation: slideInRight 0.8s ease-out;
     }
 
@@ -780,7 +780,7 @@
         <div class="hero-left">
             <h1>Welcome</h1>
             <p id="userGreeting">Good Morning!</p>
-            <div class="hero-date" id="heroDate">Loading...</div>
+            <div class="hero-date" id="heroDate">{{ company_local_date_str }}</div>
             <div class="status-display">
                 <div class="status-badge-new" id="statusBadge">
                     <i class="fas fa-circle me-1"></i>
@@ -1086,18 +1086,6 @@
         }
     }
 
-    // Update date
-    function updateDate() {
-        const now = new Date();
-        const options = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        };
-        document.getElementById('heroDate').textContent = now.toLocaleDateString('en-US', options);
-    }
-
     // Update status
     function updateStatus() {
         const badge = document.getElementById('statusBadge');
@@ -1192,7 +1180,6 @@
         // Initial updates
         updateClock();
         updateGreeting();
-        updateDate();
         updateStatus();
         getLocation();
         updateTimezone();
