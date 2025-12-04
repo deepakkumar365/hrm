@@ -928,7 +928,7 @@
                             <div class="timeline-label">Clock In</div>
                             <div class="timeline-time" id="timelineClockIn">
                                 {% if today_attendance and today_attendance.clock_in_display %}
-                                    {{ today_attendance.clock_in_display.strftime('%H:%M:%S') }}
+                                    {{ today_attendance.clock_in_display }}
                                 {% else %}
                                     --:--:--
                                 {% endif %}
@@ -944,7 +944,7 @@
                             <div class="timeline-label">Break Start</div>
                             <div class="timeline-time" id="timelineBreakStart">
                                 {% if today_attendance and today_attendance.break_start_display %}
-                                    {{ today_attendance.break_start_display.strftime('%H:%M:%S') }}
+                                    {{ today_attendance.break_start_display }}
                                 {% else %}
                                     --:--:--
                                 {% endif %}
@@ -960,7 +960,7 @@
                             <div class="timeline-label">Break End</div>
                             <div class="timeline-time" id="timelineBreakEnd">
                                 {% if today_attendance and today_attendance.break_end_display %}
-                                    {{ today_attendance.break_end_display.strftime('%H:%M:%S') }}
+                                    {{ today_attendance.break_end_display }}
                                 {% else %}
                                     --:--:--
                                 {% endif %}
@@ -976,7 +976,7 @@
                             <div class="timeline-label">Clock Out</div>
                             <div class="timeline-time" id="timelineClockOut">
                                 {% if today_attendance and today_attendance.clock_out_display %}
-                                    {{ today_attendance.clock_out_display.strftime('%H:%M:%S') }}
+                                    {{ today_attendance.clock_out_display }}
                                 {% else %}
                                     --:--:--
                                 {% endif %}

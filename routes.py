@@ -1966,10 +1966,15 @@ def attendance_mark():
             date=company_local_date
         ).first()
         if today_attendance:
-            today_attendance.clock_in_display = get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date)
-            today_attendance.clock_out_display = get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date)
-            today_attendance.break_start_display = get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date)
-            today_attendance.break_end_display = get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date)
+            clock_in_time = get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date)
+            clock_out_time = get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date)
+            break_start_time = get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date)
+            break_end_time = get_employee_local_time(employee_profile, today_attendance.break_end, today_attendance.date)
+            
+            today_attendance.clock_in_display = clock_in_time.strftime('%H:%M:%S') if clock_in_time else None
+            today_attendance.clock_out_display = clock_out_time.strftime('%H:%M:%S') if clock_out_time else None
+            today_attendance.break_start_display = break_start_time.strftime('%H:%M:%S') if break_start_time else None
+            today_attendance.break_end_display = break_end_time.strftime('%H:%M:%S') if break_end_time else None
     else:
         flash('You need an employee profile to mark attendance.', 'warning')
 
