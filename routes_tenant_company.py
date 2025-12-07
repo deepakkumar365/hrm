@@ -303,13 +303,28 @@ def delete_tenant(tenant_id):
 # =====================================================
 
 @app.route('/companies')
-@require_role(['Super Admin',  'Tenant Admin'])
+@require_role(['Super Admin',  'Tenant Admin', 'HR Manager'])
 def company_list():
     """Display company list page with optimized queries"""
     try:
         page = request.args.get('page', 1, type=int)
         search = request.args.get('search', '', type=str)
         tenant_id = request.args.get('tenant_id', '', type=str)
+
+        # Security: For Tenant Admin and HR Manager, filter by their organization's tenant
+        user_role = current_user.role.name if current_user.role else None
+        if user_role in ['Tenant Admin', 'HR Manager']:
+            if current_user.organization and current_user.organization.tenant_id:
+                # Restrict to user's tenant - ignore tenant_id parameter
+                tenant_id = str(current_user.organization.tenant_id)
+            else:
+                # No tenant assigned - return empty results
+                flash('Your user account is not assigned to a tenant', 'warning')
+                return render_template('masters/companies.html',
+                                     companies_with_counts=[],
+                                     tenants=[],
+                                     search=search,
+                                     selected_tenant_id='')
 
         # Subquery to count employees per company (prevents N+1 queries)
         employee_count_subquery = (
@@ -350,8 +365,16 @@ def company_list():
         # Create list of tuples (company, employee_count)
         companies_with_counts = [(company, count) for company, count in results]
 
-        # Get all tenants for filter dropdown and modal
-        tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+        # Get tenants for filter dropdown and modal
+        if user_role == 'Super Admin':
+            # Super Admin can see all tenants
+            tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+        else:
+            # Tenant Admin and HR Manager can only see their own tenant
+            if current_user.organization and current_user.organization.tenant:
+                tenants = [current_user.organization.tenant]
+            else:
+                tenants = []
 
         return render_template('masters/companies.html',
                              companies_with_counts=companies_with_counts,
@@ -389,11 +412,26 @@ def company_view(company_id):
 # =====================================================
 
 @app.route('/api/companies', methods=['GET'])
-@require_role(['Super Admin', 'Admin', 'Manager', 'Tenant Admin'])
+@require_role(['Super Admin', 'Admin', 'Manager', 'Tenant Admin', 'HR Manager'])
 def list_companies():
     """List all companies (optionally filter by tenant)"""
     try:
         tenant_id = request.args.get('tenant_id')
+
+        # Security: For Tenant Admin and HR Manager, filter by their organization's tenant
+        user_role = current_user.role.name if current_user.role else None
+        if user_role in ['Tenant Admin', 'HR Manager']:
+            if current_user.organization and current_user.organization.tenant_id:
+                # Restrict to user's tenant - ignore tenant_id parameter
+                tenant_id = str(current_user.organization.tenant_id)
+            else:
+                # No tenant assigned - return empty results
+                return jsonify({
+                    'success': True,
+                    'data': [],
+                    'count': 0,
+                    'warning': 'Your user account is not assigned to a tenant'
+                }), 200
 
         query = Company.query
         if tenant_id:

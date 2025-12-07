@@ -30,6 +30,12 @@ def _allowed_image(filename: str) -> bool:
     ext = filename.rsplit('.', 1)[1].lower()
     return ext in app.config.get('ALLOWED_IMAGE_EXTENSIONS', set())
 
+def get_current_user_tenant_id():
+    """Get current user's tenant ID for multi-tenant filtering"""
+    if current_user and current_user.organization:
+        return current_user.organization.tenant_id
+    return None
+
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
 
@@ -204,9 +210,8 @@ def register():
 
 
 @app.route('/logout')
-@require_login
 def logout():
-    """User logout"""
+    """User logout - clears session without database access"""
     logout_user()
     return redirect(url_for('login'))
 
@@ -479,7 +484,7 @@ def employee_list():
         Tenant.name.label('tenant_name')
     ).join(
         Company, Employee.company_id == Company.id
-    ).join(
+    ).outerjoin(
         Tenant, Company.tenant_id == Tenant.id
     ).filter(Employee.is_active == True)
 
@@ -567,7 +572,8 @@ def employee_list():
                            department=department,
                            departments=departments,
                            sort_by=sort_by,
-                           sort_order=sort_order)
+                           sort_order=sort_order,
+                           per_page=20)
 
 
 @app.route('/employees/add', methods=['GET', 'POST'])
@@ -588,7 +594,8 @@ def employee_add():
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                tenant_id = get_current_user_tenant_id()
+                companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -612,7 +619,8 @@ def employee_add():
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 # Position field removed - use designation_id instead
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                tenant_id = get_current_user_tenant_id()
+                companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -733,7 +741,8 @@ def employee_add():
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
                     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                     managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    tenant_id = get_current_user_tenant_id()
+                    companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                     return render_template('employees/form.html',
                                            form_data=request.form,
                                            roles=roles,
@@ -822,7 +831,8 @@ def employee_add():
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
             work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
             managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-            companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+            tenant_id = get_current_user_tenant_id()
+            companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
             return render_template('employees/form.html',
                                    form_data=request.form,
                                    roles=roles,
@@ -1061,7 +1071,8 @@ def employee_edit(employee_id):
                 work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                 # Position field removed - use designation_id instead
                 managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                tenant_id = get_current_user_tenant_id()
+                companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -1086,7 +1097,8 @@ def employee_edit(employee_id):
                     work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
                     # Position field removed - use designation_id instead
                     managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                    tenant_id = get_current_user_tenant_id()
+                    companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                     return render_template('employees/form.html',
                                            employee=employee,
                                            form_data=request.form,

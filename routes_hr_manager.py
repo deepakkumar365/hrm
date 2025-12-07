@@ -499,26 +499,12 @@ def hr_manager_ot_attendance():
 @app.route('/dashboard/hr-manager/generate-payroll', methods=['GET', 'POST'])
 @require_login
 def hr_manager_generate_payroll():
-    """Generate Payroll"""
-    if current_user.role.name not in ['Tenant Admin', 'Super Admin']:  # Only admins can generate
+    """Redirect to Payroll Generate page"""
+    if current_user.role.name not in ['HR Manager', 'Tenant Admin', 'Super Admin']:
         flash('Access Denied', 'danger')
         return redirect(url_for('index'))
     
-    if request.method == 'POST':
-        month = request.form.get('month', type=int)
-        year = request.form.get('year', type=int)
-        company_id = get_company_id(request.form.get('company_id'))
-        
-        if not company_id:
-            flash('No company selected', 'danger')
-            return redirect(url_for('hr_manager_dashboard'))
-        
-        # TODO: Implement payroll generation logic
-        flash(f'Payroll generation for {month}/{year} started', 'success')
-        return redirect(url_for('hr_manager_dashboard', company_id=str(company_id)))
-    
-    companies = get_user_companies()
-    return render_template('hr_manager/generate_payroll.html', companies=companies)
+    return redirect(url_for('payroll_generate'))
 
 
 @app.route('/dashboard/hr-manager/payroll-reminder', methods=['GET'])

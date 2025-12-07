@@ -196,6 +196,40 @@ body {
     text-decoration: underline;
 }
 
+.form-flash-error {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Segoe UI', sans-serif;
+    color: #dc3545;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: center;
+    z-index: 9999;
+    max-width: 90%;
+    animation: slideIn 0.3s ease-in-out;
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+    }
+}
+
 @media (max-width: 991.98px) {
     .auth-shell {
         border-radius: 16px;
@@ -290,6 +324,18 @@ body {
                     <h1 class="auth-title h3">Sign in to Nexar</h1>
                 </header>
 
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            {% if category == 'error' %}
+                                <div class="form-flash-error" id="formFlashError" role="alert">
+                                    {{ message }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
                 <form method="POST" novalidate>
                     {{ form.hidden_tag() }}
 
@@ -330,4 +376,21 @@ body {
         </div>
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const flashError = document.getElementById('formFlashError');
+    const autoDismissTime = 5000;
+    
+    if (flashError) {
+        setTimeout(() => {
+            flashError.style.animation = 'fadeOut 0.3s ease-in-out forwards';
+            
+            setTimeout(() => {
+                flashError.style.display = 'none';
+            }, 300);
+        }, autoDismissTime);
+    }
+});
+</script>
 {% endblock %}

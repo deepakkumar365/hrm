@@ -96,10 +96,12 @@ class User(db.Model, UserMixin):
             from models import Company
             return Company.query.all()
 
-        # For HR Manager and Tenant Admin, always return all companies
         if self.role and self.role.name in ['HR Manager', 'Tenant Admin']:
-            from models import Company
-            return Company.query.all()
+            # For HR Manager and Tenant Admin, return only companies from their tenant
+            if self.organization and self.organization.tenant_id:
+                from models import Company
+                return Company.query.filter_by(tenant_id=self.organization.tenant_id).all()
+            return []
 
         elif self.company_access:
             # Get companies from explicit access grants
