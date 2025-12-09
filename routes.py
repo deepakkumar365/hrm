@@ -2135,7 +2135,7 @@ def attendance_incomplete():
 
 @app.route('/attendance/bulk', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin', 'Manager'])
-def attendance_bulk_manage():
+def attendance_mark_absent():
     """Bulk attendance management - mark employees as absent for a specific date"""
     selected_date = request.args.get('date') or request.form.get('date')
     if not selected_date:
@@ -2789,6 +2789,108 @@ def api_attendance_check():
             'clocked_out': False,
             'on_break': False
         })
+
+
+@app.route('/attendance/bulk-manage', methods=['GET', 'POST'])
+@require_role(['HR Manager', 'Tenant Admin', 'Super Admin'])
+def attendance_bulk_manage():
+    """Manage bulk attendance for multiple employees"""
+    from datetime import datetime
+    
+    # Get query parameters
+    selected_date_str = request.args.get('date', date.today().isoformat())
+    selected_company = request.args.get('company', '')
+    
+    try:
+        filter_date = datetime.fromisoformat(selected_date_str).date()
+    except (ValueError, TypeError):
+        filter_date = date.today()
+    
+    selected_date_str = filter_date.isoformat()
+    
+    # Get available companies for current user's tenant
+    tenant_id = get_current_user_tenant_id()
+    if tenant_id:
+        available_companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all()
+    else:
+        available_companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+    
+    # Get employees for selected company or all companies in tenant
+    if selected_company:
+        try:
+            selected_company_id = int(selected_company)
+            employees = Employee.query.filter_by(company_id=selected_company_id, is_active=True).order_by(Employee.first_name).all()
+        except (ValueError, TypeError):
+            employees = []
+    else:
+        if tenant_id:
+            employees = db.session.query(Employee).join(Company).filter(
+                Company.tenant_id == tenant_id,
+                Employee.is_active == True
+            ).order_by(Employee.first_name).all()
+        else:
+            employees = Employee.query.filter_by(is_active=True).order_by(Employee.first_name).all()
+    
+    # Get attendance records for the selected date
+    attendance_records = {}
+    for emp in employees:
+        att = Attendance.query.filter_by(employee_id=emp.id, date=filter_date).first()
+        attendance_records[emp.id] = att
+    
+    # Handle form submission for bulk updates
+    if request.method == 'POST':
+        try:
+            # Process each employee's attendance data
+            for emp in employees:
+                emp_id = emp.id
+                clock_in = request.form.get(f'clock_in_{emp_id}')
+                clock_out = request.form.get(f'clock_out_{emp_id}')
+                status = request.form.get(f'status_{emp_id}')
+                
+                # Skip if no changes
+                if not clock_in and not clock_out and not status:
+                    continue
+                
+                # Get or create attendance record
+                att = Attendance.query.filter_by(employee_id=emp_id, date=filter_date).first()
+                if not att:
+                    att = Attendance(employee_id=emp_id, date=filter_date)
+                
+                # Update fields if provided
+                if clock_in:
+                    try:
+                        att.clock_in = datetime.combine(filter_date, datetime.fromisoformat(clock_in).time())
+                    except (ValueError, TypeError):
+                        pass
+                
+                if clock_out:
+                    try:
+                        att.clock_out = datetime.combine(filter_date, datetime.fromisoformat(clock_out).time())
+                    except (ValueError, TypeError):
+                        pass
+                
+                if status:
+                    att.status = status
+                
+                db.session.add(att)
+            
+            db.session.commit()
+            flash(f'Attendance records updated successfully for {filter_date}', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating attendance: {str(e)}', 'error')
+        
+        return redirect(url_for('attendance_bulk_manage', date=filter_date.isoformat(), company=selected_company))
+    
+    return render_template('attendance/bulk_manage.html',
+                         selected_date=selected_date_str,
+                         filter_date=filter_date,
+                         selected_company=selected_company,
+                         available_companies=available_companies,
+                         employees=employees,
+                         attendance_records=attendance_records,
+                         date=date)
 
 
 # Master Data Management Routes
