@@ -12,13 +12,8 @@
         background-color: #f5f5f5;
     }
 
-    .container-fluid {
-        background-color: white;
-        border-radius: 4px;
-        padding: 1.5rem;
-        margin: 1rem;
-    }
-    
+
+
     /* Form controls - compact */
     .form-label {
         font-size: 0.85rem;
@@ -57,22 +52,22 @@
         font-size: 0.8rem;
         background-color: white;
     }
-    
+
     #payrollTable tbody tr {
         height: 1.8rem;
         border-bottom: 1px solid #f0f0f0;
     }
-    
+
     #payrollTable tbody tr:hover {
         background-color: #f9f9f9;
     }
-    
+
     #payrollTable tbody tr td {
         vertical-align: middle;
         padding: 0.25rem 0.4rem !important;
         color: #333;
     }
-    
+
     #payrollTable thead th {
         position: relative;
         white-space: nowrap;
@@ -84,18 +79,18 @@
         font-weight: 600;
         color: #2c3e50;
     }
-    
+
     #payrollTable thead th:hover {
         background-color: #e8e8e8;
     }
-    
+
     .sort-indicator {
         display: inline-block;
         margin-left: 0.2rem;
         font-size: 0.65rem;
         color: #2c3e50;
     }
-    
+
     /* Column width optimization - remove gaps */
     th, td {
         border-right: 1px solid #efefef;
@@ -104,7 +99,7 @@
     th:last-child, td:last-child {
         border-right: none;
     }
-    
+
     /* Employee Name - No wrap */
     .employee-name-cell {
         white-space: nowrap;
@@ -354,7 +349,7 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <!-- Payroll Summary -->
                 <div class="row mt-2 pt-2 border-top">
                     <div class="col-12">
@@ -446,39 +441,39 @@ function sortTable(column) {
         sortColumn = column;
         sortDirection = 'asc';
     }
-    
+
     // Sort the employee data
     employeeData.sort((a, b) => {
         let aVal = a[column];
         let bVal = b[column];
-        
+
         // Handle numeric values
         if (typeof aVal === 'number' && typeof bVal === 'number') {
             return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
         }
-        
+
         // Handle string values
         aVal = String(aVal || '').toLowerCase();
         bVal = String(bVal || '').toLowerCase();
-        
+
         if (sortDirection === 'asc') {
             return aVal.localeCompare(bVal);
         } else {
             return bVal.localeCompare(aVal);
         }
     });
-    
+
     // Reset to first page when sorting
     currentPage = 1;
-    
+
     // Update sort indicators
     document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
-    
+
     const sortIndicator = document.getElementById(`sort-${column}`);
     if (sortIndicator) {
         sortIndicator.textContent = sortDirection === 'asc' ? '▲' : '▼';
     }
-    
+
     // Re-render table
     renderEmployeeTable();
 }
@@ -613,16 +608,16 @@ function renderEmployeeTable() {
         // Determine if attendance is low (less than 20 days)
         const lowAttendance = emp.attendance_days < 20;
         const attendanceBgClass = lowAttendance ? 'table-warning' : '';
-        
+
         // Determine if payroll is already generated
         const payrollGeneratedClass = emp.payroll_generated ? 'payroll-generated' : '';
         const rowClass = (attendanceBgClass || payrollGeneratedClass) ? `${attendanceBgClass} ${payrollGeneratedClass}`.trim() : '';
-        
+
         // Debug: Log rows that should have payroll-generated class
         if (emp.payroll_generated) {
             console.log(`Row ${emp.id} (${emp.name}): payroll_generated=${emp.payroll_generated}, rowClass="${rowClass}"`);
         }
-        
+
         return `
         <tr class="${rowClass}" id="row-${emp.id}">
             <td>
@@ -695,7 +690,7 @@ function renderEmployeeTable() {
                 </button>
             </td>
             <td>
-                <input type="number" class="form-control form-control-sm other-deductions-input" 
+                <input type="number" class="form-control form-control-sm other-deductions-input"
                        value="${parseFloat(emp.other_deductions || 0).toFixed(2)}"
                        step="0.01" min="0"
                        onchange="updateEmployeeDeductions(this, ${emp.id})"
@@ -728,20 +723,20 @@ function renderEmployeeTable() {
 function updateEmployeeDeductions(input, empId) {
     const otherDeduction = parseFloat(input.value) || 0;
     const emp = employeeData.find(e => e.id === empId);
-    
+
     if (emp) {
         // Update the employee data
         emp.other_deductions = otherDeduction;
         emp.total_deductions = emp.cpf_deduction + emp.lop_deduction + otherDeduction;
         emp.net_salary = emp.gross_salary - emp.total_deductions;
-        
+
         // Update the display
         const deductionsCell = input.parentElement.nextElementSibling;
         deductionsCell.textContent = `$${emp.total_deductions.toFixed(2)}`;
-        
+
         const netSalaryCell = document.querySelector(`.net-salary-${empId}`);
         netSalaryCell.textContent = `$${emp.net_salary.toFixed(2)}`;
-        
+
         // Update summary if this employee is checked
         const checkbox = document.querySelector(`input[value="${empId}"][type="checkbox"].employee-checkbox`);
         if (checkbox && checkbox.checked) {
@@ -755,7 +750,7 @@ function editRow(empId) {
     // Hide display view, show edit view
     document.querySelectorAll(`.display-view-${empId}`).forEach(el => el.style.display = 'none');
     document.querySelectorAll(`.edit-view-${empId}`).forEach(el => el.style.display = 'block');
-    
+
     // Hide Edit button, show Save and Cancel
     document.querySelector(`.edit-btn-${empId}`).style.display = 'none';
     document.querySelector(`.save-btn-${empId}`).style.display = 'inline-block';
@@ -765,44 +760,44 @@ function editRow(empId) {
 // Save Row Function
 function saveRow(empId) {
     const emp = employeeData.find(e => e.id === empId);
-    
+
     if (!emp) return;
-    
+
     // Get all input values from edit mode
     const inputs = document.querySelectorAll(`.edit-view-${empId} input.allowance-input`);
     let hasChanges = false;
-    
+
     inputs.forEach(input => {
         const field = input.getAttribute('data-field');
         const newValue = parseFloat(input.value) || 0;
         const oldValue = parseFloat(emp[field] || 0);
-        
+
         if (newValue !== oldValue) {
             hasChanges = true;
         }
-        
+
         // Update employee data
         emp[field] = newValue;
     });
-    
+
     if (!hasChanges) {
         alert('No changes were made!');
         cancelRow(empId);
         return;
     }
-    
+
     // Recalculate totals (Config allowances + OT allowances)
-    emp.total_allowances = parseFloat(emp.allowance_1 || 0) + 
-                          parseFloat(emp.allowance_2 || 0) + 
-                          parseFloat(emp.allowance_3 || 0) + 
-                          parseFloat(emp.allowance_4 || 0) + 
+    emp.total_allowances = parseFloat(emp.allowance_1 || 0) +
+                          parseFloat(emp.allowance_2 || 0) +
+                          parseFloat(emp.allowance_3 || 0) +
+                          parseFloat(emp.allowance_4 || 0) +
                           parseFloat(emp.levy_allowance || 0) +
                           parseFloat(emp.ot_allowances || 0);
-    
+
     emp.gross_salary = parseFloat(emp.basic_salary || 0) + emp.total_allowances + parseFloat(emp.ot_amount || 0);
     emp.total_deductions = parseFloat(emp.cpf_deduction || 0) + parseFloat(emp.lop_deduction || 0) + parseFloat(emp.other_deductions || 0);
     emp.net_salary = emp.gross_salary - emp.total_deductions;
-    
+
     // Update display values
     document.querySelector(`.transport-display-${empId}`).textContent = `$${emp.allowance_1.toFixed(2)}`;
     document.querySelector(`.housing-display-${empId}`).textContent = `$${emp.allowance_2.toFixed(2)}`;
@@ -811,22 +806,22 @@ function saveRow(empId) {
     document.querySelector(`.levy-display-${empId}`).textContent = `$${emp.levy_allowance.toFixed(2)}`;
     document.querySelector(`.total-allow-${empId}`).textContent = `$${emp.total_allowances.toFixed(2)}`;
     document.querySelector(`.net-salary-${empId}`).textContent = `$${emp.net_salary.toFixed(2)}`;
-    
+
     // Show display view, hide edit view
     document.querySelectorAll(`.display-view-${empId}`).forEach(el => el.style.display = 'block');
     document.querySelectorAll(`.edit-view-${empId}`).forEach(el => el.style.display = 'none');
-    
+
     // Show Edit button, hide Save and Cancel
     document.querySelector(`.edit-btn-${empId}`).style.display = 'inline-block';
     document.querySelector(`.save-btn-${empId}`).style.display = 'none';
     document.querySelector(`.cancel-btn-${empId}`).style.display = 'none';
-    
+
     // Update summary if this employee is checked
     const checkbox = document.querySelector(`input[value="${empId}"][type="checkbox"].employee-checkbox`);
     if (checkbox && checkbox.checked) {
         updateSummary();
     }
-    
+
     alert('Row saved successfully!');
 }
 
@@ -835,7 +830,7 @@ function cancelRow(empId) {
     // Show display view, hide edit view
     document.querySelectorAll(`.display-view-${empId}`).forEach(el => el.style.display = 'block');
     document.querySelectorAll(`.edit-view-${empId}`).forEach(el => el.style.display = 'none');
-    
+
     // Show Edit button, hide Save and Cancel
     document.querySelector(`.edit-btn-${empId}`).style.display = 'inline-block';
     document.querySelector(`.save-btn-${empId}`).style.display = 'none';
@@ -858,10 +853,10 @@ function updateSummary() {
         const emp = employeeData.find(e => e.id == cb.value);
         if (emp) {
             totalBasic += parseFloat(emp.basic_salary || 0);
-            
+
             // Sum all allowances (Config allowances + OT allowances from API)
             totalAllowances += parseFloat(emp.total_allowances || 0);
-            
+
             totalOT += parseFloat(emp.ot_amount || 0);
             totalGross += parseFloat(emp.gross_salary || 0);
             totalDeductions += parseFloat(emp.cpf_deduction || 0) + parseFloat(emp.lop_deduction || 0);
@@ -884,7 +879,7 @@ function updateSummary() {
 function showCalendarModal(employeeId, employeeName) {
     const month = parseInt(document.getElementById('month').value);
     const year = parseInt(document.getElementById('year').value);
-    
+
     // Create modal HTML
     const modalHtml = `
         <div class="modal fade" id="calendarModal" tabindex="-1">
@@ -921,18 +916,18 @@ function showCalendarModal(employeeId, employeeName) {
             </div>
         </div>
     `;
-    
+
     // Remove existing modal if any
     const existingModal = document.getElementById('calendarModal');
     if (existingModal) existingModal.remove();
-    
+
     // Add modal to page
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
+
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
     modal.show();
-    
+
     // Fetch attendance data
     fetch(`/api/attendance/calendar?employee_id=${employeeId}&month=${month}&year=${year}`)
         .then(response => response.json())
@@ -961,7 +956,7 @@ function showCalendarModal(employeeId, employeeName) {
 function renderAttendanceCalendar(calendar, month, year) {
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                         'July', 'August', 'September', 'October', 'November', 'December'];
-    
+
     let calendarHtml = `
         <div class="text-center mb-3">
             <h5>${monthNames[month - 1]} ${year}</h5>
@@ -974,14 +969,14 @@ function renderAttendanceCalendar(calendar, month, year) {
             </thead>
             <tbody>
     `;
-    
+
     // Get first day of month
     const firstDay = new Date(year, month - 1, 1).getDay();
     const daysInMonth = new Date(year, month, 0).getDate();
-    
+
     let dayCounter = 1;
     let cellCounter = 0;
-    
+
     // Add empty cells for days before month starts
     if (firstDay > 0) {
         calendarHtml += '<tr>';
@@ -992,15 +987,15 @@ function renderAttendanceCalendar(calendar, month, year) {
     } else {
         calendarHtml += '<tr>';
     }
-    
+
     // Add days of month
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const attendance = calendar[dateStr];
-        
+
         let bgClass = 'bg-secondary';  // Default grey for weekends/holidays
         let text = day;
-        
+
         if (attendance) {
             if (attendance.status === 'Present') {
                 bgClass = 'bg-success';
@@ -1011,15 +1006,15 @@ function renderAttendanceCalendar(calendar, month, year) {
             }
             text = day + (attendance.lop && attendance.status === 'Absent' ? '*' : '');
         }
-        
+
         calendarHtml += `<td class="text-center p-2 ${bgClass} text-white" style="height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold;">${text}</td>`;
-        
+
         cellCounter++;
         if (cellCounter % 7 === 0) {
             calendarHtml += '</tr><tr>';
         }
     }
-    
+
     // Fill remaining cells
     if (cellCounter % 7 !== 0) {
         const remaining = 7 - (cellCounter % 7);
@@ -1030,9 +1025,9 @@ function renderAttendanceCalendar(calendar, month, year) {
     } else {
         calendarHtml += '</tr>';
     }
-    
+
     calendarHtml += '</tbody></table>';
-    
+
     document.getElementById('calendarContent').innerHTML = calendarHtml;
 }
 
@@ -1061,7 +1056,7 @@ function saveAllChanges() {
     // Collect all deduction changes from current page
     const deductionInputs = document.querySelectorAll('.other-deductions-input');
     let changesDetected = false;
-    
+
     deductionInputs.forEach(input => {
         if (input.dataset.changed) {
             changesDetected = true;
