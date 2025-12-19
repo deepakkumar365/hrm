@@ -8,7 +8,8 @@
         font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    html, body {
+    html,
+    body {
         margin: 0;
         padding: 0;
         height: 100%;
@@ -35,7 +36,7 @@
         background: white;
         padding: 0.75rem 1rem;
         border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -79,8 +80,13 @@
     }
 
     @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     .header-title {
@@ -135,7 +141,7 @@
         flex-direction: column;
         background: white;
         border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         overflow: hidden;
     }
 
@@ -188,15 +194,36 @@
 
     .summary-card:hover {
         box-shadow: none;
-        background: rgba(0,0,0,0.02);
+        background: rgba(0, 0, 0, 0.02);
     }
 
-    .summary-card.present { border-bottom-color: #27ae60; cursor: pointer; }
-    .summary-card.absent { border-bottom-color: #e74c3c; cursor: pointer; }
-    .summary-card.late { border-bottom-color: #f39c12; cursor: pointer; }
-    .summary-card.leaves { border-bottom-color: #9b59b6; cursor: pointer; }
-    .summary-card.ot { border-bottom-color: #1abc9c; }
-    .summary-card.not-updated { border-bottom-color: #3498db; }
+    .summary-card.present {
+        border-bottom-color: #27ae60;
+        cursor: pointer;
+    }
+
+    .summary-card.absent {
+        border-bottom-color: #e74c3c;
+        cursor: pointer;
+    }
+
+    .summary-card.late {
+        border-bottom-color: #f39c12;
+        cursor: pointer;
+    }
+
+    .summary-card.leaves {
+        border-bottom-color: #9b59b6;
+        cursor: pointer;
+    }
+
+    .summary-card.ot {
+        border-bottom-color: #1abc9c;
+    }
+
+    .summary-card.not-updated {
+        border-bottom-color: #3498db;
+    }
 
     .summary-card-title {
         font-size: 0.65rem;
@@ -232,7 +259,7 @@
     .dashboard-section {
         background: white;
         border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -313,7 +340,7 @@
         flex-direction: column;
         background: white;
         border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         overflow: hidden;
         margin-top: -0.45rem;
     }
@@ -375,11 +402,25 @@
     }
 
     /* Color variations */
-    .ot-action-card.ot-approval { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .ot-action-card.ot-attendance { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-    .ot-action-card.payroll-reminder { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-    .ot-action-card.generate-payroll { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-    .ot-action-card.payroll-history { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    .ot-action-card.ot-approval {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .ot-action-card.ot-attendance {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .ot-action-card.payroll-reminder {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .ot-action-card.generate-payroll {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .ot-action-card.payroll-history {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
 
     /* Metrics Stats */
     .metrics-stats {
@@ -427,7 +468,7 @@
 
     .metric-item.clickable:hover {
         background: #eef2f5;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         transform: translateY(-1px);
     }
 
@@ -440,13 +481,18 @@
         top: 0;
         width: 100%;
         height: 100%;
-        background-color: rgba(0,0,0,0.4);
+        background-color: rgba(0, 0, 0, 0.4);
         animation: fadeIn 0.3s;
     }
 
     @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
     }
 
     .modal-content {
@@ -454,7 +500,7 @@
         margin: 10% auto;
         padding: 1rem;
         border-radius: 6px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         max-width: 600px;
         width: 90%;
         max-height: 70vh;
@@ -463,8 +509,15 @@
     }
 
     @keyframes slideIn {
-        from { transform: translateY(-50px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 
     .modal-header {
@@ -651,7 +704,7 @@
     <!-- Header -->
     <div class="dashboard-header">
         <div class="header-title">
-            <i class="fas fa-chart-line"></i>
+            <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Icon" height="24" class="me-2">
             HR Manager Dashboard
         </div>
         <div class="header-actions">
@@ -660,9 +713,9 @@
                 <form method="GET" style="display: flex; gap: 0.3rem;">
                     <select name="company_id" onchange="this.form.submit()">
                         {% for company in companies %}
-                            <option value="{{ company.id }}" {% if company.id == selected_company.id %}selected{% endif %}>
-                                {{ company.name }}
-                            </option>
+                        <option value="{{ company.id }}" {% if company.id==selected_company.id %}selected{% endif %}>
+                            {{ company.name }}
+                        </option>
                         {% endfor %}
                     </select>
                 </form>
@@ -675,26 +728,30 @@
     </div>
 
     <!-- Main Dashboard Content -->
-    <div >
+    <div>
         <!-- Row 1: Today's Summary -->
         <div class="today-summary-wrapper">
             <div class="today-summary-header">
                 <h3><i class="fas fa-calendar-day"></i> <span id="todayDate"></span></h3>
             </div>
             <div class="summary-section">
-                <div class="summary-card present" onclick="openAttendanceModal('Present', {{ today_summary.attendance.present }})">
+                <div class="summary-card present"
+                    onclick="openAttendanceModal('Present', {{ today_summary.attendance.present }})">
                     <div class="summary-card-title">Present</div>
                     <div class="summary-card-value">{{ today_summary.attendance.present }}</div>
                     <div class="summary-card-meta">of {{ today_summary.attendance.total }}</div>
                 </div>
 
-                <div class="summary-card absent" onclick="openAttendanceModal('Absent', {{ today_summary.attendance.absent }})">
+                <div class="summary-card absent"
+                    onclick="openAttendanceModal('Absent', {{ today_summary.attendance.absent }})">
                     <div class="summary-card-title">Absent</div>
                     <div class="summary-card-value">{{ today_summary.attendance.absent }}</div>
-                    <div class="summary-card-meta">{{ ((today_summary.attendance.absent / today_summary.attendance.total * 100) if today_summary.attendance.total > 0 else 0) | int }}%</div>
+                    <div class="summary-card-meta">{{ ((today_summary.attendance.absent / today_summary.attendance.total
+                        * 100) if today_summary.attendance.total > 0 else 0) | int }}%</div>
                 </div>
 
-                <div class="summary-card late" onclick="openAttendanceModal('Late', {{ today_summary.attendance.late }})">
+                <div class="summary-card late"
+                    onclick="openAttendanceModal('Late', {{ today_summary.attendance.late }})">
                     <div class="summary-card-title">Late</div>
                     <div class="summary-card-value">{{ today_summary.attendance.late }}</div>
                     <div class="summary-card-meta">Clocked in late</div>
@@ -706,7 +763,8 @@
                     <div class="summary-card-meta">Approved leaves</div>
                 </div>
 
-                <div class="summary-card not-updated" onclick="openAttendanceModal('not_updated', {{ today_summary.not_updated }})">
+                <div class="summary-card not-updated"
+                    onclick="openAttendanceModal('not_updated', {{ today_summary.not_updated }})">
                     <div class="summary-card-title">Not Updated</div>
                     <div class="summary-card-value">{{ today_summary.not_updated }}</div>
                     <div class="summary-card-meta">Pending update</div>
@@ -722,21 +780,25 @@
         </div>
         <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem; grid-template-columns: repeat(3, 1fr);">
             <!-- OT Approval Pending (HR) -->
-            <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}" class="ot-action-card ot-approval" style="padding: 0.45rem; position: relative;">
+            <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}"
+                class="ot-action-card ot-approval" style="padding: 0.45rem; position: relative;">
                 <i class="fas fa-check-circle" style="font-size: 1rem;"></i>
                 <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval (HR)</div>
                 <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
                     {% if mtd_ot.pending_approvals > 0 %}
-                        <span style="display: inline-block; background-color: #e74c3c; color: white; border-radius: 50%; min-width: 1.2rem; height: 1.2rem; line-height: 1.2rem; text-align: center; font-weight: bold; font-size: 0.7rem;">{{ mtd_ot.pending_approvals }}</span>
-                        <span style="margin-left: 0.3rem;">pending</span>
+                    <span
+                        style="display: inline-block; background-color: #e74c3c; color: white; border-radius: 50%; min-width: 1.2rem; height: 1.2rem; line-height: 1.2rem; text-align: center; font-weight: bold; font-size: 0.7rem;">{{
+                        mtd_ot.pending_approvals }}</span>
+                    <span style="margin-left: 0.3rem;">pending</span>
                     {% else %}
-                        <span style="color: #27ae60;">All Clear</span>
+                    <span style="color: #27ae60;">All Clear</span>
                     {% endif %}
                 </div>
             </a>
 
             <!-- OT Approval Pending (Manager) -->
-            <a href="/ot/manager-approval" class="ot-action-card ot-manager-approval" style="padding: 0.45rem; position: relative;">
+            <a href="/ot/manager-approval" class="ot-action-card ot-manager-approval"
+                style="padding: 0.45rem; position: relative;">
                 <i class="fas fa-user-check" style="font-size: 1rem;"></i>
                 <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval (Manager)</div>
                 <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
@@ -745,10 +807,12 @@
             </a>
 
             <!-- OT Attendance -->
-            <a href="/dashboard/hr-manager/ot-attendance?company_id={{ selected_company.id }}" class="ot-action-card ot-attendance" style="padding: 0.45rem;">
+            <a href="/dashboard/hr-manager/ot-attendance?company_id={{ selected_company.id }}"
+                class="ot-action-card ot-attendance" style="padding: 0.45rem;">
                 <i class="fas fa-list" style="font-size: 1rem;"></i>
                 <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Attendance</div>
-                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
+                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{ "%.1f" | format(mtd_ot.total_hours)
+                    }}h</div>
             </a>
         </div>
     </div>
@@ -760,14 +824,16 @@
         </div>
         <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem; grid-template-columns: repeat(3, 1fr);">
             <!-- Payroll Reminder -->
-            <a href="/dashboard/hr-manager/payroll-reminder?company_id={{ selected_company.id }}" class="ot-action-card payroll-reminder" style="padding: 0.45rem;">
+            <a href="/dashboard/hr-manager/payroll-reminder?company_id={{ selected_company.id }}"
+                class="ot-action-card payroll-reminder" style="padding: 0.45rem;">
                 <i class="fas fa-bell" style="font-size: 1rem;"></i>
                 <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll Reminder</div>
                 <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{month_name}}</div>
             </a>
 
             <!-- Generate Payroll -->
-            <a href="/dashboard/hr-manager/generate-payroll" class="ot-action-card generate-payroll" style="padding: 0.45rem;">
+            <a href="/dashboard/hr-manager/generate-payroll" class="ot-action-card generate-payroll"
+                style="padding: 0.45rem;">
                 <i class="fas fa-file-invoice-dollar" style="font-size: 1rem;"></i>
                 <div class="ot-action-card-title" style="font-size: 0.65rem;">Generate Payroll</div>
                 <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">New Run</div>
@@ -868,7 +934,7 @@
     }
 
     // Close modal when clicking outside of it
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         const modal = document.getElementById('detailModal');
         if (event.target === modal) {
             modal.style.display = 'none';
@@ -1013,7 +1079,7 @@
     }
 
     // Close attendance modal when clicking outside
-    window.addEventListener('click', function(event) {
+    window.addEventListener('click', function (event) {
         const modal = document.getElementById('attendanceDetailModal');
         if (event.target === modal) {
             modal.style.display = 'none';

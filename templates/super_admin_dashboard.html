@@ -8,7 +8,11 @@
     <div class="dashboard-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
             <div>
-                <h1 class="dashboard-title">Welcome, {{ current_user.first_name or 'Super Admin' }}!</h1>
+                <h1 class="dashboard-title">
+                    <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Icon" height="28"
+                        class="me-2">
+                    Welcome, {{ current_user.first_name or 'Super Admin' }}!
+                </h1>
                 <p class="text-muted">Tenant Management & Financial Overview</p>
             </div>
             <div class="d-flex gap-3">
@@ -34,7 +38,8 @@
                         <i class="fas fa-sitemap"></i>
                     </div>
                     <div>
-                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{ stats.total_tenants }}</div>
+                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{ stats.total_tenants
+                            }}</div>
                         <div class="stat-card-label" style="font-size: 0.85rem;">Total Tenants</div>
                         <div class="stat-card-change positive" style="font-size: 0.75rem;">
                             {{ stats.active_tenants }} Active
@@ -52,7 +57,8 @@
                         <i class="fas fa-building"></i>
                     </div>
                     <div>
-                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{ stats.total_companies }}</div>
+                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{
+                            stats.total_companies }}</div>
                         <div class="stat-card-label" style="font-size: 0.85rem;">Total Companies</div>
                         <div class="stat-card-change" style="font-size: 0.75rem;">
                             Across all tenants
@@ -70,7 +76,8 @@
                         <i class="fas fa-users"></i>
                     </div>
                     <div>
-                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{ stats.total_users }}</div>
+                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">{{ stats.total_users
+                            }}</div>
                         <div class="stat-card-label" style="font-size: 0.85rem;">Total Users</div>
                         <div class="stat-card-change" style="font-size: 0.75rem;">
                             {{ stats.active_users }} Active
@@ -88,7 +95,8 @@
                         <i class="fas fa-dollar-sign"></i>
                     </div>
                     <div>
-                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">${{ "{:,.0f}".format(stats.monthly_revenue) }}</div>
+                        <div class="stat-card-value" style="font-size: 1.5rem; margin-bottom: 0;">${{
+                            "{:,.0f}".format(stats.monthly_revenue) }}</div>
                         <div class="stat-card-label" style="font-size: 0.85rem;">Monthly Revenue</div>
                         <div class="stat-card-change positive" style="font-size: 0.75rem;">
                             To be collected
@@ -112,15 +120,19 @@
                     <div class="mb-4 p-3 bg-light rounded">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="text-muted" style="font-size: 1.1rem;">Monthly Revenue</span>
-                            <span class="fw-bold text-success" style="font-size: 1.5rem;">${{ "{:,.2f}".format(stats.monthly_revenue) }}</span>
+                            <span class="fw-bold text-success" style="font-size: 1.5rem;">${{
+                                "{:,.2f}".format(stats.monthly_revenue) }}</span>
                         </div>
                         <div class="progress" style="height: 12px;">
-                            <div class="progress-bar bg-success" role="progressbar" 
-                                 style="width: {{ (stats.collected_revenue / stats.monthly_revenue * 100) if stats.monthly_revenue > 0 else 0 }}%"></div>
+                            <div class="progress-bar bg-success" role="progressbar"
+                                style="width: {{ (stats.collected_revenue / stats.monthly_revenue * 100) if stats.monthly_revenue > 0 else 0 }}%">
+                            </div>
                         </div>
                         <div class="d-flex justify-content-between mt-2">
-                            <span class="text-muted small">Collected: ${{ "{:,.2f}".format(stats.collected_revenue) }}</span>
-                            <span class="text-muted small">{{ "%.0f"|format((stats.collected_revenue / stats.monthly_revenue * 100) if stats.monthly_revenue > 0 else 0) }}%</span>
+                            <span class="text-muted small">Collected: ${{ "{:,.2f}".format(stats.collected_revenue)
+                                }}</span>
+                            <span class="text-muted small">{{ "%.0f"|format((stats.collected_revenue /
+                                stats.monthly_revenue * 100) if stats.monthly_revenue > 0 else 0) }}%</span>
                         </div>
                     </div>
 
@@ -128,10 +140,13 @@
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted" style="font-size: 1.05rem;">Quarterly Revenue</span>
-                            <span class="fw-bold" style="font-size: 1.3rem;">${{ "{:,.2f}".format(stats.quarterly_revenue) }}</span>
+                            <span class="fw-bold" style="font-size: 1.3rem;">${{
+                                "{:,.2f}".format(stats.quarterly_revenue) }}</span>
                         </div>
                         <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ (stats.quarterly_collected / stats.quarterly_revenue * 100) if stats.quarterly_revenue > 0 else 0 }}%"></div>
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                style="width: {{ (stats.quarterly_collected / stats.quarterly_revenue * 100) if stats.quarterly_revenue > 0 else 0 }}%">
+                            </div>
                         </div>
                         <div class="text-muted small mt-1">
                             ${{ "{:,.2f}".format(stats.quarterly_collected) }} collected
@@ -142,10 +157,13 @@
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted" style="font-size: 1.05rem;">Yearly Revenue</span>
-                            <span class="fw-bold" style="font-size: 1.3rem;">${{ "{:,.2f}".format(stats.yearly_revenue) }}</span>
+                            <span class="fw-bold" style="font-size: 1.3rem;">${{ "{:,.2f}".format(stats.yearly_revenue)
+                                }}</span>
                         </div>
                         <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ (stats.yearly_collected / stats.yearly_revenue * 100) if stats.yearly_revenue > 0 else 0 }}%"></div>
+                            <div class="progress-bar bg-info" role="progressbar"
+                                style="width: {{ (stats.yearly_collected / stats.yearly_revenue * 100) if stats.yearly_revenue > 0 else 0 }}%">
+                            </div>
                         </div>
                         <div class="text-muted small mt-1">
                             ${{ "{:,.2f}".format(stats.yearly_collected) }} collected
@@ -159,13 +177,15 @@
                         <div class="col-6">
                             <div class="p-3 bg-warning bg-opacity-10 rounded text-center">
                                 <div class="text-muted small mb-1">Pending Payments</div>
-                                <div class="fw-bold text-warning" style="font-size: 1.2rem;">${{ "{:,.2f}".format(stats.pending_payments) }}</div>
+                                <div class="fw-bold text-warning" style="font-size: 1.2rem;">${{
+                                    "{:,.2f}".format(stats.pending_payments) }}</div>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="p-3 bg-danger bg-opacity-10 rounded text-center">
                                 <div class="text-muted small mb-1">Overdue</div>
-                                <div class="fw-bold text-danger" style="font-size: 1.2rem;">${{ "{:,.2f}".format(stats.overdue_payments) }}</div>
+                                <div class="fw-bold text-danger" style="font-size: 1.2rem;">${{
+                                    "{:,.2f}".format(stats.overdue_payments) }}</div>
                             </div>
                         </div>
                     </div>
@@ -205,7 +225,8 @@
                                     <td>{{ tenant.user_count }}</td>
                                     <td>
                                         {% if tenant.payment_type %}
-                                        <span class="badge bg-{{ 'primary' if tenant.payment_type == 'Fixed' else 'info' }}">
+                                        <span
+                                            class="badge bg-{{ 'primary' if tenant.payment_type == 'Fixed' else 'info' }}">
                                             {{ tenant.payment_type }}
                                         </span>
                                         {% else %}

@@ -76,7 +76,7 @@ db = SQLAlchemy(app, model_class=Base)
 migrate = Migrate(app, db)
 
 # Import models so they're registered with SQLAlchemy metadata
-import models  # noqa: E402,F401
+from core import models  # noqa: E402,F401
 
 # Add hasattr to Jinja2 global functions
 app.jinja_env.globals['hasattr'] = hasattr
@@ -115,5 +115,5 @@ app.jinja_env.filters['date'] = date_filter
 app.jinja_env.filters['currency'] = currency_filter
 
 # Import seed after models to avoid circular import
-from seed import seed
+from services.seed import seed
 app.cli.add_command(seed)

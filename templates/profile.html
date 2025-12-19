@@ -11,35 +11,31 @@
                 <div class="card-body text-center">
                     <div class="profile-image-frame mx-auto mb-3 position-relative">
                         <div class="profile-image-container">
-                            {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.profile_image_path %}
-                                <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}" 
-                                     alt="Profile photo of {{ current_user.first_name }} {{ current_user.last_name }}"
-                                     loading="lazy"
-                                     class="avatar-image">
+                            {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile and
+                            current_user.employee_profile.profile_image_path %}
+                            <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}"
+                                alt="Profile photo of {{ current_user.first_name }} {{ current_user.last_name }}"
+                                loading="lazy" class="avatar-image">
                             {% else %}
-                                <div class="avatar-placeholder">
-                                    {{ current_user.first_name[0] if current_user.first_name else 'U' }}
-                                </div>
+                            <div class="avatar-placeholder">
+                                {{ current_user.first_name[0] if current_user.first_name else 'U' }}
+                            </div>
                             {% endif %}
                         </div>
-                        <button class="btn btn-sm btn-light profile-edit-photo" 
-                                type="button"
-                                title="Change Profile Photo" 
-                                aria-label="Change Profile Photo"
-                                onclick="document.getElementById('profileImageInput').click()">
+                        <button class="btn btn-sm btn-light profile-edit-photo" type="button"
+                            title="Change Profile Photo" aria-label="Change Profile Photo"
+                            onclick="document.getElementById('profileImageInput').click()">
                             <i class="fas fa-camera" aria-hidden="true"></i>
                         </button>
                         <form id="profileImageForm" method="POST" enctype="multipart/form-data" style="display: none;">
-                            <input type="file" 
-                                   id="profileImageInput" 
-                                   name="profile_image" 
-                                   accept="image/jpeg,image/png,image/gif,image/webp" 
-                                   aria-label="Select profile image file"
-                                   onchange="this.form.submit()">
+                            <input type="file" id="profileImageInput" name="profile_image"
+                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                aria-label="Select profile image file" onchange="this.form.submit()">
                         </form>
                     </div>
                     <h2 class="profile-name mb-1">{{ current_user.first_name }} {{ current_user.last_name }}</h2>
-                    <div class="profile-position text-muted mb-2">{{ current_user.employee_profile.designation.name if current_user.employee_profile and current_user.employee_profile.designation else '-' }}</div>
+                    <div class="profile-position text-muted mb-2">{{ current_user.employee_profile.designation.name if
+                        current_user.employee_profile and current_user.employee_profile.designation else '-' }}</div>
                     <div class="d-flex justify-content-center gap-2 mb-3 flex-wrap">
                         {% if current_user.department %}
                         <span class="badge profile-badge bg-primary">{{ current_user.department }}</span>
@@ -48,7 +44,8 @@
                         <span class="badge profile-badge bg-secondary">{{ current_user.employment_type }}</span>
                         {% endif %}
                     </div>
-                    <a href="{{ url_for('profile_edit') }}" class="btn btn-outline-primary w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
+                    <a href="{{ url_for('profile_edit') }}"
+                        class="btn btn-outline-primary w-100 mb-2 d-flex align-items-center justify-content-center gap-2">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                         <span>Edit Profile</span>
                     </a>
@@ -104,7 +101,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="text-muted"><i class="fas fa-calendar me-2"></i>Joined Date</label>
-                                    <div>{{ current_user.join_date.strftime('%d %B %Y') if current_user.join_date else 'Not set' }}</div>
+                                    <div>{{ current_user.join_date.strftime('%d %B %Y') if current_user.join_date else
+                                        'Not set' }}</div>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +121,9 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="text-muted">Designation</label>
-                                    <div>{{ current_user.employee_profile.designation.name if current_user.employee_profile and current_user.employee_profile.designation else '-' }}</div>
+                                    <div>{{ current_user.employee_profile.designation.name if
+                                        current_user.employee_profile and current_user.employee_profile.designation else
+                                        '-' }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="text-muted">Department</label>
@@ -139,7 +139,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="text-muted">Status</label>
-                                    <div>{% if current_user.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-danger">Inactive</span>{% endif %}</div>
+                                    <div>{% if current_user.is_active %}<span class="badge bg-success">Active</span>{%
+                                        else %}<span class="badge bg-danger">Inactive</span>{% endif %}</div>
                                 </div>
                             </div>
                         </div>
@@ -182,451 +183,457 @@
 </div>
 
 <style>
-/* Profile Page Styling */
-.profile-page-hr {
-    background-color: #f8fafb;
-    padding: 2rem 0;
-    min-height: calc(100vh - var(--header-height, 64px));
-}
-
-.profile-card {
-    border: none;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.3s ease;
-}
-
-.profile-card:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-/* Profile Image Styling - Professional and Responsive */
-.profile-image-frame {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid #008080;
-    margin: 0 auto;
-    position: relative;
-    background: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 128, 128, 0.15);
-    flex-shrink: 0; /* Prevent shrinking */
-    max-width: 120px;
-    max-height: 120px;
-}
-
-.profile-page-hr .profile-image-container {
-    width: 100% !important;
-    height: 100% !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border-radius: 50%;
-    background: transparent !important;
-}
-
-.profile-page-hr .profile-image-container img {
-    width: 100% !important;
-    height: 100% !important;
-    max-width: 120px !important;
-    max-height: 120px !important;
-    object-fit: cover;
-    object-position: center;
-    transition: transform 0.3s ease;
-    border-radius: 50% !important;
-    display: block;
-    margin: 0 auto;
-}
-
-.profile-page-hr .profile-image-container:hover img {
-    transform: scale(1.05);
-}
-
-/* Default avatar styling */
-.profile-page-hr .profile-image-container .bg-light {
-    border-radius: 50%;
-}
-
-.profile-edit-photo {
-    position: absolute;
-    bottom: 0.25rem;
-    right: 0.25rem;
-    background-color: #ffffff;
-    border: 2px solid #008080;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.profile-edit-photo:hover {
-    background-color: #008080;
-    color: #ffffff;
-    transform: scale(1.1);
-}
-
-.profile-edit-photo i {
-    font-size: 0.75rem;
-}
-
-/* Profile Content Styling */
-.profile-name {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--grey-900, #0F172A);
-    margin-bottom: 0.25rem;
-}
-
-.profile-position {
-    font-size: 1rem;
-    font-weight: 400;
-    color: var(--grey-600, #475569);
-    margin-bottom: 0.75rem;
-}
-
-.profile-badge {
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.5rem;
-    margin: 0.125rem;
-}
-
-/* Stats Styling */
-.stat-value {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--grey-900, #0F172A);
-    line-height: 1.2;
-}
-
-.stat-label {
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--grey-600, #475569);
-    margin-top: 0.25rem;
-}
-
-/* Timeline Styling */
-.timeline {
-    position: relative;
-    padding-left: 1rem;
-}
-
-.timeline-item {
-    position: relative;
-}
-
-.timeline-item:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    left: 1rem;
-    top: 2rem;
-    bottom: -1rem;
-    width: 2px;
-    background-color: var(--bs-secondary, #A5C2C4);
-}
-
-.timeline-icon {
-    position: relative;
-    z-index: 1;
-}
-
-/* Card Styling */
-.card-body {
-    padding: 1.5rem;
-}
-
-.card-header-green {
-    background: linear-gradient(135deg, var(--primary-green, #6C8F91), var(--primary-green-light, #7BA6AA));
-    color: white;
-    border: none;
-    padding: 1rem 1.5rem;
-    font-weight: 600;
-}
-
-/* Responsive Design */
-@media (max-width: 991.98px) {
+    /* Profile Page Styling */
     .profile-page-hr {
-        padding: 1.5rem 0;
+        background-color: #f8fafb;
+        padding: 2rem 0;
+        min-height: calc(100vh - var(--header-height, 64px));
     }
-    
+
+    .profile-card {
+        border: none;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease;
+    }
+
+    .profile-card:hover {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Profile Image Styling - Professional and Responsive */
     .profile-image-frame {
-        width: 100px;
-        height: 100px;
-        max-width: 100px;
-        max-height: 100px;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid var(--primary);
+        margin: 0 auto;
+        position: relative;
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.15);
+        flex-shrink: 0;
+        /* Prevent shrinking */
+        max-width: 120px;
+        max-height: 120px;
     }
-    
+
+    .profile-page-hr .profile-image-container {
+        width: 100% !important;
+        height: 100% !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 50%;
+        background: transparent !important;
+    }
+
     .profile-page-hr .profile-image-container img {
-        max-width: 100px !important;
-        max-height: 100px !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 120px !important;
+        max-height: 120px !important;
+        object-fit: cover;
+        object-position: center;
+        transition: transform 0.3s ease;
+        border-radius: 50% !important;
+        display: block;
+        margin: 0 auto;
     }
-    
+
+    .profile-page-hr .profile-image-container:hover img {
+        transform: scale(1.05);
+    }
+
+    /* Default avatar styling */
+    .profile-page-hr .profile-image-container .bg-light {
+        border-radius: 50%;
+    }
+
     .profile-edit-photo {
-        width: 28px;
-        height: 28px;
-        bottom: 0.125rem;
-        right: 0.125rem;
+        position: absolute;
+        bottom: 0.25rem;
+        right: 0.25rem;
+        background-color: #ffffff;
+        border: 2px solid var(--primary);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    
+
+    .profile-edit-photo:hover {
+        background-color: var(--primary);
+        color: #ffffff;
+        transform: scale(1.1);
+    }
+
     .profile-edit-photo i {
-        font-size: 0.625rem;
+        font-size: 0.75rem;
     }
-    
+
+    /* Profile Content Styling */
     .profile-name {
-        font-size: 1.25rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--grey-900, #0F172A);
+        margin-bottom: 0.25rem;
     }
-    
+
     .profile-position {
-        font-size: 0.875rem;
+        font-size: 1rem;
+        font-weight: 400;
+        color: var(--grey-600, #475569);
+        margin-bottom: 0.75rem;
     }
-}
 
-@media (max-width: 767.98px) {
-    .profile-page-hr {
-        padding: 1rem 0;
-    }
-    
-    .profile-image-frame {
-        width: 80px;
-        height: 80px;
-        max-width: 80px;
-        max-height: 80px;
-    }
-    
-    .profile-page-hr .profile-image-container img {
-        max-width: 80px !important;
-        max-height: 80px !important;
-    }
-    
-    .profile-edit-photo {
-        width: 24px;
-        height: 24px;
-    }
-    
-    .profile-edit-photo i {
-        font-size: 0.5rem;
-    }
-    
-    .profile-name {
-        font-size: 1.125rem;
-    }
-    
-    .card-body {
-        padding: 1rem;
-    }
-    
-    /* Stack layout vertically on mobile */
-    .row.g-4 {
-        --bs-gutter-x: 1rem;
-        --bs-gutter-y: 1rem;
-    }
-}
-
-@media (max-width: 575.98px) {
-    .profile-page-hr {
-        padding: 0.75rem 0;
-    }
-    
-    .container-fluid {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    
     .profile-badge {
-        font-size: 0.625rem;
-        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        margin: 0.125rem;
     }
-    
+
+    /* Stats Styling */
     .stat-value {
-        font-size: 1.125rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--grey-900, #0F172A);
+        line-height: 1.2;
     }
-    
+
     .stat-label {
-        font-size: 0.625rem;
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--grey-600, #475569);
+        margin-top: 0.25rem;
     }
-}
 
-/* Accessibility and Focus States */
-.profile-edit-photo:focus {
-    outline: 2px solid var(--primary-green, #6C8F91);
-    outline-offset: 2px;
-}
-
-.profile-page-hr .profile-image-container img:focus {
-    outline: 2px solid var(--primary-green, #6C8F91);
-    outline-offset: 2px;
-}
-
-/* Loading and Error States */
-.profile-page-hr .profile-image-container.loading {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%) !important;
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-.profile-page-hr .profile-image-container.error {
-    background-color: #fee !important;
-    color: #c33;
-}
-
-/* Button Styling */
-.btn-outline-primary {
-    border-color: var(--primary-green, #6C8F91);
-    color: var(--primary-green, #6C8F91);
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-outline-primary:hover,
-.btn-outline-primary:focus {
-    background-color: var(--primary-green, #6C8F91);
-    border-color: var(--primary-green, #6C8F91);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(108, 143, 145, 0.2);
-}
-
-.btn-outline-primary:active {
-    transform: translateY(0);
-}
-
-/* Print Styles */
-@media print {
-    .profile-edit-photo {
-        display: none;
+    /* Timeline Styling */
+    .timeline {
+        position: relative;
+        padding-left: 1rem;
     }
-    
-    .btn {
-        display: none;
+
+    .timeline-item {
+        position: relative;
     }
-    
-    .profile-page-hr {
-        background: white;
-        padding: 0;
+
+    .timeline-item:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 1rem;
+        top: 2rem;
+        bottom: -1rem;
+        width: 2px;
+        background-color: var(--bs-secondary, #A5C2C4);
     }
-    
-    .card {
-        box-shadow: none;
-        border: 1px solid #ddd;
+
+    .timeline-icon {
+        position: relative;
+        z-index: 1;
     }
-    
+
+    /* Card Styling */
+    .card-body {
+        padding: 1.5rem;
+    }
+
     .card-header-green {
-        background: #e8f4f5 !important;
-        color: #333 !important;
+        background: linear-gradient(135deg, var(--primary-green, #6C8F91), var(--primary-green-light, #7BA6AA));
+        color: white;
+        border: none;
+        padding: 1rem 1.5rem;
+        font-weight: 600;
     }
-}
+
+    /* Responsive Design */
+    @media (max-width: 991.98px) {
+        .profile-page-hr {
+            padding: 1.5rem 0;
+        }
+
+        .profile-image-frame {
+            width: 100px;
+            height: 100px;
+            max-width: 100px;
+            max-height: 100px;
+        }
+
+        .profile-page-hr .profile-image-container img {
+            max-width: 100px !important;
+            max-height: 100px !important;
+        }
+
+        .profile-edit-photo {
+            width: 28px;
+            height: 28px;
+            bottom: 0.125rem;
+            right: 0.125rem;
+        }
+
+        .profile-edit-photo i {
+            font-size: 0.625rem;
+        }
+
+        .profile-name {
+            font-size: 1.25rem;
+        }
+
+        .profile-position {
+            font-size: 0.875rem;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .profile-page-hr {
+            padding: 1rem 0;
+        }
+
+        .profile-image-frame {
+            width: 80px;
+            height: 80px;
+            max-width: 80px;
+            max-height: 80px;
+        }
+
+        .profile-page-hr .profile-image-container img {
+            max-width: 80px !important;
+            max-height: 80px !important;
+        }
+
+        .profile-edit-photo {
+            width: 24px;
+            height: 24px;
+        }
+
+        .profile-edit-photo i {
+            font-size: 0.5rem;
+        }
+
+        .profile-name {
+            font-size: 1.125rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        /* Stack layout vertically on mobile */
+        .row.g-4 {
+            --bs-gutter-x: 1rem;
+            --bs-gutter-y: 1rem;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .profile-page-hr {
+            padding: 0.75rem 0;
+        }
+
+        .container-fluid {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .profile-badge {
+            font-size: 0.625rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.125rem;
+        }
+
+        .stat-label {
+            font-size: 0.625rem;
+        }
+    }
+
+    /* Accessibility and Focus States */
+    .profile-edit-photo:focus {
+        outline: 2px solid var(--primary-green, #6C8F91);
+        outline-offset: 2px;
+    }
+
+    .profile-page-hr .profile-image-container img:focus {
+        outline: 2px solid var(--primary-green, #6C8F91);
+        outline-offset: 2px;
+    }
+
+    /* Loading and Error States */
+    .profile-page-hr .profile-image-container.loading {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%) !important;
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    .profile-page-hr .profile-image-container.error {
+        background-color: #fee !important;
+        color: #c33;
+    }
+
+    /* Button Styling */
+    .btn-outline-primary {
+        border-color: var(--primary-green, #6C8F91);
+        color: var(--primary-green, #6C8F91);
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary:focus {
+        background-color: var(--primary-green, #6C8F91);
+        border-color: var(--primary-green, #6C8F91);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(108, 143, 145, 0.2);
+    }
+
+    .btn-outline-primary:active {
+        transform: translateY(0);
+    }
+
+    /* Print Styles */
+    @media print {
+        .profile-edit-photo {
+            display: none;
+        }
+
+        .btn {
+            display: none;
+        }
+
+        .profile-page-hr {
+            background: white;
+            padding: 0;
+        }
+
+        .card {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+
+        .card-header-green {
+            background: #e8f4f5 !important;
+            color: #333 !important;
+        }
+    }
 </style>
 
 <script>
-// Profile image preview and validation
-document.addEventListener('DOMContentLoaded', function() {
-    const profileImageInput = document.getElementById('profileImageInput');
-    const profileImageContainer = document.querySelector('.profile-image-container');
-    
-    if (profileImageInput) {
-        profileImageInput.addEventListener('change', function(e) {
-            const file = this.files[0];
-            
-            if (!file) return;
-            
-            // Validate file size (max 5MB)
-            const maxSize = 5 * 1024 * 1024; // 5MB
-            if (file.size > maxSize) {
-                alert('File size must be less than 5MB');
-                this.value = '';
-                return;
-            }
-            
-            // Validate file type
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (!allowedTypes.includes(file.type)) {
-                alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
-                this.value = '';
-                return;
-            }
-            
-            // Show loading state
-            profileImageContainer.classList.add('loading');
-            
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                // Remove loading state
-                profileImageContainer.classList.remove('loading');
-                
-                // Update preview
-                let preview = profileImageContainer.querySelector('img');
-                if (preview) {
-                    preview.src = e.target.result;
-                } else {
-                    // Create new img element if it doesn't exist
-                    const defaultAvatar = profileImageContainer.querySelector('.bg-light');
-                    if (defaultAvatar) {
-                        defaultAvatar.remove();
-                    }
-                    
-                    preview = document.createElement('img');
-                    preview.src = e.target.result;
-                    preview.alt = 'Profile photo preview';
-                    preview.loading = 'lazy';
-                    profileImageContainer.appendChild(preview);
+    // Profile image preview and validation
+    document.addEventListener('DOMContentLoaded', function () {
+        const profileImageInput = document.getElementById('profileImageInput');
+        const profileImageContainer = document.querySelector('.profile-image-container');
+
+        if (profileImageInput) {
+            profileImageInput.addEventListener('change', function (e) {
+                const file = this.files[0];
+
+                if (!file) return;
+
+                // Validate file size (max 5MB)
+                const maxSize = 5 * 1024 * 1024; // 5MB
+                if (file.size > maxSize) {
+                    alert('File size must be less than 5MB');
+                    this.value = '';
+                    return;
                 }
-            };
-            
-            reader.onerror = function() {
-                // Remove loading state and show error
-                profileImageContainer.classList.remove('loading');
-                profileImageContainer.classList.add('error');
-                alert('Error reading file. Please try again.');
-                profileImageInput.value = '';
-                
-                // Remove error state after 3 seconds
-                setTimeout(() => {
-                    profileImageContainer.classList.remove('error');
-                }, 3000);
-            };
-            
-            reader.readAsDataURL(file);
-        });
-    }
-    
-    // Handle form submission with loading state
-    const profileImageForm = document.getElementById('profileImageForm');
-    if (profileImageForm) {
-        profileImageForm.addEventListener('submit', function() {
-            const submitButton = document.querySelector('.profile-edit-photo');
-            if (submitButton) {
-                submitButton.disabled = true;
-                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
-            }
-        });
-    }
-    
-    // Add keyboard navigation for profile edit button
-    const editButton = document.querySelector('.profile-edit-photo');
-    if (editButton) {
-        editButton.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                this.click();
-            }
-        });
-    }
-});
+
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+                    this.value = '';
+                    return;
+                }
+
+                // Show loading state
+                profileImageContainer.classList.add('loading');
+
+                const reader = new FileReader();
+
+                reader.onload = function (e) {
+                    // Remove loading state
+                    profileImageContainer.classList.remove('loading');
+
+                    // Update preview
+                    let preview = profileImageContainer.querySelector('img');
+                    if (preview) {
+                        preview.src = e.target.result;
+                    } else {
+                        // Create new img element if it doesn't exist
+                        const defaultAvatar = profileImageContainer.querySelector('.bg-light');
+                        if (defaultAvatar) {
+                            defaultAvatar.remove();
+                        }
+
+                        preview = document.createElement('img');
+                        preview.src = e.target.result;
+                        preview.alt = 'Profile photo preview';
+                        preview.loading = 'lazy';
+                        profileImageContainer.appendChild(preview);
+                    }
+                };
+
+                reader.onerror = function () {
+                    // Remove loading state and show error
+                    profileImageContainer.classList.remove('loading');
+                    profileImageContainer.classList.add('error');
+                    alert('Error reading file. Please try again.');
+                    profileImageInput.value = '';
+
+                    // Remove error state after 3 seconds
+                    setTimeout(() => {
+                        profileImageContainer.classList.remove('error');
+                    }, 3000);
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Handle form submission with loading state
+        const profileImageForm = document.getElementById('profileImageForm');
+        if (profileImageForm) {
+            profileImageForm.addEventListener('submit', function () {
+                const submitButton = document.querySelector('.profile-edit-photo');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
+                }
+            });
+        }
+
+        // Add keyboard navigation for profile edit button
+        const editButton = document.querySelector('.profile-edit-photo');
+        if (editButton) {
+            editButton.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

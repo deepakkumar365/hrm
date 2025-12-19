@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -9,15 +10,17 @@
     <title>{% block title %}Nexar{% endblock %}</title>
 
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendors/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
 
     <!-- Font Awesome Icons -->
-    <link href="{{ url_for('static', filename='vendors/fontawesome/css/all.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendors/fontawesome/css/all.min.css') }}" rel="stylesheet">
 
     <!-- Roboto & Inter fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
 
     <!-- Main CSS - includes responsive design -->
     <link href="{{ url_for('static', filename='css/styles.css') }}?v=20250924-navbar-fix-v2" rel="stylesheet">
@@ -26,22 +29,29 @@
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/nexar_icon.png') }}">
 
     {% block head %}{% endblock %}
 </head>
+
 <body>
     <div class="page-wrapper">
         <!-- Professional Corporate Header -->
         <nav class="navbar navbar-expand-lg">
             <div class="container-fluid">
-                <a class="navbar-brand" href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('index') }}">
-                    <i class="fas fa-building"></i>
-                    Nexar
-                </a>
+                <!-- Brand Logo Circle -->
+                <div class="navbar-brand-wrapper">
+                    <a class="navbar-brand p-0 m-0"
+                        href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('index') }}">
+                        <div class="logo-circle">
+                            <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Mark">
+                        </div>
+                    </a>
+                </div>
 
                 {% if current_user.is_authenticated %}
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -53,7 +63,8 @@
                     {% set is_manager = user_role == 'Manager' %}
                     {% set is_user = user_role == 'User' %}
                     {# Check if employee has manager flag enabled #}
-                    {% set is_reporting_manager = hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.is_manager %}
+                    {% set is_reporting_manager = hasattr(current_user, 'employee_profile') and
+                    current_user.employee_profile and current_user.employee_profile.is_manager %}
 
                     <ul class="navbar-nav me-auto">
                         <!-- Dashboard - Visible to all -->
@@ -78,50 +89,57 @@
                         {% if is_super_admin %}
                         <!-- Masters - Visible to Super Admin -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-cogs"></i>
                                 Masters
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('tenant_list') }}">
-                                    <i class="fas fa-sitemap"></i>
-                                    Tenants
-                                </a></li>
+                                        <i class="fas fa-sitemap"></i>
+                                        Tenants
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('company_list') }}">
-                                    <i class="fas fa-building"></i>
-                                    Companies
-                                </a></li>
+                                        <i class="fas fa-building"></i>
+                                        Companies
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
-                                    <i class="fas fa-users"></i>
-                                    All Employees
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                        <i class="fas fa-users"></i>
+                                        All Employees
+                                    </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('tenant_payment_config_list') }}">
-                                    <i class="fas fa-dollar-sign"></i>
-                                    Tenant Payment Config
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                        <i class="fas fa-dollar-sign"></i>
+                                        Tenant Payment Config
+                                    </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('role_list') }}">
-                                    <i class="fas fa-user-tag"></i>
-                                    Roles
-                                </a></li>
+                                        <i class="fas fa-user-tag"></i>
+                                        Roles
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('department_list') }}">
-                                    <i class="fas fa-briefcase"></i>
-                                    Departments
-                                </a></li>
+                                        <i class="fas fa-briefcase"></i>
+                                        Departments
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('working_hours_list') }}">
-                                    <i class="fas fa-clock"></i>
-                                    Working Hours
-                                </a></li>
+                                        <i class="fas fa-clock"></i>
+                                        Working Hours
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('work_schedule_list') }}">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    Work Schedules
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                        <i class="fas fa-calendar-alt"></i>
+                                        Work Schedules
+                                    </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('ot_type_list') }}">
-                                    <i class="fas fa-hourglass-end"></i>
-                                    OT Types
-                                </a></li>
+                                        <i class="fas fa-hourglass-end"></i>
+                                        OT Types
+                                    </a></li>
                             </ul>
                         </li>
                         {% endif %}
@@ -148,62 +166,70 @@
                             </a>
                         </li>
                         {% endif %}
-                         <!-- Employees - Hidden from User role -->
+                        <!-- Employees - Hidden from User role -->
                         {% if not is_user %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-users"></i>
                                 Employees
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('employee_add') }}">
-                                    <i class="fas fa-user-plus"></i>
-                                    Add Employee
-                                </a></li>
+                                        <i class="fas fa-user-plus"></i>
+                                        Add Employee
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('employee_list') }}">
-                                    <i class="fas fa-users"></i>
-                                    All Employees
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                        <i class="fas fa-users"></i>
+                                        All Employees
+                                    </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('employee_bulk_upload') }}">
-                                    <i class="fas fa-file-upload"></i>
-                                    Employee Bulk Upload
-                                </a></li>
+                                        <i class="fas fa-file-upload"></i>
+                                        Employee Bulk Upload
+                                    </a></li>
                             </ul>
                         </li>
                         {% endif %}
 
                         <!-- Attendance -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-calendar-check"></i>
                                 Attendance
                             </a>
                             <ul class="dropdown-menu">
 
                                 <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
-                                    <i class="fas fa-clock"></i>
-                                    Mark Attendance
-                                </a></li>
+                                        <i class="fas fa-clock"></i>
+                                        Mark Attendance
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('attendance_list_view') }}">
-                                    <i class="fas fa-list"></i>
-                                    View Records
-                                </a></li>
+                                        <i class="fas fa-list"></i>
+                                        View Records
+                                    </a></li>
                                 <!-- Mark OT Attendance - Visible to all users for self-service -->
                                 {% if not is_super_admin %}
-                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('mark_ot_attendance') }}">
-                                    <i class="fas fa-hourglass-end"></i>
-                                    Mark OT Attendance
-                                </a></li>
+                                        <i class="fas fa-hourglass-end"></i>
+                                        Mark OT Attendance
+                                    </a></li>
                                 {% endif %}
                                 <!-- Bulk Attendance - Visible only to HR Manager -->
                                 {% if is_hr_manager %}
-                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('attendance_bulk_manage') }}">
-                                    <i class="fas fa-check-double"></i>
-                                    Bulk Attendance
-                                </a></li>
+                                        <i class="fas fa-check-double"></i>
+                                        Bulk Attendance
+                                    </a></li>
                                 {% endif %}
                             </ul>
                         </li>
@@ -211,19 +237,20 @@
                         <!-- Leave - Hidden from Tenant Admin, Visible to Manager and User -->
                         {% if not is_admin %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-plane-departure"></i>
                                 Leave
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
-                                    <i class="fas fa-plus"></i>
-                                    Request Leave
-                                </a></li>
+                                        <i class="fas fa-plus"></i>
+                                        Request Leave
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('leave_list') }}">
-                                    <i class="fas fa-list"></i>
-                                    View Requests
-                                </a></li>
+                                        <i class="fas fa-list"></i>
+                                        View Requests
+                                    </a></li>
                             </ul>
                         </li>
                         {% endif %}
@@ -231,15 +258,16 @@
                         <!-- Leave Management - Visible to HR Manager and Tenant Admin -->
                         {% if is_admin %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-plane-departure"></i>
                                 Leave Management
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('leave_configuration') }}">
-                                    <i class="fas fa-cog"></i>
-                                    Configure Leave Types
-                                </a></li>
+                                        <i class="fas fa-cog"></i>
+                                        Configure Leave Types
+                                    </a></li>
                             </ul>
                         </li>
                         {% endif %}
@@ -247,7 +275,8 @@
                         <!-- OT Management - Visible to HR Manager, Tenant Admin, and Reporting Managers -->
                         {% if is_admin or is_reporting_manager %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-clock"></i>
                                 OT Management
                             </a>
@@ -255,22 +284,25 @@
                                 <!-- Full OT Management menu for HR Manager and Tenant Admin -->
                                 {% if is_admin %}
                                 <li><a class="dropdown-item" href="{{ url_for('ot_attendance') }}">
-                                    <i class="fas fa-list"></i>
-                                    OT Attendance
-                                </a></li>
+                                        <i class="fas fa-list"></i>
+                                        OT Attendance
+                                    </a></li>
                                 {% endif %}
                                 <!-- OT Approvals - Available to both HR Manager/Admin and Reporting Managers -->
-                                <li><a class="dropdown-item" href="{% if is_admin %}{{ url_for('ot_approval') }}{% else %}{{ url_for('ot_manager_approval') }}{% endif %}">
-                                    <i class="fas fa-check-circle"></i>
-                                    OT Approvals
-                                </a></li>
+                                <li><a class="dropdown-item"
+                                        href="{% if is_admin %}{{ url_for('ot_approval') }}{% else %}{{ url_for('ot_manager_approval') }}{% endif %}">
+                                        <i class="fas fa-check-circle"></i>
+                                        OT Approvals
+                                    </a></li>
                                 <!-- Additional menu items only for HR Manager and Tenant Admin -->
                                 {% if is_admin %}
-                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('ot_payroll_summary') }}">
-                                    <i class="fas fa-dollar-sign"></i>
-                                    Payroll Summary
-                                </a></li>
+                                        <i class="fas fa-dollar-sign"></i>
+                                        Payroll Summary
+                                    </a></li>
                                 {% endif %}
                             </ul>
                         </li>
@@ -279,23 +311,24 @@
                         <!-- Payroll -->
                         {% if not is_user %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-dollar-sign"></i>
                                 Payroll
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('payroll_list') }}">
-                                    <i class="fas fa-list"></i>
-                                    Payroll List
-                                </a></li>
+                                        <i class="fas fa-list"></i>
+                                        Payroll List
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('payroll_generate') }}">
-                                    <i class="fas fa-calculator"></i>
-                                    Generate Payroll
-                                </a></li>
+                                        <i class="fas fa-calculator"></i>
+                                        Generate Payroll
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('payroll_config') }}">
-                                    <i class="fas fa-sliders-h"></i>
-                                    Payroll Configuration
-                                </a></li>
+                                        <i class="fas fa-sliders-h"></i>
+                                        Payroll Configuration
+                                    </a></li>
                             </ul>
                         </li>
                         {% endif %}
@@ -303,28 +336,31 @@
                         <!-- Reports -->
                         {% if not is_user %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-chart-bar"></i>
                                 Reports
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('reports_menu') }}">
-                                    <i class="fas fa-th-large"></i>
-                                    All Reports
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                        <i class="fas fa-th-large"></i>
+                                        All Reports
+                                    </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('report_employee_history') }}">
-                                    <i class="fas fa-user-clock"></i>
-                                    Employee History
-                                </a></li>
+                                        <i class="fas fa-user-clock"></i>
+                                        Employee History
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('report_payroll_configuration') }}">
-                                    <i class="fas fa-dollar-sign"></i>
-                                    Payroll Configuration
-                                </a></li>
+                                        <i class="fas fa-dollar-sign"></i>
+                                        Payroll Configuration
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('report_attendance') }}">
-                                    <i class="fas fa-calendar-check"></i>
-                                    Attendance Report
-                                </a></li>
+                                        <i class="fas fa-calendar-check"></i>
+                                        Attendance Report
+                                    </a></li>
                             </ul>
                         </li>
                         {% endif %}
@@ -334,52 +370,60 @@
                         <!-- Masters -->
                         {% if not is_user %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <i class="fas fa-cogs"></i>
                                 Masters
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('tenant_list') }}">
-                                    <i class="fas fa-sitemap"></i>
-                                    Tenants
-                                </a></li>
+                                        <i class="fas fa-sitemap"></i>
+                                        Tenants
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('company_list') }}">
-                                    <i class="fas fa-building"></i>
-                                    Companies
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                        <i class="fas fa-building"></i>
+                                        Companies
+                                    </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('role_list') }}">
-                                    <i class="fas fa-user-tag"></i>
-                                    Roles
-                                </a></li>
+                                        <i class="fas fa-user-tag"></i>
+                                        Roles
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('department_list') }}">
-                                    <i class="fas fa-briefcase"></i>
-                                    Departments
-                                </a></li>
+                                        <i class="fas fa-briefcase"></i>
+                                        Departments
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('working_hours_list') }}">
-                                    <i class="fas fa-clock"></i>
-                                    Working Hours
-                                </a></li>
+                                        <i class="fas fa-clock"></i>
+                                        Working Hours
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('work_schedule_list') }}">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    Work Schedules
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                        <i class="fas fa-calendar-alt"></i>
+                                        Work Schedules
+                                    </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li><a class="dropdown-item" href="{{ url_for('ot_type_list') }}">
-                                    <i class="fas fa-hourglass-end"></i>
-                                    OT Types
-                                </a></li>
+                                        <i class="fas fa-hourglass-end"></i>
+                                        OT Types
+                                    </a></li>
                                 <!-- Access Control - Moved under Masters for Tenant Admin and HR Manager -->
                                 {% if is_admin %}
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('access_control.manage_user_companies') }}">
-                                    <i class="fas fa-shield-alt"></i>
-                                    Access Control
-                                </a></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item"
+                                        href="{{ url_for('access_control.manage_user_companies') }}">
+                                        <i class="fas fa-shield-alt"></i>
+                                        Access Control
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('user_status_toggle') }}">
-                                    <i class="fas fa-toggle-on"></i>
-                                    User Status Toggle
-                                </a></li>
+                                        <i class="fas fa-toggle-on"></i>
+                                        User Status Toggle
+                                    </a></li>
                                 {% endif %}
                             </ul>
                         </li>
@@ -393,10 +437,13 @@
                     <ul class="navbar-nav">
                         <!-- Profile Dropdown -->
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                                aria-expanded="false">
                                 <span class="profile-image-container">
-                                    {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.profile_image_path %}
-                                    <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}" alt="Profile" class="avatar-image">
+                                    {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile
+                                    and current_user.employee_profile.profile_image_path %}
+                                    <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}"
+                                        alt="Profile" class="avatar-image">
                                     {% else %}
                                     <div class="avatar-placeholder">
                                         {{ current_user.first_name[0] if current_user.first_name else 'U' }}
@@ -408,20 +455,22 @@
                             <ul class="dropdown-menu dropdown-menu-end">
                                 {% if current_user.role %}
                                 <li><span class="dropdown-item-text">
-                                    <small style="color: var(--grey-500);">{{ current_user.role.name }}</small>
-                                </span></li>
-                                <li><hr class="dropdown-divider"></li>
+                                        <small style="color: var(--grey-500);">{{ current_user.role.name }}</small>
+                                    </span></li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 {% endif %}
                                 {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile %}
                                 <li><a class="dropdown-item" href="{{ url_for('profile') }}">
-                                    <i class="fas fa-user"></i>
-                                    My Profile
-                                </a></li>
+                                        <i class="fas fa-user"></i>
+                                        My Profile
+                                    </a></li>
                                 {% endif %}
                                 <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                    Logout
-                                </a></li>
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        Logout
+                                    </a></li>
                             </ul>
                         </li>
 
@@ -440,201 +489,202 @@
         <!-- Main content -->
         <main class="page-container">
             {% if request.endpoint != 'login' %}
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        <div class="container-fluid">
-                            {% for category, message in messages %}
-                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="container-fluid">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+                    role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
             {% endwith %}
             {% endif %}
-        {% block content %}{% endblock %}
-    </main>
+            {% block content %}{% endblock %}
+        </main>
 
-    <!-- Mobile Floating Action Button -->
-    {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) == 'User' %}
-    <div class="dropdown dropup position-fixed" style="bottom: 1.5rem; right: 1.5rem; z-index: 1050;">
-        <button class="fab" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="fas fa-plus"></i>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end mb-2">
-            <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
-                <i class="fas fa-clock"></i>Mark Attendance
-            </a></li>
-            <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
-                <i class="fas fa-plane-departure"></i>Request Leave
-            </a></li>
-        </ul>
-    </div>
-    {% endif %}
+        <!-- Mobile Floating Action Button -->
+        {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) == 'User' %}
+        <div class="dropdown dropup position-fixed" style="bottom: 1.5rem; right: 1.5rem; z-index: 1050;">
+            <button class="fab" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-plus"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end mb-2">
+                <li><a class="dropdown-item" href="{{ url_for('attendance_mark') }}">
+                        <i class="fas fa-clock"></i>Mark Attendance
+                    </a></li>
+                <li><a class="dropdown-item" href="{{ url_for('leave_request') }}">
+                        <i class="fas fa-plane-departure"></i>Request Leave
+                    </a></li>
+            </ul>
+        </div>
+        {% endif %}
 
-    <!-- Global Loader -->
-    <div id="global-loader" class="global-loader">
-        <div class="loader-overlay"></div>
-        <div class="loader-container">
-            <div class="loader-spinner"></div>
-            <p class="loader-text">Loading...</p>
+        <!-- Global Loader -->
+        <div id="global-loader" class="global-loader">
+            <div class="loader-overlay"></div>
+            <div class="loader-container">
+                <div class="loader-spinner"></div>
+                <p class="loader-text">Loading...</p>
+            </div>
         </div>
     </div>
-    </div>
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='vendors/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 
     <!-- Mobile dropdown fix -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Mobile dropdown handler
-        function handleMobileDropdowns() {
-            const dropdownToggles = document.querySelectorAll('.navbar-nav .dropdown-toggle');
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mobile dropdown handler
+            function handleMobileDropdowns() {
+                const dropdownToggles = document.querySelectorAll('.navbar-nav .dropdown-toggle');
 
-            dropdownToggles.forEach(toggle => {
-                // Remove existing listeners
-                toggle.removeEventListener('click', handleDropdownClick);
+                dropdownToggles.forEach(toggle => {
+                    // Remove existing listeners
+                    toggle.removeEventListener('click', handleDropdownClick);
 
-                // Add new listener for mobile
-                if (window.innerWidth <= 991) {
-                    toggle.addEventListener('click', handleDropdownClick);
-                }
-            });
-        }
-
-        function handleDropdownClick(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const dropdown = this.closest('.dropdown');
-            const menu = dropdown.querySelector('.dropdown-menu');
-            const isOpen = dropdown.classList.contains('show');
-
-            // Close all dropdowns first
-            document.querySelectorAll('.navbar-nav .dropdown').forEach(d => {
-                d.classList.remove('show');
-            });
-
-            // Toggle current dropdown if it wasn't open
-            if (!isOpen) {
-                dropdown.classList.add('show');
+                    // Add new listener for mobile
+                    if (window.innerWidth <= 991) {
+                        toggle.addEventListener('click', handleDropdownClick);
+                    }
+                });
             }
-        }
 
-        // Initialize
-        handleMobileDropdowns();
+            function handleDropdownClick(e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-        // Re-initialize on window resize
-        window.addEventListener('resize', handleMobileDropdowns);
-    });
+                const dropdown = this.closest('.dropdown');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                const isOpen = dropdown.classList.contains('show');
+
+                // Close all dropdowns first
+                document.querySelectorAll('.navbar-nav .dropdown').forEach(d => {
+                    d.classList.remove('show');
+                });
+
+                // Toggle current dropdown if it wasn't open
+                if (!isOpen) {
+                    dropdown.classList.add('show');
+                }
+            }
+
+            // Initialize
+            handleMobileDropdowns();
+
+            // Re-initialize on window resize
+            window.addEventListener('resize', handleMobileDropdowns);
+        });
     </script>
 
     <!-- Global Loader Script -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const loader = document.getElementById('global-loader');
+        document.addEventListener('DOMContentLoaded', function () {
+            const loader = document.getElementById('global-loader');
 
-        if (!loader) return; // Exit if loader not found
+            if (!loader) return; // Exit if loader not found
 
-        // Function to show loader
-        function showLoader() {
-            loader.classList.add('show');
-        }
-
-        // Function to hide loader
-        function hideLoader() {
-            loader.classList.remove('show');
-        }
-
-        // Improved loader hiding: Wait until browser is completely idle
-        function waitForPageComplete() {
-            if (document.readyState === 'complete') {
-                // Use Performance API to check if all resources are loaded
-                if (performance && performance.getEntriesByType) {
-                    // Wait a bit more for any pending requests
-                    setTimeout(hideLoader, 500);
-                } else {
-                    hideLoader();
-                }
-            } else {
-                // Check again soon
-                setTimeout(waitForPageComplete, 100);
+            // Function to show loader
+            function showLoader() {
+                loader.classList.add('show');
             }
-        }
 
-        // Start checking when page is ready
-        if (document.readyState === 'complete') {
-            waitForPageComplete();
-        } else {
-            document.addEventListener('readystatechange', function() {
+            // Function to hide loader
+            function hideLoader() {
+                loader.classList.remove('show');
+            }
+
+            // Improved loader hiding: Wait until browser is completely idle
+            function waitForPageComplete() {
                 if (document.readyState === 'complete') {
-                    waitForPageComplete();
-                }
-            });
-        }
-
-        // Show loader on form submission
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                // Validate form before showing loader
-                if (form.checkValidity() === false) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                    // Use Performance API to check if all resources are loaded
+                    if (performance && performance.getEntriesByType) {
+                        // Wait a bit more for any pending requests
+                        setTimeout(hideLoader, 500);
+                    } else {
+                        hideLoader();
+                    }
                 } else {
-                    showLoader();
+                    // Check again soon
+                    setTimeout(waitForPageComplete, 100);
                 }
+            }
+
+            // Start checking when page is ready
+            if (document.readyState === 'complete') {
+                waitForPageComplete();
+            } else {
+                document.addEventListener('readystatechange', function () {
+                    if (document.readyState === 'complete') {
+                        waitForPageComplete();
+                    }
+                });
+            }
+
+            // Show loader on form submission
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    // Validate form before showing loader
+                    if (form.checkValidity() === false) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    } else {
+                        showLoader();
+                    }
+                });
             });
-        });
 
-        // Show loader on button clicks (for AJAX or page navigation)
-        // Common action buttons: Save, Submit, Update, Delete, Generate, etc.
-        const actionButtons = document.querySelectorAll(
-            'button[type="submit"], ' +
-            'button[type="button"][onclick], ' +
-            'a[href*="delete"], ' +
-            'a[href*="update"], ' +
-            'a[href*="generate"], ' +
-            '.btn-primary, ' +
-            '.btn-success, ' +
-            '.action-btn'
-        );
+            // Show loader on button clicks (for AJAX or page navigation)
+            // Common action buttons: Save, Submit, Update, Delete, Generate, etc.
+            const actionButtons = document.querySelectorAll(
+                'button[type="submit"], ' +
+                'button[type="button"][onclick], ' +
+                'a[href*="delete"], ' +
+                'a[href*="update"], ' +
+                'a[href*="generate"], ' +
+                '.btn-primary, ' +
+                '.btn-success, ' +
+                '.action-btn'
+            );
 
-        actionButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                // Check if it's an anchor tag for page navigation
-                if (this.tagName === 'A' && this.href && !this.hasAttribute('onclick')) {
-                    // Only show loader if it's not a hash link or external link
-                    if (!this.href.includes('#') && !this.target === '_blank') {
+            actionButtons.forEach(button => {
+                button.addEventListener('click', function (e) {
+                    // Check if it's an anchor tag for page navigation
+                    if (this.tagName === 'A' && this.href && !this.hasAttribute('onclick')) {
+                        // Only show loader if it's not a hash link or external link
+                        if (!this.href.includes('#') && !this.target === '_blank') {
+                            showLoader();
+                        }
+                    }
+                });
+            });
+
+            // Show loader on navigation with Ctrl+Click or Middle-click check
+            document.addEventListener('click', function (e) {
+                const link = e.target.closest('a');
+                if (link && link.href && !link.href.includes('#') && !link.hasAttribute('onclick')) {
+                    // Don't show loader if new tab/window is being opened or if data-no-loader is set
+                    if (!e.ctrlKey && !e.metaKey && !e.shiftKey && link.target !== '_blank' && !link.hasAttribute('data-no-loader')) {
                         showLoader();
                     }
                 }
             });
-        });
 
-        // Show loader on navigation with Ctrl+Click or Middle-click check
-        document.addEventListener('click', function(e) {
-            const link = e.target.closest('a');
-            if (link && link.href && !link.href.includes('#') && !link.hasAttribute('onclick')) {
-                // Don't show loader if new tab/window is being opened or if data-no-loader is set
-                if (!e.ctrlKey && !e.metaKey && !e.shiftKey && link.target !== '_blank' && !link.hasAttribute('data-no-loader')) {
-                    showLoader();
+            // Hide loader if navigation is cancelled (back button, etc.)
+            window.addEventListener('beforeunload', function () {
+                // Keep loader visible during navigation
+            });
+
+            // Safety timeout: Hide loader after 60 seconds if still showing
+            setTimeout(function () {
+                if (loader.classList.contains('show')) {
+                    hideLoader();
                 }
-            }
+            }, 60000);
         });
-
-        // Hide loader if navigation is cancelled (back button, etc.)
-        window.addEventListener('beforeunload', function() {
-            // Keep loader visible during navigation
-        });
-
-        // Safety timeout: Hide loader after 60 seconds if still showing
-        setTimeout(function() {
-            if (loader.classList.contains('show')) {
-                hideLoader();
-            }
-        }, 60000);
-    });
     </script>
 
     <!-- Custom JS -->
@@ -645,4 +695,5 @@
 
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

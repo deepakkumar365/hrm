@@ -5,13 +5,20 @@
 {% block head %}
 <style>
     :root {
-        --primary: #008080;           /* Teal - Application theme */
-        --primary-dark: #004d4d;      /* Darker teal */
-        --secondary: #66b2b2;         /* Light teal */
-        --success: #38a169;           /* Green */
-        --warning: #dd6b20;           /* Orange */
-        --danger: #e53e3e;            /* Red */
-        --info: #3182ce;              /* Blue */
+        --primary: #008080;
+        /* Teal - Application theme */
+        --primary-dark: #004d4d;
+        /* Darker teal */
+        --secondary: #66b2b2;
+        /* Light teal */
+        --success: #38a169;
+        /* Green */
+        --warning: #dd6b20;
+        /* Orange */
+        --danger: #e53e3e;
+        /* Red */
+        --info: #3182ce;
+        /* Blue */
         --light: #f8f9fa;
         --dark: #1a1a1a;
     }
@@ -482,6 +489,7 @@
             opacity: 0;
             transform: translateY(-20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -493,6 +501,7 @@
             opacity: 0;
             transform: translateY(20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -611,7 +620,10 @@
 <div class="dashboard-wrapper">
     <!-- Dashboard Header -->
     <div class="dashboard-header">
-        <h1>👋 Welcome back, {{ current_user.first_name or 'Team Member' }}!</h1>
+        <h1 class="d-flex align-items-center gap-2">
+            <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Icon" height="28">
+            Welcome back, {{ current_user.first_name or 'Team Member' }}!
+        </h1>
         <p>{{ "{:%A, %B %d, %Y}".format(now) if now else "Have a productive day!" }}</p>
     </div>
 
@@ -668,22 +680,23 @@
                     <div class="recent-attendance-grid">
                         <div class="recent-attendance-item">
                             <span class="recent-attendance-label-small">DATE</span>
-                            <span class="recent-attendance-value">{{ recent_attendance.date.strftime('%d %b %Y') if recent_attendance.date else 'N/A' }}</span>
+                            <span class="recent-attendance-value">{{ recent_attendance.date.strftime('%d %b %Y') if
+                                recent_attendance.date else 'N/A' }}</span>
                         </div>
                         <div class="recent-attendance-item">
                             <span class="recent-attendance-label-small">STATUS</span>
                             {% if recent_attendance.clock_in %}
-                                {% if recent_attendance.break_end %}
-                                    <span class="recent-attendance-status status-break-end">Break Ended</span>
-                                {% elif recent_attendance.break_start %}
-                                    <span class="recent-attendance-status status-break-start">On Break</span>
-                                {% elif recent_attendance.clock_out %}
-                                    <span class="recent-attendance-status status-clock-out">Clocked Out</span>
-                                {% else %}
-                                    <span class="recent-attendance-status status-clock-in">Clocked In</span>
-                                {% endif %}
+                            {% if recent_attendance.break_end %}
+                            <span class="recent-attendance-status status-break-end">Break Ended</span>
+                            {% elif recent_attendance.break_start %}
+                            <span class="recent-attendance-status status-break-start">On Break</span>
+                            {% elif recent_attendance.clock_out %}
+                            <span class="recent-attendance-status status-clock-out">Clocked Out</span>
                             {% else %}
-                                <span class="recent-attendance-status status-no-record">No Record</span>
+                            <span class="recent-attendance-status status-clock-in">Clocked In</span>
+                            {% endif %}
+                            {% else %}
+                            <span class="recent-attendance-status status-no-record">No Record</span>
                             {% endif %}
                         </div>
                     </div>
@@ -699,16 +712,19 @@
             </div>
             <ul class="events-list">
                 <li class="event-item">
-                    <div class="event-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div class="event-icon"
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                         <i class="fas fa-calendar"></i>
                     </div>
                     <div class="event-content">
                         <p class="event-title">Next Leave Day</p>
-                        <p class="event-time">{{ stats.next_leave_date if stats.next_leave_date is defined else 'December 25, 2024' }}</p>
+                        <p class="event-time">{{ stats.next_leave_date if stats.next_leave_date is defined else
+                            'December 25, 2024' }}</p>
                     </div>
                 </li>
                 <li class="event-item">
-                    <div class="event-icon" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white;">
+                    <div class="event-icon"
+                        style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white;">
                         <i class="fas fa-birthday-cake"></i>
                     </div>
                     <div class="event-content">
@@ -717,7 +733,8 @@
                     </div>
                 </li>
                 <li class="event-item">
-                    <div class="event-icon" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white;">
+                    <div class="event-icon"
+                        style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white;">
                         <i class="fas fa-trophy"></i>
                     </div>
                     <div class="event-content">
@@ -738,10 +755,12 @@
                 </div>
                 <div>
                     <p class="stat-card-label">Recent Payslip</p>
-                    <p class="stat-card-value">{{ stats.recent_payslip if stats.recent_payslip is defined else 'Dec 2024' }}</p>
+                    <p class="stat-card-value">{{ stats.recent_payslip if stats.recent_payslip is defined else 'Dec
+                        2024' }}</p>
                 </div>
             </div>
-            <a href="{{ url_for('payroll_view') if 'payroll_view' in config.get('routes', []) else '#' }}" class="stat-card-action">View Details →</a>
+            <a href="{{ url_for('payroll_view') if 'payroll_view' in config.get('routes', []) else '#' }}"
+                class="stat-card-action">View Details →</a>
         </div>
 
         <div class="stat-card success">
@@ -751,7 +770,8 @@
                 </div>
                 <div>
                     <p class="stat-card-label">Next Holiday</p>
-                    <p class="stat-card-value">{{ stats.next_holiday if stats.next_holiday is defined else 'Jan 2025' }}</p>
+                    <p class="stat-card-value">{{ stats.next_holiday if stats.next_holiday is defined else 'Jan 2025' }}
+                    </p>
                 </div>
             </div>
             <a href="#" class="stat-card-action">View Calendar →</a>
@@ -777,7 +797,8 @@
                 </div>
                 <div>
                     <p class="stat-card-label">Pending Requests</p>
-                    <p class="stat-card-value">{{ stats.pending_requests if stats.pending_requests is defined else '0' }}</p>
+                    <p class="stat-card-value">{{ stats.pending_requests if stats.pending_requests is defined else '0'
+                        }}</p>
                 </div>
             </div>
             <a href="{{ url_for('leave_list') }}" class="stat-card-action">View Requests →</a>

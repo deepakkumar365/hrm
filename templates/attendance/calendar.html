@@ -5,7 +5,7 @@
 {% block head %}
 {{ super() }}
 <!-- FullCalendar CSS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+<link href="{{ url_for('static', filename='vendors/fullcalendar/main.min.css') }}" rel="stylesheet">
 <style>
     .fc-event {
         cursor: pointer;
@@ -17,23 +17,48 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
     .fc-event-main {
         padding: 2px 4px;
     }
-    .event-present { background-color: #28a745; }
-    .event-absent { background-color: #dc3545; }
-    .event-leave { background-color: #007bff; }
-    .event-wfh { background-color: #6f42c1; }
-    .event-half-day { background-color: #ffc107; color: #212529 !important; }
-    .event-holiday { background-color: #17a2b8; }
-    .event-weekend { background-color: #f8f9fa; }
+
+    .event-present {
+        background-color: #28a745;
+    }
+
+    .event-absent {
+        background-color: #dc3545;
+    }
+
+    .event-leave {
+        background-color: #007bff;
+    }
+
+    .event-wfh {
+        background-color: #6f42c1;
+    }
+
+    .event-half-day {
+        background-color: #ffc107;
+        color: #212529 !important;
+    }
+
+    .event-holiday {
+        background-color: #17a2b8;
+    }
+
+    .event-weekend {
+        background-color: #f8f9fa;
+    }
 
     .fc-daygrid-day.fc-day-weekend {
         background-color: #f8f9fa;
     }
+
     .fc .fc-daygrid-day-number {
         padding: 4px 6px;
     }
+
     .modal-body p {
         margin-bottom: 0.5rem;
     }
@@ -41,16 +66,18 @@
     /* New Summary Panel Styles */
     .summary-panel .card {
         border-radius: 0.75rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         border: none;
         margin-bottom: 1.5rem;
     }
+
     .summary-panel .card-header {
         background: linear-gradient(135deg, #f8f9fa 0%, #f0f1f5 100%);
         border-bottom: 1px solid #e9ecef;
         font-weight: 600;
         color: #343a40;
     }
+
     .summary-panel .stat-item {
         display: flex;
         justify-content: space-between;
@@ -58,23 +85,38 @@
         padding: 0.75rem 0;
         border-bottom: 1px solid #f1f1f1;
     }
+
     .summary-panel .stat-item:last-child {
         border-bottom: none;
     }
+
     .summary-panel .stat-label {
         display: flex;
         align-items: center;
         gap: 0.75rem;
         color: #6c757d;
     }
+
     .summary-panel .stat-value {
         font-weight: 600;
         font-size: 1.1rem;
     }
-    .summary-panel .stat-value.present { color: #28a745; }
-    .summary-panel .stat-value.absent { color: #dc3545; }
-    .summary-panel .stat-value.leave { color: #007bff; }
-    .summary-panel .stat-value.hours { color: #6f42c1; }
+
+    .summary-panel .stat-value.present {
+        color: #28a745;
+    }
+
+    .summary-panel .stat-value.absent {
+        color: #dc3545;
+    }
+
+    .summary-panel .stat-value.leave {
+        color: #007bff;
+    }
+
+    .summary-panel .stat-value.hours {
+        color: #6f42c1;
+    }
 </style>
 {% endblock %}
 
@@ -113,7 +155,7 @@
                             <label for="employeeFilter" class="form-label">Select Employee:</label>
                             <select id="employeeFilter" class="form-control">
                                 {% for emp in employees %}
-                                <option value="{{ emp.id }}" {% if emp.id == default_employee_id %}selected{% endif %}>
+                                <option value="{{ emp.id }}" {% if emp.id==default_employee_id %}selected{% endif %}>
                                     {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
                                 </option>
                                 {% endfor %}
@@ -145,7 +187,8 @@
                     </div>
                     <div class="stat-item">
                         <span class="stat-label"><i class="fas fa-hourglass-half text-secondary"></i>Total Hours</span>
-                        <span class="stat-value hours">{{ "%.1f"|format(summary.total_hours if summary else 0) }}h</span>
+                        <span class="stat-value hours">{{ "%.1f"|format(summary.total_hours if summary else 0)
+                            }}h</span>
                     </div>
                 </div>
             </div>
@@ -172,7 +215,8 @@
 </div>
 
 <!-- Attendance Detail Modal -->
-<div class="modal fade" id="attendanceModal" tabindex="-1" role="dialog" aria-labelledby="attendanceModalLabel" aria-hidden="true">
+<div class="modal fade" id="attendanceModal" tabindex="-1" role="dialog" aria-labelledby="attendanceModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -189,7 +233,7 @@
                     <p><strong>Clock Out:</strong> <span id="modal-clock-out"></span></p>
                     <p><strong>Total Hours:</strong> <span id="modal-total-hours"></span></p>
                 </div>
-                 <div id="modal-details-leave">
+                <div id="modal-details-leave">
                     <p><strong>Leave Type:</strong> <span id="modal-leave-type"></span></p>
                 </div>
                 <p><strong>Remarks:</strong> <span id="modal-remarks"></span></p>
@@ -205,102 +249,102 @@
 {% block scripts %}
 {{ super() }}
 <!-- FullCalendar JS -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="{{ url_for('static', filename='vendors/fullcalendar/main.min.js') }}"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const calendarEl = document.getElementById('calendar');
-    const employeeFilter = document.getElementById('employeeFilter');
-    let selectedEmployeeId = employeeFilter ? employeeFilter.value : '{{ default_employee_id }}';
+    document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
+        const employeeFilter = document.getElementById('employeeFilter');
+        let selectedEmployeeId = employeeFilter ? employeeFilter.value : '{{ default_employee_id }}';
 
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth'
-        },
-        events: function(fetchInfo, successCallback, failureCallback) {
-            if (!selectedEmployeeId) {
-                successCallback([]);
-                return;
-            }
-            const url = `/api/attendance/calendar-data?employee_id=${selectedEmployeeId}&start=${fetchInfo.startStr}&end=${fetchInfo.endStr}`;
-            
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        console.error('Error fetching calendar data:', data.error);
-                        failureCallback(data.error);
-                        return;
-                    }
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth'
+            },
+            events: function (fetchInfo, successCallback, failureCallback) {
+                if (!selectedEmployeeId) {
+                    successCallback([]);
+                    return;
+                }
+                const url = `/api/attendance/calendar-data?employee_id=${selectedEmployeeId}&start=${fetchInfo.startStr}&end=${fetchInfo.endStr}`;
 
-                    const events = data.map(item => {
-                        let eventClass = '';
-                        let title = item.status;
-                        switch(String(item.status).toLowerCase()) { // Ensure status is a string
-                            case 'present': eventClass = 'event-present'; break;
-                            case 'absent': eventClass = 'event-absent'; break;
-                            case 'leave': eventClass = 'event-leave'; title = item.leave_type || 'Leave'; break;
-                            case 'wfh': eventClass = 'event-wfh'; break;
-                            case 'half-day': eventClass = 'event-half-day'; break;
-                            case 'holiday': eventClass = 'event-holiday'; break;
-                            default: eventClass = 'event-present'; title = 'Present'; break; // Default to Present
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Error fetching calendar data:', data.error);
+                            failureCallback(data.error);
+                            return;
                         }
-                        return {
-                            title: title,
-                            start: item.date,
-                            allDay: true,
-                            classNames: [eventClass],
-                            extendedProps: item
-                        };
+
+                        const events = data.map(item => {
+                            let eventClass = '';
+                            let title = item.status;
+                            switch (String(item.status).toLowerCase()) { // Ensure status is a string
+                                case 'present': eventClass = 'event-present'; break;
+                                case 'absent': eventClass = 'event-absent'; break;
+                                case 'leave': eventClass = 'event-leave'; title = item.leave_type || 'Leave'; break;
+                                case 'wfh': eventClass = 'event-wfh'; break;
+                                case 'half-day': eventClass = 'event-half-day'; break;
+                                case 'holiday': eventClass = 'event-holiday'; break;
+                                default: eventClass = 'event-present'; title = 'Present'; break; // Default to Present
+                            }
+                            return {
+                                title: title,
+                                start: item.date,
+                                allDay: true,
+                                classNames: [eventClass],
+                                extendedProps: item
+                            };
+                        });
+                        successCallback(events);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching events:', error);
+                        failureCallback(error);
                     });
-                    successCallback(events);
-                })
-                .catch(error => {
-                    console.error('Error fetching events:', error);
-                    failureCallback(error);
-                });
-        },
-        eventClick: function(info) {
-            const props = info.event.extendedProps;
-            const eventDate = new Date(props.date + 'T00:00:00'); // Avoid timezone issues
-            
-            document.getElementById('modal-date').textContent = eventDate.toLocaleDateString('en-CA');
-            document.getElementById('modal-status').textContent = props.status;
-            document.getElementById('modal-remarks').textContent = props.remarks || 'N/A';
+            },
+            eventClick: function (info) {
+                const props = info.event.extendedProps;
+                const eventDate = new Date(props.date + 'T00:00:00'); // Avoid timezone issues
 
-            if (props.status === 'Leave') {
-                document.getElementById('modal-details-present').style.display = 'none';
-                document.getElementById('modal-details-leave').style.display = 'block';
-                document.getElementById('modal-leave-type').textContent = props.leave_type || 'N/A';
-            } else {
-                document.getElementById('modal-details-present').style.display = 'block';
-                document.getElementById('modal-details-leave').style.display = 'none';
-                document.getElementById('modal-clock-in').textContent = props.clock_in || 'N/A';
-                document.getElementById('modal-clock-out').textContent = props.clock_out || 'N/A';
-                document.getElementById('modal-total-hours').textContent = props.total_hours || 'N/A';
-            }
+                document.getElementById('modal-date').textContent = eventDate.toLocaleDateString('en-CA');
+                document.getElementById('modal-status').textContent = props.status;
+                document.getElementById('modal-remarks').textContent = props.remarks || 'N/A';
 
-            $('#attendanceModal').modal('show');
-        },
-        dayCellDidMount: function(arg) {
-            // Grey out weekends
-            if (arg.isWeekend) {
-                arg.el.style.backgroundColor = '#f8f9fa';
+                if (props.status === 'Leave') {
+                    document.getElementById('modal-details-present').style.display = 'none';
+                    document.getElementById('modal-details-leave').style.display = 'block';
+                    document.getElementById('modal-leave-type').textContent = props.leave_type || 'N/A';
+                } else {
+                    document.getElementById('modal-details-present').style.display = 'block';
+                    document.getElementById('modal-details-leave').style.display = 'none';
+                    document.getElementById('modal-clock-in').textContent = props.clock_in || 'N/A';
+                    document.getElementById('modal-clock-out').textContent = props.clock_out || 'N/A';
+                    document.getElementById('modal-total-hours').textContent = props.total_hours || 'N/A';
+                }
+
+                $('#attendanceModal').modal('show');
+            },
+            dayCellDidMount: function (arg) {
+                // Grey out weekends
+                if (arg.isWeekend) {
+                    arg.el.style.backgroundColor = '#f8f9fa';
+                }
             }
+        });
+
+        calendar.render();
+
+        if (employeeFilter) {
+            employeeFilter.addEventListener('change', function () {
+                selectedEmployeeId = this.value;
+                calendar.refetchEvents();
+            });
         }
     });
-
-    calendar.render();
-
-    if (employeeFilter) {
-        employeeFilter.addEventListener('change', function() {
-            selectedEmployeeId = this.value;
-            calendar.refetchEvents();
-        });
-    }
-});
 </script>
 {% endblock %}

@@ -23,22 +23,22 @@ from app import app
 # except Exception as e:
 #     print(f"⚠️  Warning: Could not run syntax fix: {e}")
 
-import routes  # noqa: F401
-import routes_tenant_company  # noqa: F401 - Tenant/Company hierarchy routes
-import routes_team_documents  # noqa: F401 - Team and Documents module routes
-import routes_enhancements  # noqa: F401 - Employee edit, reports, bank info enhancements
-import routes_masters  # noqa: F401 - Master data management (Roles, Departments, Working Hours, Work Schedules)
-import routes_bulk_upload  # noqa: F401 - Employee bulk upload functionality
-import routes_access_control  # noqa: F401 - Access Control Management
-import routes_tenant_config  # noqa: F401 - Tenant configuration and advanced features
-import routes_leave  # noqa: F401 - Leave management routes
-import routes_employee_group  # noqa: F401 - Employee Group master management
-import routes_leave_allocation  # noqa: F401 - Leave allocation configuration
-import routes_ot  # noqa: F401 - OT (Overtime) Management routes
-import routes_hr_manager  # noqa: F401 - HR Manager Dashboard
-import routes_api  # noqa: F401 - Mobile App JSON API endpoints
-import routes_timezone  # noqa: F401 - Timezone management routes
-import cli_commands  # noqa: F401 - CLI commands for database management
+from routes import routes  # noqa: F401
+from routes import routes_tenant_company  # noqa: F401
+from routes import routes_team_documents  # noqa: F401
+from routes import routes_enhancements  # noqa: F401
+from routes import routes_masters  # noqa: F401
+from routes import routes_bulk_upload  # noqa: F401
+from routes import routes_access_control  # noqa: F401
+from routes import routes_tenant_config  # noqa: F401
+from routes import routes_leave  # noqa: F401
+from routes import routes_employee_group  # noqa: F401
+from routes import routes_leave_allocation  # noqa: F401
+from routes import routes_ot  # noqa: F401
+from routes import routes_hr_manager  # noqa: F401
+from routes import routes_api  # noqa: F401
+from routes import routes_timezone  # noqa: F401
+from core import cli_commands  # noqa: F401
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True)
