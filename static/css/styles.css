@@ -282,8 +282,11 @@ a:hover {
     height: var(--header-height);
     padding: 0;
     box-shadow: var(--shadow-md);
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
     z-index: 1030;
 }
 
@@ -638,7 +641,7 @@ nav.navbar {
     flex: 1;
     min-height: calc(100vh - var(--header-height));
     background: var(--background);
-    padding-top: 0.75rem;
+    padding-top: calc(var(--header-height) + 0.75rem);
 }
 
 /* ===== DASHBOARD LAYOUT ===== */

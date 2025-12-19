@@ -381,7 +381,7 @@ def dashboard():
 
     elif user_role_name in ['HR Manager', 'Tenant Admin']:
         # Route to HR Manager Dashboard (handles both HR Manager and Tenant Admin roles)
-        from routes_hr_manager import hr_manager_dashboard
+        from routes.routes_hr_manager import hr_manager_dashboard
         return hr_manager_dashboard()
 
     # Get basic statistics (for Employee and other roles)
