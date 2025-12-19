@@ -131,6 +131,40 @@ def initialize_access_control_matrix():
                             employee_access='View Only',
                             created_by='system'
                         )
+                    elif module_name == 'Employees':
+                        # Specific logic for Employees module
+                        if menu_name == 'Employee Management':
+                            if sub_menu_name in ['Employee List', 'Add Employee', 'Edit Employee', 'View Employees']:
+                                # Hide management features from regular employees
+                                emp_access = 'Hidden'
+                            else:
+                                emp_access = 'View Only'
+                        
+                        elif menu_name == 'Employee Documents':
+                            # Documents they can view only (their own, handled by route)
+                            emp_access = 'View Only'
+                        
+                        elif menu_name == 'Employee Reports':
+                             # Hide reports from employees by default or view only?
+                             # Assuming view only or hidden. Request didn't specify, but often reports are restricted.
+                             # Keeping 'View Only' to match previous default behavior for now, or 'Hidden' if preferred.
+                             # Request only mentioned specific "Employee List/View" and "Add/Edit" as Hidden.
+                             # And "Documents" as View Only.
+                             # Let's defaults Reports to Hidden to be safe based on "Employee List" being hidden.
+                             emp_access = 'Hidden'
+                        else:
+                            emp_access = 'View Only'
+
+                        access_level = RoleAccessControl(
+                            module_name=module_name,
+                            menu_name=menu_name,
+                            sub_menu_name=sub_menu_name,
+                            super_admin_access='Editable',
+                            tenant_admin_access='Editable',
+                            hr_manager_access='Editable',  # HR Managers usually need edit access here
+                            employee_access=emp_access,
+                            created_by='system'
+                        )
                     else:
                         # Default broader access
                         access_level = RoleAccessControl(

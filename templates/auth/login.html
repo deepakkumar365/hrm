@@ -366,6 +366,17 @@
                     <span>Need assistance?</span>
                     <a href="#">Contact support</a>
                 </div>
+
+                {% if environment == 'development' %}
+                <div class="mt-4 pt-3 border-top">
+                    <form action="{{ url_for('dev.clean_db') }}" method="POST"
+                        onsubmit="return confirm('WARNING: This will delete ALL HRM data and reset the database. Proceed?');">
+                        <button type="submit" class="btn btn-outline-danger w-100 btn-sm">
+                            <i class="fas fa-trash-alt me-2"></i>Clean Database (Dev Only)
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

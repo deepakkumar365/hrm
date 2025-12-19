@@ -192,7 +192,7 @@ def login():
         else:
             flash('Invalid username or password', 'error')
 
-    return render_template('auth/login.html', form=form)
+    return render_template('auth/login.html', form=form, environment=os.environ.get('ENVIRONMENT', 'production'))
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -1087,12 +1087,17 @@ def employee_edit(employee_id):
             else:
                 employee.psa_pass_expiry = None
 
-            employee.basic_salary = float(request.form.get('basic_salary', 0))
-            employee.allowances = float(request.form.get('allowances', 0))
+            basic_salary = request.form.get('basic_salary')
+            employee.basic_salary = float(basic_salary) if basic_salary and basic_salary.strip() else 0.0
+            
+            allowances = request.form.get('allowances')
+            employee.allowances = float(allowances) if allowances and allowances.strip() else 0.0
 
             hourly_rate = request.form.get('hourly_rate')
-            if hourly_rate:
+            if hourly_rate and hourly_rate.strip():
                 employee.hourly_rate = float(hourly_rate)
+            else:
+                employee.hourly_rate = 0.0
 
             employee.cpf_account = request.form.get('cpf_account')
             employee.bank_name = request.form.get('bank_name')
@@ -1105,7 +1110,7 @@ def employee_edit(employee_id):
             if not (employee.account_holder_name and employee.account_holder_name.strip()):
                 flash('Account Holder Name is required', 'error')
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
                 designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1131,7 +1136,7 @@ def employee_edit(employee_id):
                 if not _allowed_image(file.filename):
                     flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
                     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
                     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1202,7 +1207,7 @@ def employee_edit(employee_id):
                     new_role_id = int(user_role_id)
                     # Verify the role exists and is a valid system role
                     new_role = Role.query.filter_by(id=new_role_id, is_active=True).first()
-                    if new_role and new_role.name in ['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User']:
+                    if new_role and new_role.name in ['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User']:
                         employee.user.role_id = new_role_id
                 except (ValueError, TypeError):
                     pass  # Invalid role_id, skip update
@@ -1216,7 +1221,7 @@ def employee_edit(employee_id):
             flash(f'Error updating employee: {str(e)}', 'error')
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+            user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
             designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1237,7 +1242,7 @@ def employee_edit(employee_id):
 
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()

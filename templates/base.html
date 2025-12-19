@@ -93,9 +93,17 @@
                                         </div>
                                         {% endif %}
                                     </div>
-                                    <h6 class="profile-card-name mb-0 fw-bold">{{ current_user.first_name }} {{
-                                        current_user.last_name or '' }}</h6>
-                                    <small class="profile-card-email text-muted">{{ current_user.email }}</small>
+                                    <h6 class="profile-card-name mb-0 fw-bold">{{ current_user.first_name }}{% if
+                                        current_user.last_name %} {{ current_user.last_name }}{% endif %}</h6>
+                                    <small class="profile-card-email text-muted d-block mb-1">{% if current_user.email
+                                        %}{{ current_user.email }}{% endif %}</small>
+
+                                    {% if current_user.employee_profile and current_user.employee_profile.designation %}
+                                    <div class="small fw-medium text-dark flex-wrap mb-1">
+                                        {{ current_user.employee_profile.designation.name }}
+                                    </div>
+                                    {% endif %}
+
                                     {% if current_user.role %}
                                     <div class="mt-1"><span class="badge bg-secondary rounded-pill">{{
                                             current_user.role.name }}</span></div>
@@ -182,44 +190,61 @@
                 </a>
                 {% endif %}
 
-                <!-- Documents -->
-                {% if is_user %}
-                <a class="sidebar-link {{ 'active' if request.endpoint == 'documents_list' }}"
-                    href="{{ url_for('documents_list') }}">
-                    <i class="fas fa-file-alt"></i>
-                    Documents
-                </a>
-                {% endif %}
+                <!-- Employees Module -->
+                {% set emp_mgmt_access = check_ui_access(user_role, 'Employees', 'Employee Management') %}
+                {% set emp_docs_access = check_ui_access(user_role, 'Employees', 'Employee Documents') %}
+                {% set emp_reports_access = check_ui_access(user_role, 'Employees', 'Employee Reports') %}
 
-                <!-- Employees -->
-                {% if check_ui_access(user_role, 'Employees', 'Employee Management') != 'Hidden' %}
+                <!-- Show Employees parent if ANY submenu is visible -->
+                {% if emp_mgmt_access != 'Hidden' or emp_docs_access != 'Hidden' or emp_reports_access != 'Hidden' %}
                 <a class="sidebar-link" data-bs-toggle="collapse" href="#submenuEmployees" role="button"
                     aria-expanded="false" aria-controls="submenuEmployees">
                     <span><i class="fas fa-users"></i> Employees</span>
                 </a>
                 <ul class="collapse sidebar-submenu" id="submenuEmployees" data-bs-parent="#sidebarAccordion">
+
+                    <!-- Employee Management -->
+                    {% if emp_mgmt_access != 'Hidden' %}
                     <li><a class="nav-link" href="{{ url_for('employee_add') }}">Add Employee</a></li>
                     <li><a class="nav-link" href="{{ url_for('employee_list') }}">All Employees</a></li>
                     <li><a class="nav-link" href="{{ url_for('employee_bulk_upload') }}">Bulk Upload</a></li>
+                    {% endif %}
+
+                    <!-- Employee Documents -->
+                    {% if emp_docs_access != 'Hidden' %}
+                    <li><a class="nav-link" href="{{ url_for('documents_list') }}">Documents</a></li>
+                    {% endif %}
+
+                    <!-- Employee Reports (Currently assuming no route for user facing reports, but structure remains) -->
+                    {% if emp_reports_access != 'Hidden' %}
+                    <!-- Placeholder or Admin Reports link -->
+                    {% endif %}
                 </ul>
                 {% endif %}
 
                 <!-- Attendance -->
+                {% if check_ui_access(user_role, 'Attendance') != 'Hidden' %}
                 <a class="sidebar-link" data-bs-toggle="collapse" href="#submenuAttendance" role="button"
                     aria-expanded="false" aria-controls="submenuAttendance">
                     <span><i class="fas fa-calendar-check"></i> Attendance</span>
                 </a>
                 <ul class="collapse sidebar-submenu" id="submenuAttendance" data-bs-parent="#sidebarAccordion">
+                    {# Attendance Management Links #}
+                    {% if check_ui_access(user_role, 'Attendance', 'Attendance Management') != 'Hidden' %}
                     <li><a class="nav-link" href="{{ url_for('attendance_mark') }}">Mark Attendance</a></li>
                     <li><a class="nav-link" href="{{ url_for('attendance_list_view') }}">View Records</a></li>
+                    {% endif %}
+
                     {% if not is_super_admin %}
                     <li><a class="nav-link" href="{{ url_for('mark_ot_attendance') }}">Mark OT Attendance</a></li>
                     {% endif %}
+
                     {% if check_ui_access(user_role, 'Attendance', 'Attendance Management', 'Bulk Upload') != 'Hidden'
                     %}
                     <li><a class="nav-link" href="{{ url_for('attendance_bulk_manage') }}">Bulk Attendance</a></li>
                     {% endif %}
                 </ul>
+                {% endif %}
 
                 <!-- Leave (User/Manager) -->
                 {% if check_ui_access(user_role, 'Attendance', 'Leave Management', 'Apply Leave') != 'Hidden' %}
@@ -270,9 +295,13 @@
                     <span><i class="fas fa-dollar-sign"></i> Payroll</span>
                 </a>
                 <ul class="collapse sidebar-submenu" id="submenuPayroll" data-bs-parent="#sidebarAccordion">
+                    {% if check_ui_access(user_role, 'Payroll', 'Payroll Management') != 'Hidden' %}
                     <li><a class="nav-link" href="{{ url_for('payroll_list') }}">Payroll List</a></li>
                     <li><a class="nav-link" href="{{ url_for('payroll_generate') }}">Generate Payroll</a></li>
                     <li><a class="nav-link" href="{{ url_for('payroll_config') }}">Payroll Configuration</a></li>
+                    {% elif check_ui_access(user_role, 'Payroll', 'Payslip Management') != 'Hidden' %}
+                    <li><a class="nav-link" href="{{ url_for('payroll_list') }}">My Payslips</a></li>
+                    {% endif %}
                 </ul>
                 {% endif %}
 
@@ -293,12 +322,13 @@
                 {% endif %}
 
                 <!-- Masters (Admin) -->
-                {% if check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' %}
+                {% if check_ui_access(user_role, 'Admin Settings') != 'Hidden' %}
                 <a class="sidebar-link" data-bs-toggle="collapse" href="#submenuMastersAdmin" role="button"
                     aria-expanded="false" aria-controls="submenuMastersAdmin">
                     <span><i class="fas fa-cogs"></i> Masters</span>
                 </a>
                 <ul class="collapse sidebar-submenu" id="submenuMastersAdmin">
+                    {% if check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' %}
                     <li><a class="nav-link" href="{{ url_for('tenant_list') }}">Tenants</a></li>
                     <li><a class="nav-link" href="{{ url_for('company_list') }}">Companies</a></li>
                     <li><a class="nav-link" href="{{ url_for('role_list') }}">Roles</a></li>
@@ -306,6 +336,8 @@
                     <li><a class="nav-link" href="{{ url_for('working_hours_list') }}">Working Hours</a></li>
                     <li><a class="nav-link" href="{{ url_for('work_schedule_list') }}">Work Schedules</a></li>
                     <li><a class="nav-link" href="{{ url_for('ot_type_list') }}">OT Types</a></li>
+                    {% endif %}
+
                     {% if check_ui_access(user_role, 'Admin Settings', 'User Role Mapping') != 'Hidden' %}
                     <li><a class="nav-link" href="{{ url_for('access_control.manage_user_companies') }}">Access
                             Control</a></li>
@@ -322,13 +354,21 @@
                 style="background: rgba(0,0,0,0.2);">
                 <div class="d-flex flex-column gap-1">
                     <div class="fw-bold text-white text-truncate" style="font-size: 0.75rem;">
-                        <i class="fas fa-building me-1 opacity-75"></i> {{ current_user.organization.name if
-                        current_user.organization else 'Nexar Core' }}
+                        <i class="fas fa-building me-1 opacity-75"></i>
+                        {% if current_user.company %}
+                        {{ current_user.company.name }}
+                        {% elif current_user.organization %}
+                        {{ current_user.organization.name }}
+                        {% else %}
+                        Nexar Core
+                        {% endif %}
                     </div>
                     <div class="text-white-50 text-truncate" style="font-size: 0.7rem;">
                         {{ current_user.employee_profile.designation.name if current_user.employee_profile and
-                        current_user.employee_profile.designation else (current_user.role.name if current_user.role else
-                        'User') }}
+                        current_user.employee_profile.designation else 'User' }}
+                        •
+                        <span class="fw-bold text-white">{{ current_user.role.name if current_user.role else 'No Role'
+                            }}</span>
                     </div>
                 </div>
             </div>
