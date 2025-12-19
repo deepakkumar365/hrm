@@ -637,13 +637,12 @@ def get_user_role_mappings(user_id):
 # UTILITY: Enforce Access Control in Routes
 # =====================================================================
 
-def check_ui_access(user_role, module_name, menu_name=None):
+def check_ui_access(user_role, module_name, menu_name=None, sub_menu_name=None):
     """
     Check if UI element should be visible based on role access
-    Returns True if 'Editable' or 'View Only', False if 'Hidden'
+    Returns 'Editable', 'View Only', or 'Hidden'
     """
-    access_level = check_module_access(user_role, module_name, menu_name)
-    return access_level != 'Hidden'
+    return check_module_access(user_role, module_name, menu_name, sub_menu_name)
 
 
 def check_edit_permission(user_role, module_name, menu_name=None):
@@ -995,3 +994,6 @@ try:
 except RuntimeError:
     # App context not available during import, will initialize on first request
     pass
+
+# Register helper function for Jinja2 templates
+app.jinja_env.globals['check_ui_access'] = check_ui_access

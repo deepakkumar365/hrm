@@ -920,66 +920,60 @@ def profile():
         flash('Profile not found. Please contact your administrator.', 'error')
         return redirect(url_for('dashboard'))
 
-    try:
-        employee = current_user.employee_profile
+    employee = current_user.employee_profile
 
-        # Get attendance stats
-        today = date.today()
-        first_day = today.replace(day=1)
-        last_day = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+    # Get attendance stats
+    today = date.today()
+    first_day = today.replace(day=1)
+    last_day = today.replace(day=calendar.monthrange(today.year, today.month)[1])
 
-        total_days = Attendance.query.filter(
-            Attendance.employee_id == employee.id,
-            Attendance.date.between(first_day, last_day)
-        ).count()
+    total_days = Attendance.query.filter(
+        Attendance.employee_id == employee.id,
+        Attendance.date.between(first_day, last_day)
+    ).count()
 
-        present_days = Attendance.query.filter(
-            Attendance.employee_id == employee.id,
-            Attendance.date.between(first_day, last_day),
-            Attendance.status == 'Present'
-        ).count()
+    present_days = Attendance.query.filter(
+        Attendance.employee_id == employee.id,
+        Attendance.date.between(first_day, last_day),
+        Attendance.status == 'Present'
+    ).count()
 
-        attendance_rate = round((present_days / total_days * 100) if total_days > 0 else 0)
+    attendance_rate = round((present_days / total_days * 100) if total_days > 0 else 0)
 
-        # Get pending claims
-        pending_claims = Claim.query.filter_by(
-            employee_id=employee.id,
-            status='Pending'
-        ).count()
+    # Get pending claims
+    pending_claims = Claim.query.filter_by(
+        employee_id=employee.id,
+        status='Pending'
+    ).count()
 
-        # Get leave balance
-        leave_balance = employee.leave_balance if hasattr(employee, 'leave_balance') else 0
+    # Get leave balance
+    leave_balance = employee.leave_balance if hasattr(employee, 'leave_balance') else 0
 
-        # Compile stats
-        stats = {
-            'attendance_rate': attendance_rate,
-            'leave_balance': leave_balance,
-            'pending_claims': pending_claims,
-            'completed_tasks': 0  # Placeholder for future task tracking feature
-        }
+    # Compile stats
+    stats = {
+        'attendance_rate': attendance_rate,
+        'leave_balance': leave_balance,
+        'pending_claims': pending_claims,
+        'completed_tasks': 0  # Placeholder for future task tracking feature
+    }
 
-        # Get recent activities
-        activities = []
+    # Get recent activities
+    activities = []
 
-        # Add recent attendance
-        attendance_records = Attendance.query.filter_by(
-            employee_id=employee.id
-        ).order_by(Attendance.date.desc()).limit(5).all()
+    # Add recent attendance
+    attendance_records = Attendance.query.filter_by(
+        employee_id=employee.id
+    ).order_by(Attendance.date.desc()).limit(5).all()
 
-        for record in attendance_records:
-            activities.append({
-                'icon': 'fa-clock',
-                'color': 'success' if record.status == 'Present' else 'warning',
-                'message': f"Marked {record.status} at {record.clock_in.strftime('%I:%M %p') if record.clock_in else 'N/A'}",
-                'time': record.date.strftime('%d %b %Y')
-            })
+    for record in attendance_records:
+        activities.append({
+            'icon': 'fa-clock',
+            'color': 'success' if record.status == 'Present' else 'warning',
+            'message': f"Marked {record.status} at {record.clock_in.strftime('%I:%M %p') if record.clock_in else 'N/A'}",
+            'time': record.date.strftime('%d %b %Y')
+        })
 
-        return render_template('profile.html', employee=employee, stats=stats, activities=activities)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        flash(f'An error occurred while loading profile: {str(e)}', 'error')
-        return redirect(url_for('dashboard'))
+    return render_template('profile.html', employee=employee, stats=stats, activities=activities)
 
 
 @app.route('/profile/edit', methods=['GET', 'POST'])

@@ -32,15 +32,16 @@
     <div class="dashboard-grid mb-4">
         <!-- Total Employees -->
         <div class="col-span-3">
-            <div class="stat-card">
+            <div class="card h-100 p-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="stat-card-icon primary">
+                    <div class="rounded bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px; font-size: 1.5rem;">
                         <i class="fas fa-users"></i>
                     </div>
                     <div>
-                        <div class="stat-card-value">{{ stats.total_employees }}</div>
-                        <div class="stat-card-label">Total Employees</div>
-                        <div class="stat-card-change">
+                        <div class="h3 mb-0 fw-bold">{{ stats.total_employees }}</div>
+                        <div class="text-muted small fw-bold">Total Employees</div>
+                        <div class="small text-muted">
                             Active in {{ stats.company_name }}
                         </div>
                     </div>
@@ -50,15 +51,16 @@
 
         <!-- Active Payrolls -->
         <div class="col-span-3">
-            <div class="stat-card">
+            <div class="card h-100 p-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="stat-card-icon success">
+                    <div class="rounded bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px; font-size: 1.5rem;">
                         <i class="fas fa-money-bill-wave"></i>
                     </div>
                     <div>
-                        <div class="stat-card-value">{{ stats.active_payrolls }}</div>
-                        <div class="stat-card-label">Active Payrolls</div>
-                        <div class="stat-card-change">
+                        <div class="h3 mb-0 fw-bold">{{ stats.active_payrolls }}</div>
+                        <div class="text-muted small fw-bold">Active Payrolls</div>
+                        <div class="small text-muted">
                             This Month
                         </div>
                     </div>
@@ -68,15 +70,16 @@
 
         <!-- Attendance Rate -->
         <div class="col-span-3">
-            <div class="stat-card">
+            <div class="card h-100 p-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="stat-card-icon warning">
+                    <div class="rounded bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px; font-size: 1.5rem;">
                         <i class="fas fa-calendar-check"></i>
                     </div>
                     <div>
-                        <div class="stat-card-value">{{ stats.attendance_rate }}%</div>
-                        <div class="stat-card-label">Attendance Rate</div>
-                        <div class="stat-card-change">
+                        <div class="h3 mb-0 fw-bold">{{ stats.attendance_rate }}%</div>
+                        <div class="text-muted small fw-bold">Attendance Rate</div>
+                        <div class="small text-muted">
                             {{ stats.total_attendance }} records this month
                         </div>
                     </div>
@@ -86,15 +89,16 @@
 
         <!-- Pending Leave Requests -->
         <div class="col-span-3">
-            <div class="stat-card">
+            <div class="card h-100 p-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="stat-card-icon danger">
+                    <div class="rounded bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center"
+                        style="width: 48px; height: 48px; font-size: 1.5rem;">
                         <i class="fas fa-calendar-times"></i>
                     </div>
                     <div>
-                        <div class="stat-card-value">{{ stats.pending_leaves }}</div>
-                        <div class="stat-card-label">Pending Leaves</div>
-                        <div class="stat-card-change">
+                        <div class="h3 mb-0 fw-bold">{{ stats.pending_leaves }}</div>
+                        <div class="text-muted small fw-bold">Pending Leaves</div>
+                        <div class="small text-muted">
                             {{ stats.approved_leaves_month }} approved this month
                         </div>
                     </div>
@@ -107,7 +111,7 @@
     <div class="dashboard-grid">
         <!-- Financial Summary -->
         <div class="col-span-6">
-            <div class="card" style="height: 100%;">
+            <div class="card h-100">
                 <div class="card-header">
                     <h3 class="card-title">💰 Financial Summary</h3>
                 </div>
@@ -115,11 +119,11 @@
                     <!-- Monthly Payroll -->
                     <div class="mb-4 p-4 bg-light rounded">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted" style="font-size: 1.1rem;">
+                            <span class="text-muted fs-5">
                                 <i class="fas fa-money-bill-wave me-2"></i>
                                 Total Payroll (This Month)
                             </span>
-                            <span class="fw-bold text-success" style="font-size: 1.8rem;">
+                            <span class="fw-bold text-success fs-3">
                                 ${{ "{:,.2f}".format(stats.total_payroll_month) }}
                             </span>
                         </div>
@@ -133,7 +137,7 @@
                         <div class="col-6">
                             <div class="p-3 bg-primary bg-opacity-10 rounded text-center">
                                 <div class="text-muted small mb-1">Average per Employee</div>
-                                <div class="fw-bold text-primary" style="font-size: 1.2rem;">
+                                <div class="fw-bold text-primary fs-5">
                                     {% if stats.active_payrolls > 0 %}
                                     ${{ "{:,.2f}".format(stats.total_payroll_month / stats.active_payrolls) }}
                                     {% else %}
@@ -145,7 +149,7 @@
                         <div class="col-6">
                             <div class="p-3 bg-info bg-opacity-10 rounded text-center">
                                 <div class="text-muted small mb-1">Payroll Coverage</div>
-                                <div class="fw-bold text-info" style="font-size: 1.2rem;">
+                                <div class="fw-bold text-info fs-5">
                                     {% if stats.total_employees > 0 %}
                                     {{ "%.0f"|format((stats.active_payrolls / stats.total_employees * 100)) }}%
                                     {% else %}
@@ -176,7 +180,7 @@
 
         <!-- Admin Actions -->
         <div class="col-span-6">
-            <div class="card" style="height: 100%;">
+            <div class="card h-100">
                 <div class="card-header">
                     <h3 class="card-title">🛠️ Admin Actions</h3>
                 </div>

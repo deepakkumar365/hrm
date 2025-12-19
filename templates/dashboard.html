@@ -4,24 +4,7 @@
 
 {% block head %}
 <style>
-    :root {
-        --primary: #008080;
-        /* Teal - Application theme */
-        --primary-dark: #004d4d;
-        /* Darker teal */
-        --secondary: #66b2b2;
-        /* Light teal */
-        --success: #38a169;
-        /* Green */
-        --warning: #dd6b20;
-        /* Orange */
-        --danger: #e53e3e;
-        /* Red */
-        --info: #3182ce;
-        /* Blue */
-        --light: #f8f9fa;
-        --dark: #1a1a1a;
-    }
+    /* :root values inherited from styles.css */
 
     * {
         box-sizing: border-box;
@@ -93,7 +76,7 @@
 
     .quick-action-btn i {
         font-size: 1.8rem;
-        color: #008080;
+        color: var(--primary);
     }
 
     /* ============= Main Content Grid ============= */

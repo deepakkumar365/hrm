@@ -28,11 +28,12 @@
                                 <tr id="user-row-{{ user.id }}">
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <div class="profile-image-container me-2" style="width:32px;height:32px;">
+                                            <div class="me-2">
                                                 {% if user.profile_image_url %}
-                                                <img src="{{ user.profile_image_url }}" alt="Profile" class="avatar-image">
+                                                <img src="{{ user.profile_image_url }}" alt="Profile"
+                                                    class="avatar avatar-sm">
                                                 {% else %}
-                                                <div class="avatar-placeholder" style="font-size: 14px; border: 2px solid white;">
+                                                <div class="avatar avatar-sm avatar-placeholder">
                                                     {{ user.first_name[0] if user.first_name else 'U' }}
                                                 </div>
                                                 {% endif %}
@@ -44,31 +45,42 @@
                                     </td>
                                     <td>{{ user.email or 'N/A' }}</td>
                                     <td>
-                                        <span class="badge bg-{% if user.role == 'Admin' %}danger{% elif user.role == 'Manager' %}warning{% else %}secondary{% endif %}">
+                                        <span
+                                            class="badge bg-{% if user.role == 'Admin' %}danger{% elif user.role == 'Manager' %}warning{% else %}secondary{% endif %}">
                                             {{ user.role }}
                                         </span>
                                     </td>
                                     <td>
-                                        <span id="status-badge-{{ user.id }}" class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
-                                            {% if user.is_active %}<i class="fas fa-check-circle me-1"></i>Active{% else %}<i class="fas fa-ban me-1"></i>Inactive{% endif %}
+                                        <span id="status-badge-{{ user.id }}"
+                                            class="badge {% if user.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                            {% if user.is_active %}<i class="fas fa-check-circle me-1"></i>Active{% else
+                                            %}<i class="fas fa-ban me-1"></i>Inactive{% endif %}
                                         </span>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" role="group">
-                                            <form method="POST" action="{{ url_for('update_user_role', user_id=user.id) }}" class="d-inline">
+                                            <form method="POST"
+                                                action="{{ url_for('update_user_role', user_id=user.id) }}"
+                                                class="d-inline">
                                                 <div class="input-group input-group-sm" style="width: 200px;">
                                                     <select name="role" class="form-select form-select-sm">
-                                                        <option value="User" {% if user.role == 'User' %}selected{% endif %}>User</option>
-                                                        <option value="Manager" {% if user.role == 'Manager' %}selected{% endif %}>Manager</option>
-                                                        <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
-                                                        <option value="Super Admin" {% if user.role == 'Super Admin' %}selected{% endif %}>Super Admin</option>
+                                                        <option value="User" {% if user.role=='User' %}selected{% endif
+                                                            %}>User</option>
+                                                        <option value="Manager" {% if user.role=='Manager' %}selected{%
+                                                            endif %}>Manager</option>
+                                                        <option value="Admin" {% if user.role=='Admin' %}selected{%
+                                                            endif %}>Admin</option>
+                                                        <option value="Super Admin" {% if user.role=='Super Admin'
+                                                            %}selected{% endif %}>Super Admin</option>
                                                     </select>
                                                     <button type="submit" class="btn btn-outline-primary btn-sm">
                                                         <i class="fas fa-save"></i>
                                                     </button>
                                                 </div>
                                             </form>
-                                            <button class="btn btn-outline-warning btn-sm ms-2" onclick="toggleUserStatus({{ user.id }}, '{{ user.first_name }} {{ user.last_name }}')" title="Toggle active/inactive">
+                                            <button class="btn btn-outline-warning btn-sm ms-2"
+                                                onclick="toggleUserStatus({{ user.id }}, '{{ user.first_name }} {{ user.last_name }}')"
+                                                title="Toggle active/inactive">
                                                 <i class="fas fa-power-off"></i>
                                             </button>
                                         </div>
@@ -85,39 +97,39 @@
 </div>
 
 <script>
-// Toggle user active/inactive status
-function toggleUserStatus(userId, userName) {
-    if (!confirm(`Are you sure you want to toggle the status of ${userName}?`)) {
-        return;
-    }
-    
-    fetch(`/access-control/api/toggle-user-status/${userId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
+    // Toggle user active/inactive status
+    function toggleUserStatus(userId, userName) {
+        if (!confirm(`Are you sure you want to toggle the status of ${userName}?`)) {
+            return;
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Update the badge
-            const badge = document.getElementById(`status-badge-${userId}`);
-            if (data.is_active) {
-                badge.className = 'badge bg-success';
-                badge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Active';
-            } else {
-                badge.className = 'badge bg-danger';
-                badge.innerHTML = '<i class="fas fa-ban me-1"></i>Inactive';
+
+        fetch(`/access-control/api/toggle-user-status/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
             }
-            
-            alert(data.message);
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error toggling user status: ' + error);
-    });
-}
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the badge
+                    const badge = document.getElementById(`status-badge-${userId}`);
+                    if (data.is_active) {
+                        badge.className = 'badge bg-success';
+                        badge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Active';
+                    } else {
+                        badge.className = 'badge bg-danger';
+                        badge.innerHTML = '<i class="fas fa-ban me-1"></i>Inactive';
+                    }
+
+                    alert(data.message);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error toggling user status: ' + error);
+            });
+    }
 </script>
 {% endblock %}

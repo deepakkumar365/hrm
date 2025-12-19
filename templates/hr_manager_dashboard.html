@@ -4,10 +4,6 @@
 
 {% block head %}
 <style>
-    * {
-        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    }
-
     html,
     body {
         margin: 0;
@@ -32,7 +28,7 @@
     }
 
     /* Header Section */
-    .dashboard-header {
+    .hr-dashboard-header {
         background: white;
         padding: 0.75rem 1rem;
         border-radius: 6px;
@@ -702,7 +698,7 @@
 {% block content %}
 <div class="hr-dashboard-container">
     <!-- Header -->
-    <div class="dashboard-header">
+    <div class="hr-dashboard-header">
         <div class="header-title">
             <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Icon" height="24" class="me-2">
             HR Manager Dashboard
