@@ -2,712 +2,18 @@
 
 {% block title %}HR Manager Dashboard - Nexar{% endblock %}
 
-{% block head %}
-<style>
-    html,
-    body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        overflow-x: hidden;
-    }
-
-    body {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-
-    .hr-dashboard-container {
-        max-width: 100%;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        height: 100vh;
-        box-sizing: border-box;
-        overflow-y: auto;
-    }
-
-    /* Header Section */
-    .hr-dashboard-header {
-        background: white;
-        padding: 0.75rem 1rem;
-        border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        flex-shrink: 0;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-    }
-
-    .refresh-btn {
-        background: #3498db;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-    }
-
-    .refresh-btn:hover {
-        background: #2980b9;
-        transform: translateY(-1px);
-    }
-
-    .refresh-btn:active {
-        transform: translateY(0);
-    }
-
-    .refresh-btn.loading i {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
-
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    .header-title {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #2c3e50;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .header-title i {
-        color: #3498db;
-        font-size: 1.5rem;
-    }
-
-    .company-selector {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        font-size: 0.85rem;
-    }
-
-    .company-selector select {
-        padding: 0.4rem 0.6rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        cursor: pointer;
-        background: white;
-        min-width: 200px;
-    }
-
-    .company-selector select:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
-    }
-
-    /* Main Content Wrapper */
-    .dashboard-content {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-        gap: 0.75rem;
-        flex: 1;
-        overflow: hidden;
-    }
-
-    /* Today Summary Section */
-    .today-summary-wrapper {
-        display: flex;
-        flex-direction: column;
-        background: white;
-        border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-    }
-
-    .today-summary-header {
-        background: linear-gradient(135deg, #f0f4f8 0%, #e8eef2 100%);
-        color: #2c3e50;
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-        font-weight: 700;
-        flex-shrink: 0;
-        border-bottom: 2px solid #d0dce6;
-    }
-
-    .today-summary-header h3 {
-        margin: 0;
-        font-size: 0.85rem;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        color: #2c3e50;
-    }
-
-    .today-summary-header i {
-        font-size: 1rem;
-        color: #3498db;
-    }
-
-    .summary-section {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 0.5rem;
-        padding: 0.4rem;
-        flex: 0 0 auto;
-        overflow-y: auto;
-        align-content: start;
-    }
-
-    .summary-card {
-        background: transparent;
-        padding: 0.5rem;
-        border-radius: 4px;
-        box-shadow: none;
-        border-left: none;
-        border-bottom: 2px solid;
-        transition: all 0.2s;
-        flex: none;
-        min-width: auto;
-        text-align: center;
-    }
-
-    .summary-card:hover {
-        box-shadow: none;
-        background: rgba(0, 0, 0, 0.02);
-    }
-
-    .summary-card.present {
-        border-bottom-color: #27ae60;
-        cursor: pointer;
-    }
-
-    .summary-card.absent {
-        border-bottom-color: #e74c3c;
-        cursor: pointer;
-    }
-
-    .summary-card.late {
-        border-bottom-color: #f39c12;
-        cursor: pointer;
-    }
-
-    .summary-card.leaves {
-        border-bottom-color: #9b59b6;
-        cursor: pointer;
-    }
-
-    .summary-card.ot {
-        border-bottom-color: #1abc9c;
-    }
-
-    .summary-card.not-updated {
-        border-bottom-color: #3498db;
-    }
-
-    .summary-card-title {
-        font-size: 0.65rem;
-        color: #666;
-        font-weight: 600;
-        margin-bottom: 0.3rem;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-
-    .summary-card-value {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 0.2rem;
-    }
-
-    .summary-card-meta {
-        font-size: 0.6rem;
-        color: #95a5a6;
-        line-height: 1.1;
-    }
-
-    /* Dashboard Sections */
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 0.75rem;
-        flex: 1;
-        overflow: hidden;
-    }
-
-    .dashboard-section {
-        background: white;
-        border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .section-header {
-        background: linear-gradient(135deg, #f0f4f8 0%, #e8eef2 100%);
-        color: #2c3e50;
-        padding: 0.6rem 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-shrink: 0;
-        border-bottom: 2px solid #d0dce6;
-    }
-
-    .section-header h3 {
-        margin: 0;
-        font-size: 0.9rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        color: #2c3e50;
-    }
-
-    .section-header i {
-        font-size: 1rem;
-        color: #3498db;
-    }
-
-    .section-body {
-        padding: 0.5rem;
-        flex: 1;
-        font-size: 0.8rem;
-    }
-
-    .section-body.scrollable {
-        overflow-y: auto;
-    }
-
-    /* Stats Tables */
-    .stats-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.75rem;
-    }
-
-    .stats-table th {
-        background: #f8f9fa;
-        padding: 0.3rem;
-        text-align: left;
-        font-weight: 600;
-        font-size: 0.7rem;
-        color: #2c3e50;
-        border-bottom: 1px solid #e0e0e0;
-        position: sticky;
-        top: 0;
-    }
-
-    .stats-table td {
-        padding: 0.3rem;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .stats-table tr:hover {
-        background: #f8f9fa;
-    }
-
-    .stat-value {
-        font-weight: 600;
-        color: #2c3e50;
-    }
-
-    /* OT Management Section - Compact */
-    .ot-management-container {
-        display: flex;
-        flex-direction: column;
-        background: white;
-        border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        margin-top: -0.45rem;
-    }
-
-    .ot-management-container:first-of-type {
-        margin-top: -0.35rem;
-    }
-
-    .ot-management-container:last-of-type {
-        margin-top: -0.45rem;
-    }
-
-    .ot-management-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 0.4rem;
-        padding: 0.5rem;
-        flex-shrink: 0;
-    }
-
-    .ot-action-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 0.6rem;
-        border-radius: 4px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0.3rem;
-        font-size: 0.75rem;
-    }
-
-    .ot-action-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        color: white;
-        text-decoration: none;
-    }
-
-    .ot-action-card i {
-        font-size: 1.2rem;
-    }
-
-    .ot-action-card-title {
-        font-weight: 700;
-        font-size: 0.7rem;
-        line-height: 1.2;
-    }
-
-    .ot-action-card-subtitle {
-        font-size: 0.65rem;
-        opacity: 0.9;
-        line-height: 1.1;
-    }
-
-    /* Color variations */
-    .ot-action-card.ot-approval {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .ot-action-card.ot-attendance {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-
-    .ot-action-card.payroll-reminder {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-
-    .ot-action-card.generate-payroll {
-        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    }
-
-    .ot-action-card.payroll-history {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    }
-
-    /* Metrics Stats */
-    .metrics-stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.4rem;
-        padding: 0.5rem;
-    }
-
-    .metric-item {
-        background: #f8f9fa;
-        padding: 0.4rem;
-        border-radius: 4px;
-        border-left: 2px solid #3498db;
-        font-size: 0.75rem;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 3rem;
-    }
-
-    .metric-label {
-        font-size: 0.65rem;
-        color: #666;
-        font-weight: 600;
-        margin-bottom: 0.15rem;
-        text-align: center;
-        width: 100%;
-    }
-
-    .metric-value {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #2c3e50;
-        text-align: center;
-        width: 100%;
-    }
-
-    .metric-item.clickable {
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .metric-item.clickable:hover {
-        background: #eef2f5;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-        transform: translateY(-1px);
-    }
-
-    /* Modal Styles */
-    .detail-modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.4);
-        animation: fadeIn 0.3s;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    .modal-content {
-        background-color: white;
-        margin: 10% auto;
-        padding: 1rem;
-        border-radius: 6px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        max-width: 600px;
-        width: 90%;
-        max-height: 70vh;
-        overflow-y: auto;
-        animation: slideIn 0.3s;
-    }
-
-    @keyframes slideIn {
-        from {
-            transform: translateY(-50px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-        border-bottom: 2px solid #e0e0e0;
-        padding-bottom: 0.5rem;
-    }
-
-    .modal-header h3 {
-        margin: 0;
-        font-size: 1.1rem;
-        color: #2c3e50;
-    }
-
-    .modal-close {
-        cursor: pointer;
-        font-size: 1.5rem;
-        color: #7f8c8d;
-        border: none;
-        background: none;
-    }
-
-    .modal-close:hover {
-        color: #2c3e50;
-    }
-
-    .detail-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.85rem;
-    }
-
-    .detail-table th {
-        background: #f0f4f8;
-        padding: 0.5rem;
-        text-align: left;
-        font-weight: 600;
-        color: #2c3e50;
-        border-bottom: 2px solid #d0dce6;
-    }
-
-    .detail-table td {
-        padding: 0.4rem;
-        border-bottom: 1px solid #e0e0e0;
-    }
-
-    .detail-table tr:hover {
-        background: #f8f9fa;
-    }
-
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: 1rem;
-        color: #95a5a6;
-        font-size: 0.8rem;
-    }
-
-    .empty-state i {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-        opacity: 0.5;
-    }
-
-    .empty-state p {
-        margin: 0;
-    }
-
-    /* Button Styles */
-    .btn {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.8rem;
-        border-radius: 4px;
-        cursor: pointer;
-        border: none;
-        transition: all 0.2s;
-        width: 100%;
-        font-weight: 600;
-    }
-
-    .btn-primary {
-        background: #3498db;
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background: #2980b9;
-    }
-
-    .btn-success {
-        background: #27ae60;
-        color: white;
-    }
-
-    .btn-success:hover {
-        background: #229954;
-    }
-
-    /* Responsive */
-    @media (max-width: 1800px) {
-        .dashboard-content {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-    }
-
-    @media (max-width: 1400px) {
-        .dashboard-content {
-            grid-template-columns: 1fr 1fr;
-        }
-
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .ot-management-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-
-    @media (max-width: 1024px) {
-        .dashboard-content {
-            grid-template-columns: 1fr;
-        }
-
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .ot-management-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-
-    @media (max-width: 768px) {
-        .dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .ot-management-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .metrics-stats {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .summary-card {
-            flex: 0 1 calc(50% - 0.25rem);
-        }
-    }
-
-    @media (max-width: 480px) {
-        .ot-management-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* Scrollbar styling */
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 3px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="hr-dashboard-container">
-    <!-- Header -->
-    <div class="hr-dashboard-header">
-        <div class="header-title">
-            <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Icon" height="24" class="me-2">
-            HR Manager Dashboard
+<div class="container-fluid px-3 py-2">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h4 fw-bold mb-0">HR Manager Dashboard</h1>
+            <p class="text-muted small mb-0">Real-time performance and operations overview</p>
         </div>
-        <div class="header-actions">
+        <div class="d-flex gap-2 align-items-center">
             <div class="company-selector">
-                <label>Select Company:</label>
-                <form method="GET" style="display: flex; gap: 0.3rem;">
-                    <select name="company_id" onchange="this.form.submit()">
+                <form method="GET" class="d-flex gap-2 align-items-center">
+                    <select name="company_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
                         {% for company in companies %}
                         <option value="{{ company.id }}" {% if company.id==selected_company.id %}selected{% endif %}>
                             {{ company.name }}
@@ -716,242 +22,181 @@
                     </select>
                 </form>
             </div>
-            <button class="refresh-btn" onclick="refreshDashboard()">
+            <button class="btn btn-sm btn-outline-primary" onclick="refreshDashboard()">
                 <i class="fas fa-sync-alt"></i>
-                Refresh
+                <span>Refresh</span>
             </button>
         </div>
     </div>
 
-    <!-- Main Dashboard Content -->
-    <div>
-        <!-- Row 1: Today's Summary -->
-        <div class="today-summary-wrapper">
-            <div class="today-summary-header">
-                <h3><i class="fas fa-calendar-day"></i> <span id="todayDate"></span></h3>
+    <!-- Today's Summary Row (4-column grid) -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3 mb-3">
+        <!-- Present -->
+        <div class="col">
+            <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
+                onclick="openAttendanceModal('Present', {{ today_summary.attendance.present }})">
+                <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.present }}</div>
+                <div class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.05em;">Present</div>
             </div>
-            <div class="summary-section">
-                <div class="summary-card present"
-                    onclick="openAttendanceModal('Present', {{ today_summary.attendance.present }})">
-                    <div class="summary-card-title">Present</div>
-                    <div class="summary-card-value">{{ today_summary.attendance.present }}</div>
-                    <div class="summary-card-meta">of {{ today_summary.attendance.total }}</div>
-                </div>
+        </div>
 
-                <div class="summary-card absent"
-                    onclick="openAttendanceModal('Absent', {{ today_summary.attendance.absent }})">
-                    <div class="summary-card-title">Absent</div>
-                    <div class="summary-card-value">{{ today_summary.attendance.absent }}</div>
-                    <div class="summary-card-meta">{{ ((today_summary.attendance.absent / today_summary.attendance.total
-                        * 100) if today_summary.attendance.total > 0 else 0) | int }}%</div>
-                </div>
+        <!-- Absent -->
+        <div class="col">
+            <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
+                onclick="openAttendanceModal('Absent', {{ today_summary.attendance.absent }})">
+                <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.absent }}</div>
+                <div class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.05em;">Absent</div>
+            </div>
+        </div>
 
-                <div class="summary-card late"
-                    onclick="openAttendanceModal('Late', {{ today_summary.attendance.late }})">
-                    <div class="summary-card-title">Late</div>
-                    <div class="summary-card-value">{{ today_summary.attendance.late }}</div>
-                    <div class="summary-card-meta">Clocked in late</div>
-                </div>
+        <!-- Late -->
+        <div class="col">
+            <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
+                onclick="openAttendanceModal('Late', {{ today_summary.attendance.late }})">
+                <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.late }}</div>
+                <div class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.05em;">Late</div>
+            </div>
+        </div>
 
-                <div class="summary-card leaves" onclick="openAttendanceModal('leaves', {{ today_summary.leaves }})">
-                    <div class="summary-card-title">On Leave</div>
-                    <div class="summary-card-value">{{ today_summary.leaves }}</div>
-                    <div class="summary-card-meta">Approved leaves</div>
-                </div>
-
-                <div class="summary-card not-updated"
-                    onclick="openAttendanceModal('not_updated', {{ today_summary.not_updated }})">
-                    <div class="summary-card-title">Not Updated</div>
-                    <div class="summary-card-value">{{ today_summary.not_updated }}</div>
-                    <div class="summary-card-meta">Pending update</div>
-                </div>
+        <!-- On Leave -->
+        <div class="col">
+            <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
+                onclick="openAttendanceModal('leaves', {{ today_summary.leaves }})">
+                <div class="h2 fw-bold text-info mb-1">{{ today_summary.leaves }}</div>
+                <div class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.05em;">On Leave</div>
             </div>
         </div>
     </div>
 
-    <!-- Row 2: OT Hub (3 sections) -->
-    <div class="ot-management-container">
-        <div class="section-header" style="padding: 0.4rem 0.75rem;">
-            <h3 style="font-size: 0.85rem; margin: 0;"><i class="fas fa-clock"></i> OT Hub</h3>
-        </div>
-        <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem; grid-template-columns: repeat(3, 1fr);">
-            <!-- OT Approval Pending (HR) -->
+    <!-- Operational Hub Section -->
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3 mb-3">
+        <!-- OT Approval HR -->
+        <div class="col">
             <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}"
-                class="ot-action-card ot-approval" style="padding: 0.45rem; position: relative;">
-                <i class="fas fa-check-circle" style="font-size: 1rem;"></i>
-                <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval (HR)</div>
-                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
-                    {% if mtd_ot.pending_approvals > 0 %}
-                    <span
-                        style="display: inline-block; background-color: #e74c3c; color: white; border-radius: 50%; min-width: 1.2rem; height: 1.2rem; line-height: 1.2rem; text-align: center; font-weight: bold; font-size: 0.7rem;">{{
-                        mtd_ot.pending_approvals }}</span>
-                    <span style="margin-left: 0.3rem;">pending</span>
-                    {% else %}
-                    <span style="color: #27ae60;">All Clear</span>
-                    {% endif %}
-                </div>
+                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
+                <i class="fas fa-check-circle text-primary fs-4 mb-2"></i>
+                <div class="small fw-bold text-center">OT Approval (HR)</div>
+                {% if mtd_ot.pending_approvals > 0 %}
+                <div class="badge bg-danger rounded-pill mt-1" style="font-size: 0.65rem;">{{ mtd_ot.pending_approvals
+                    }} Pending</div>
+                {% endif %}
             </a>
+        </div>
 
-            <!-- OT Approval Pending (Manager) -->
-            <a href="/ot/manager-approval" class="ot-action-card ot-manager-approval"
-                style="padding: 0.45rem; position: relative;">
-                <i class="fas fa-user-check" style="font-size: 1rem;"></i>
-                <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Approval (Manager)</div>
-                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">
-                    <span style="color: #27ae60;">Review</span>
-                </div>
+        <!-- OT Approval Manager -->
+        <div class="col">
+            <a href="/ot/manager-approval"
+                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
+                <i class="fas fa-user-check text-success fs-4 mb-2"></i>
+                <div class="small fw-bold text-center">OT Approval (Manager)</div>
             </a>
+        </div>
 
-            <!-- OT Attendance -->
+        <!-- OT Attendance -->
+        <div class="col">
             <a href="/dashboard/hr-manager/ot-attendance?company_id={{ selected_company.id }}"
-                class="ot-action-card ot-attendance" style="padding: 0.45rem;">
-                <i class="fas fa-list" style="font-size: 1rem;"></i>
-                <div class="ot-action-card-title" style="font-size: 0.65rem;">OT Attendance</div>
-                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{ "%.1f" | format(mtd_ot.total_hours)
-                    }}h</div>
+                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
+                <i class="fas fa-clock text-info fs-4 mb-2"></i>
+                <div class="small fw-bold text-center">OT Hours</div>
+                <div class="small fw-bold mt-1">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
             </a>
         </div>
-    </div>
 
-    <!-- Row 3: Payroll Summary (3 sections) -->
-    <div class="ot-management-container">
-        <div class="section-header" style="padding: 0.4rem 0.75rem;">
-            <h3 style="font-size: 0.85rem; margin: 0;"><i class="fas fa-money-bill"></i> Payroll Summary</h3>
-        </div>
-        <div class="ot-management-grid" style="gap: 0.3rem; padding: 0.4rem; grid-template-columns: repeat(3, 1fr);">
-            <!-- Payroll Reminder -->
+        <!-- Payroll Reminder -->
+        <div class="col">
             <a href="/dashboard/hr-manager/payroll-reminder?company_id={{ selected_company.id }}"
-                class="ot-action-card payroll-reminder" style="padding: 0.45rem;">
-                <i class="fas fa-bell" style="font-size: 1rem;"></i>
-                <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll Reminder</div>
-                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">{{month_name}}</div>
+                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
+                <i class="fas fa-bell text-warning fs-4 mb-2"></i>
+                <div class="small fw-bold text-center">Payroll Reminder</div>
             </a>
+        </div>
 
-            <!-- Generate Payroll -->
-            <a href="/dashboard/hr-manager/generate-payroll" class="ot-action-card generate-payroll"
-                style="padding: 0.45rem;">
-                <i class="fas fa-file-invoice-dollar" style="font-size: 1rem;"></i>
-                <div class="ot-action-card-title" style="font-size: 0.65rem;">Generate Payroll</div>
-                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">New Run</div>
+        <!-- Generate Payroll -->
+        <div class="col">
+            <a href="/dashboard/hr-manager/generate-payroll"
+                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
+                <i class="fas fa-file-invoice-dollar text-primary fs-4 mb-2"></i>
+                <div class="small fw-bold text-center">Generate Payroll</div>
             </a>
+        </div>
 
-            <!-- Payroll History -->
-            <a href="#payroll-history" class="ot-action-card payroll-history" style="padding: 0.45rem;">
-                <i class="fas fa-history" style="font-size: 1rem;"></i>
-                <div class="ot-action-card-title" style="font-size: 0.65rem;">Payroll History</div>
-                <div class="ot-action-card-subtitle" style="font-size: 0.6rem;">Last 6 Mo</div>
+        <!-- Payroll History -->
+        <div class="col">
+            <a href="#payroll-history"
+                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
+                <i class="fas fa-history text-muted fs-4 mb-2"></i>
+                <div class="small fw-bold text-center">Payroll History</div>
             </a>
         </div>
     </div>
 
-    <!-- Detail Modal -->
-    <div id="detailModal" class="detail-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle">Details</h3>
-                <button class="modal-close" onclick="closeDetailModal()">&times;</button>
-            </div>
-            <div id="modalBody">
-                <!-- Dynamic content will be loaded here -->
+    <!-- Additional Info Section (Max Space) -->
+    <div class="row g-3">
+        <div class="col-lg-12">
+            <div class="stat-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">System Summary</h6>
+                    <span id="todayDate" class="text-muted smaller"></span>
+                </div>
+                <div class="row text-center">
+                    <div class="col-3 border-end">
+                        <div class="small text-muted">Total Employees</div>
+                        <div class="h6 fw-bold mb-0">{{ today_summary.attendance.total }}</div>
+                    </div>
+                    <div class="col-3 border-end">
+                        <div class="small text-muted">Attendance Sync</div>
+                        <div class="h6 fw-bold mb-0">{{ today_summary.not_updated }} Pending</div>
+                    </div>
+                    <div class="col-3 border-end">
+                        <div class="small text-muted">MTD OT</div>
+                        <div class="h6 fw-bold mb-0">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="small text-muted">Current Month</div>
+                        <div class="h6 fw-bold mb-0">{{ month_name }}</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+</div>
 
+<!-- Attendance Details Modal -->
+<div id="attendanceDetailModal" class="detail-modal">
+    <div class="modal-content">
+        <div class="modal-header d-flex justify-content-between align-items-center">
+            <h3 id="attendanceModalTitle" class="mb-0">Employee Details</h3>
+            <button class="modal-close" onclick="closeAttendanceModal()">&times;</button>
+        </div>
+        <div id="attendanceModalBody" class="modal-body-scroll">
+            <!-- Content will be populated via JavaScript -->
+        </div>
+    </div>
 </div>
 
 <script>
     // Set today's date
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', options);
+    const dateStr = new Date().toLocaleDateString('en-US', options);
+    const dateEl = document.getElementById('todayDate');
+    if (dateEl) dateEl.textContent = dateStr;
 
     // Refresh Dashboard Function
     function refreshDashboard() {
-        const refreshBtn = document.querySelector('.refresh-btn');
-        refreshBtn.classList.add('loading');
+        const refreshBtn = document.querySelector('.btn i.fa-sync-alt').parentElement;
         refreshBtn.disabled = true;
+        refreshBtn.querySelector('i').classList.add('fa-spin');
 
         setTimeout(() => {
             location.reload();
         }, 300);
     }
 
-    // Modal Functions
-    function openDetailModal(type, label, count, period) {
-        const modal = document.getElementById('detailModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalBody = document.getElementById('modalBody');
-
-        const companyId = '{{ selected_company.id }}';
-
-        if (type === 'attendance') {
-            modalTitle.textContent = `${period} ${label} Attendance - ${count} Employees`;
-            modalBody.innerHTML = `
-                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
-                    <strong>Period:</strong> ${period} | <strong>Status:</strong> ${label} | <strong>Count:</strong> ${count}
-                </p>
-                <div style="text-align: center; padding: 2rem; color: #95a5a6;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                    <p>Loading detailed attendance records...</p>
-                    <small>Click on <a href="/dashboard/hr-manager/ot-attendance?company_id=${companyId}" style="color: #3498db; text-decoration: none;">here</a> to view full attendance details.</small>
-                </div>
-            `;
-        } else if (type === 'leave') {
-            modalTitle.textContent = `${label} Leave Requests - ${count} Approved`;
-            modalBody.innerHTML = `
-                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
-                    <strong>Leave Type:</strong> ${label} | <strong>Count:</strong> ${count} approved for this month
-                </p>
-                <table class="detail-table">
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>From Date</th>
-                            <th>To Date</th>
-                            <th>Days</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td colspan="4" style="text-align: center; padding: 1.5rem; color: #95a5a6;">
-                                <i class="fas fa-info-circle"></i> Leave details loading...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
-        }
-
-        modal.style.display = 'block';
-    }
-
-    function closeDetailModal() {
-        const modal = document.getElementById('detailModal');
-        modal.style.display = 'none';
-    }
-
-    // Close modal when clicking outside of it
-    window.onclick = function (event) {
-        const modal = document.getElementById('detailModal');
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    }
-
-    // Check if company selector has options (with safety check)
-    const companySelect = document.querySelector('select[name="company_id"]');
-    if (companySelect && companySelect.options.length === 0) {
-        if (typeof showNotification === 'function') {
-            showNotification('No company mapped. Please contact administrator.', 'warning');
-        }
-    }
-
     // Attendance Modal Functions
     let presentData = {{ today_summary.present_details_json | safe }};
-    console.log('Present data from backend:', presentData, 'Type:', typeof presentData);
 
     // Ensure present data is an array
     if (!Array.isArray(presentData)) {
-        console.warn('Present data is not an array, converting...');
         presentData = [];
     }
 
@@ -963,14 +208,12 @@
         'not_updated': null
     };
 
-    console.log('Initial cache:', attendanceModalCache);
-
     function openAttendanceModal(status, count) {
-        console.log(`openAttendanceModal called: status=${status}, count=${count}, cached=${attendanceModalCache[status]}`);
-
         if (count === 0) {
             if (typeof showNotification === 'function') {
                 showNotification(`No ${status} employees today`, 'info');
+            } else {
+                alert(`No ${status} employees today`);
             }
             return;
         }
@@ -979,10 +222,7 @@
         const titleEl = document.getElementById('attendanceModalTitle');
         const bodyEl = document.getElementById('attendanceModalBody');
 
-        if (!modal || !titleEl || !bodyEl) {
-            console.error('Modal elements not found!');
-            return;
-        }
+        if (!modal || !titleEl || !bodyEl) return;
 
         // Set title
         const titleMap = {
@@ -995,13 +235,12 @@
         titleEl.textContent = titleMap[status] || status;
 
         // Check cache
-        if (attendanceModalCache[status] !== null && attendanceModalCache[status] !== undefined) {
-            console.log('Using cached data:', attendanceModalCache[status]);
+        if (attendanceModalCache[status]) {
             displayAttendanceData(attendanceModalCache[status], bodyEl);
             modal.style.display = 'block';
         } else {
             // Fetch via AJAX
-            bodyEl.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+            bodyEl.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x mb-2"></i><p>Loading...</p></div>';
             modal.style.display = 'block';
 
             const company_id = document.querySelector('select[name="company_id"]').value;
@@ -1013,39 +252,37 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
-                        bodyEl.innerHTML = `<div style="text-align: center; padding: 2rem; color: #e74c3c;"><i class="fas fa-exclamation-circle"></i> Error: ${data.error}</div>`;
+                        bodyEl.innerHTML = `<div class="alert alert-danger m-3">${data.error}</div>`;
                     } else {
                         attendanceModalCache[status] = data.data;
                         displayAttendanceData(data.data, bodyEl);
                     }
                 })
                 .catch(error => {
-                    bodyEl.innerHTML = `<div style="text-align: center; padding: 2rem; color: #e74c3c;"><i class="fas fa-exclamation-circle"></i> Failed to load data</div>`;
-                    console.error('Error:', error);
+                    bodyEl.innerHTML = `<div class="alert alert-danger m-3">Failed to load data</div>`;
                 });
         }
     }
 
     function displayAttendanceData(data, container) {
-        console.log('displayAttendanceData called with:', data);
-
         if (!data || data.length === 0) {
-            container.innerHTML = '<div style="text-align: center; padding: 2rem; color: #95a5a6;"><i class="fas fa-check-circle"></i> No employees found</div>';
+            container.innerHTML = '<div class="text-center p-4 text-muted">No employees found</div>';
             return;
         }
 
         let html = `
-            <table class="detail-table" style="width: 100%; margin-top: 1rem;">
-                <thead>
-                    <tr>
-                        <th>Employee Name</th>
-                        <th>ID</th>
-                        <th>Department</th>
-                        <th>Designation</th>
-                        <th>Time/Status</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>ID</th>
+                            <th>Department</th>
+                            <th>Designation</th>
+                            <th>Time/Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
 
         data.forEach(emp => {
@@ -1053,19 +290,19 @@
                 <tr>
                     <td><strong>${emp.name}</strong></td>
                     <td>${emp.id}</td>
-                    <td>${emp.department}</td>
-                    <td>${emp.designation}</td>
-                    <td>${emp.time}</td>
+                    <td>${emp.department || 'N/A'}</td>
+                    <td>${emp.designation || 'N/A'}</td>
+                    <td><span class="badge bg-secondary">${emp.time || 'N/A'}</span></td>
                 </tr>
             `;
         });
 
         html += `
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         `;
 
-        console.log('Setting container HTML');
         container.innerHTML = html;
     }
 
@@ -1082,18 +319,4 @@
         }
     });
 </script>
-
-<!-- Attendance Details Modal -->
-<div id="attendanceDetailModal" class="detail-modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="attendanceModalTitle">Employee Details</h3>
-            <button class="modal-close" onclick="closeAttendanceModal()">&times;</button>
-        </div>
-        <div id="attendanceModalBody">
-            <!-- Content will be populated via JavaScript -->
-        </div>
-    </div>
-</div>
-
 {% endblock %}

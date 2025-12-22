@@ -172,6 +172,10 @@ def index():
     if not current_user.is_authenticated:
         return redirect(url_for('login'))
 
+    user_role = current_user.role.name if current_user.role else None
+    if user_role in ['Employee', 'User']:
+        return redirect(url_for('attendance_mark'))
+
     return redirect(url_for('dashboard'))
 
 
@@ -179,6 +183,9 @@ def index():
 def login():
     """User login"""
     if current_user.is_authenticated:
+        user_role = current_user.role.name if current_user.role else None
+        if user_role in ['Employee', 'User']:
+            return redirect(url_for('attendance_mark'))
         return redirect(url_for('dashboard'))
 
     form = LoginForm()
@@ -187,6 +194,12 @@ def login():
         if user and user.check_password(form.password.data) and user.is_active:
             login_user(user)
             next_page = request.args.get('next')
+            
+            # Redirect Employee/User to attendance page instead of dashboard
+            user_role = user.role.name if user.role else None
+            if not next_page and user_role in ['Employee', 'User']:
+                return redirect(url_for('attendance_mark'))
+                
             return redirect(next_page) if next_page else redirect(
                 url_for('dashboard'))
         else:
@@ -2018,11 +2031,14 @@ def attendance_mark():
             flash(f'Error marking attendance: {str(e)}', 'error')
 
     today_attendance = None
+    recent_records = []
     if employee_profile:
+        # Today's attendance
         today_attendance = Attendance.query.filter_by(
             employee_id=employee_profile.id,
             date=company_local_date
         ).first()
+
         if today_attendance:
             clock_in_time = get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date)
             clock_out_time = get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date)
@@ -2033,11 +2049,27 @@ def attendance_mark():
             today_attendance.clock_out_display = clock_out_time.strftime('%H:%M:%S') if clock_out_time else None
             today_attendance.break_start_display = break_start_time.strftime('%H:%M:%S') if break_start_time else None
             today_attendance.break_end_display = break_end_time.strftime('%H:%M:%S') if break_end_time else None
+
+        # Fetch last 7 days history (excluding today)
+        recent_records = Attendance.query.filter(
+            Attendance.employee_id == employee_profile.id,
+            Attendance.date < company_local_date,
+            Attendance.date >= (company_local_date - timedelta(days=7))
+        ).order_by(Attendance.date.desc()).all()
+
+        # Format times for recent records
+        for record in recent_records:
+            r_clock_in = get_employee_local_time(employee_profile, record.clock_in, record.date)
+            r_clock_out = get_employee_local_time(employee_profile, record.clock_out, record.date)
+            record.clock_in_display = r_clock_in.strftime('%H:%M') if r_clock_in else '-'
+            record.clock_out_display = r_clock_out.strftime('%H:%M') if r_clock_out else '-'
+            
     else:
         flash('You need an employee profile to mark attendance.', 'warning')
 
     return render_template('attendance/form.html',
                            today_attendance=today_attendance,
+                           recent_records=recent_records,
                            company_timezone=company_timezone,
                            timezone_offset=timezone_offset,
                            company_local_date_str=company_local_date_str)

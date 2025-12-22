@@ -38,19 +38,19 @@
     <div class="page-wrapper">
         <!-- Professional Corporate Header -->
         <nav class="navbar navbar-expand-lg">
-            <div class="container-fluid">
+            <div class="container">
                 <!-- Brand Logo Circle -->
                 <div class="navbar-brand-wrapper">
                     <button class="navbar-toggler me-3 d-lg-none" type="button" id="sidebarToggle"
                         aria-label="Toggle sidebar">
                         <span class="navbar-toggler-icon"></span>
                     </button>
-                    <a class="navbar-brand p-0 m-0 d-flex align-items-center gap-2"
+                    <a class="navbar-brand"
                         href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('index') }}">
                         <div class="logo-circle">
-                            <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Mark">
+                            <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Logo">
                         </div>
-                        <span class="fs-4 fw-bold text-white tracking-wide">Nexar</span>
+                        <span>Nexar</span>
                     </a>
                 </div>
 
@@ -204,7 +204,7 @@
                 <ul class="collapse sidebar-submenu" id="submenuEmployees" data-bs-parent="#sidebarAccordion">
 
                     <!-- Employee Management -->
-                    {% if emp_mgmt_access != 'Hidden' %}
+                    {% if emp_mgmt_access != 'Hidden' and user_role != 'Employee' %}
                     <li><a class="nav-link" href="{{ url_for('employee_add') }}">Add Employee</a></li>
                     <li><a class="nav-link" href="{{ url_for('employee_list') }}">All Employees</a></li>
                     <li><a class="nav-link" href="{{ url_for('employee_bulk_upload') }}">Bulk Upload</a></li>
@@ -240,6 +240,7 @@
                     {% endif %}
 
                     {% if check_ui_access(user_role, 'Attendance', 'Attendance Management', 'Bulk Upload') != 'Hidden'
+                    and user_role != 'Employee'
                     %}
                     <li><a class="nav-link" href="{{ url_for('attendance_bulk_manage') }}">Bulk Attendance</a></li>
                     {% endif %}
@@ -259,7 +260,8 @@
                 {% endif %}
 
                 <!-- Leave Management (Admin) -->
-                {% if check_ui_access(user_role, 'Attendance', 'Leave Management', 'Leave Approval') != 'Hidden' %}
+                {% if check_ui_access(user_role, 'Attendance', 'Leave Management', 'Leave Approval') != 'Hidden' and
+                user_role != 'Employee' %}
                 <a class="sidebar-link" data-bs-toggle="collapse" href="#submenuLeaveMgmt" role="button"
                     aria-expanded="false" aria-controls="submenuLeaveMgmt">
                     <span><i class="fas fa-plane-departure"></i> Leave Management</span>
@@ -289,7 +291,7 @@
                 {% endif %}
 
                 <!-- Payroll -->
-                {% if check_ui_access(user_role, 'Payroll') != 'Hidden' %}
+                {% if check_ui_access(user_role, 'Payroll') != 'Hidden' and user_role != 'Employee' %}
                 <a class="sidebar-link" data-bs-toggle="collapse" href="#submenuPayroll" role="button"
                     aria-expanded="false" aria-controls="submenuPayroll">
                     <span><i class="fas fa-dollar-sign"></i> Payroll</span>
@@ -306,8 +308,9 @@
                 {% endif %}
 
                 <!-- Reports -->
-                {% if check_ui_access(user_role, 'Payroll', 'Payroll Reports') != 'Hidden' or check_ui_access(user_role,
-                'Employees', 'Employee Reports') != 'Hidden' %}
+                {% if (check_ui_access(user_role, 'Payroll', 'Payroll Reports') != 'Hidden' or
+                check_ui_access(user_role,
+                'Employees', 'Employee Reports') != 'Hidden') and user_role != 'Employee' %}
                 <a class="sidebar-link" data-bs-toggle="collapse" href="#submenuReports" role="button"
                     aria-expanded="false" aria-controls="submenuReports">
                     <span><i class="fas fa-chart-bar"></i> Reports</span>
@@ -380,15 +383,44 @@
             {% if request.endpoint != 'login' %}
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-            <div class="container-fluid">
+            <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000;">
                 {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
-                    role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <div class="toast align-items-center text-white bg-{{ 'danger' if category == 'error' else category }} border-0 shadow"
+                    role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            {% if category == 'success' %}
+                            <i class="fas fa-check-circle me-2"></i>
+                            {% elif category == 'error' or category == 'danger' %}
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            {% elif category == 'warning' %}
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% else %}
+                            <i class="fas fa-info-circle me-2"></i>
+                            {% endif %}
+                            {{ message }}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                            aria-label="Close"></button>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+                    var toastList = toastElList.map(function (toastEl) {
+                        return new bootstrap.Toast(toastEl, {
+                            autohide: true,
+                            delay: 5000
+                        });
+                    });
+                    toastList.forEach(function (toast) {
+                        toast.show();
+                    });
+                });
+            </script>
             {% endif %}
             {% endwith %}
             {% endif %}

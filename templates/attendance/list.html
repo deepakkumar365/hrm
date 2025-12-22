@@ -1,249 +1,350 @@
 {% extends "base.html" %}
 
-{% block title %}Attendance Records - Nexar{% endblock %}
+{% block title %}Attendance History{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --primary: #4361ee;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-700: #334155;
+        --gray-800: #1e293b;
+    }
+
+    .page-header {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 16px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-title h1 {
+        font-size: 1.25rem;
+        font-weight: 800;
+        margin: 0;
+        color: var(--gray-800);
+    }
+
+    .breadcrumb {
+        font-size: 0.8rem;
+        color: var(--gray-600);
+        margin-top: 0.25rem;
+    }
+
+    /* Summary Dashboard */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .summary-card {
+        background: white;
+        padding: 1.25rem;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--gray-200);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s;
+    }
+
+    .summary-card:hover {
+        transform: translateY(-3px);
+    }
+
+    .summary-card .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-card .value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--gray-800);
+    }
+
+    .summary-card.primary {
+        border-left: 4px solid var(--primary);
+    }
+
+    .summary-card.success {
+        border-left: 4px solid var(--success);
+    }
+
+    .summary-card.danger {
+        border-left: 4px solid var(--danger);
+    }
+
+    .summary-card.warning {
+        border-left: 4px solid var(--warning);
+    }
+
+    .summary-card.info {
+        border-left: 4px solid var(--info);
+    }
+
+    /* Filters */
+    .filter-section {
+        background: white;
+        padding: 1.25rem;
+        border-radius: 16px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--gray-200);
+    }
+
+    /* Table System */
+    .data-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--gray-200);
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+    }
+
+    .table thead th {
+        background: var(--gray-50);
+        padding: 1rem;
+        font-weight: 700;
+        color: var(--gray-700);
+        border-bottom: 1px solid var(--gray-200);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--gray-100);
+    }
+
+    /* Status Badges */
+    .status-pill {
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .bg-present {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .bg-absent {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .bg-late {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .bg-pending {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    /* Mobile Cards */
+    @media (max-width: 768px) {
+        .summary-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .desktop-table {
+            display: none;
+        }
+
+        .mobile-cards {
+            display: block;
+        }
+    }
+
+    @media (min-width: 769px) {
+        .mobile-cards {
+            display: none;
+        }
+    }
+
+    .m-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--gray-200);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .m-card-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .m-card-body {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .m-item label {
+        display: block;
+        font-size: 0.65rem;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        margin-bottom: 0.1rem;
+    }
+
+    .m-item span {
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-    <!-- Header with breadcrumb and actions -->
-    <div class="row mb-1">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <!-- Breadcrumb navigation -->
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item">Attendance</li>
-                            <li class="breadcrumb-item active" aria-current="page">Attendance Records</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div class="btn-group">
-                    <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i>Mark Attendance
-                    </a>
-                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager'] %}
-                    <a href="{{ url_for('attendance_bulk_manage') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-users me-1"></i>Bulk Management
-                    </a>
-                    {% endif %}
-                </div>
+<div class="container-fluid py-4">
+    <div class="attendance-wrapper mx-auto" style="max-width: 1200px;">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="page-title">
+                <h1>Attendance Records</h1>
+                <div class="breadcrumb">Attendance / History</div>
             </div>
+            <div class="actions">
+                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary rounded-pill px-4">
+                    <i class="fas fa-plus me-2"></i>Mark Attendance
+                </a>
+            </div>
+        </div>
 
-            <hr class="mt-0 mb-1">
+        <!-- Summary -->
+        {% if summary %}
+        <div class="summary-grid">
+            <div class="summary-card primary">
+                <span class="label">Total Records</span>
+                <span class="value">{{ summary.total_records }}</span>
+            </div>
+            <div class="summary-card success">
+                <span class="label">Present Days</span>
+                <span class="value">{{ summary.present_days }}</span>
+            </div>
+            <div class="summary-card info">
+                <span class="label">Total Hours</span>
+                <span class="value">{{ "%.1f"|format(summary.total_hours) }}h</span>
+            </div>
+            <div class="summary-card warning">
+                <span class="label">Late Records</span>
+                <span class="value">{{ summary.late_days }}</span>
+            </div>
+        </div>
+        {% endif %}
 
-            <!-- Filters -->
-            <form method="GET" class="filter-card">
-                <div class="card-header card-header-green">
-                    <i class="fas fa-filter me-2"></i>Filter
+        <!-- Filter -->
+        <div class="filter-section">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Date Range</label>
+                    <select name="date_range" class="form-select rounded-3">
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month" selected>This Month</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
                 </div>
-                <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-4">
-                            <label class="form-label small">Date Range</label>
-                            <select id="date_range_dropdown" class="form-select" onchange="setDateFilterFromDropdown(this.value)">
-                                <option value="today" {% if not date_range_filter or date_range_filter == 'today' %}selected{% endif %}>Today</option>
-                                <option value="week" {% if date_range_filter == 'week' %}selected{% endif %}>This Week</option>
-                                <option value="month" {% if date_range_filter == 'month' %}selected{% endif %}>This Month</option>
-                                <option value="custom" {% if date_range_filter == 'custom' %}selected{% endif %}>Custom Range</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small">Employee</label>
-                            <input type="text" name="employee" class="form-control" placeholder="Search employee..." value="{{ employee_filter or '' }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small">&nbsp;</label>
-                            <button type="submit" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-search me-1"></i>Filter
-                            </button>
-                        </div>
-                    </div>
+                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager', 'HR
+                Manager'] %}
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Employee</label>
+                    <input type="text" name="employee" class="form-control rounded-3" placeholder="Search employee..."
+                        value="{{ employee_filter or '' }}">
                 </div>
-                <!-- Hidden fields to preserve pagination and sort settings -->
-                <input type="hidden" name="per_page" value="{{ per_page }}">
-                <input type="hidden" name="sort_by" value="{{ sort_by }}">
-                <input type="hidden" name="sort_order" value="{{ sort_order }}">
+                {% endif %}
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-dark w-100 rounded-3">
+                        <i class="fas fa-filter me-2"></i>Filter
+                    </button>
+                </div>
             </form>
         </div>
-    </div>
 
-
-    <!-- Attendance Summary Section -->
-    {% if attendance_records.items and summary %}
-    <div class="summary-section">
-        <h2 class="summary-title">
-            <i class="fas fa-chart-bar"></i>
-            Attendance Summary
-        </h2>
-        <div class="summary-cards">
-            <div class="summary-card card-total">
-                <div class="card-icon">
-                    <i class="fas fa-list-check"></i>
-                </div>
-                <div class="card-content">
-                    <div class="card-value">{{ summary.total_records }}</div>
-                    <div class="card-label">Total Records</div>
-                </div>
-            </div>
-            <div class="summary-card card-present">
-                <div class="card-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="card-content">
-                    <div class="card-value">{{ summary.present_days }}</div>
-                    <div class="card-label">Present Days</div>
-                </div>
-            </div>
-            <div class="summary-card card-absent">
-                <div class="card-icon">
-                    <i class="fas fa-times-circle"></i>
-                </div>
-                <div class="card-content">
-                    <div class="card-value">{{ summary.absent_days }}</div>
-                    <div class="card-label">Absent Days</div>
-                </div>
-            </div>
-            <div class="summary-card card-late">
-                <div class="card-icon">
-                    <i class="fas fa-hourglass-end"></i>
-                </div>
-                <div class="card-content">
-                    <div class="card-value">{{ summary.late_days }}</div>
-                    <div class="card-label">Late Days</div>
-                </div>
-            </div>
-            <div class="summary-card card-hours">
-                <div class="card-icon">
-                    <i class="fas fa-hourglass-half"></i>
-                </div>
-                <div class="card-content">
-                    <div class="card-value">{{ "%.1f"|format(summary.total_hours) }}h</div>
-                    <div class="card-label">Total Hours</div>
-                </div>
-            </div>
-            <div class="summary-card card-overtime">
-                <div class="card-icon">
-                    <i class="fas fa-plus-circle"></i>
-                </div>
-                <div class="card-content">
-                    <div class="card-value">{{ "%.1f"|format(summary.total_overtime) }}h</div>
-                    <div class="card-label">Overtime Hours</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Attendance Records - Desktop Table View (Compact Grid) -->
-    <div class="d-none d-md-block">
-        <div class="card compact-table-card">
-            <div class="table-responsive compact-table-wrapper">
-                <table class="table table-hover table-compact mb-0">
+        <!-- Data Display -->
+        <div class="data-card">
+            <!-- Desktop View -->
+            <div class="desktop-table table-responsive">
+                <table class="table table-hover">
                     <thead>
-                        <tr class="table-header-row">
-                            <th class="sortable-header" onclick="sortTable('employee')">
-                                <div class="header-content">
-                                    Employee
-                                    {% if sort_by == 'employee' %}
-                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'asc' else 'up' }} ms-1"></i>
-                                    {% else %}
-                                        <i class="fas fa-sort ms-1" style="opacity: 0.5;"></i>
-                                    {% endif %}
-                                </div>
-                            </th>
-                            <th class="sortable-header" onclick="sortTable('date')">
-                                <div class="header-content">
-                                    Date
-                                    {% if sort_by == 'date' %}
-                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'asc' else 'up' }} ms-1"></i>
-                                    {% else %}
-                                        <i class="fas fa-sort ms-1" style="opacity: 0.5;"></i>
-                                    {% endif %}
-                                </div>
-                            </th>
-                            <th class="sortable-header" onclick="sortTable('status')">
-                                <div class="header-content">
-                                    Status
-                                    {% if sort_by == 'status' %}
-                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'asc' else 'up' }} ms-1"></i>
-                                    {% else %}
-                                        <i class="fas fa-sort ms-1" style="opacity: 0.5;"></i>
-                                    {% endif %}
-                                </div>
-                            </th>
-                            <th class="sortable-header" onclick="sortTable('clock_in')">
-                                <div class="header-content">
-                                    Clock In
-                                    {% if sort_by == 'clock_in' %}
-                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'asc' else 'up' }} ms-1"></i>
-                                    {% else %}
-                                        <i class="fas fa-sort ms-1" style="opacity: 0.5;"></i>
-                                    {% endif %}
-                                </div>
-                            </th>
-                            <th class="sortable-header" onclick="sortTable('clock_out')">
-                                <div class="header-content">
-                                    Clock Out
-                                    {% if sort_by == 'clock_out' %}
-                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'asc' else 'up' }} ms-1"></i>
-                                    {% else %}
-                                        <i class="fas fa-sort ms-1" style="opacity: 0.5;"></i>
-                                    {% endif %}
-                                </div>
-                            </th>
-                            <th class="sortable-header" onclick="sortTable('total_hours')">
-                                <div class="header-content">
-                                    Total Hours
-                                    {% if sort_by == 'total_hours' %}
-                                        <i class="fas fa-sort-{{ 'down' if sort_order == 'asc' else 'up' }} ms-1"></i>
-                                    {% else %}
-                                        <i class="fas fa-sort ms-1" style="opacity: 0.5;"></i>
-                                    {% endif %}
-                                </div>
-                            </th>
-                            <th class="text-center" style="width: auto;">Overtime</th>
-                            <th class="text-center" style="width: auto;">Actions</th>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Total</th>
+                            <th class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in attendance_records.items %}
-                        <tr class="compact-table-row">
-                            <td class="compact-cell">
+                        <tr>
+                            <td>
                                 <div class="d-flex align-items-center">
-                                    {% if record.employee.profile_image_path %}
-                                    <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover; flex-shrink: 0;">
-                                    {% else %}
-                                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-light text-muted" style="width: 28px; height: 28px; font-size: 10px; flex-shrink: 0;">
-                                        {{ record.employee.first_name[0] if record.employee.first_name else 'E' }}
+                                    <div class="avatar-sm me-3">
+                                        {% if record.employee.profile_image_path %}
+                                        <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}"
+                                            class="rounded-circle" width="32" height="32" style="object-fit:cover;">
+                                        {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                            style="width:32px; height:32px; font-size:12px; font-weight:bold;">
+                                            {{ record.employee.first_name[0] }}
+                                        </div>
+                                        {% endif %}
                                     </div>
-                                    {% endif %}
-                                    <span class="ms-2 compact-text">{{ record.employee.first_name }} {{ record.employee.last_name }}</span>
+                                    <span class="fw-bold">{{ record.employee.first_name }} {{ record.employee.last_name
+                                        }}</span>
                                 </div>
                             </td>
-                            <td class="compact-cell">
-                                <span class="compact-text">{{ record.date.strftime('%d %b %Y') if record.date else '-' }}</span>
+                            <td>{{ record.date.strftime('%d %b %Y') }}</td>
+                            <td>
+                                <span
+                                    class="status-pill bg-{{ record.status.lower() if record.status else 'pending' }}">
+                                    {{ record.status or 'Pending' }}
+                                </span>
                             </td>
-                            <td class="compact-cell">
-                                <span class="compact-text">{{ record.status }}</span>
+                            <td>{{ record.clock_in_display.strftime('%H:%M') if record.clock_in_display else '-' }}</td>
+                            <td>{{ record.clock_out_display.strftime('%H:%M') if record.clock_out_display else '-' }}
                             </td>
-                            <td class="compact-cell">
-                                <span class="compact-text">{{ record.clock_in_display.strftime('%H:%M') if record.clock_in_display else (record.clock_in.strftime('%H:%M') if record.clock_in else '-') }}</span>
-                            </td>
-                            <td class="compact-cell">
-                                <span class="compact-text">{{ record.clock_out_display.strftime('%H:%M') if record.clock_out_display else (record.clock_out.strftime('%H:%M') if record.clock_out else '-') }}</span>
-                            </td>
-                            <td class="compact-cell">
-                                <span class="compact-text">{{ "%.1f"|format(record.total_hours) if record.total_hours else '0' }}h</span>
-                            </td>
-                            <td class="compact-cell text-center">
-                                {% if record.overtime_hours > 0 %}
-                                <span class="badge bg-info compact-text">{{ record.overtime_hours }}h</span>
-                                {% else %}
-                                <span class="text-muted compact-text">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="compact-cell text-center">
-                                <button class="btn btn-sm btn-outline-primary" title="View Details" onclick="viewAttendanceDetails({{ record.id }})">
+                            <td><span class="badge bg-light text-dark fw-bold border">{{
+                                    "%.1f"|format(record.total_hours or 0) }}h</span></td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-secondary border-0" title="View">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </td>
@@ -252,735 +353,59 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
 
-    <!-- Attendance Records - Mobile Cards View -->
-    <div class="d-md-none">
-        {% for record in attendance_records.items %}
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="d-flex align-items-center flex-grow-1">
-                        {% if record.employee.profile_image_path %}
-                        <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}" alt="{{ record.employee.first_name }}" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
-                        {% else %}
-                        <div class="rounded-circle me-2 d-flex align-items-center justify-content-center bg-light text-muted" style="width: 40px; height: 40px; font-size: 14px;">
-                            {{ record.employee.first_name[0] if record.employee.first_name else 'E' }}
+            <!-- Mobile View -->
+            <div class="mobile-cards p-3">
+                {% for record in attendance_records.items %}
+                <div class="m-card">
+                    <div class="m-card-header">
+                        <span class="fw-bold">{{ record.date.strftime('%d %b %Y') }}</span>
+                        <span class="status-pill bg-{{ record.status.lower() if record.status else 'pending' }}">
+                            {{ record.status or 'Pending' }}
+                        </span>
+                    </div>
+                    <div class="m-card-body">
+                        <div class="m-item">
+                            <label>In</label>
+                            <span>{{ record.clock_in_display.strftime('%H:%M') if record.clock_in_display else '-'
+                                }}</span>
                         </div>
-                        {% endif %}
-                        <div>
-                            <div class="mb-0">{{ record.employee.first_name }} {{ record.employee.last_name }} ({{ record.employee.employee_id }})</div>
+                        <div class="m-item">
+                            <label>Out</label>
+                            <span>{{ record.clock_out_display.strftime('%H:%M') if record.clock_out_display else '-'
+                                }}</span>
+                        </div>
+                        <div class="m-item">
+                            <label>Total Hours</label>
+                            <span>{{ "%.1f"|format(record.total_hours or 0) }}h</span>
+                        </div>
+                        <div class="m-item text-end">
+                            <label>Overtime</label>
+                            <span>{{ "%.1f"|format(record.overtime_hours or 0) }}h</span>
                         </div>
                     </div>
-                    <div>
-                        <span>{{ record.status }}</span>
-                    </div>
                 </div>
-                
-                <div class="row g-2 mb-3">
-                    <div class="col-6">
-                        <small class="text-muted d-block">Date</small>
-                        <div>{{ record.date.strftime('%d %b %Y') if record.date else '-' }}</div>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted d-block">Total Hours</small>
-                        <div>{{ record.total_hours or 0 }}h</div>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted d-block">Clock In</small>
-                        <div>{{ record.clock_in_display.strftime('%I:%M %p') if record.clock_in_display else (record.clock_in.strftime('%I:%M %p') if record.clock_in else '-') }}</div>
-                    </div>
-                    <div class="col-6">
-                        <small class="text-muted d-block">Clock Out</small>
-                        <div>{{ record.clock_out_display.strftime('%I:%M %p') if record.clock_out_display else (record.clock_out.strftime('%I:%M %p') if record.clock_out else '-') }}</div>
-                    </div>
-                </div>
-
-                {% if record.break_start and record.break_end or record.remarks or record.overtime_hours > 0 %}
-                <div class="border-top pt-2 small">
-                    {% if record.break_start and record.break_end %}
-                    <div class="mb-1"><i class="fas fa-coffee me-1"></i><span class="text-muted">Break: {{ record.break_start.strftime('%I:%M') }} - {{ record.break_end.strftime('%I:%M %p') }}</span></div>
-                    {% endif %}
-                    {% if record.overtime_hours > 0 %}
-                    <div class="mb-1"><i class="fas fa-plus-circle me-1"></i><span class="text-muted">Overtime: {{ record.overtime_hours }}h</span></div>
-                    {% endif %}
-                    {% if record.remarks %}
-                    <div><i class="fas fa-comment me-1"></i><span class="text-muted">{{ record.remarks }}</span></div>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    {% if not attendance_records.items %}
-    <!-- Empty State -->
-    <div class="empty-state">
-        <div class="empty-state-illustration">
-            <i class="fas fa-inbox"></i>
-        </div>
-        <h3 class="empty-state-title">No Attendance Records</h3>
-        <p class="empty-state-message">There are no attendance records matching your filters. Try adjusting your date range or filters.</p>
-        <div class="empty-state-actions">
-            <a href="{{ url_for('attendance_mark') }}" class="btn-empty-primary">
-                <i class="fas fa-plus-circle"></i>
-                Mark Attendance
-            </a>
-            <a href="{{ url_for('attendance_list_view') }}" class="btn-empty-secondary">
-                <i class="fas fa-sync"></i>
-                Clear Filters
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Pagination with Records-Per-Page Control -->
-    {% if attendance_records.pages > 0 %}
-    <div class="pagination-section mt-3">
-        <nav aria-label="Attendance pagination" class="d-flex justify-content-between align-items-center">
-            <div class="pagination-info">
-                <span class="pagination-text">Showing {{ attendance_records.items|length }} of {{ attendance_records.total }} records</span>
-            </div>
-            
-            <ul class="pagination">
-                {% if attendance_records.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('attendance_list_view', page=attendance_records.prev_num, per_page=per_page, date=date_filter, employee=employee_filter, sort_by=sort_by, sort_order=sort_order) }}">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </li>
-                {% endif %}
-
-                {% for page_num in attendance_records.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num != attendance_records.page %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('attendance_list_view', page=page_num, per_page=per_page, date=date_filter, employee=employee_filter, sort_by=sort_by, sort_order=sort_order) }}">
-                                {{ page_num }}
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ page_num }}</span>
-                        </li>
-                        {% endif %}
-                    {% else %}
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                    {% endif %}
                 {% endfor %}
-
-                {% if attendance_records.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('attendance_list_view', page=attendance_records.next_num, per_page=per_page, date=date_filter, employee=employee_filter, sort_by=sort_by, sort_order=sort_order) }}">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-
-            <div class="records-per-page-control">
-                <label for="perPageSelect" class="form-label me-2">Records per page:</label>
-                <select id="perPageSelect" class="form-select form-select-sm" onchange="changeRecordsPerPage(this.value)">
-                    <option value="15" {% if per_page == 15 %}selected{% endif %}>15</option>
-                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
-                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-                </select>
             </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if attendance_records.pages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% for page_num in attendance_records.iter_pages() %}
+                {% if page_num %}
+                <li class="page-item {{ 'active' if page_num == attendance_records.page }}">
+                    <a class="page-link shadow-none" href="{{ url_for('attendance_list_view', page=page_num) }}">{{
+                        page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+                {% endfor %}
+            </ul>
         </nav>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
-
-<style>
-/* ==================== GLOBAL FONT & LAYOUT ==================== */
-* {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-body, .container-fluid {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Filter Card Header */
-.card-header-teal {
-    background-color: #008080;
-    color: white;
-    font-weight: 600;
-}
-
-.card-header-green {
-    background-color: #28a745;
-    color: white;
-    font-weight: 600;
-}
-
-/* ==================== SUMMARY CARDS ==================== */
-.summary-section {
-    margin-bottom: 1rem;
-}
-
-.summary-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin: 0 0 0.8rem 0;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-
-.summary-title i {
-    color: #008080;
-}
-
-.summary-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.8rem;
-}
-
-.summary-card {
-    background: white;
-    border-radius: 8px;
-    padding: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    border-left: 3px solid #008080;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.summary-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.card-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-}
-
-.card-total .card-icon {
-    background-color: #d1ebe8;
-    color: #008080;
-}
-
-.card-total {
-    border-left-color: #008080;
-}
-
-.card-present .card-icon {
-    background-color: #d1e7dd;
-    color: #0f5132;
-}
-
-.card-present {
-    border-left-color: #28a745;
-}
-
-.card-absent .card-icon {
-    background-color: #f8d7da;
-    color: #842029;
-}
-
-.card-absent {
-    border-left-color: #dc3545;
-}
-
-.card-late .card-icon {
-    background-color: #fff3cd;
-    color: #664d03;
-}
-
-.card-late {
-    border-left-color: #ffc107;
-}
-
-.card-hours .card-icon {
-    background-color: #d1ecf1;
-    color: #0c5460;
-}
-
-.card-hours {
-    border-left-color: #17a2b8;
-}
-
-.card-overtime .card-icon {
-    background-color: #cfe2ff;
-    color: #084298;
-}
-
-.card-overtime {
-    border-left-color: #0d6efd;
-}
-
-.card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.card-value {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #2c3e50;
-}
-
-.card-label {
-    font-size: 0.75rem;
-    color: #6c757d;
-    font-weight: 500;
-}
-
-/* ==================== TABLE STYLES - COMPACT ==================== */
-.compact-table-card {
-    background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-    margin-bottom: 1rem;
-}
-
-.compact-table-wrapper {
-    overflow-x: auto;
-    max-height: calc(100vh - 250px);
-}
-
-.table-compact {
-    font-size: 0.85rem;
-    margin-bottom: 0;
-    border-collapse: collapse;
-}
-
-.table-header-row th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    font-weight: 600;
-    color: #2c3e50;
-    padding: 0.6rem;
-    vertical-align: middle;
-    white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
-}
-
-.sortable-header {
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.sortable-header:hover {
-    background-color: #e9ecef;
-}
-
-.header-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.3rem;
-}
-
-.compact-cell {
-    padding: 0.5rem 0.6rem;
-    vertical-align: middle;
-    border-color: #e9ecef;
-    color: #495057;
-    height: 1.8rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.compact-text {
-    font-size: 0.85rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: inline-block;
-    max-width: 100%;
-}
-
-.compact-table-row {
-    transition: background-color 0.2s;
-    height: 1.8rem;
-}
-
-.compact-table-row:hover {
-    background-color: #f8f9fa;
-}
-
-.table {
-    margin-bottom: 0;
-}
-
-.table thead th {
-    font-size: 0.8rem;
-}
-
-.table-responsive {
-    overflow-x: auto;
-}
-
-/* Employee Info in Table */
-.employee-table-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.table-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid #e9ecef;
-    flex-shrink: 0;
-}
-
-.table-avatar-placeholder {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #008080 0%, #004d4d 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 0.9rem;
-    flex-shrink: 0;
-}
-
-.emp-name {
-    font-weight: 700;
-    color: #2c3e50;
-    font-size: 0.95rem;
-}
-
-/* Status Badges */
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.85rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.status-badge.status-present {
-    background-color: #d1e7dd;
-    color: #0f5132;
-}
-
-.status-badge.status-absent {
-    background-color: #f8d7da;
-    color: #842029;
-}
-
-.status-badge.status-late {
-    background-color: #fff3cd;
-    color: #664d03;
-}
-
-/* Overtime Badge */
-.overtime-badge-table {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.4rem 0.85rem;
-    background-color: #cfe2ff;
-    color: #084298;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.fw-500 {
-    font-weight: 500;
-}
-
-/* ==================== EMPTY STATE ==================== */
-.empty-state {
-    background: white;
-    border-radius: 12px;
-    padding: 4rem 2rem;
-    text-align: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.empty-state-illustration {
-    width: 100px;
-    height: 100px;
-    margin: 0 auto 1.5rem;
-    background: linear-gradient(135deg, #d1ebe8 0%, #b3d9d3 100%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    color: #008080;
-}
-
-.empty-state-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin: 0 0 0.8rem 0;
-}
-
-.empty-state-message {
-    font-size: 1rem;
-    color: #6c757d;
-    margin: 0 0 1.5rem 0;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.empty-state-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.btn-empty-primary,
-.btn-empty-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.65rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    border: none;
-}
-
-.btn-empty-primary {
-    background-color: #008080;
-    color: white;
-    box-shadow: 0 4px 15px rgba(0, 128, 128, 0.3);
-}
-
-.btn-empty-primary:hover {
-    background-color: #006666;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 128, 128, 0.4);
-}
-
-.btn-empty-secondary {
-    background-color: #e9ecef;
-    color: #495057;
-    border: 1.5px solid #dee2e6;
-}
-
-.btn-empty-secondary:hover {
-    background-color: #dee2e6;
-    border-color: #adb5bd;
-    transform: translateY(-2px);
-}
-
-/* ==================== PAGINATION SECTION ==================== */
-.pagination-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.pagination-info {
-    display: flex;
-    align-items: center;
-}
-
-.pagination-text {
-    font-size: 0.9rem;
-    color: #6c757d;
-    font-weight: 500;
-}
-
-.pagination {
-    margin: 0;
-    gap: 0.3rem;
-}
-
-.page-link {
-    color: #008080;
-    border-color: #dee2e6;
-    font-weight: 500;
-    transition: all 0.2s;
-    padding: 0.4rem 0.6rem;
-    font-size: 0.85rem;
-}
-
-.page-link:hover {
-    color: white;
-    background-color: #008080;
-    border-color: #008080;
-}
-
-.page-item.active .page-link {
-    background-color: #008080;
-    border-color: #008080;
-}
-
-.page-item.disabled .page-link {
-    color: #6c757d;
-    cursor: not-allowed;
-}
-
-.records-per-page-control {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    white-space: nowrap;
-}
-
-.records-per-page-control .form-label {
-    margin-bottom: 0;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #6c757d;
-}
-
-.records-per-page-control .form-select-sm {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.85rem;
-    border-radius: 4px;
-    border: 1px solid #dee2e6;
-    min-width: 70px;
-}
-
-/* ==================== RESPONSIVE DESIGN ==================== */
-@media (max-width: 768px) {
-    .summary-cards {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.8rem;
-    }
-
-    .summary-card {
-        padding: 1rem;
-    }
-
-    .table {
-        font-size: 0.85rem;
-    }
-
-    .table thead th,
-    .table tbody td {
-        padding: 0.6rem;
-    }
-
-    .table thead th {
-        font-size: 0.8rem;
-    }
-
-    .emp-name {
-        font-size: 0.85rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .summary-cards {
-        grid-template-columns: 1fr;
-    }
-
-    .card-value {
-        font-size: 1.5rem;
-    }
-
-    .table {
-        font-size: 0.8rem;
-    }
-
-    .table thead th,
-    .table tbody td {
-        padding: 0.4rem;
-    }
-
-    .empty-state {
-        padding: 2rem 1rem;
-    }
-
-    .empty-state-illustration {
-        width: 80px;
-        height: 80px;
-        font-size: 2.5rem;
-    }
-
-    .empty-state-title {
-        font-size: 1.2rem;
-    }
-}
-</style>
-
-<script>
-// Date filter dropdown handler
-function setDateFilterFromDropdown(type) {
-    // Auto-submit form on date range change
-    document.querySelector('.filter-card').submit();
-}
-
-// Sort table by column
-function sortTable(sortBy) {
-    const currentSort = new URLSearchParams(window.location.search).get('sort_by');
-    const currentOrder = new URLSearchParams(window.location.search).get('sort_order');
-    
-    let newOrder = 'desc';
-    if (currentSort === sortBy && currentOrder === 'desc') {
-        newOrder = 'asc';
-    }
-    
-    // Get current filter values
-    const params = new URLSearchParams(window.location.search);
-    params.set('sort_by', sortBy);
-    params.set('sort_order', newOrder);
-    params.set('page', '1'); // Reset to first page when sorting
-    
-    window.location.href = window.location.pathname + '?' + params.toString();
-}
-
-// Change records per page
-function changeRecordsPerPage(perPage) {
-    const params = new URLSearchParams(window.location.search);
-    params.set('per_page', perPage);
-    params.set('page', '1'); // Reset to first page when changing records per page
-    
-    window.location.href = window.location.pathname + '?' + params.toString();
-}
-
-// View attendance details
-function viewAttendanceDetails(recordId) {
-    // You can implement a modal or redirect to detail page
-    // For now, this is a placeholder
-    console.log('Viewing attendance record:', recordId);
-    // Example: redirect to detail page if available
-    // window.location.href = `/attendance/${recordId}`;
-}
-</script>
 {% endblock %}
