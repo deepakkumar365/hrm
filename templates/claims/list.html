@@ -211,7 +211,7 @@
                             </td>
                             <td>
                                 {% if claim.description %}
-                                <span class="text-truncate" style="max-width: 200px;" title="{{ claim.description }}">
+                                <span class="text-truncate" title="{{ claim.description }}">
                                     {{ claim.description[:50] }}{{ '...' if claim.description|length > 50 else '' }}
                                 </span>
                                 {% else %}

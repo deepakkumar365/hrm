@@ -57,7 +57,7 @@
                                 <code>{{ ot_type.code }}</code>
                             </td>
                             <td>
-                                <span class="badge" style="background-color: {{ ot_type.color_code or '#3498db' }}">
+                                <span class="badge">
                                     {{ "%.2f" % ot_type.rate_multiplier }}x
                                 </span>
                             </td>
@@ -159,7 +159,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form id="deleteForm" method="POST" style="display: inline;">
+                <form id="deleteForm" method="POST">
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
             </div>

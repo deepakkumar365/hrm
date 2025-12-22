@@ -2,237 +2,13 @@
 
 {% block title %}Payroll Reminder - HR Manager{% endblock %}
 
-{% block head %}
-<style>
-    .reminder-container {
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 1.5rem;
-    }
-
-    .reminder-header {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 2rem;
-    }
-
-    .reminder-header h2 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.8rem;
-        font-weight: 700;
-    }
-
-    .reminder-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .reminder-card {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        border-top: 4px solid #4facfe;
-        cursor: pointer;
-    }
-
-    .reminder-card-icon {
-        font-size: 2rem;
-        color: #4facfe;
-        margin-bottom: 1rem;
-    }
-
-    .reminder-card-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-    }
-
-    .reminder-card-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #4facfe;
-        margin-bottom: 0.5rem;
-    }
-
-    .reminder-card-meta {
-        font-size: 0.85rem;
-        color: #666;
-    }
-
-    .checklist-section {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
-    }
-
-    .checklist-section h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.1rem;
-        color: #2c3e50;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-    }
-
-    .checklist-item {
-        padding: 0.8rem;
-        border-bottom: 1px solid #f0f0f0;
-        display: flex;
-        gap: 1rem;
-        align-items: flex-start;
-    }
-
-    .checklist-item:last-child {
-        border-bottom: none;
-    }
-
-    .checklist-checkbox {
-        width: 20px;
-        height: 20px;
-        margin-top: 0.2rem;
-        cursor: pointer;
-        flex-shrink: 0;
-    }
-
-    .checklist-content {
-        flex: 1;
-    }
-
-    .checklist-content-title {
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 0.2rem;
-    }
-
-    .checklist-content-desc {
-        font-size: 0.9rem;
-        color: #666;
-    }
-
-    .timeline-section {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .timeline-section h3 {
-        margin: 0 0 1.5rem 0;
-        font-size: 1.1rem;
-        color: #2c3e50;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-    }
-
-    .timeline-item {
-        padding-left: 2rem;
-        margin-bottom: 1.5rem;
-        border-left: 3px solid #4facfe;
-        position: relative;
-    }
-
-    .timeline-item::before {
-        content: '';
-        position: absolute;
-        left: -7px;
-        top: 0;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #4facfe;
-    }
-
-    .timeline-title {
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 0.3rem;
-    }
-
-    .timeline-desc {
-        font-size: 0.9rem;
-        color: #666;
-    }
-
-    .timeline-date {
-        font-size: 0.85rem;
-        color: #4facfe;
-        font-weight: 600;
-        margin-bottom: 0.3rem;
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-top: 2rem;
-    }
-
-    .btn-primary, .btn-secondary {
-        padding: 0.8rem 1.5rem;
-        border: none;
-        border-radius: 6px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.95rem;
-    }
-
-    .btn-primary {
-        background: #4facfe;
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background: #3d9eff;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
-    }
-
-    .btn-secondary {
-        background: #95a5a6;
-        color: white;
-    }
-
-    .btn-secondary:hover {
-        background: #7f8c8d;
-        text-decoration: none;
-        transform: translateY(-2px);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 2rem;
-        color: #95a5a6;
-    }
-
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        opacity: 0.3;
-    }
-</style>
-{% endblock %}
+{% block head %}{% endblock %}
 
 {% block content %}
 <div class="reminder-container">
     <div class="reminder-header">
         <h2><i class="fas fa-bell"></i> Payroll Reminder</h2>
-        <p style="margin: 0.5rem 0 0 0; opacity: 0.95;">Monthly payroll processing checklist and timeline</p>
+        <p>Monthly payroll processing checklist and timeline</p>
     </div>
 
     <!-- Quick Stats -->
@@ -357,25 +133,25 @@
 
     <!-- Employee List Awaiting Payroll -->
     {% if pending_payrolls %}
-        <div class="checklist-section" style="margin-top: 2rem;">
+        <div class="checklist-section">
             <h3>
                 <i class="fas fa-list"></i> Employees Awaiting Payroll
             </h3>
-            <table style="width: 100%; border-collapse: collapse;">
+            <table>
                 <thead>
-                    <tr style="background: #f8f9fa; border-bottom: 2px solid #ddd;">
-                        <th style="padding: 0.8rem; text-align: left; font-weight: 700;">Employee</th>
-                        <th style="padding: 0.8rem; text-align: left; font-weight: 700;">Designation</th>
-                        <th style="padding: 0.8rem; text-align: left; font-weight: 700;">Status</th>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Designation</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for payroll in pending_payrolls[:10] %}
-                        <tr style="border-bottom: 1px solid #f0f0f0;">
-                            <td style="padding: 0.8rem;">{{ payroll.employee.name }}</td>
-                            <td style="padding: 0.8rem;">{{ payroll.employee.designation.name if payroll.employee.designation else '-' }}</td>
-                            <td style="padding: 0.8rem;">
-                                <span style="display: inline-block; padding: 0.3rem 0.8rem; background: #fff3cd; color: #856404; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
+                        <tr>
+                            <td>{{ payroll.employee.name }}</td>
+                            <td>{{ payroll.employee.designation.name if payroll.employee.designation else '-' }}</td>
+                            <td>
+                                <span>
                                     Processing
                                 </span>
                             </td>
@@ -384,7 +160,7 @@
                 </tbody>
             </table>
             {% if pending_payrolls | length > 10 %}
-                <div style="text-align: center; padding: 1rem; color: #666;">
+                <div>
                     <p>+{{ pending_payrolls | length - 10 }} more employees</p>
                 </div>
             {% endif %}

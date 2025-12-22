@@ -9,7 +9,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-start">
                 <div class="d-flex align-items-start gap-4">
-                    <div class="employee-profile-photo" style="min-width: 100px; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                    <div class="employee-profile-photo">
                         {% if employee.profile_image_path %}
                         <img src="{{ url_for('static', filename=employee.profile_image_path) }}" alt="Profile image" class="avatar-image">
                         {% else %}

@@ -402,8 +402,56 @@ def dashboard():
         'total_employees': Employee.query.filter_by(is_active=True).count(),
         'pending_leaves': Leave.query.filter_by(status='Pending').count(),
         'pending_claims': Claim.query.filter_by(status='Pending').count(),
-        'this_month_attendance': 0
+        'this_month_attendance': 0,
+        # Placeholders for missing models/logic
+        'absent_days': 0,
+        'annual_leave_balance': 11,
+        'sick_leave_balance': 9.5,
+        'comp_off_balance': 0
     }
+
+    # Get Next Leave for current user
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        next_leave = Leave.query.filter(
+            Leave.employee_id == current_user.employee_profile.id,
+            Leave.start_date >= date.today(),
+            Leave.status == 'Approved'
+        ).order_by(Leave.start_date).first()
+        
+        if next_leave:
+            stats['next_leave_date'] = format_date(next_leave.start_date)
+            stats['next_leave_type'] = next_leave.leave_type
+    
+    # Get Upcoming Holidays (Placeholder as Holiday model missing)
+    upcoming_holidays = [
+        {'name': 'Christmas', 'date': date(2025, 12, 25), 'day': 'Thursday'},
+        {'name': 'New Year', 'date': date(2026, 1, 1), 'day': 'Thursday'}
+    ]
+
+    # Get Upcoming Birthdays
+    upcoming_birthdays = []
+    today = date.today()
+    # Logic to find birthdays in next 30 days
+    employees = Employee.query.filter(Employee.is_active == True).all()
+    for emp in employees:
+        if emp.date_of_birth:
+            dob_this_year = emp.date_of_birth.replace(year=today.year)
+            if dob_this_year < today:
+                dob_this_year = dob_this_year.replace(year=today.year + 1)
+            
+            days_until = (dob_this_year - today).days
+            if 0 <= days_until <= 30:
+                upcoming_birthdays.append({
+                    'name': f"{emp.first_name} {emp.last_name}",
+                    'designation': emp.designation.name if emp.designation else 'Employee',
+                    'location': emp.location or 'Office',
+                    'phone': emp.phone,
+                    'date': dob_this_year,
+                    'is_today': days_until == 0
+                })
+    
+    # Sort birthdays by date
+    upcoming_birthdays.sort(key=lambda x: x['date'])
 
     # Get current month attendance rate
     start_date, end_date = get_current_month_dates()
@@ -485,6 +533,8 @@ def dashboard():
                            stats=stats,
                            recent_activities=recent_activities,
                            recent_attendance=recent_attendance,
+                           upcoming_holidays=upcoming_holidays,
+                           upcoming_birthdays=upcoming_birthdays,
                            moment=datetime.now,
                            leave_calendar_url=leave_calendar_url)
 

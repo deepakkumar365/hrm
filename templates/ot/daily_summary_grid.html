@@ -2,471 +2,7 @@
 
 {% block title %}OT Payroll Summary - Nexar{% endblock %}
 
-{% block head %}
-<style>
-    .summary-header {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    
-    .summary-card {
-        background: var(--white);
-        border-radius: 6px;
-        padding: 12px 16px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        border-left: 3px solid var(--primary-color);
-    }
-    
-    .summary-card .label {
-        font-size: 11px;
-        color: var(--grey-500);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        margin-bottom: 6px;
-    }
-    
-    .summary-card .value {
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--primary-color);
-    }
-    
-    .grid-wrapper {
-        background: var(--white);
-        border-radius: 6px;
-        padding: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    
-    .ot-records-container {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .ot-record-card {
-        display: grid;
-        grid-template-columns: 150px 80px 80px 80px 80px 80px auto;
-        gap: 8px;
-        align-items: center;
-        padding: 10px;
-        background: var(--grey-50);
-        border: 1px solid var(--grey-200);
-        border-radius: 4px;
-        font-size: 12px;
-    }
-    
-    .ot-record-card:hover {
-        background: var(--grey-100);
-    }
-    
-    .record-field {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-    
-    .record-label {
-        font-size: 10px;
-        color: var(--grey-600);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-    
-    .record-value {
-        font-weight: 500;
-        color: var(--grey-900);
-    }
-    
-    .allowances-toggle {
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        color: white;
-        border: 2px solid #4f46e5;
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
-        letter-spacing: 0.3px;
-        text-transform: uppercase;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .allowances-toggle:hover {
-        background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
-        box-shadow: 0 4px 8px rgba(79, 70, 229, 0.4);
-        transform: translateY(-1px);
-    }
-    
-    .allowances-toggle:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
-    }
-    
-    .ot-record-card.expanded {
-        grid-column: 1 / -1;
-    }
-    
-    .allowances-grid {
-        display: none;
-        grid-column: 1 / -1;
-        background: white;
-        border: 1px solid var(--grey-300);
-        border-radius: 4px;
-        padding: 12px;
-        margin-top: 8px;
-    }
-    
-    .allowances-grid.show {
-        display: grid;
-    }
-    
-    .allowances-grid {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 10px;
-    }
-    
-    .allowance-input-group {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-    
-    .allowance-input-group label {
-        font-size: 10px;
-        color: var(--grey-600);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-    
-    .allowance-input-group input {
-        padding: 5px 6px;
-        border: 1px solid var(--grey-300);
-        border-radius: 3px;
-        font-size: 12px;
-    }
-    
-    .allowance-input-group input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 2px rgba(79, 70, 229, 0.2);
-    }
-    
-    .totals-row {
-        display: grid;
-        grid-template-columns: auto auto auto auto;
-        gap: 10px;
-        padding: 10px;
-        background: #fafafa;
-        border-top: 1px solid var(--grey-300);
-        margin-top: 8px;
-        border-radius: 4px;
-    }
-    
-    .total-item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-    
-    .total-label {
-        font-size: 10px;
-        color: var(--grey-600);
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-    
-    .total-value {
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--grey-900);
-    }
-    
-    .record-actions {
-        display: flex;
-        gap: 6px;
-        align-items: center;
-    }
-    
-    .calendar-btn {
-        background: none;
-        border: none;
-        color: var(--primary-color);
-        cursor: pointer;
-        font-size: 14px;
-        padding: 3px;
-        transition: all 0.3s;
-    }
-    
-    .calendar-btn:hover {
-        transform: scale(1.15);
-        color: #4f46e5;
-    }
-    
-    .save-btn {
-        background: #10b981;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 3px;
-        font-size: 11px;
-        cursor: pointer;
-        transition: all 0.3s;
-        font-weight: 500;
-    }
-    
-    .save-btn:hover {
-        background: #059669;
-    }
-    
-    .save-btn.saving {
-        background: #d1d5db;
-        cursor: not-allowed;
-    }
-    
-    .employee-cell {
-        font-weight: 600;
-    }
-    
-    .no-records {
-        text-align: center;
-        padding: 40px 20px;
-    }
-    
-    .no-records-icon {
-        font-size: 3rem;
-        color: var(--grey-300);
-        margin-bottom: 20px;
-    }
-    
-    .filters-section {
-        display: grid;
-        grid-template-columns: auto auto 1fr;
-        gap: 12px;
-        margin-bottom: 20px;
-        align-items: center;
-    }
-    
-    .filter-group {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 8px;
-        align-items: center;
-    }
-    
-    .filter-group label {
-        font-weight: 500;
-        color: var(--grey-700);
-        font-size: 14px;
-        white-space: nowrap;
-    }
-    
-    .filter-group input[type="date"] {
-        padding: 6px 10px;
-        border: 1px solid var(--grey-300);
-        border-radius: 4px;
-        font-size: 13px;
-    }
-    
-    .add-employee-btn {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        padding: 6px 14px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-        font-size: 13px;
-        transition: all 0.3s;
-        justify-self: end;
-    }
-    
-    .add-employee-btn:hover {
-        background: #4f46e5;
-        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
-    }
-    
-    /* Calendar Modal */
-    .calendar-modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-    }
-    
-    .calendar-modal.show {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .calendar-modal-content {
-        background: var(--white);
-        border-radius: 8px;
-        padding: 30px;
-        max-width: 600px;
-        width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    .calendar-modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        border-bottom: 1px solid var(--grey-300);
-        padding-bottom: 15px;
-    }
-    
-    .calendar-modal-header h3 {
-        margin: 0;
-        font-size: 18px;
-    }
-    
-    .close-btn {
-        background: none;
-        border: none;
-        font-size: 24px;
-        color: var(--grey-500);
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    
-    .close-btn:hover {
-        color: var(--grey-700);
-    }
-    
-    .calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 10px;
-        margin-top: 20px;
-    }
-    
-    .calendar-day {
-        padding: 10px;
-        text-align: center;
-        border: 1px solid var(--grey-300);
-        border-radius: 4px;
-        min-height: 60px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-    
-    .calendar-day.has-data {
-        background: #ecfdf5;
-        border-color: #10b981;
-    }
-    
-    .calendar-day-number {
-        font-weight: 600;
-        margin-bottom: 4px;
-    }
-    
-    .calendar-day-amount {
-        font-size: 11px;
-        color: #10b981;
-        font-weight: 500;
-    }
-    
-    .add-employee-modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-    }
-    
-    .add-employee-modal.show {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .add-employee-modal-content {
-        background: var(--white);
-        border-radius: 8px;
-        padding: 30px;
-        max-width: 500px;
-        width: 90%;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    }
-    
-    .form-group {
-        margin-bottom: 20px;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 500;
-        color: var(--grey-700);
-    }
-    
-    .form-group input[type="date"],
-    .form-group select {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid var(--grey-300);
-        border-radius: 4px;
-        font-size: 14px;
-    }
-    
-    .form-actions {
-        display: flex;
-        gap: 10px;
-        justify-content: flex-end;
-        margin-top: 25px;
-    }
-    
-    .btn-cancel {
-        background: var(--grey-300);
-        color: var(--grey-800);
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-    }
-    
-    .btn-cancel:hover {
-        background: var(--grey-400);
-    }
-    
-    .btn-submit {
-        background: var(--primary-color);
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 500;
-    }
-    
-    .btn-submit:hover {
-        background: #4f46e5;
-    }
-</style>
-{% endblock %}
+{% block head %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -506,13 +42,13 @@
             <div class="label">Total OT Amount</div>
             <div class="value">₹{{ "%.2f"|format(stats.total_ot_amount) }}</div>
         </div>
-        <div class="summary-card" style="border-left-color: #10b981;">
+        <div class="summary-card">
             <div class="label">Total Allowances</div>
-            <div class="value" style="color: #10b981;">₹{{ "%.2f"|format(stats.total_allowances) }}</div>
+            <div class="value">₹{{ "%.2f"|format(stats.total_allowances) }}</div>
         </div>
-        <div class="summary-card" style="border-left-color: #f59e0b;">
+        <div class="summary-card">
             <div class="label">Grand Total</div>
-            <div class="value" style="color: #f59e0b;">₹{{ "%.2f"|format(stats.total_amount) }}</div>
+            <div class="value">₹{{ "%.2f"|format(stats.total_amount) }}</div>
         </div>
     </div>
 
@@ -537,7 +73,7 @@
                 </div>
                 <div class="record-field">
                     <span class="record-label">OT Hours</span>
-                    <input type="number" class="ot-hours-field" value="{{ record.ot_hours }}" step="0.5" min="0" style="width: 100%;">
+                    <input type="number" class="ot-hours-field" value="{{ record.ot_hours }}" step="0.5" min="0">
                 </div>
                 <div class="record-field">
                     <span class="record-label">Rate/Hr</span>
@@ -545,7 +81,7 @@
                 </div>
                 <div class="record-field">
                     <span class="record-label">OT Amount</span>
-                    <span class="record-value ot-amount" style="color: #f59e0b; font-weight: 700;">₹{{ "%.2f"|format(record.ot_amount) }}</span>
+                    <span class="record-value ot-amount">₹{{ "%.2f"|format(record.ot_amount) }}</span>
                 </div>
                 <div class="record-actions">
                     <button type="button" class="calendar-btn" onclick="openCalendarModal({{ record.employee_id }}, '{{ record.employee.first_name }} {{ record.employee.last_name }}')" title="View Daily Breakdown">
@@ -609,21 +145,21 @@
                 </div>
 
                 <!-- Totals Row -->
-                <div style="grid-column: 1 / -1;">
+                <div>
                     <div class="totals-row">
                         <div class="total-item">
                             <span class="total-label">Total Allowances</span>
-                            <span class="total-value total-allowances" style="color: #10b981;">₹{{ "%.2f"|format(record.total_allowances) }}</span>
+                            <span class="total-value total-allowances">₹{{ "%.2f"|format(record.total_allowances) }}</span>
                         </div>
                         <div class="total-item">
                             <span class="total-label">OT Amount</span>
-                            <span class="total-value ot-amount" style="color: #f59e0b;">₹{{ "%.2f"|format(record.ot_amount) }}</span>
+                            <span class="total-value ot-amount">₹{{ "%.2f"|format(record.ot_amount) }}</span>
                         </div>
                         <div class="total-item">
                             <span class="total-label">Grand Total</span>
-                            <span class="total-value grand-total" style="color: #f59e0b;">₹{{ "%.2f"|format(record.total_amount) }}</span>
+                            <span class="total-value grand-total">₹{{ "%.2f"|format(record.total_amount) }}</span>
                         </div>
-                        <button type="button" class="save-btn" onclick="saveRecord({{ record.id }}, this)" style="align-self: flex-end;">💾 Save</button>
+                        <button type="button" class="save-btn" onclick="saveRecord({{ record.id }}, this)">💾 Save</button>
                     </div>
                 </div>
             </div>
@@ -639,15 +175,15 @@
             </div>
             <h4>No OT Records for {{ filter_date.strftime('%d %b %Y') }}</h4>
             <p class="text-muted mb-3">No approved OT found for this date.</p>
-            <div style="background: #f3f4f6; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 4px; max-width: 500px; margin: 0 auto; text-align: left;">
-                <p style="margin: 0 0 10px 0; font-weight: 600; color: #1f2937;">What should happen next?</p>
-                <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #4b5563;">
+            <div>
+                <p>What should happen next?</p>
+                <ul>
                     <li>Employee marks OT (OT Management → Mark OT Attendance)</li>
                     <li>Manager approves the OT (OT Management → Manager Approval)</li>
                     <li>✨ <strong>Auto-Magic</strong>: OT record appears here automatically</li>
                     <li>You then fill 12 allowance fields and click SAVE</li>
                 </ul>
-                <p style="margin: 15px 0 0 0; font-size: 12px; color: #666; font-style: italic;">
+                <p>
                     💡 Tip: Change the date filter above to check other dates, or wait for a manager to approve an OT.
                 </p>
             </div>
@@ -728,7 +264,7 @@ function openCalendarModal(employeeId, employeeName) {
     const content = document.getElementById('calendarContent');
     
     title.textContent = `Daily Breakdown - ${employeeName}`;
-    content.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    content.innerHTML = '<div><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
     
     fetch(`/ot/daily-summary/calendar/${employeeId}`)
         .then(response => response.json())
@@ -756,7 +292,7 @@ function buildCalendarView(data, container) {
     const firstDay = new Date(year, month - 1, 1).getDay();
     const daysInMonth = new Date(year, month, 0).getDate();
     
-    let html = `<div style="margin-bottom: 15px; font-weight: 600; font-size: 14px;">
+    let html = `<div>
                     ${monthNames[month - 1]} ${year}
                 </div>`;
     html += '<div class="calendar-grid">';
@@ -764,12 +300,12 @@ function buildCalendarView(data, container) {
     // Day headers
     const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     dayHeaders.forEach(day => {
-        html += `<div style="text-align: center; font-weight: 600; font-size: 12px; margin-bottom: 10px;">${day}</div>`;
+        html += `<div>${day}</div>`;
     });
     
     // Empty cells for days before month starts
     for (let i = 0; i < firstDay; i++) {
-        html += '<div class="calendar-day" style="background: var(--grey-50); border: none;"></div>';
+        html += '<div class="calendar-day"></div>';
     }
     
     // Days of month
@@ -781,7 +317,7 @@ function buildCalendarView(data, container) {
             html += `<div class="calendar-day has-data">
                         <div class="calendar-day-number">${day}</div>
                         <div class="calendar-day-amount">₹${dayData.total.toFixed(2)}</div>
-                        <div style="font-size: 10px; color: #6b7280;">${dayData.hours.toFixed(1)}h</div>
+                        <div>${dayData.hours.toFixed(1)}h</div>
                     </div>`;
         } else {
             html += `<div class="calendar-day">

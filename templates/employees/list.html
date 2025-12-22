@@ -231,9 +231,9 @@
                                 </a>
                             </th>
                             <th>
-                                <span style="display: flex; align-items: center; gap: 0.3rem;">
+                                <span>
                                     Actions
-                                    <i class="fas fa-sort" style="opacity: 0.2;"></i>
+                                    <i class="fas fa-sort"></i>
                                 </span>
                             </th>
                         </tr>
@@ -365,8 +365,8 @@
 
         <!-- Right: Records-per-page selector -->
         <div class="records-per-page">
-            <label for="per_page_select" style="margin: 0; white-space: nowrap;">Per page:</label>
-            <select id="per_page_select" class="form-select" style="width: auto;"
+            <label for="per_page_select">Per page:</label>
+            <select id="per_page_select" class="form-select"
                 onchange="changeRecordsPerPage(this.value)">
                 <option value="15" {% if per_page==15 %}selected{% endif %}>15</option>
                 <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>

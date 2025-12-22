@@ -62,7 +62,7 @@
                                             <form method="POST"
                                                 action="{{ url_for('update_user_role', user_id=user.id) }}"
                                                 class="d-inline">
-                                                <div class="input-group input-group-sm" style="width: 200px;">
+                                                <div class="input-group input-group-sm">
                                                     <select name="role" class="form-select form-select-sm">
                                                         <option value="User" {% if user.role=='User' %}selected{% endif
                                                             %}>User</option>

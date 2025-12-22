@@ -2,364 +2,21 @@
 
 {% block title %}Payroll Configuration - Nexar{% endblock %}
 
-{% block content %}
-<style>
-    /* Payroll Configuration Grid Styles */
-    :root {
-        --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    body {
-        margin: 0;
-        padding: 0;
-    }
-
-    .payroll-config-container {
-        font-family: var(--font-primary);
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        padding: 0;
-        margin: 0;
-        background: #f5f5f5;
-    }
-
-    .payroll-header {
-        background: white;
-        padding: 12px 16px;
-        border-bottom: 1px solid #e0e0e0;
-        flex-shrink: 0;
-    }
-
-    .payroll-header h3 {
-        margin: 0;
-        font-family: var(--font-primary);
-        font-size: 18px;
-        font-weight: 600;
-        color: #004d4d;
-    }
-
-    .payroll-header p {
-        margin: 2px 0 0 0;
-        font-size: 12px;
-        color: #666;
-    }
-
-    .payroll-content {
-        flex: 1;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        padding: 8px 12px;
-    }
-
-    .grid-wrapper {
-        flex: 1;
-        overflow: auto;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-    }
-
-    .payroll-grid {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: var(--font-primary);
-        font-size: 12px;
-    }
-
-    .payroll-grid thead {
-        background: #f8f9fa;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .payroll-grid th {
-        padding: 4px 6px;
-        text-align: left;
-        font-weight: 600;
-        color: #333;
-        border-bottom: 1px solid #ddd;
-        border-right: 1px solid #eee;
-        white-space: nowrap;
-        user-select: none;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        height: 24px;
-    }
-
-    .payroll-grid th:last-child {
-        border-right: none;
-    }
-
-    /* Stronger separation between Name and Designation columns */
-    .payroll-grid th:nth-child(2) {
-        border-right: 2px solid #008080;
-    }
-
-    .payroll-grid td:nth-child(2) {
-        border-right: 2px solid #d0e0df;
-    }
-
-    .payroll-grid th:hover {
-        background: #f0f0f0;
-    }
-
-    .payroll-grid th.sortable::after {
-        content: ' ⇅';
-        opacity: 0.4;
-        font-size: 10px;
-    }
-
-    .payroll-grid th.sorted-asc::after {
-        content: ' ↑';
-        opacity: 1;
-        color: #008080;
-        font-size: 11px;
-    }
-
-    .payroll-grid th.sorted-desc::after {
-        content: ' ↓';
-        opacity: 1;
-        color: #008080;
-        font-size: 11px;
-    }
-
-    .payroll-grid tbody tr {
-        height: 24px;
-        border-bottom: 1px solid #eee;
-        transition: background-color 0.15s;
-    }
-
-    .payroll-grid tbody tr:hover {
-        background: #f9f9f9;
-    }
-
-    .payroll-grid td {
-        padding: 3px 5px;
-        border-right: 1px solid #eee;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        vertical-align: middle;
-    }
-
-    .payroll-grid td:last-child {
-        border-right: none;
-    }
-
-    .payroll-grid tbody tr.editing td {
-        padding: 2px 4px;
-    }
-
-    /* Input fields in edit mode */
-    .payroll-grid input[type="text"],
-    .payroll-grid input[type="number"] {
-        width: 100%;
-        padding: 2px 4px;
-        border: 1px solid #008080;
-        border-radius: 2px;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        box-sizing: border-box;
-    }
-
-    .payroll-grid input[type="number"] {
-        text-align: right;
-    }
-
-    /* Numeric columns - right aligned */
-    .numeric {
-        text-align: right;
-    }
-
-    /* Action buttons */
-    .action-buttons {
-        display: flex;
-        gap: 2px;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .btn-edit, .btn-save, .btn-cancel, .btn-delete {
-        padding: 3px 5px;
-        border: none;
-        border-radius: 2px;
-        font-size: 10px;
-        font-family: var(--font-primary);
-        cursor: pointer;
-        transition: all 0.15s;
-        white-space: nowrap;
-        min-width: 30px;
-        height: 20px;
-        line-height: 14px;
-    }
-
-    .btn-edit {
-        background: #008080;
-        color: white;
-        border: 1px solid #008080;
-        min-width: 38px;
-    }
-
-    .btn-edit:hover {
-        background: #006666;
-    }
-
-    .btn-save {
-        background: #28a745;
-        color: white;
-        border: 1px solid #28a745;
-        min-width: 38px;
-    }
-
-    .btn-save:hover {
-        background: #218838;
-    }
-
-    .btn-cancel {
-        background: #dc3545;
-        color: white;
-        border: 1px solid #dc3545;
-        min-width: 22px;
-        padding: 3px 4px;
-        font-weight: bold;
-    }
-
-    .btn-cancel:hover {
-        background: #c82333;
-    }
-
-    /* Footer with pagination and records per page */
-    .payroll-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        background: white;
-        border-top: 1px solid #ddd;
-        margin-top: 8px;
-        border-radius: 3px;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        flex-shrink: 0;
-    }
-
-    .pagination-info {
-        color: #666;
-        flex: 0 0 auto;
-    }
-
-    .pagination-controls {
-        display: flex;
-        gap: 4px;
-        align-items: center;
-        flex: 1;
-        justify-content: center;
-    }
-
-    .pagination-controls button {
-        padding: 4px 8px;
-        border: 1px solid #ddd;
-        background: white;
-        color: #333;
-        border-radius: 2px;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        transition: all 0.15s;
-    }
-
-    .pagination-controls button:hover:not(:disabled) {
-        background: #f0f0f0;
-        border-color: #999;
-    }
-
-    .pagination-controls button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .pagination-input {
-        width: 35px;
-        padding: 3px 6px;
-        border: 1px solid #ddd;
-        border-radius: 2px;
-        text-align: center;
-        font-family: var(--font-primary);
-        font-size: 11px;
-    }
-
-    .records-per-page {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex: 0 0 auto;
-    }
-
-    .records-per-page label {
-        margin: 0;
-        font-size: 11px;
-    }
-
-    .records-per-page select {
-        padding: 4px 6px;
-        border: 1px solid #ddd;
-        border-radius: 2px;
-        background: white;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        font-size: 11px;
-    }
-
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 300px;
-        color: #999;
-    }
-
-    .empty-state i {
-        font-size: 48px;
-        margin-bottom: 16px;
-        opacity: 0.5;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 1200px) {
-        .payroll-config-container {
-            height: auto;
-        }
-
-        .payroll-content {
-            height: auto;
-        }
-
-        .grid-wrapper {
-            height: auto;
-            max-height: 500px;
-        }
-    }
-</style>
-
-<div class="payroll-config-container">
+{% block content %}<div class="payroll-config-container">
     <!-- Header Section -->
     <div class="payroll-header">
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h3>
-                    <i class="fas fa-dollar-sign me-2" style="color: #008080;"></i>Payroll Configuration
+                    <i class="fas fa-dollar-sign me-2"></i>Payroll Configuration
                 </h3>
-                <p class="text-muted mb-0" style="font-family: 'Segoe UI';">Manage salary components and CPF contributions</p>
+                <p class="text-muted mb-0">Manage salary components and CPF contributions</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('reports_menu') }}" class="btn btn-outline-secondary" style="font-family: 'Segoe UI'; font-size: 11px; padding: 4px 8px;">
+                <a href="{{ url_for('reports_menu') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i>Back
                 </a>
-                <a href="{{ url_for('report_payroll_configuration', export='csv') }}" class="btn btn-success" style="font-family: 'Segoe UI'; font-size: 11px; padding: 4px 8px;">
+                <a href="{{ url_for('report_payroll_configuration', export='csv') }}" class="btn btn-success">
                     <i class="fas fa-file-csv me-1"></i>Export CSV
                 </a>
             </div>
@@ -373,18 +30,18 @@
             <table class="payroll-grid">
                 <thead>
                     <tr>
-                        <th class="sortable" data-column="employee_id" style="width: 65px;">Emp ID</th>
-                        <th class="sortable" data-column="first_name" style="width: 120px;">Employee Name</th>
-                        <th class="sortable" data-column="designation" style="width: 130px;">Job Title</th>
-                        <th class="sortable numeric" data-column="basic_salary" style="width: 90px;">Basic Salary</th>
-                        <th class="sortable numeric" data-column="allowances" style="width: 80px;">Allowances</th>
-                        <th class="sortable numeric" data-column="employer_cpf" style="width: 90px;">Emp. CPF %</th>
-                        <th class="sortable numeric" data-column="employee_cpf" style="width: 90px;">Emp. CPF</th>
-                        <th class="sortable numeric" data-column="gross_salary" style="width: 85px;">Gross</th>
-                        <th class="sortable numeric" data-column="net_salary" style="width: 85px;">Net Salary</th>
-                        <th class="sortable numeric" data-column="ot_rate" style="width: 75px;">OT Rate</th>
-                        <th class="sortable" data-column="remarks" style="width: 120px;">Remarks</th>
-                        <th style="width: 70px;">Action</th>
+                        <th class="sortable" data-column="employee_id">Emp ID</th>
+                        <th class="sortable" data-column="first_name">Employee Name</th>
+                        <th class="sortable" data-column="designation">Job Title</th>
+                        <th class="sortable numeric" data-column="basic_salary">Basic Salary</th>
+                        <th class="sortable numeric" data-column="allowances">Allowances</th>
+                        <th class="sortable numeric" data-column="employer_cpf">Emp. CPF %</th>
+                        <th class="sortable numeric" data-column="employee_cpf">Emp. CPF</th>
+                        <th class="sortable numeric" data-column="gross_salary">Gross</th>
+                        <th class="sortable numeric" data-column="net_salary">Net Salary</th>
+                        <th class="sortable numeric" data-column="ot_rate">OT Rate</th>
+                        <th class="sortable" data-column="remarks">Remarks</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -395,40 +52,40 @@
                         <td>{{ config.designation }}</td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.basic_salary) }}</span>
-                            <input type="number" class="edit-value" name="basic_salary" value="{{ config.basic_salary }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="basic_salary" value="{{ config.basic_salary }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.allowances) }}</span>
-                            <input type="number" class="edit-value" name="allowances" value="{{ config.allowances }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="allowances" value="{{ config.allowances }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.employer_cpf) }}</span>
-                            <input type="number" class="edit-value" name="employer_cpf" value="{{ config.employer_cpf }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="employer_cpf" value="{{ config.employer_cpf }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.employee_cpf) }}</span>
-                            <input type="number" class="edit-value" name="employee_cpf" value="{{ config.employee_cpf }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="employee_cpf" value="{{ config.employee_cpf }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.gross_salary) }}</span>
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.net_salary) }}</span>
-                            <input type="number" class="edit-value" name="net_salary" value="{{ config.net_salary }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="net_salary" value="{{ config.net_salary }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.ot_rate) }}</span>
-                            <input type="number" class="edit-value" name="ot_rate" value="{{ config.ot_rate }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="ot_rate" value="{{ config.ot_rate }}" step="0.01">
                         </td>
                         <td>
                             <span class="display-value" title="{{ config.remarks }}">{{ config.remarks[:20] if config.remarks else '-' }}</span>
-                            <input type="text" class="edit-value" name="remarks" value="{{ config.remarks }}" style="display:none;">
+                            <input type="text" class="edit-value" name="remarks" value="{{ config.remarks }}">
                         </td>
                         <td>
                             <div class="action-buttons">
                                 <button class="btn-edit" onclick="editRow(this)" title="Edit row">Edit</button>
-                                <button class="btn-save" onclick="saveRow(this)" style="display:none;" title="Save changes">Save</button>
-                                <button class="btn-cancel" onclick="cancelEdit(this)" style="display:none;" title="Cancel edit">✕</button>
+                                <button class="btn-save" onclick="saveRow(this)" title="Save changes">Save</button>
+                                <button class="btn-cancel" onclick="cancelEdit(this)" title="Cancel edit">✕</button>
                             </div>
                         </td>
                     </tr>

@@ -4,325 +4,32 @@
 
 {% block head %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-    /* :root values inherited from styles.css */
-
-    /* Hide navbar and page container on login page */
-    .navbar {
-        display: none !important;
-    }
-
-    .page-container {
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    body {
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-        background-color: var(--background);
-        color: var(--text-primary);
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-    }
-
-    .auth-wrapper {
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.75rem;
-        box-sizing: border-box;
-    }
-
-    .auth-shell {
-        width: min(1040px, 100%);
-        max-height: calc(100vh - 1.5rem);
-        border-radius: 20px;
-        background: #ffffff;
-        box-shadow: 0 28px 48px -36px rgba(var(--primary-rgb), 0.3);
-        border: 1px solid rgba(var(--primary-rgb), 0.15);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .auth-layout {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        height: 100%;
-        min-height: 0;
-    }
-
-    .auth-visual {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        padding: clamp(1.5rem, 3vw, 2.5rem);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        color: rgba(255, 255, 255, 0.95);
-        position: relative;
-        min-height: 0;
-        overflow: hidden;
-    }
-
-    .auth-visual::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.22), transparent 60%),
-            radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.16), transparent 60%);
-        pointer-events: none;
-    }
-
-    .auth-visual>* {
-        position: relative;
-        z-index: 1;
-    }
-
-    .auth-photo {
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 18px 34px -26px rgba(0, 0, 0, 0.4);
-        margin-top: clamp(0.75rem, 2vw, 1.5rem);
-        border: 1px solid rgba(255, 255, 255, 0.28);
-        flex-shrink: 1;
-        min-height: 0;
-    }
-
-    .auth-photo img {
-        width: 100%;
-        height: auto;
-        max-height: 200px;
-        object-fit: cover;
-        display: block;
-    }
-
-    .auth-form-panel {
-        padding: clamp(1.5rem, 4vw, 2.5rem);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        background: #ffffff;
-        min-height: 0;
-        overflow-y: auto;
-    }
-
-    .auth-title {
-        font-weight: 700;
-        color: var(--primary);
-        margin-bottom: 0.35rem;
-    }
-
-    .auth-subtitle {
-        color: var(--text-secondary);
-        margin-bottom: 1.75rem;
-    }
-
-    .form-label {
-        font-weight: 600;
-        color: var(--primary);
-        margin-bottom: 0.45rem;
-    }
-
-    .form-control {
-        border-radius: 12px;
-        border: 1px solid rgba(var(--primary-rgb), 0.22);
-        padding: 0.8rem 1rem;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        background: #fdfdfd;
-    }
-
-    .form-control::placeholder {
-        color: var(--text-secondary);
-        opacity: 0.7;
-    }
-
-    .form-control:focus {
-        border-color: var(--secondary);
-        box-shadow: 0 0 0 0.2rem rgba(var(--secondary-rgb), 0.25);
-    }
-
-    .btn-auth-submit {
-        border-radius: 12px;
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border: none;
-        padding: 0.9rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        color: white;
-        box-shadow: 0 12px 24px -18px rgba(var(--primary-rgb), 0.6);
-        transition: all 0.2s ease;
-    }
-
-    .btn-auth-submit:hover {
-        background: linear-gradient(135deg, var(--accent), var(--primary));
-        box-shadow: 0 16px 32px -18px rgba(var(--primary-rgb), 0.7);
-        transform: translateY(-2px);
-    }
-
-    .form-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 1.25rem;
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-    }
-
-    .form-footer a {
-        color: var(--primary);
-        font-weight: 600;
-        text-decoration: none;
-    }
-
-    .form-footer a:hover {
-        color: var(--accent);
-        text-decoration: underline;
-    }
-
-    .form-flash-error {
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-family: 'Segoe UI', sans-serif;
-        color: #dc3545;
-        font-size: 0.95rem;
-        font-weight: 500;
-        text-align: center;
-        z-index: 9999;
-        max-width: 90%;
-        animation: slideIn 0.3s ease-in-out;
-        white-space: normal;
-        word-wrap: break-word;
-    }
-
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(-5px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes fadeOut {
-        to {
-            opacity: 0;
-        }
-    }
-
-    @media (max-width: 991.98px) {
-        .auth-shell {
-            border-radius: 16px;
-            max-height: calc(100vh - 1rem);
-        }
-
-        .auth-layout {
-            grid-template-columns: 1fr;
-        }
-
-        .auth-visual {
-            display: none;
-        }
-
-        .auth-wrapper {
-            padding: 0.5rem;
-        }
-    }
-
-    @media (max-width: 575.98px) {
-        .auth-wrapper {
-            padding: 0.25rem;
-            height: 100vh;
-        }
-
-        .auth-form-panel {
-            padding: 1rem;
-            justify-content: flex-start;
-            padding-top: 1.5rem;
-        }
-
-        .auth-shell {
-            max-height: calc(100vh - 0.5rem);
-            border-radius: 12px;
-        }
-
-        .auth-title {
-            font-size: 1.5rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .form-footer {
-            margin-top: 1rem;
-            font-size: 0.8rem;
-        }
-    }
-
-    /* Ensure no scrollbars on any screen size */
-    @media (max-height: 600px) {
-        .auth-form-panel {
-            justify-content: flex-start;
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
-
-        .auth-title {
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .mb-4 {
-            margin-bottom: 0.75rem !important;
-        }
-
-        .mb-3 {
-            margin-bottom: 0.5rem !important;
-        }
-
-        .form-footer {
-            margin-top: 0.75rem;
-        }
-    }
-</style>
-{% endblock %}
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>{% endblock %}
 
 {% block content %}
 <section class="auth-wrapper">
     <div class="auth-shell">
-        <div class="auth-layout">
-            <aside class="auth-visual">
-                <div>
-                    <h2 class="h4 fw-semibold mb-2">Nexar HR Portal</h2>
-                    <p class="mb-0">Securely manage attendance, leave, payroll, and employee records in one place.</p>
+        <!-- Login Form Only (No Illustration Panel) -->
+        <div class="auth-form-panel">
+            <div class="auth-form-container">
+                <!-- Logo -->
+                <div class="auth-logo">
+                    <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Logo" height="48">
                 </div>
-                <div class="auth-photo">
-                    <img src="{{ url_for('static', filename='img/login_bg.jpg' ) }}" alt="HR team collaborating"
-                        loading="lazy">
+
+                <!-- Sign In Header -->
+                <div class="auth-header">
+                    <h1 class="auth-heading">Sign in</h1>
+                    <p class="auth-subheading">to access Nexar HR Portal</p>
                 </div>
-            </aside>
 
-            <div class="auth-form-panel">
-                <header class="mb-4">
-                    <div class="text-center mb-4">
-                        <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Logo" height="60">
-                        <h2 class="auth-title h3 mb-2">Nexar HR Portal</h2>
-                    </div>
-                    <h1 class="auth-title h3">Sign in</h1>
-                </header>
-
+                <!-- Flash Messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                 {% for category, message in messages %}
                 {% if category == 'error' %}
-                <div class="form-flash-error" id="formFlashError" role="alert">
+                <div class="auth-alert auth-alert-error" role="alert">
+                    <i class="fas fa-exclamation-circle"></i>
                     {{ message }}
                 </div>
                 {% endif %}
@@ -330,48 +37,51 @@
                 {% endif %}
                 {% endwith %}
 
-                <form method="POST" novalidate>
+                <!-- Login Form -->
+                <form method="POST" novalidate class="auth-form">
                     {{ form.hidden_tag() }}
 
-                    <div class="mb-3">
-                        {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control", placeholder="Username") }}
+                    <div class="auth-form-group">
+                        {{ form.username.label(class="auth-form-label") }}
+                        {{ form.username(class="auth-form-input", placeholder="Enter your username") }}
                         {% if form.username.errors %}
-                        <div class="text-danger small mt-2">
+                        <div class="auth-form-error">
                             {% for error in form.username.errors %}
-                            <div>{{ error }}</div>
+                            <span>{{ error }}</span>
                             {% endfor %}
                         </div>
                         {% endif %}
                     </div>
 
-                    <div class="mb-4">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control", placeholder="Password") }}
+                    <div class="auth-form-group">
+                        {{ form.password.label(class="auth-form-label") }}
+                        {{ form.password(class="auth-form-input", placeholder="Enter your password") }}
                         {% if form.password.errors %}
-                        <div class="text-danger small mt-2">
+                        <div class="auth-form-error">
                             {% for error in form.password.errors %}
-                            <div>{{ error }}</div>
+                            <span>{{ error }}</span>
                             {% endfor %}
                         </div>
                         {% endif %}
                     </div>
 
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary btn-auth-submit") }}
-                    </div>
+                    <button type="submit" class="auth-submit-btn">
+                        Sign In
+                    </button>
                 </form>
 
-                <div class="form-footer">
+                <!-- Footer -->
+                <div class="auth-footer">
                     <span>Need assistance?</span>
-                    <a href="#">Contact support</a>
+                    <a href="#" class="auth-footer-link">Contact support</a>
                 </div>
 
+                <!-- Dev Tools -->
                 {% if environment == 'development' %}
-                <div class="mt-4 pt-3 border-top">
+                <div class="auth-dev-tools">
                     <form action="{{ url_for('dev.clean_db') }}" method="POST"
                         onsubmit="return confirm('WARNING: This will delete ALL HRM data and reset the database. Proceed?');">
-                        <button type="submit" class="btn btn-outline-danger w-100 btn-sm">
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100">
                             <i class="fas fa-trash-alt me-2"></i>Clean Database (Dev Only)
                         </button>
                     </form>
@@ -383,19 +93,15 @@
 </section>
 
 <script>
+    // Auto-dismiss error alerts
     document.addEventListener('DOMContentLoaded', function () {
-        const flashError = document.getElementById('formFlashError');
-        const autoDismissTime = 5000;
-
-        if (flashError) {
+        const alerts = document.querySelectorAll('.auth-alert-error');
+        alerts.forEach(alert => {
             setTimeout(() => {
-                flashError.style.animation = 'fadeOut 0.3s ease-in-out forwards';
-
-                setTimeout(() => {
-                    flashError.style.display = 'none';
-                }, 300);
-            }, autoDismissTime);
-        }
+                alert.style.animation = 'fadeOut 0.3s ease-in-out forwards';
+                setTimeout(() => alert.remove(), 300);
+            }, 5000);
+        });
     });
 </script>
 {% endblock %}

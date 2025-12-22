@@ -116,7 +116,7 @@
                                             <a href="{{ url_for('employee_group_edit', group_id=group.id) }}" class="btn btn-outline-primary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form method="POST" action="{{ url_for('employee_group_delete', group_id=group.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this employee group?');">
+                                            <form method="POST" action="{{ url_for('employee_group_delete', group_id=group.id) }}" onsubmit="return confirm('Are you sure you want to delete this employee group?');">
                                                 <button type="submit" class="btn btn-outline-danger" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>

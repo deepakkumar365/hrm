@@ -46,7 +46,7 @@
                                 </select>
                                 <div class="invalid-feedback">Please select an employee.</div>
                             </div>
-                            <div class="col-md-4" id="employeeInfo" style="display: none;">
+                            <div class="col-md-4" id="employeeInfo">
                                 <label class="form-label">Employee Details</label>
                                 <div class="card bg-light">
                                     <div class="card-body p-2">
@@ -337,47 +337,7 @@
             </form>
         </div>
     </div>
-</div>
-
-<style>
-.rating-group {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 5px;
-}
-
-.rating-group input[type="radio"] {
-    display: none;
-}
-
-.rating-label {
-    cursor: pointer;
-    font-size: 1.5rem;
-    color: #ddd;
-    transition: color 0.2s;
-}
-
-.rating-group input[type="radio"]:checked ~ .rating-label,
-.rating-group .rating-label:hover,
-.rating-group .rating-label.active {
-    color: #F4C542;
-}
-
-.rating-group input[type="radio"]:checked ~ .rating-label ~ .rating-label {
-    color: #ddd;
-}
-
-.action-item {
-    animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-</style>
-
-<script>
+</div><script>
 // Form validation
 (function() {
     'use strict';

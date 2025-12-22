@@ -36,7 +36,7 @@
             <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
                 onclick="openAttendanceModal('Present', {{ today_summary.attendance.present }})">
                 <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.present }}</div>
-                <div class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.05em;">Present</div>
+                <div class="text-secondary small text-uppercase fw-bold">Present</div>
             </div>
         </div>
 
@@ -45,7 +45,7 @@
             <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
                 onclick="openAttendanceModal('Absent', {{ today_summary.attendance.absent }})">
                 <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.absent }}</div>
-                <div class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.05em;">Absent</div>
+                <div class="text-secondary small text-uppercase fw-bold">Absent</div>
             </div>
         </div>
 
@@ -54,7 +54,7 @@
             <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
                 onclick="openAttendanceModal('Late', {{ today_summary.attendance.late }})">
                 <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.late }}</div>
-                <div class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.05em;">Late</div>
+                <div class="text-secondary small text-uppercase fw-bold">Late</div>
             </div>
         </div>
 
@@ -63,7 +63,7 @@
             <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
                 onclick="openAttendanceModal('leaves', {{ today_summary.leaves }})">
                 <div class="h2 fw-bold text-info mb-1">{{ today_summary.leaves }}</div>
-                <div class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.05em;">On Leave</div>
+                <div class="text-secondary small text-uppercase fw-bold">On Leave</div>
             </div>
         </div>
     </div>
@@ -77,7 +77,7 @@
                 <i class="fas fa-check-circle text-primary fs-4 mb-2"></i>
                 <div class="small fw-bold text-center">OT Approval (HR)</div>
                 {% if mtd_ot.pending_approvals > 0 %}
-                <div class="badge bg-danger rounded-pill mt-1" style="font-size: 0.65rem;">{{ mtd_ot.pending_approvals
+                <div class="badge bg-danger rounded-pill mt-1">{{ mtd_ot.pending_approvals
                     }} Pending</div>
                 {% endif %}
             </a>

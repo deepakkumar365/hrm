@@ -181,7 +181,7 @@
                             <td class="fw-semibold">{{ leave.days_requested }}</td>
                             <td>
                                 {% if leave.reason %}
-                                <span class="text-truncate" style="max-width: 200px;" title="{{ leave.reason }}">
+                                <span class="text-truncate" title="{{ leave.reason }}">
                                     {{ leave.reason[:50] }}{{ '...' if leave.reason|length > 50 else '' }}
                                 </span>
                                 {% else %}

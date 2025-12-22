@@ -3681,134 +3681,267 @@ textarea.form-control.is-valid:focus {
     padding: 0.8rem;
 }
 
-/* ===== SIDEBAR NAVIGATION ===== */
+/* ===== RAIL SIDEBAR NAVIGATION (Minimalistic & Compact) ===== */
 .sidebar {
     position: fixed;
     top: var(--header-height);
     left: 0;
     bottom: 0;
-    width: var(--sidebar-width);
-    background-color: var(--primary-800);
-    overflow-y: auto;
+    width: 70px;
+    /* Compact rail width */
+    background-color: var(--primary-900);
+    /* Dark navy */
     z-index: 1020;
-    transition: transform var(--transition-base);
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-    color: var(--white);
-}
-
-.sidebar-nav {
-    padding: 1.5rem 1rem;
+    transition: width var(--transition-fast);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    /* Subtle shadow */
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    overflow: visible;
+    /* Allow flyouts to overflow */
 }
 
-/* Sidebar Links */
+/* Scrollable area within rail */
+.sidebar-nav {
+    padding: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow: visible;
+    /* Crucial for flyouts */
+    height: auto;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    display: none;
+}
+
+/* Sidebar Link Item */
 .sidebar-link {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: 0.75rem 1rem;
-    color: var(--grey-300);
+    justify-content: center;
+    height: 64px;
+    /* fixed square-ish touch target */
+    width: 60px;
+    margin: 0 auto;
+    color: rgba(255, 255, 255, 0.6);
     text-decoration: none;
     border-radius: var(--radius-md);
-    font-weight: var(--font-weight-medium);
     transition: all var(--transition-fast);
+    position: relative;
+    /* For tooltip/flyout positioning */
 }
 
 .sidebar-link:hover,
-.sidebar-link:focus {
+.sidebar-link:focus,
+.sidebar-link.active {
     background-color: rgba(255, 255, 255, 0.1);
     color: var(--white);
-    transform: translateX(4px);
 }
 
 .sidebar-link.active {
     background-color: var(--primary-600);
-    color: var(--white);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    /* Active accent */
+    box-shadow: 0 4px 12px rgba(30, 78, 216, 0.3);
 }
 
+/* Icon Styling */
 .sidebar-link i {
-    width: 24px;
-    margin-right: 0.75rem;
-    text-align: center;
-    font-size: 1.1rem;
+    font-size: 1.25rem;
+    margin: 0;
+    margin-bottom: 4px;
+    display: block;
 }
 
-/* Sidebar Dropdowns (Accordion style) */
+/* Text Label (Small under icon or hidden) */
+/* For very compact rail, we can hide text or show it very small */
+.sidebar-link span {
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+/* Hide chevron arrows in rail mode */
+.sidebar-link::after {
+    display: none;
+}
+
+/* Hide group titles in rail mode */
 .sidebar-group-title {
-    color: var(--grey-500);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-    margin: 1.5rem 0 0.5rem 1rem;
+    display: none;
 }
 
+/* ===== FLYOUT MENUS (The "Minimalistic" Magic) ===== */
+
+/* Wrapper for hover detection */
+.nav-group {
+    position: relative;
+    width: 100%;
+}
+
+/* Submenu container - hidden by default */
 .sidebar-submenu {
-    padding-left: 1.5rem;
-    list-style: none;
+    position: absolute;
+    top: 5px;
+    left: 70px;
+    /* Match sidebar width */
+    width: 240px;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    box-shadow: 4px 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-10px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1030;
+    clip-path: inset(-20px -20px -20px 0);
+    /* Prevent shadow clipping on left */
 }
 
+/* Show submenu on hover of the group */
+.nav-group:hover .sidebar-submenu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+/* Fix for bottom items: Open upwards to avoid being cut off */
+.nav-group:nth-last-child(-n+3) .sidebar-submenu {
+    top: auto;
+    bottom: 0;
+    transform-origin: bottom left;
+    clip-path: inset(-20px -20px -20px 0);
+    /* Ensure shadow still works */
+}
+
+/* Header inside flyout (Existing sidebar link text can be repurposed here) */
+.sidebar-submenu-header {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    color: var(--primary-900);
+    font-size: 0.95rem;
+    background: var(--grey-50);
+    display: block;
+    /* Ensure it's visible */
+}
+
+/* Submenu Links */
 .sidebar-submenu .nav-link {
-    padding: 0.5rem 1rem;
-    color: var(--grey-400);
+    padding: 0.6rem 1.25rem;
+    color: var(--text-secondary);
     font-size: 0.9rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
 }
 
 .sidebar-submenu .nav-link:hover {
-    color: var(--white);
-    background: transparent;
+    color: var(--primary-600);
+    background: var(--grey-50);
+    padding-left: 1.5rem;
+    /* Subtle slide effect */
 }
 
 .sidebar-submenu .nav-link.active {
-    color: var(--white);
+    color: var(--primary-600);
     font-weight: 600;
+    background: rgba(37, 99, 235, 0.05);
+    /* Very light blue */
 }
 
-/* Collapsible Menu Toggles */
-.sidebar-link[data-bs-toggle="collapse"] {
-    justify-content: space-between;
+/* Sidebar Footer (Collapsed) */
+.sidebar-footer {
+    display: none;
+    /* Hide footer in rail mode to keep it clean */
 }
 
-.sidebar-link[data-bs-toggle="collapse"]::after {
-    content: '\f107';
-    /* FontAwesome chevron-down */
-    font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-    transition: transform var(--transition-fast);
-}
-
-.sidebar-link[aria-expanded="true"]::after {
-    transform: rotate(180deg);
-}
-
-/* Layout Adjustments */
+/* Page Container Adjustment */
 .page-container {
-    transition: margin-left var(--transition-base);
-    margin-left: var(--sidebar-width);
+    margin-left: 70px;
+    /* Match sidebar width */
     width: auto;
-    /* Allow it to fill remaining space */
+    transition: margin-left var(--transition-fast);
 }
 
-/* Navbar adjustments */
-.navbar {
-    z-index: 1030;
-    /* Above sidebar */
-}
-
-/* Responsive Styles */
+/* Responsive: Mobile Drawer */
 @media (max-width: 991.98px) {
     .sidebar {
+        width: 260px;
+        /* Full width on mobile when open */
         transform: translateX(-100%);
-        /* Hide by default on mobile */
+        box-shadow: none;
     }
 
     .sidebar.show {
         transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar-nav {
+        align-items: stretch;
+        /* Full width items */
+    }
+
+    .sidebar-link {
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 0 1.5rem;
+        width: 100%;
+        height: 50px;
+        color: rgba(255, 255, 255, 0.8);
+        border-radius: 0;
+    }
+
+    .sidebar-link i {
+        margin-right: 1rem;
+        margin-bottom: 0;
+    }
+
+    .sidebar-link span {
+        font-size: 0.95rem;
+    }
+
+    /* Reset flyout for mobile (Accordion style) */
+    .sidebar-submenu {
+        position: static;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+        background: rgba(0, 0, 0, 0.1);
+        /* Darker inner bg */
+        border-radius: 0;
+        padding: 0;
+        clip-path: none;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        display: none;
+        /* Controlled by JS or CSS toggle */
+    }
+
+    /* We might need JS for mobile collapse again, or just show all.
+       For simplicity in this CSS-only pass, let's auto-expand or keep as is.
+       Actually, standard "Collapse" works best on mobile.
+       But we removed 'data-bs-toggle' in plan?
+       We will keep data-bs-toggle for mobile ONLY? No, conflicting logic.
+       Let's stick to hover on Desktop. Mobile needs a different approach.
+       For now, let's display submenus always on mobile or use a simple toggle.
+       Let's make .nav-group:active show it?
+    */
+    .nav-group.active .sidebar-submenu {
+        display: block;
     }
 
     .page-container {
@@ -3877,4 +4010,348 @@ textarea.form-control.is-valid:focus {
 .profile-card-footer {
     padding-top: 16px;
     margin-top: 16px;
+}
+
+/* ========================================================================
+   ZOHO-STYLE LOGIN PAGE REDESIGN
+   Clean, modern authentication page with illustration on left, form on right
+   ======================================================================== */
+
+/* Auth Wrapper - Full Page Container */
+.auth-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F5F7FA;
+    padding: 0;
+    /* Remove padding, use margins on shell instead */
+    box-sizing: border-box;
+}
+
+.auth-shell {
+    width: 100%;
+    max-width: 450px;
+    /* Narrower width for single-column form */
+    max-height: fit-content;
+    /* Allow content to determine height, no scrolling */
+    background: #FFFFFF;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    /* Slightly darker shadow for better visibility */
+    border-radius: 12px;
+    overflow: visible;
+    /* No scrolling needed */
+    display: block;
+    /* Changed from flex since we removed the two-column layout */
+    margin: 2rem;
+    /* Add margin for spacing on all sides */
+}
+
+.auth-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    height: 100%;
+}
+
+/* Left Panel - Illustration/Visual */
+.auth-visual {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-visual::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    animation: rotate 30s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.auth-visual-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    color: white;
+}
+
+.auth-illustration {
+    margin-bottom: 2rem;
+}
+
+.auth-illustration img {
+    max-width: 100%;
+    height: auto;
+    max-height: 300px;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.auth-visual-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: white;
+}
+
+.auth-visual-description {
+    font-size: 1rem;
+    line-height: 1.6;
+    opacity: 0.95;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Right Panel - Login Form */
+.auth-form-panel {
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-form-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 1.5rem 2rem;
+    /* Minimal padding */
+}
+
+/* Logo */
+.auth-logo {
+    margin-bottom: 1rem;
+    /* Minimal spacing */
+    text-align: center;
+}
+
+.auth-logo img {
+    height: 48px;
+    width: auto;
+}
+
+/* Header */
+.auth-header {
+    margin-bottom: 1rem;
+    /* Minimal spacing */
+    text-align: center;
+}
+
+.auth-heading {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 0.25rem 0;
+    line-height: 1.2;
+}
+
+.auth-subheading {
+    font-size: 0.95rem;
+    color: #666666;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Alert Messages */
+.auth-alert {
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    animation: slideIn 0.3s ease-out;
+}
+
+.auth-alert-error {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FEE2E2;
+}
+
+.auth-alert i {
+    font-size: 1rem;
+}
+
+/* Form Styling */
+.auth-form {
+    margin-bottom: 1.5rem;
+}
+
+.auth-form-group {
+    margin-bottom: 1rem;
+    /* Reduced spacing between form fields */
+}
+
+.auth-form-label {
+    display: block;
+    width: 100%;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+.auth-form-input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.9375rem;
+    color: #1a1a1a;
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.auth-form-input:focus {
+    outline: none;
+    background: #FFFFFF;
+    border-color: #0078D4;
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.auth-form-input::placeholder {
+    color: #9CA3AF;
+}
+
+.auth-form-error {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: #DC2626;
+}
+
+/* Submit Button - Zoho Blue */
+.auth-submit-btn {
+    width: 100%;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    background: #0078D4;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    margin-top: 0.5rem;
+    text-align: center;
+    /* Center button text */
+    box-shadow: 0 2px 8px rgba(0, 120, 212, 0.2);
+}
+
+.auth-submit-btn:hover {
+    background: #006ABD;
+    box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+    transform: translateY(-1px);
+}
+
+.auth-submit-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 120, 212, 0.2);
+}
+
+/* Footer */
+.auth-footer {
+    border-top: 1px solid #E5E7EB;
+    text-align: center;
+    font-size: 0.875rem;
+    color: #666666;
+}
+
+.auth-footer-link {
+    color: #0078D4;
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 0.25rem;
+}
+
+.auth-footer-link:hover {
+    text-decoration: underline;
+}
+
+/* Dev Tools */
+.auth-dev-tools {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+/* Responsive Design */
+@media (max-width: 991.98px) {
+    .auth-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-visual {
+        display: none;
+    }
+
+    .auth-shell {
+        min-height: auto;
+        margin: 1rem;
+    }
+
+    .auth-form-panel {
+        padding: 2rem 1.5rem;
+    }
+
+    .auth-wrapper {
+        padding: 0;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .auth-form-panel {
+        padding: 1.5rem 1rem;
+    }
+
+    .auth-heading {
+        font-size: 1.75rem;
+    }
+
+    .auth-logo {
+        margin-bottom: 2rem;
+    }
+
+    .auth-header {
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Hide navbar on login/auth pages */
+body:has(.auth-wrapper) .navbar,
+body:has(.auth-wrapper) nav {
+    display: none !important;
+}
+
+body:has(.auth-wrapper) {
+    padding-top: 0 !important;
+}
+
+/* Remove sidebar offset for auth pages */
+body:has(.auth-wrapper) .page-container {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
 }

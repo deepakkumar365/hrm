@@ -34,8 +34,7 @@
         <div class="col-span-3">
             <div class="card h-100 p-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="rounded bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
-                        style="width: 48px; height: 48px; font-size: 1.5rem;">
+                    <div class="rounded bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center">
                         <i class="fas fa-users"></i>
                     </div>
                     <div>
@@ -53,8 +52,7 @@
         <div class="col-span-3">
             <div class="card h-100 p-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="rounded bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
-                        style="width: 48px; height: 48px; font-size: 1.5rem;">
+                    <div class="rounded bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center">
                         <i class="fas fa-money-bill-wave"></i>
                     </div>
                     <div>
@@ -72,8 +70,7 @@
         <div class="col-span-3">
             <div class="card h-100 p-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="rounded bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center"
-                        style="width: 48px; height: 48px; font-size: 1.5rem;">
+                    <div class="rounded bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center">
                         <i class="fas fa-calendar-check"></i>
                     </div>
                     <div>
@@ -91,8 +88,7 @@
         <div class="col-span-3">
             <div class="card h-100 p-3">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="rounded bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center"
-                        style="width: 48px; height: 48px; font-size: 1.5rem;">
+                    <div class="rounded bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center">
                         <i class="fas fa-calendar-times"></i>
                     </div>
                     <div>
@@ -250,7 +246,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-5">
-                        <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                        <i class="fas fa-check-circle text-success"></i>
                         <p class="text-muted mt-3">No pending leave requests</p>
                         <p class="text-muted small">All leave requests have been processed</p>
                     </div>
@@ -276,28 +272,28 @@
                         <div class="col-md-3">
                             <div class="text-center p-3 bg-success bg-opacity-10 rounded">
                                 <div class="text-muted small mb-2">Total Attendance Records</div>
-                                <div class="fw-bold text-success" style="font-size: 2rem;">{{ stats.total_attendance }}
+                                <div class="fw-bold text-success">{{ stats.total_attendance }}
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
                                 <div class="text-muted small mb-2">Attendance Rate</div>
-                                <div class="fw-bold text-primary" style="font-size: 2rem;">{{ stats.attendance_rate }}%
+                                <div class="fw-bold text-primary">{{ stats.attendance_rate }}%
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
                                 <div class="text-muted small mb-2">Approved Leaves</div>
-                                <div class="fw-bold text-warning" style="font-size: 2rem;">{{
+                                <div class="fw-bold text-warning">{{
                                     stats.approved_leaves_month }}</div>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="text-center p-3 bg-info bg-opacity-10 rounded">
                                 <div class="text-muted small mb-2">Active Employees</div>
-                                <div class="fw-bold text-info" style="font-size: 2rem;">{{ stats.total_employees }}
+                                <div class="fw-bold text-info">{{ stats.total_employees }}
                                 </div>
                             </div>
                         </div>

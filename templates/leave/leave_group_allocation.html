@@ -59,7 +59,7 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('leave_group_allocation_delete', group_id=group.id, allocation_id=alloc.id) }}" style="display: inline;" onsubmit="return confirm('Remove this leave type from the group?');">
+                                        <form method="POST" action="{{ url_for('leave_group_allocation_delete', group_id=group.id, allocation_id=alloc.id) }}" onsubmit="return confirm('Remove this leave type from the group?');">
                                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>

@@ -3,7 +3,7 @@
 {% block title %}Employee Bulk Upload - Nexar{% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="max-height: calc(100vh - 120px); overflow-y: auto;">
+<div class="container-fluid">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
@@ -159,28 +159,4 @@ document.getElementById('excel_file').addEventListener('change', function(e) {
         }
     }
 });
-</script>
-
-<style>
-.card {
-    transition: transform 0.2s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-}
-
-.fa-4x {
-    font-size: 4rem;
-}
-
-.btn-lg {
-    padding: 12px 30px;
-    font-size: 1.1rem;
-}
-
-ul {
-    line-height: 1.8;
-}
-</style>
-{% endblock %}
+</script>{% endblock %}

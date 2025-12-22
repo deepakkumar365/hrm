@@ -3,788 +3,224 @@
 {% block title %}Dashboard - Nexar{% endblock %}
 
 {% block head %}
-<style>
-    /* :root values inherited from styles.css */
-
-    * {
-        box-sizing: border-box;
-    }
-
-    .dashboard-wrapper {
-        background: #f8f9fa;
-        min-height: calc(100vh - 70px);
-        padding: 0.6rem 1rem;
-    }
-
-    /* ============= Header Section ============= */
-    .dashboard-header {
-        background: white;
-        color: var(--dark);
-        padding: 1rem 1.5rem;
-        border-radius: 16px;
-        margin-bottom: 0.5rem;
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
-        animation: slideDown 0.5s ease-out;
-        border-left: 4px solid var(--primary);
-    }
-
-    .dashboard-header h1 {
-        font-size: 1.3rem;
-        font-weight: 700;
-        margin: 0 0 0.2rem 0;
-        letter-spacing: -0.5px;
-    }
-
-    .dashboard-header p {
-        font-size: 0.8rem;
-        opacity: 0.7;
-        margin: 0;
-    }
-
-    /* ============= Quick Actions Grid ============= */
-    .quick-actions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 0.8rem;
-        margin-bottom: 1rem;
-    }
-
-    .quick-action-btn {
-        background: white;
-        border: 2px solid transparent;
-        padding: 1.2rem;
-        border-radius: 12px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        text-decoration: none;
-        color: var(--dark);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-
-    .quick-action-btn:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-        border-color: var(--primary);
-    }
-
-    .quick-action-btn i {
-        font-size: 1.8rem;
-        color: var(--primary);
-    }
-
-    /* ============= Main Content Grid ============= */
-    .dashboard-main {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .dashboard-card {
-        background: white;
-        border-radius: 14px;
-        overflow: hidden;
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-        animation: fadeInUp 0.6s ease-out;
-        border-left: 4px solid var(--primary);
-        cursor: pointer;
-    }
-
-    .dashboard-card:hover {
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-    }
-
-    .card-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #f5faf9 100%);
-        padding: 0.8rem 1rem;
-        border-bottom: 1px solid #e9ecef;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-    }
-
-    .card-header i {
-        font-size: 1rem;
-        color: #008080;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 128, 128, 0.1);
-        border-radius: 6px;
-    }
-
-    .card-title {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--dark);
-        margin: 0;
-    }
-
-    .card-body {
-        padding: 0.6rem 0.8rem;
-        background: white;
-    }
-
-    /* ============= Quick Attendance ============= */
-    .attendance-buttons-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.5rem;
-    }
-
-    .attendance-btn {
-        padding: 0.6rem 0.2rem;
-        border: none;
-        border-left: 4px solid transparent;
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 0.6rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0.2rem;
-        color: var(--dark);
-        background: white;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-        min-height: 55px;
-    }
-
-    .attendance-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
-    }
-
-    .attendance-btn i {
-        font-size: 1.4rem;
-    }
-
-    .btn-clock-in {
-        border-left-color: var(--primary);
-    }
-
-    .btn-clock-in i {
-        color: var(--primary);
-    }
-
-    .btn-clock-out {
-        border-left-color: var(--danger);
-    }
-
-    .btn-clock-out i {
-        color: var(--danger);
-    }
-
-    .btn-break-in {
-        border-left-color: var(--warning);
-    }
-
-    .btn-break-in i {
-        color: var(--warning);
-    }
-
-    .btn-break-out {
-        border-left-color: var(--info);
-    }
-
-    .btn-break-out i {
-        color: var(--info);
-    }
-
-    /* ============= Recent Attendance Record ============= */
-    .recent-attendance-section {
-        margin-top: 0.8rem;
-        padding-top: 0.8rem;
-        border-top: 1px solid #e9ecef;
-    }
-
-    .recent-attendance-label {
-        font-size: 0.65rem;
-        color: #999;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        margin-bottom: 0.4rem;
-        display: block;
-    }
-
-    .recent-attendance-grid {
-        display: grid;
-        grid-template-columns: 1fr 1.2fr;
-        gap: 0.5rem;
-        font-size: 0.75rem;
-    }
-
-    .recent-attendance-item {
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-    }
-
-    .recent-attendance-label-small {
-        font-size: 0.6rem;
-        color: #bbb;
-        font-weight: 600;
-    }
-
-    .recent-attendance-value {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--dark);
-    }
-
-    .recent-attendance-status {
-        padding: 0.3rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.65rem;
-        font-weight: 600;
-        text-align: center;
-        color: white;
-    }
-
-    .status-clock-in {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .status-clock-out {
-        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    }
-
-    .status-break-start {
-        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-    }
-
-    .status-break-end {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-    }
-
-    .status-no-record {
-        background: #bbb;
-        font-size: 0.65rem;
-        padding: 0.2rem 0.4rem;
-    }
-
-    /* ============= Stats Section ============= */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
-        margin-bottom: 1.2rem;
-    }
-
-    .stat-card {
-        background: white;
-        padding: 1rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-        border-left: 4px solid var(--primary);
-        border-top: none;
-        border-right: none;
-        border-bottom: none;
-        animation: fadeInUp 0.6s ease-out;
-        cursor: pointer;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-    }
-
-    .stat-card.success {
-        border-left-color: var(--success);
-    }
-
-    .stat-card.warning {
-        border-left-color: var(--warning);
-    }
-
-    .stat-card.danger {
-        border-left-color: var(--danger);
-    }
-
-    .stat-card-header {
-        display: flex;
-        align-items: center;
-        gap: 0.7rem;
-        margin-bottom: 0.6rem;
-    }
-
-    .stat-card-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.4rem;
-        color: white;
-        flex-shrink: 0;
-        position: relative;
-        z-index: 10;
-    }
-
-    .stat-card-icon i {
-        z-index: 11;
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .stat-card-icon.primary {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    }
-
-    .stat-card-icon.success {
-        background: linear-gradient(135deg, var(--success) 0%, #2f855a 100%);
-    }
-
-    .stat-card-icon.warning {
-        background: linear-gradient(135deg, var(--warning) 0%, #c05621 100%);
-    }
-
-    .stat-card-icon.danger {
-        background: linear-gradient(135deg, var(--danger) 0%, #c53030 100%);
-    }
-
-    .stat-card-label {
-        font-size: 0.7rem;
-        color: #999;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-
-    .stat-card-value {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--dark);
-    }
-
-    .stat-card-action {
-        display: inline-block;
-        margin-top: 0.8rem;
-        font-size: 0.85rem;
-        color: var(--primary);
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .stat-card-action:hover {
-        color: var(--primary-dark);
-        transform: translateX(2px);
-    }
-
-    /* ============= Events Section ============= */
-    .events-container {
-        background: white;
-        border-radius: 14px;
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
-        overflow: hidden;
-        animation: fadeInUp 0.7s ease-out;
-        border-left: 4px solid var(--primary);
-    }
-
-    .events-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #f5faf9 100%);
-        padding: 0.8rem 1rem;
-        border-bottom: 1px solid #e9ecef;
-    }
-
-    .events-header h3 {
-        margin: 0;
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #008080;
-    }
-
-    .events-list {
-        padding: 0;
-        margin: 0;
-        list-style: none;
-        max-height: 160px;
-        overflow-y: auto;
-    }
-
-    .event-item {
-        padding: 0.5rem 0.6rem;
-        border-bottom: 1px solid #f0f0f0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .event-item:last-child {
-        border-bottom: none;
-    }
-
-    .event-item:hover {
-        background-color: #f9f9f9;
-    }
-
-    .event-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.9rem;
-        flex-shrink: 0;
-    }
-
-    .event-content {
-        flex: 1;
-    }
-
-    .event-title {
-        font-weight: 600;
-        color: var(--dark);
-        font-size: 0.8rem;
-        margin: 0 0 0.05rem 0;
-    }
-
-    .event-time {
-        font-size: 0.7rem;
-        color: #999;
-        margin: 0;
-    }
-
-    /* ============= Animations ============= */
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* ============= Responsive Design ============= */
-    @media (max-width: 1200px) {
-        .dashboard-main {
-            grid-template-columns: 1fr;
-        }
-
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .attendance-buttons-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .events-list {
-            max-height: 250px;
-        }
-    }
-
-    @media (max-width: 768px) {
-        .dashboard-wrapper {
-            padding: 0.8rem;
-        }
-
-        .dashboard-header {
-            padding: 0.8rem 1rem;
-            margin-bottom: 0.8rem;
-        }
-
-        .dashboard-header h1 {
-            font-size: 1.1rem;
-        }
-
-        .dashboard-header p {
-            font-size: 0.7rem;
-        }
-
-        .quick-actions-grid {
-            grid-template-columns: repeat(2, 1fr);
-            margin-bottom: 0.8rem;
-        }
-
-        .quick-action-btn {
-            padding: 0.8rem;
-            font-size: 0.8rem;
-        }
-
-        .quick-action-btn i {
-            font-size: 1.4rem;
-        }
-
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.8rem;
-            margin-bottom: 0.8rem;
-        }
-
-        .stat-card {
-            padding: 0.8rem;
-        }
-
-        .stat-card-icon {
-            width: 35px;
-            height: 35px;
-            font-size: 1rem;
-        }
-
-        .stat-card-value {
-            font-size: 0.95rem;
-        }
-
-        .attendance-buttons-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.8rem;
-        }
-
-        .attendance-btn {
-            min-height: 80px;
-            padding: 0.8rem 0.3rem;
-            font-size: 0.7rem;
-        }
-
-        .attendance-btn i {
-            font-size: 1.4rem;
-        }
-
-        .event-item {
-            padding: 0.6rem 1rem;
-            gap: 0.6rem;
-        }
-
-        .event-icon {
-            width: 30px;
-            height: 30px;
-            font-size: 0.9rem;
-        }
-
-        .event-title {
-            font-size: 0.8rem;
-        }
-
-        .event-time {
-            font-size: 0.7rem;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modern-dashboard.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-wrapper">
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
-        <h1 class="d-flex align-items-center gap-2">
-            <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Icon" height="28">
-            Welcome back, {{ current_user.first_name or 'Team Member' }}!
-        </h1>
-        <p>{{ "{:%A, %B %d, %Y}".format(now) if now else "Have a productive day!" }}</p>
+<div class="dashboard-container">
+    <!-- Navigation Tabs -->
+    <div class="dashboard-nav-tabs">
+        <a href="#" class="dashboard-nav-link active">Dashboard</a>
+        <a href="{{ url_for('leave_request') }}" class="dashboard-nav-link">Leave</a>
+        <a href="{{ url_for('attendance_list_view') }}" class="dashboard-nav-link">Attendance</a>
+        <a href="#" class="dashboard-nav-link">Calendar</a>
+        {% if current_user.role.name == 'Manager' or current_user.role.name == 'Admin' %}
+        <a href="#" class="dashboard-nav-link">Team</a>
+        {% endif %}
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions-grid">
-        <a href="{{ url_for('attendance_list_view') }}" class="quick-action-btn">
-            <i class="fas fa-calendar-check"></i>
-            View Attendance
-        </a>
-        <a href="{{ url_for('leave_request') }}" class="quick-action-btn">
-            <i class="fas fa-plane-departure"></i>
-            Leave Requests
-        </a>
-        <a href="{{ url_for('documents_list') }}" class="quick-action-btn">
-            <i class="fas fa-file-invoice-dollar"></i>
-            Payslips
-        </a>
-        <a href="{{ url_for('mark_ot_attendance') }}" class="quick-action-btn">
-            <i class="fas fa-hourglass-end"></i>
-            Mark OT
-        </a>
-    </div>
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+        <!-- Column 1: Profile & Announcements -->
+        <div class="grid-col-1 d-flex flex-column gap-3">
+            <!-- Profile Card -->
+            <div class="dash-card profile-card">
+                <div class="dash-card-header">
+                    <span>My Profile</span>
+                    <i class="fas fa-id-badge"></i>
+                </div>
+                <div class="profile-card-content">
+                    <div class="profile-info-row">
+                        <div class="profile-avatar">
+                            {% if current_user.employee_profile and current_user.employee_profile.profile_image_path %}
+                            <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}"
+                                alt="Profile">
+                            {% else %}
+                            <i class="fas fa-user"></i>
+                            {% endif %}
+                        </div>
+                        <div class="profile-details">
+                            <h4>{{ current_user.full_name }}</h4>
+                            <p>{{ current_user.employee_profile.designation.name if current_user.employee_profile and
+                                current_user.employee_profile.designation else current_user.role.name }}</p>
 
-    <!-- Main Content: Attendance & Events -->
-    <div class="dashboard-main">
-        <!-- Quick Attendance Panel -->
-        <div class="dashboard-card">
-            <div class="card-header">
-                <i class="fas fa-clock"></i>
-                <h3 class="card-title">Quick Attendance</h3>
+                            {% if current_user.employee_profile %}
+                            <div class="profile-meta">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>{{ current_user.employee_profile.location or 'Main Office' }}</span>
+                            </div>
+                            <div class="profile-meta">
+                                <i class="fas fa-phone"></i>
+                                <span>{{ current_user.employee_profile.phone or 'No phone number' }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('attendance_mark') }}" id="attendance-form">
-                    <div class="attendance-buttons-grid">
-                        <button type="submit" name="action" value="clock_in" class="attendance-btn btn-clock-in">
-                            <i class="fas fa-sign-in-alt"></i> Clock In
-                        </button>
-                        <button type="submit" name="action" value="clock_out" class="attendance-btn btn-clock-out">
-                            <i class="fas fa-sign-out-alt"></i> Clock Out
-                        </button>
-                        <button type="submit" name="action" value="break_start" class="attendance-btn btn-break-in">
-                            <i class="fas fa-pause"></i> Break In
-                        </button>
-                        <button type="submit" name="action" value="break_end" class="attendance-btn btn-break-out">
-                            <i class="fas fa-play"></i> Break Out
-                        </button>
-                    </div>
-                </form>
 
-                <!-- Recent Attendance Record -->
-                {% if recent_attendance %}
-                <div class="recent-attendance-section">
-                    <span class="recent-attendance-label">Last Record</span>
-                    <div class="recent-attendance-grid">
-                        <div class="recent-attendance-item">
-                            <span class="recent-attendance-label-small">DATE</span>
-                            <span class="recent-attendance-value">{{ recent_attendance.date.strftime('%d %b %Y') if
-                                recent_attendance.date else 'N/A' }}</span>
-                        </div>
-                        <div class="recent-attendance-item">
-                            <span class="recent-attendance-label-small">STATUS</span>
-                            {% if recent_attendance.clock_in %}
-                            {% if recent_attendance.break_end %}
-                            <span class="recent-attendance-status status-break-end">Break Ended</span>
-                            {% elif recent_attendance.break_start %}
-                            <span class="recent-attendance-status status-break-start">On Break</span>
-                            {% elif recent_attendance.clock_out %}
-                            <span class="recent-attendance-status status-clock-out">Clocked Out</span>
-                            {% else %}
-                            <span class="recent-attendance-status status-clock-in">Clocked In</span>
-                            {% endif %}
-                            {% else %}
-                            <span class="recent-attendance-status status-no-record">No Record</span>
-                            {% endif %}
-                        </div>
+            <!-- Announcements Card -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <span>Announcements</span>
+                    <i class="fas fa-bullhorn"></i>
+                </div>
+                <div class="empty-state">
+                    No Announcement
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 2: Favorites & Leave Report -->
+        <div class="grid-col-2 d-flex flex-column gap-3">
+            <!-- Favorites Card -->
+            <div class="dash-card" style="min-height: 200px;">
+                <div class="dash-card-header">
+                    <span>Favorites</span>
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="empty-state">
+                    No Favorites found.
+                </div>
+            </div>
+
+            <!-- Leave Report Card -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <span>Leave Report</span>
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="d-flex flex-column">
+                    <div class="stat-row">
+                        <span class="stat-label">Annual Leave</span>
+                        <span class="stat-value">{{ stats.annual_leave_balance|int }} Days</span>
                     </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Sick Leave</span>
+                        <span class="stat-value">{{ stats.sick_leave_balance|int }} Days</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Comp Off</span>
+                        <span class="stat-value">{{ stats.comp_off_balance|int }} Days</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Absent</span>
+                        <span class="stat-value">{{ stats.absent_days if stats.absent_days is defined else 0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 3: Quick Links & Holidays -->
+        <div class="grid-col-3 d-flex flex-column gap-3">
+            <!-- Quick Links Card -->
+            <div class="dash-card" style="min-height: 200px;">
+                <div class="dash-card-header">
+                    <span>Quick Links</span>
+                    <i class="fas fa-link"></i>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('documents_list') }}" class="btn-action">Payslips</a>
+                    <a href="#" class="btn-action">Policies</a>
+                    <a href="#" class="btn-action">Directory</a>
+                </div>
+            </div>
+
+            <!-- Upcoming Holidays Card -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <span>Upcoming Holidays</span>
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                {% if upcoming_holidays %}
+                <div class="d-flex flex-column">
+                    {% for holiday in upcoming_holidays %}
+                    <div class="stat-row">
+                        <span class="stat-label">{{ holiday.name }}</span>
+                        <span class="holiday-badge">{{ holiday.date.strftime('%b %d') }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    No upcoming holidays
                 </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Events Section -->
-        <div class="events-container">
-            <div class="events-header">
-                <h3>📅 Upcoming Events & Reminders</h3>
+        <!-- Birthday Row (Optional full width or in a column) -->
+        {% if upcoming_birthdays %}
+        <div class="dash-card" style="grid-column: 1 / -1;">
+            <div class="dash-card-header">
+                <span>Upcoming Birthdays</span>
+                <i class="fas fa-birthday-cake"></i>
             </div>
-            <ul class="events-list">
-                <li class="event-item">
-                    <div class="event-icon"
-                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                        <i class="fas fa-calendar"></i>
+            <div class="d-flex gap-3 overflow-auto" style="padding-bottom: 0.5rem;">
+                {% for bday in upcoming_birthdays %}
+                <div class="d-flex align-items-center gap-3 p-3 border rounded-3 bg-white"
+                    style="min-width: 260px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <div class="profile-avatar"
+                        style="width: 48px; height: 48px; font-size: 1.2rem; background: rgba(46, 204, 113, 0.1); color: #2ecc71;">
+                        <i class="fas fa-user"></i>
                     </div>
-                    <div class="event-content">
-                        <p class="event-title">Next Leave Day</p>
-                        <p class="event-time">{{ stats.next_leave_date if stats.next_leave_date is defined else
-                            'December 25, 2024' }}</p>
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.95rem; color: #333;">{{ bday.name }}</div>
+                        <div style="font-size: 0.8rem; color: #777;">{{ bday.date.strftime('%d %b') }} • {{
+                            bday.designation }}</div>
                     </div>
-                </li>
-                <li class="event-item">
-                    <div class="event-icon"
-                        style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: white;">
-                        <i class="fas fa-birthday-cake"></i>
-                    </div>
-                    <div class="event-content">
-                        <p class="event-title">Team Birthday</p>
-                        <p class="event-time">Sarah's birthday - December 22</p>
-                    </div>
-                </li>
-                <li class="event-item">
-                    <div class="event-icon"
-                        style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white;">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div class="event-content">
-                        <p class="event-title">Company Event</p>
-                        <p class="event-time">Year-end celebration - December 30</p>
-                    </div>
-                </li>
-            </ul>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-    </div>
+        {% endif %}
 
-    <!-- Stats Section -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-card-header">
-                <div class="stat-card-icon primary">
-                    <i class="fas fa-file-invoice"></i>
-                </div>
-                <div>
-                    <p class="stat-card-label">Recent Payslip</p>
-                    <p class="stat-card-value">{{ stats.recent_payslip if stats.recent_payslip is defined else 'Dec
-                        2024' }}</p>
-                </div>
+        <!-- Quick Attendance -->
+        <div class="dash-card" style="grid-column: 1 / -1;">
+            <div class="dash-card-header">
+                <span>Quick Attendance</span>
+                <i class="fas fa-clock"></i>
             </div>
-            <a href="{{ url_for('payroll_view') if 'payroll_view' in config.get('routes', []) else '#' }}"
-                class="stat-card-action">View Details →</a>
-        </div>
-
-        <div class="stat-card success">
-            <div class="stat-card-header">
-                <div class="stat-card-icon success">
-                    <i class="fas fa-umbrella-beach"></i>
-                </div>
-                <div>
-                    <p class="stat-card-label">Next Holiday</p>
-                    <p class="stat-card-value">{{ stats.next_holiday if stats.next_holiday is defined else 'Jan 2025' }}
-                    </p>
-                </div>
+            <form method="POST" action="{{ url_for('attendance_mark') }}" id="attendance-form"
+                class="d-flex gap-3 flex-wrap">
+                <button type="submit" name="action" value="clock_in" class="btn-action btn-clock-in">
+                    <i class="fas fa-sign-in-alt"></i> Clock In
+                </button>
+                <button type="submit" name="action" value="clock_out" class="btn-action btn-clock-out">
+                    <i class="fas fa-sign-out-alt"></i> Clock Out
+                </button>
+                <button type="submit" name="action" value="break_start" class="btn-action btn-break">
+                    <i class="fas fa-coffee"></i> Break Start
+                </button>
+                <button type="submit" name="action" value="break_end" class="btn-action btn-break">
+                    <i class="fas fa-play"></i> Break End
+                </button>
+            </form>
+            <!-- Recent Record Text -->
+            {% if recent_attendance %}
+            <div class="mt-3 text-muted small d-flex align-items-center gap-2">
+                <i class="fas fa-history"></i>
+                <span>
+                    {% if recent_attendance.clock_out %}
+                    Last: Clocked Out at {{ recent_attendance.clock_out.strftime('%I:%M %p') }}
+                    {% elif recent_attendance.break_start and not recent_attendance.break_end %}
+                    Status: On Break since {{ recent_attendance.break_start.strftime('%I:%M %p') }}
+                    {% elif recent_attendance.clock_in %}
+                    Status: Clocked In at {{ recent_attendance.clock_in.strftime('%I:%M %p') }}
+                    {% else %}
+                    No activity today
+                    {% endif %}
+                </span>
             </div>
-            <a href="#" class="stat-card-action">View Calendar →</a>
+            {% endif %}
         </div>
 
-        <div class="stat-card warning">
-            <div class="stat-card-header">
-                <div class="stat-card-icon warning">
-                    <i class="fas fa-hourglass-end"></i>
-                </div>
-                <div>
-                    <p class="stat-card-label">Overtime History</p>
-                    <p class="stat-card-value">View Records</p>
-                </div>
+        <!-- Files Footer -->
+        <div class="dashboard-footer">
+            <div class="files-bar">
+                <span style="font-weight: 600;">My Files</span>
+                <span class="badge bg-light text-dark border">Total Files 0</span>
             </div>
-            <a href="{{ url_for('mark_ot_attendance') }}" class="stat-card-action">View History →</a>
-        </div>
-
-        <div class="stat-card danger">
-            <div class="stat-card-header">
-                <div class="stat-card-icon danger">
-                    <i class="fas fa-tasks"></i>
-                </div>
-                <div>
-                    <p class="stat-card-label">Pending Requests</p>
-                    <p class="stat-card-value">{{ stats.pending_requests if stats.pending_requests is defined else '0'
-                        }}</p>
-                </div>
-            </div>
-            <a href="{{ url_for('leave_list') }}" class="stat-card-action">View Requests →</a>
         </div>
     </div>
 </div>
@@ -793,5 +229,6 @@
 {% block scripts %}
 <script>
     // Dashboard scripts
+    console.log('Modern Dashboard Loaded');
 </script>
 {% endblock %}

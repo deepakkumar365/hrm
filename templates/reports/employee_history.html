@@ -47,14 +47,13 @@
                                 <td>{{ emp.employee_id or 'N/A' }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <div style="width: 32px; height: 32px; margin-right: 8px;">
+                                        <div>
                                             {% if emp.profile_image_path %}
                                             <img src="{{ url_for('static', filename=emp.profile_image_path) }}" 
                                                  alt="{{ emp.first_name }}" 
-                                                 class="avatar-image"
-                                                 style="width: 32px; height: 32px;">
+                                                 class="avatar-image">
                                             {% else %}
-                                            <div class="avatar-placeholder" style="font-size: 12px; border: 2px solid white;">
+                                            <div class="avatar-placeholder">
                                                 {{ emp.first_name[0] if emp.first_name else 'E' }}
                                             </div>
                                             {% endif %}

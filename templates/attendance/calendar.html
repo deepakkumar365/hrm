@@ -5,120 +5,7 @@
 {% block head %}
 {{ super() }}
 <!-- FullCalendar CSS -->
-<link href="{{ url_for('static', filename='vendors/fullcalendar/main.min.css') }}" rel="stylesheet">
-<style>
-    .fc-event {
-        cursor: pointer;
-        border: none !important;
-        color: #fff !important;
-        padding: 4px 6px;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .fc-event-main {
-        padding: 2px 4px;
-    }
-
-    .event-present {
-        background-color: #28a745;
-    }
-
-    .event-absent {
-        background-color: #dc3545;
-    }
-
-    .event-leave {
-        background-color: #007bff;
-    }
-
-    .event-wfh {
-        background-color: #6f42c1;
-    }
-
-    .event-half-day {
-        background-color: #ffc107;
-        color: #212529 !important;
-    }
-
-    .event-holiday {
-        background-color: #17a2b8;
-    }
-
-    .event-weekend {
-        background-color: #f8f9fa;
-    }
-
-    .fc-daygrid-day.fc-day-weekend {
-        background-color: #f8f9fa;
-    }
-
-    .fc .fc-daygrid-day-number {
-        padding: 4px 6px;
-    }
-
-    .modal-body p {
-        margin-bottom: 0.5rem;
-    }
-
-    /* New Summary Panel Styles */
-    .summary-panel .card {
-        border-radius: 0.75rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        border: none;
-        margin-bottom: 1.5rem;
-    }
-
-    .summary-panel .card-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #f0f1f5 100%);
-        border-bottom: 1px solid #e9ecef;
-        font-weight: 600;
-        color: #343a40;
-    }
-
-    .summary-panel .stat-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid #f1f1f1;
-    }
-
-    .summary-panel .stat-item:last-child {
-        border-bottom: none;
-    }
-
-    .summary-panel .stat-label {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        color: #6c757d;
-    }
-
-    .summary-panel .stat-value {
-        font-weight: 600;
-        font-size: 1.1rem;
-    }
-
-    .summary-panel .stat-value.present {
-        color: #28a745;
-    }
-
-    .summary-panel .stat-value.absent {
-        color: #dc3545;
-    }
-
-    .summary-panel .stat-value.leave {
-        color: #007bff;
-    }
-
-    .summary-panel .stat-value.hours {
-        color: #6f42c1;
-    }
-</style>
-{% endblock %}
+<link href="{{ url_for('static', filename='vendors/fullcalendar/main.min.css') }}" rel="stylesheet">{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -199,11 +86,11 @@
                     <!-- This is a placeholder. You would loop through upcoming events from your backend -->
                     <div class="stat-item">
                         <span class="stat-label"><i class="fas fa-umbrella-beach text-info"></i>Public Holiday</span>
-                        <span class="stat-value" style="font-size: 0.9rem;">Christmas Day</span>
+                        <span class="stat-value">Christmas Day</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label"><i class="fas fa-plane text-warning"></i>Approved Leave</span>
-                        <span class="stat-value" style="font-size: 0.9rem;">Dec 26 - Dec 28</span>
+                        <span class="stat-value">Dec 26 - Dec 28</span>
                     </div>
                     <div class="text-center text-muted small mt-3">
                         No other upcoming events.
