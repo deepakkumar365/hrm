@@ -66,16 +66,27 @@
 
                 <div class="secondary-action">
                     {% if not today_attendance.break_start %}
-                    <button type="button" class="btn-pill" onclick="submitAction('break_start')">Take Break</button>
-                    {% elif not today_attendance.break_end %}
                     <button type="button" class="btn-pill" onclick="submitAction('break_end')">Resume Work</button>
                     {% endif %}
+                </div>
+                <!-- Extra Action: Register OT -->
+                <div class="secondary-action" style="margin-top: 10px;">
+                    <a href="{{ url_for('mark_ot_attendance') }}" class="btn-pill"
+                        style="text-decoration: none; color: inherit; display: inline-block;">
+                        Register OT
+                    </a>
                 </div>
                 {% else %}
                 <!-- State: Day Completed -->
                 <div class="completion-message">
                     <h2>You're done for today!</h2>
                     <p>Great work. See you tomorrow.</p>
+                </div>
+                <div class="secondary-action" style="margin-top: 15px;">
+                    <a href="{{ url_for('mark_ot_attendance') }}" class="btn-pill"
+                        style="text-decoration: none; color: inherit; display: inline-block;">
+                        Register OT
+                    </a>
                 </div>
                 {% endif %}
             </form>
