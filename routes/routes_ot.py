@@ -900,13 +900,37 @@ def ot_manager_bulk_action():
                     ot_request.status = 'manager_approved'
                     
                     # Create Level 2 Approval (HR)
-                    # Find HR Managers or Tenant Admin
-                    # For simplicity, we create one generic Level 2 record pending 'HR Manager' role
-                    # In a real system, you might assign to a specific HR person.
-                    # Here we just create the record, and the HR dashboard queries by role/company.
+                    # Find HR Manager to assign
+                    hr_approver_id = None
+                    hr_role = Role.query.filter_by(name='HR Manager').first()
+                    if hr_role:
+                        # Find first active HR Manager
+                        hr_user = User.query.filter_by(role_id=hr_role.id, is_active=True).first()
+                        if hr_user:
+                            hr_approver_id = hr_user.id
                     
+                    # Fallback: Tenant Admin
+                    if not hr_approver_id:
+                        admin_role = Role.query.filter_by(name='Tenant Admin').first()
+                        if admin_role:
+                            admin_user = User.query.filter_by(role_id=admin_role.id, is_active=True).first()
+                            if admin_user:
+                                hr_approver_id = admin_user.id
+                    
+                    # Fallback: Super Admin
+                    if not hr_approver_id:
+                        sa_role = Role.query.filter_by(name='Super Admin').first()
+                        if sa_role:
+                            sa_user = User.query.filter_by(role_id=sa_role.id, is_active=True).first()
+                            if sa_user:
+                                hr_approver_id = sa_user.id
+                                
+                    if not hr_approver_id:
+                        raise Exception("Cannot proceed: No valid HR Manager or Admin found to assign next approval level.")
+
                     hr_approval = OTApproval(
                         ot_request_id=ot_request.id,
+                        approver_id=hr_approver_id,
                         approval_level=2,
                         status='pending_hr',
                         comments='Pending HR Approval'

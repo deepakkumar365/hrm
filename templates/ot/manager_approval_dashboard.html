@@ -1,224 +1,622 @@
 {% extends "base.html" %}
 
-{% block title %}Manager OT Approval Dashboard - Nexar{% endblock %}
+{% block title %}OT Manager Approval - Nexar{% endblock %}
 
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+    /* Custom Styles for Dashboard */
+    .dashboard-header {
+        background: white;
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .stat-item {
+        background: var(--bg-muted);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-pending {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+
+    .status-approved {
+        background: #D1FAE5;
+        color: #059669;
+    }
+
+    .status-rejected {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+
+    /* Table & Card Toggle */
+    .desktop-view {
+        display: block;
+    }
+
+    .mobile-view {
+        display: none;
+    }
+
+    @media (max-width: 991px) {
+        .desktop-view {
+            display: none;
+        }
+
+        .mobile-view {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .table-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .bulk-actions-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: none;
+        }
+
+        .bulk-actions-bar.active {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    }
+
+    /* Card Styles for Mobile */
+    .approval-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        position: relative;
+    }
+
+    .card-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .employee-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-100);
+        color: var(--primary-700);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .action-bar {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .action-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* Bulk Selection */
+    .card-select-checkbox {
+        width: 20px;
+        height: 20px;
+    }
+
+    .nav-tabs .nav-link {
+        color: var(--text-secondary);
+        font-weight: 500;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 1rem 1.5rem;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: var(--primary);
+    }
+
+    .nav-tabs .nav-link.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+        background: transparent;
+    }
+
+    /* Floating Bulk Action Bar (Desktop) */
+    .bulk-floating-bar {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--grey-900);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        box-shadow: var(--shadow-xl);
+        z-index: 1000;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .bulk-floating-bar.show {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .selection-text {
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="d-flex align-items-center gap-2">
-            <img src="{{ url_for('static', filename='img/nexar_icon.png') }}" alt="Nexar Icon" height="28">
+
+    <!-- Stats Header -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
             <div>
-                <h1 class="h3 mb-1">OT Manager Approval Dashboard</h1>
-                <p class="text-muted small mb-0">Approve or reject overtime requests from your team</p>
+                <h1 class="h4 mb-1 fw-bold text-dark">OT Manager Approval</h1>
+                <p class="text-muted mb-0">Approve or reject overtime requests from your team.</p>
             </div>
+
+            {% if stats %}
+            <div class="d-flex gap-3">
+                <div class="text-end">
+                    <span class="d-block text-muted small text-uppercase fw-bold ls-1">Pending</span>
+                    <span class="h3 mb-0 fw-bold text-warning">{{ stats.pending or 0 }}</span>
+                </div>
+                <div class="text-end px-3 border-start">
+                    <span class="d-block text-muted small text-uppercase fw-bold ls-1">Approved</span>
+                    <span class="h3 mb-0 fw-bold text-success">{{ stats.approved or 0 }}</span>
+                </div>
+                <div class="text-end px-3 border-start">
+                    <span class="d-block text-muted small text-uppercase fw-bold ls-1">Rejected</span>
+                    <span class="h3 mb-0 fw-bold text-danger">{{ stats.rejected or 0 }}</span>
+                </div>
+            </div>
+            {% endif %}
         </div>
-        {% if pending_approvals.total > 0 %}
-        <div>
-            <span class="badge bg-warning text-dark">
-                {{ pending_approvals.total }} Pending Request{{ 's' if pending_approvals.total != 1 else '' }}
-            </span>
-        </div>
-        {% endif %}
     </div>
 
-    <!-- Statistics -->
-    {% if stats %}
-    <div class="stats-container">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.pending or 0 }}</div>
-            <div class="stat-label">Pending Approvals</div>
+    <!-- Main Content Card -->
+    <div class="card border-0 shadow-sm">
+        <!-- Tabs -->
+        <div class="card-header bg-white border-bottom-0 pb-0 pt-2 px-4">
+            <ul class="nav nav-tabs" id="otTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {{ 'active' if current_tab == 'pending' else '' }}"
+                        href="{{ url_for('ot_manager_approval', status='pending') }}">
+                        <i class="fas fa-clock me-2"></i>Pending Reviews
+                        {% if stats.pending > 0 %}
+                        <span class="badge bg-warning text-dark ms-2 rounded-pill">{{ stats.pending }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {{ 'active' if current_tab == 'history' else '' }}"
+                        href="{{ url_for('ot_manager_approval', status='history') }}">
+                        <i class="fas fa-history me-2"></i>Approval History
+                    </a>
+                </li>
+            </ul>
         </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.approved or 0 }}</div>
-            <div class="stat-label">Approved</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.rejected or 0 }}</div>
-            <div class="stat-label">Rejected</div>
-        </div>
-    </div>
-    {% endif %}
 
-    <!-- Pending Approvals -->
-    {% if pending_approvals.items %}
-    {% for approval in pending_approvals.items %}
-    <div class="approval-card">
-        <!-- Card Header -->
-        <div class="approval-header">
-            <div class="employee-info">
-                <div class="avatar-placeholder">
-                    {{ approval.ot_request.employee.first_name[0] if approval.ot_request.employee.first_name else 'E' }}
+        <div class="card-body p-0">
+            {% if approvals.items %}
+            <form id="bulkActionForm" action="{{ url_for('ot_manager_bulk_action') }}" method="POST">
+                <input type="hidden" name="action" id="bulkActionInput">
+                <input type="hidden" name="approval_ids" id="bulkIdsInput">
+
+                <!-- Desktop Table View -->
+                <div class="desktop-view table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                {% if current_tab == 'pending' %}
+                                <th style="width: 40px;" class="ps-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                            onchange="toggleSelectAll(this)">
+                                    </div>
+                                </th>
+                                {% endif %}
+                                <th class="ps-4">Employee</th>
+                                <th>Date & Type</th>
+                                <th>Hours</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                {% if current_tab == 'pending' %}
+                                <th class="text-end pe-4">Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for approval in approvals.items %}
+                            <tr>
+                                {% if current_tab == 'pending' %}
+                                <td class="ps-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input row-checkbox" type="checkbox"
+                                            value="{{ approval.id }}" onchange="updateSelection()">
+                                    </div>
+                                </td>
+                                {% endif %}
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-3 bg-secondary text-white"
+                                            style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                            {{ approval.ot_request.employee.first_name[0] if
+                                            approval.ot_request.employee.first_name else 'U' }}
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 text-dark fw-semibold">
+                                                {{ approval.ot_request.employee.first_name }} {{
+                                                approval.ot_request.employee.last_name }}
+                                            </h6>
+                                            <span class="text-muted small">
+                                                {{ approval.ot_request.employee.designation.name if
+                                                approval.ot_request.employee.designation else 'Employee' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-medium text-dark">{{ approval.ot_request.ot_date.strftime('%b
+                                            %d, %Y') }}</span>
+                                        <span class="badge bg-light text-secondary border mt-1 w-auto align-self-start">
+                                            {{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else
+                                            'General' }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="fs-6 fw-bold text-dark">{{ approval.ot_request.requested_hours }}
+                                        hrs</span>
+                                </td>
+                                <td>
+                                    {% if approval.ot_request.reason %}
+                                    <span class="text-secondary small d-inline-block text-truncate"
+                                        style="max-width: 200px;" title="{{ approval.ot_request.reason }}">
+                                        {{ approval.ot_request.reason }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted small fst-italic">No reason provided</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if approval.status == 'pending_manager' %}
+                                    <span class="badge bg-warning text-dark bg-opacity-25 border border-warning">Pending
+                                        Review</span>
+                                    {% elif approval.status == 'manager_approved' %}
+                                    <span
+                                        class="badge bg-success text-success bg-opacity-25 border border-success">Approved</span>
+                                    {% elif approval.status == 'manager_rejected' %}
+                                    <span
+                                        class="badge bg-danger text-danger bg-opacity-25 border border-danger">Rejected</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ approval.status }}</span>
+                                    {% endif %}
+                                </td>
+                                {% if current_tab == 'pending' %}
+                                <td class="text-end pe-4">
+                                    <div class="btn-group gap-2">
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-success border-0 bg-success bg-opacity-10 text-success fw-bold px-3"
+                                            onclick="singleAction('approve', '{{ approval.id }}')">
+                                            <i class="fas fa-check me-1"></i> Approve
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-danger border-0 bg-danger bg-opacity-10 text-danger fw-bold px-3"
+                                            onclick="openRejectModal('{{ approval.id }}')">
+                                            <i class="fas fa-times me-1"></i> Reject
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-light text-muted"
+                                            onclick="openModifyModal('{{ approval.id }}', '{{ approval.ot_request.requested_hours }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                <div class="employee-details">
-                    <p class="employee-name">{{ approval.ot_request.employee.first_name }} {{
-                        approval.ot_request.employee.last_name }}</p>
-                    <p class="employee-meta">ID: {{ approval.ot_request.employee.employee_id or 'N/A' }} | Dept: {{
-                        approval.ot_request.employee.department if approval.ot_request.employee.department else 'N/A' }}
-                    </p>
+
+                <!-- Mobile Card View -->
+                <div class="mobile-view p-3">
+                    {% for approval in approvals.items %}
+                    <div class="approval-card">
+                        <div class="card-row">
+                            <div class="employee-info">
+                                {% if current_tab == 'pending' %}
+                                <input class="form-check-input card-select-checkbox row-checkbox-mobile" type="checkbox"
+                                    value="{{ approval.id }}" onchange="updateSelection()">
+                                {% endif %}
+                                <div class="avatar-circle me-2">
+                                    {{ approval.ot_request.employee.first_name[0] }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">{{ approval.ot_request.employee.first_name }}</div>
+                                    <div class="small text-muted">{{ approval.ot_request.ot_date.strftime('%d %b') }} •
+                                        {{ approval.ot_request.ot_type.name }}</div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="h5 mb-0 fw-bold">{{ approval.ot_request.requested_hours }}h</div>
+                            </div>
+                        </div>
+
+                        {% if approval.ot_request.reason %}
+                        <div class="bg-light p-2 rounded mb-3 small text-secondary">
+                            "{{ approval.ot_request.reason }}"
+                        </div>
+                        {% endif %}
+
+                        {% if current_tab == 'pending' %}
+                        <div class="action-bar">
+                            <button type="button" class="btn btn-outline-danger action-btn"
+                                onclick="openRejectModal('{{ approval.id }}')">Reject</button>
+                            <button type="button" class="btn btn-primary action-btn"
+                                onclick="singleAction('approve', '{{ approval.id }}')">Approve</button>
+                        </div>
+                        {% else %}
+                        <div class="border-top pt-2 mt-2">
+                            <span
+                                class="badge {{ 'bg-success' if 'approved' in approval.status else 'bg-danger' }} w-100">
+                                {{ approval.status|replace('_', ' ')|title }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
-            </div>
-            <div>
-                <span class="badge bg-info text-white">Pending Your Approval</span>
-            </div>
-        </div>
 
-        <!-- Approval Details -->
-        <div class="approval-content">
-            <div class="info-item">
-                <span class="info-label">Hours Requested</span>
-                <span class="info-value">{{ approval.ot_request.requested_hours or 0 }} hrs</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">OT Date</span>
-                <span class="info-value">{{ approval.ot_request.ot_date.strftime('%d %b %Y') if
-                    approval.ot_request.ot_date else '-' }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">OT Type</span>
-                <span class="info-value">{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else
-                    'General' }}</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Requested On</span>
-                <span class="info-value">{{ approval.ot_request.created_at.strftime('%d %b %Y') if
-                    approval.ot_request.created_at else '-' }}</span>
-            </div>
-        </div>
+            </form>
 
-        <!-- Reason -->
-        {% if approval.ot_request.reason %}
-        <div class="alert alert-info mb-3">
-            <strong>Reason:</strong> {{ approval.ot_request.reason }}
-        </div>
-        {% endif %}
+            <!-- Pagination -->
+            {% if approvals.pages > 1 %}
+            <div class="d-flex justify-content-center py-4 border-top">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mx-auto">
+                        {% if approvals.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link text-secondary"
+                                href="{{ url_for('ot_manager_approval', page=approvals.prev_num, status=current_tab) }}">Prev</a>
+                        </li>
+                        {% endif %}
 
-        <!-- Approval Form -->
-        <form method="POST" action="{{ url_for('ot_manager_approval') }}" class="action-form">
-            <input type="hidden" name="ot_request_id" value="{{ approval.ot_request.id }}">
-            <input type="hidden" name="action" id="action_{{ approval.id }}" value="">
+                        <li class="page-item active"><span class="page-link bg-secondary border-secondary">{{
+                                approvals.page }}</span></li>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label for="comments_{{ approval.id }}" class="form-label small">Comments</label>
-                    <textarea class="form-control" id="comments_{{ approval.id }}" name="comments" rows="3"
-                        placeholder="Add comments..."></textarea>
-                </div>
-                <div class="col-md-6">
-                    <label for="modified_hours_{{ approval.id }}" class="form-label small">Modified Hours
-                        (Optional)</label>
-                    <input type="number" class="form-control" id="modified_hours_{{ approval.id }}"
-                        name="modified_hours" step="0.5" min="0"
-                        placeholder="Leave empty to keep original ({{ approval.ot_request.requested_hours or 0 }} hrs)">
-                </div>
+                        {% if approvals.has_next %}
+                        <li class="page-item">
+                            <a class="page-link text-secondary"
+                                href="{{ url_for('ot_manager_approval', page=approvals.next_num, status=current_tab) }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
             </div>
-
-            <div class="action-buttons">
-                <button type="submit" class="btn btn-success btn-sm"
-                    onclick="submitAction(event, 'approve', '{{ approval.id }}')">
-                    <i class="fas fa-check"></i> Approve
-                </button>
-                <button type="submit" class="btn btn-danger btn-sm"
-                    onclick="submitAction(event, 'reject', '{{ approval.id }}')">
-                    <i class="fas fa-times"></i> Reject
-                </button>
-                {% if approval.ot_request.requested_hours %}
-                <button type="button" class="btn btn-warning btn-sm" onclick="toggleModify('{{ approval.id }}')">
-                    <i class="fas fa-edit"></i> Modify Hours
-                </button>
-                {% endif %}
-            </div>
-        </form>
-    </div>
-    {% endfor %}
-
-    <!-- Pagination -->
-    {% if pending_approvals.pages > 1 %}
-    <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination">
-            {% if pending_approvals.has_prev %}
-            <li class="page-item">
-                <a class="page-link"
-                    href="{{ url_for('ot_manager_approval', page=pending_approvals.prev_num) }}">Previous</a>
-            </li>
             {% endif %}
 
-            {% for page_num in pending_approvals.iter_pages(left_edge=1, left_margin=1, right_margin=1, right_edge=1) %}
-            {% if page_num %}
-            {% if page_num == pending_approvals.page %}
-            <li class="page-item active">
-                <span class="page-link">{{ page_num }}</span>
-            </li>
             {% else %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('ot_manager_approval', page=page_num) }}">{{ page_num }}</a>
-            </li>
+            <!-- Empty State -->
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
+                </div>
+                <h5 class="text-muted fw-normal">No items in {{ current_tab }} list</h5>
+            </div>
             {% endif %}
-            {% endif %}
-            {% endfor %}
-
-            {% if pending_approvals.has_next %}
-            <li class="page-item">
-                <a class="page-link"
-                    href="{{ url_for('ot_manager_approval', page=pending_approvals.next_num) }}">Next</a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
-
-    {% else %}
-    <!-- No Pending Approvals -->
-    <div class="approval-card no-requests">
-        <div class="no-requests-icon">
-            <i class="fas fa-check-circle"></i>
         </div>
-        <h5 class="text-muted">No Pending Approvals</h5>
-        <p class="text-muted small">All overtime requests from your team have been reviewed.</p>
     </div>
-    {% endif %}
+</div>
+
+<!-- Floating Bulk Action Bar -->
+<div class="bulk-floating-bar" id="bulkFloatingBar">
+    <div class="d-flex align-items-center gap-3">
+        <span class="selection-text"><span id="selectedCount">0</span> Selected</span>
+        <div class="vr bg-secondary opacity-50"></div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-danger text-white border-0" onclick="bulkAction('reject')">Reject
+                Selected</button>
+            <button class="btn btn-sm btn-success text-white border-0" onclick="bulkAction('approve')">Approve
+                Selected</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm" action="{{ url_for('ot_manager_bulk_action') }}" method="POST">
+                    <input type="hidden" name="action" value="reject">
+                    <input type="hidden" name="approval_ids" id="rejectApprovalId">
+                    <div class="mb-3">
+                        <label class="form-label">Reason for Rejection <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="comments" rows="3" required
+                            placeholder="Provide a reason..."></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Reject</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modify Hours Modal -->
+<div class="modal fade" id="modifyModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modify & Approve</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="modifyForm" action="{{ url_for('ot_manager_bulk_action') }}" method="POST">
+                    <input type="hidden" name="action" value="approve">
+                    <input type="hidden" name="approval_ids" id="modifyApprovalId">
+                    <div class="mb-3">
+                        <label class="form-label">Approved Hours</label>
+                        <input type="number" step="0.5" class="form-control" name="modified_hours" id="modifyHoursInput"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Comments (Optional)</label>
+                        <textarea class="form-control" name="comments" rows="2"
+                            placeholder="Note on modification..."></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Approve New Hours</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    // Hide loader on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        const loader = document.getElementById('global-loader');
-        if (loader) {
-            loader.classList.remove('show');
-        }
-    });
+    // Selection Logic
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        const mobileCheckboxes = document.querySelectorAll('.row-checkbox-mobile');
 
-    // Submit action - sets the hidden field and shows loader
-    function submitAction(event, action, approvalId) {
-        event.preventDefault();
-
-        // Set the hidden action field
-        const actionField = document.getElementById('action_' + approvalId);
-        if (actionField) {
-            actionField.value = action;
-        }
-
-        // Show loader
-        const loader = document.getElementById('global-loader');
-        if (loader) {
-            loader.classList.add('show');
-        }
-
-        // Submit the form
-        event.target.closest('form').submit();
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        mobileCheckboxes.forEach(cb => cb.checked = source.checked);
+        updateSelection();
     }
 
-    // Toggle modify hours input
-    function toggleModify(approvalId) {
-        const input = document.getElementById('modified_hours_' + approvalId);
-        if (input.style.display === 'none') {
-            input.style.display = 'block';
-            input.focus();
+    function updateSelection() {
+        const selected = document.querySelectorAll('.row-checkbox:checked, .row-checkbox-mobile:checked');
+        // De-duplicate IDs (since we might have both desktop and mobile inputs for same item)
+        const ids = new Set();
+        selected.forEach(cb => ids.add(cb.value));
+
+        const count = ids.size;
+        document.getElementById('selectedCount').innerText = count;
+
+        const bar = document.getElementById('bulkFloatingBar');
+        if (count > 0) {
+            bar.classList.add('show');
         } else {
-            input.style.display = 'none';
+            bar.classList.remove('show');
         }
+    }
+
+    // Actions
+    function singleAction(action, id) {
+        // For simple approve, just submit
+        const form = document.getElementById('bulkActionForm');
+        document.getElementById('bulkActionInput').value = action;
+        document.getElementById('bulkIdsInput').value = id;
+        form.submit();
+    }
+
+    function bulkAction(action) {
+        const selected = document.querySelectorAll('.row-checkbox:checked, .row-checkbox-mobile:checked');
+        const ids = new Set();
+        selected.forEach(cb => ids.add(cb.value));
+
+        if (action === 'reject') {
+            // Bulk reject needs comments -> use modal? Layout suggests single rejection logic usually.
+            // If bulk reject, we need a bulk reject modal.
+            // Let's modify the reject modal to support bulk.
+            document.getElementById('rejectApprovalId').value = Array.from(ids).join(',');
+            const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+            modal.show();
+        } else {
+            // Approve
+            const form = document.getElementById('bulkActionForm');
+            document.getElementById('bulkActionInput').value = action;
+            document.getElementById('bulkIdsInput').value = Array.from(ids).join(',');
+            form.submit();
+        }
+    }
+
+    // Modals
+    function openRejectModal(id) {
+        document.getElementById('rejectApprovalId').value = id;
+        const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+        modal.show();
+    }
+
+    function openModifyModal(id, currentHours) {
+        document.getElementById('modifyApprovalId').value = id;
+        document.getElementById('modifyHoursInput').value = currentHours;
+        const modal = new bootstrap.Modal(document.getElementById('modifyModal'));
+        modal.show();
     }
 </script>
 {% endblock %}
