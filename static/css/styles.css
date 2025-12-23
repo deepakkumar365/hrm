@@ -499,7 +499,7 @@ a:hover {
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-bold);
     color: var(--text-header);
-    margin-bottom: var(--spacing-2);
+    margin-bottom: 0.15rem;
 }
 
 .dashboard-subtitle {
@@ -581,7 +581,7 @@ a:hover {
 }
 
 .card-body {
-    padding: 0.75rem;
+    padding: 0.6rem;
     /* Reduced padding */
 }
 
@@ -722,7 +722,7 @@ a:hover {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--text-primary);
-    margin-bottom: var(--spacing-2);
+    margin-bottom: 0.15rem;
     display: block;
 }
 
@@ -1202,7 +1202,7 @@ a:hover {
 .card-header-green {
     background: var(--primary);
     color: white;
-    padding: 0.625rem 1rem;
+    padding: 0.5rem 0.75rem;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     border-bottom: 1px solid var(--border-color);
     font-size: 0.875rem;
@@ -1225,7 +1225,7 @@ a:hover {
 }
 
 .filter-card .card-body {
-    padding: 0.75rem;
+    padding: 0.6rem;
     background: white;
     border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
@@ -1272,7 +1272,7 @@ a:hover {
     font-family: var(--font-family);
     font-size: 0.875rem;
     font-weight: var(--font-weight-semibold);
-    padding: 0.625rem 1rem;
+    padding: 0.5rem 0.75rem;
     height: 2.25rem;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     border-bottom: 1px solid var(--accent);
@@ -1350,7 +1350,7 @@ a:hover {
     background: var(--white);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-xl);
-    padding: 0.75rem;
+    padding: 0.6rem;
     box-shadow: var(--shadow-sm);
 }
 
@@ -1358,7 +1358,7 @@ a:hover {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem;
+    padding: 0.6rem;
     border-radius: var(--radius-lg);
     transition: all var(--transition-base);
     cursor: pointer;
@@ -1465,7 +1465,7 @@ a:hover {
 }
 
 .team-card-header {
-    padding: 0.75rem;
+    padding: 0.6rem;
     background: var(--primary);
     display: flex;
     justify-content: center;
@@ -1796,7 +1796,7 @@ a:hover {
 }
 
 .attendance-card-body {
-    padding: 0.75rem;
+    padding: 0.6rem;
 }
 
 .attendance-time-grid {
@@ -1809,7 +1809,7 @@ a:hover {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem;
+    padding: 0.6rem;
     background: var(--grey-50);
     border-radius: var(--radius-lg);
     transition: all var(--transition-fast);
@@ -1969,7 +1969,7 @@ a:hover {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem;
+    padding: 0.6rem;
     background: var(--grey-50);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
@@ -2720,7 +2720,7 @@ hr {
 }
 
 .summary-card {
-    padding: 0.75rem;
+    padding: 0.6rem;
     min-width: 120px;
 }
 
@@ -2762,7 +2762,7 @@ hr {
 
 /* Mobile cards in list view */
 .card-body {
-    padding: 0.75rem;
+    padding: 0.6rem;
 }
 
 .border-top {
@@ -2812,8 +2812,8 @@ hr {
 /* Professional compact form layout with 3-4 columns */
 .form-grid {
     display: grid;
-    gap: var(--spacing-4);
-    /* 16px gap between fields */
+    gap: 0.75rem;
+    /* Reduced gap between fields */
     width: 100%;
 }
 
@@ -2867,7 +2867,7 @@ hr {
 /* Form label consistent styling for grid items */
 .form-grid-item .form-label {
     display: block;
-    margin-bottom: var(--spacing-2);
+    margin-bottom: 0.15rem;
     font-weight: var(--font-weight-medium);
     font-size: var(--font-size-sm);
     color: var(--text-primary);
@@ -2877,7 +2877,7 @@ hr {
 .form-grid-item .form-control,
 .form-grid-item .form-select {
     width: 100%;
-    padding: var(--spacing-3) var(--spacing-3);
+    padding: 0.4rem 0.6rem;
     font-size: var(--font-size-sm);
     line-height: 1.5;
     border: 1px solid var(--border-color-medium);
@@ -3019,7 +3019,7 @@ hr {
 
 .validation-error-toast strong {
     display: block;
-    margin-bottom: var(--spacing-2);
+    margin-bottom: 0.15rem;
     font-weight: var(--font-weight-semibold);
 }
 
@@ -3104,7 +3104,7 @@ textarea.form-control.is-valid:focus {
 
     .validation-error-toast .me-2 {
         margin-right: 0 !important;
-        margin-bottom: var(--spacing-2);
+        margin-bottom: 0.15rem;
     }
 }
 

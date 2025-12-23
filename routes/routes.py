@@ -1078,7 +1078,7 @@ def profile_edit():
 
 
 @app.route('/employees/<int:employee_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin'])
+@require_role(['Super Admin', 'Admin', 'HR Manager', 'Tenant Admin'])
 def employee_edit(employee_id):
     """Edit employee details"""
     employee = Employee.query.get_or_404(employee_id)
@@ -1174,7 +1174,7 @@ def employee_edit(employee_id):
             if not (employee.account_holder_name and employee.account_holder_name.strip()):
                 flash('Account Holder Name is required', 'error')
                 roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                 designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                 departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                 working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1200,7 +1200,7 @@ def employee_edit(employee_id):
                 if not _allowed_image(file.filename):
                     flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
                     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
                     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
                     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
                     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1266,26 +1266,55 @@ def employee_edit(employee_id):
 
             # Update user role if changed
             user_role_id = request.form.get('user_role_id')
-            if user_role_id and employee.user:
-                try:
-                    new_role_id = int(user_role_id)
-                    # Verify the role exists and is a valid system role
-                    new_role = Role.query.filter_by(id=new_role_id, is_active=True).first()
-                    if new_role and new_role.name in ['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User']:
-                        employee.user.role_id = new_role_id
-                except (ValueError, TypeError):
-                    pass  # Invalid role_id, skip update
+            if user_role_id:
+                if employee.user:
+                    try:
+                        new_role_id = int(user_role_id)
+                        # Verify the role exists and is a valid system role
+                        new_role = Role.query.filter_by(id=new_role_id, is_active=True).first()
+                        if new_role:
+                            employee.user.role_id = new_role_id
+                    except (ValueError, TypeError):
+                        pass  # Invalid role_id, skip update
+                else:
+                    # Create user account for employee if it doesn't exist
+                    try:
+                        new_role_id = int(user_role_id)
+                        new_role = Role.query.filter_by(id=new_role_id, is_active=True).first()
+                        
+                        if new_role:
+                            # Create new user
+                            user = User()
+                            # Use employee_id as username
+                            user.username = employee.employee_id
+                            user.email = employee.email
+                            user.first_name = employee.first_name
+                            user.last_name = employee.last_name
+                            user.organization_id = current_user.organization_id
+                            user.role_id = new_role.id
+                            user.set_password(DEFAULT_USER_PASSWORD)
+                            user.must_reset_password = True
+                            
+                            db.session.add(user)
+                            db.session.flush() # Get ID
+                            
+                            employee.user_id = user.id
+                            
+                            flash(f'User account created. Username: {user.username}, Password: {DEFAULT_USER_PASSWORD}', 'info')
+                    except Exception as e:
+                         # Log warning but allow employee update to proceed
+                         print(f"Warning: Could not create user account: {e}")
 
             db.session.commit()
             flash('Employee updated successfully', 'success')
-            return redirect(url_for('employee_view', employee_id=employee_id))
+            return redirect(url_for('employee_list'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating employee: {str(e)}', 'error')
             # Load master data and preserve form data for re-rendering
             roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+            user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
             designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
             departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
             working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
@@ -1306,7 +1335,7 @@ def employee_edit(employee_id):
 
     # Load master data for dropdowns
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    user_roles = Role.query.filter(Role.name.in_(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager', 'Manager', 'User'])).filter_by(is_active=True).order_by(Role.name).all()
+    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
     designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
     departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
     working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()

@@ -7,7 +7,7 @@
     <div class="row justify-content-center">
         <div class="col-lg-12">
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-1">
+            <div class="d-flex justify-content-between align-items-center mb-0">
                 <div>
                     <h4>
                         <i class="fas fa-user-{{ 'edit' if employee else 'plus' }} me-2"></i>
@@ -36,11 +36,11 @@
                                 <label for="employee_id" class="form-label">Employee ID *</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control" id="employee_id" name="employee_id"
-                                           value="{{ form_data.get('employee_id') if form_data else (employee.employee_id if employee else '') }}"
-                                           placeholder="Auto-generated (select company first)"
-                                           readonly required>
+                                        value="{{ form_data.get('employee_id') if form_data else (employee.employee_id if employee else '') }}"
+                                        placeholder="Auto-generated (select company first)" readonly required>
                                     {% if not employee %}
-                                    <span class="input-group-text" id="generateEmployeeIdBtn" title="Auto-generated from Company Code + Employee ID">
+                                    <span class="input-group-text" id="generateEmployeeIdBtn"
+                                        title="Auto-generated from Company Code + Employee ID">
                                         <i class="fas fa-sync-alt me-1" id="generatingIcon"></i>
                                         <i class="fas fa-info-circle"></i>
                                     </span>
@@ -50,18 +50,21 @@
                             <div class="form-grid-item">
                                 <label for="first_name" class="form-label">First Name *</label>
                                 <input type="text" class="form-control" id="first_name" name="first_name"
-                                       value="{{ form_data.get('first_name') if form_data else (employee.first_name if employee else '') }}" required>
+                                    value="{{ form_data.get('first_name') if form_data else (employee.first_name if employee else '') }}"
+                                    required>
                             </div>
                             <div class="form-grid-item">
                                 <label for="last_name" class="form-label">Last Name *</label>
                                 <input type="text" class="form-control" id="last_name" name="last_name"
-                                       value="{{ form_data.get('last_name') if form_data else (employee.last_name if employee else '') }}" required>
+                                    value="{{ form_data.get('last_name') if form_data else (employee.last_name if employee else '') }}"
+                                    required>
                             </div>
                             <div class="form-grid-item">
                                 <label for="email" class="form-label">Email</label>
                                 <input type="text" class="form-control" id="email" name="email"
-                                       value="{{ form_data.get('email') if form_data else (employee.email or '' if employee else '') }}"
-                                       {% if (current_user.role.name if current_user.role else None) != 'HR Manager' %}readonly{% endif %}>
+                                    value="{{ form_data.get('email') if form_data else (employee.email or '' if employee else '') }}"
+                                    {% if (current_user.role.name if current_user.role else None) !='HR Manager'
+                                    %}readonly{% endif %}>
                                 {% if (current_user.role.name if current_user.role else None) != 'HR Manager' %}
                                 <small class="text-muted d-block mt-1">Only HR Manager can edit this field</small>
                                 {% endif %}
@@ -69,59 +72,72 @@
                             <div class="form-grid-item">
                                 <label for="phone" class="form-label">Phone</label>
                                 <input type="tel" class="form-control" id="phone" name="phone"
-                                       value="{{ form_data.get('phone') if form_data else (employee.phone or '' if employee else '') }}">
+                                    value="{{ form_data.get('phone') if form_data else (employee.phone or '' if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="nric" class="form-label">NRIC/Passport</label>
-                                {% set nric_val = form_data.get('nric') if form_data else (employee.nric or '' if employee else '') %}
+                                {% set nric_val = form_data.get('nric') if form_data else (employee.nric or '' if
+                                employee else '') %}
                                 {% if nric_val and nric_val.startswith('NO_NRIC_') %}
-                                    {% set nric_val = '' %}
+                                {% set nric_val = '' %}
                                 {% endif %}
                                 <input type="text" class="form-control" id="nric" name="nric"
-                                       value="{{ form_data.get('nric') if form_data else (employee.nric or '' if employee else '') }}"
-                                       placeholder="e.g., S1234567D or E12345678"
-                                       {% if employee %}readonly{% endif %}>
+                                    value="{{ form_data.get('nric') if form_data else (employee.nric or '' if employee else '') }}"
+                                    placeholder="e.g., S1234567D or E12345678" {% if employee %}readonly{% endif %}>
                             </div>
                             <div class="form-grid-item">
                                 <label for="date_of_birth" class="form-label">Date of Birth</label>
                                 <input type="date" class="form-control" id="date_of_birth" name="date_of_birth"
-                                       value="{{ form_data.get('date_of_birth') if form_data else (employee.date_of_birth.strftime('%Y-%m-%d') if employee and employee.date_of_birth else '') }}"
-                                       placeholder="Select from calendar" inputmode="none">
+                                    value="{{ form_data.get('date_of_birth') if form_data else (employee.date_of_birth.strftime('%Y-%m-%d') if employee and employee.date_of_birth else '') }}"
+                                    placeholder="Select from calendar" inputmode="none">
                             </div>
                             <div class="form-grid-item">
                                 <label for="gender" class="form-label">Gender</label>
                                 <select class="form-select" id="gender" name="gender">
                                     <option value="">Select Gender</option>
-                                    <option value="Male" {% if (form_data and form_data.get('gender') == 'Male') or (employee and employee.gender == 'Male' and not form_data) %}selected{% endif %}>Male</option>
-                                    <option value="Female" {% if (form_data and form_data.get('gender') == 'Female') or (employee and employee.gender == 'Female' and not form_data) %}selected{% endif %}>Female</option>
+                                    <option value="Male" {% if (form_data and form_data.get('gender')=='Male' ) or
+                                        (employee and employee.gender=='Male' and not form_data) %}selected{% endif %}>
+                                        Male</option>
+                                    <option value="Female" {% if (form_data and form_data.get('gender')=='Female' ) or
+                                        (employee and employee.gender=='Female' and not form_data) %}selected{% endif
+                                        %}>Female</option>
                                 </select>
                             </div>
                             <div class="form-grid-item">
                                 <label for="nationality" class="form-label">Nationality</label>
                                 <select class="form-select" id="nationality" name="nationality">
                                     <option value="">Select Nationality</option>
-                                    <option value="Singaporean" {% if employee and employee.nationality == 'Singaporean' %}selected{% endif %}>Singaporean</option>
-                                    <option value="Malaysian" {% if employee and employee.nationality == 'Malaysian' %}selected{% endif %}>Malaysian</option>
-                                    <option value="Indian" {% if employee and employee.nationality == 'Indian' %}selected{% endif %}>Indian</option>
-                                    <option value="Chinese" {% if employee and employee.nationality == 'Chinese' %}selected{% endif %}>Chinese</option>
-                                    <option value="Filipino" {% if employee and employee.nationality == 'Filipino' %}selected{% endif %}>Filipino</option>
-                                    <option value="Indonesian" {% if employee and employee.nationality == 'Indonesian' %}selected{% endif %}>Indonesian</option>
-                                    <option value="Other" {% if employee and employee.nationality == 'Other' %}selected{% endif %}>Other</option>
+                                    <option value="Singaporean" {% if employee and employee.nationality=='Singaporean'
+                                        %}selected{% endif %}>Singaporean</option>
+                                    <option value="Malaysian" {% if employee and employee.nationality=='Malaysian'
+                                        %}selected{% endif %}>Malaysian</option>
+                                    <option value="Indian" {% if employee and employee.nationality=='Indian'
+                                        %}selected{% endif %}>Indian</option>
+                                    <option value="Chinese" {% if employee and employee.nationality=='Chinese'
+                                        %}selected{% endif %}>Chinese</option>
+                                    <option value="Filipino" {% if employee and employee.nationality=='Filipino'
+                                        %}selected{% endif %}>Filipino</option>
+                                    <option value="Indonesian" {% if employee and employee.nationality=='Indonesian'
+                                        %}selected{% endif %}>Indonesian</option>
+                                    <option value="Other" {% if employee and employee.nationality=='Other' %}selected{%
+                                        endif %}>Other</option>
                                 </select>
                             </div>
                             <div class="form-grid-item">
                                 <label for="postal_code" class="form-label">Postal Code</label>
                                 <input type="text" class="form-control" id="postal_code" name="postal_code"
-                                       value="{{ form_data.get('postal_code') if form_data else (employee.postal_code or '' if employee else '') }}">
+                                    value="{{ form_data.get('postal_code') if form_data else (employee.postal_code or '' if employee else '') }}">
                             </div>
                             <!-- Profile Image Upload -->
                             <div class="form-grid-item half-width">
                                 <label for="profile_image" class="form-label">Profile Image</label>
-                                <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*">
+                                <input type="file" class="form-control" id="profile_image" name="profile_image"
+                                    accept="image/*">
                             </div>
                             <div class="form-grid-item full-width">
                                 <label for="address" class="form-label">Address</label>
-                                <textarea class="form-control" id="address" name="address" rows="2">{{ form_data.get('address') if form_data else (employee.address or '' if employee else '') }}</textarea>
+                                <textarea class="form-control" id="address" name="address"
+                                    rows="2">{{ form_data.get('address') if form_data else (employee.address or '' if employee else '') }}</textarea>
                             </div>
 
 
@@ -130,7 +146,7 @@
                     </div>
                 </div>
 
-                <div class="card mt-4">
+                <div class="card mt-3">
                     <div class="card-header card-header-green">
                         <h5 class="mb-0">
                             <i class="fas fa-briefcase me-2"></i>Employment Details
@@ -140,10 +156,16 @@
                         <div class="form-grid">
                             <div class="form-grid-item">
                                 <label for="company_id" class="form-label">Company *</label>
-                                <select class="form-select" id="company_id" name="company_id" required onchange="updateWorkPermitFieldsRequirement()">
+                                <select class="form-select" id="company_id" name="company_id" required
+                                    onchange="updateWorkPermitFieldsRequirement()">
                                     <option value="">Select Company</option>
                                     {% for company in companies %}
-                                    <option value="{{ company.id }}" data-country-code="{{ company.tenant.country_code if company.tenant else '' }}" {% if (form_data and form_data.get('company_id') == company.id|string) or (employee and employee.company_id and employee.company_id|string == company.id|string and not form_data) %}selected{% endif %}>
+                                    <option value="{{ company.id }}"
+                                        data-country-code="{{ company.tenant.country_code if company.tenant else '' }}"
+                                        {% if (form_data and form_data.get('company_id')==company.id|string) or
+                                        (employee and employee.company_id and
+                                        employee.company_id|string==company.id|string and not form_data) %}selected{%
+                                        endif %}>
                                         {{ company.name }} ({{ company.code }})
                                     </option>
                                     {% endfor %}
@@ -154,7 +176,11 @@
                                 <select class="form-select" id="designation_id" name="designation_id" required>
                                     <option value="">Select Designation</option>
                                     {% for designation in designations %}
-                                    <option value="{{ designation.id }}" {% if (form_data and form_data.get('designation_id') == designation.id|string) or (employee and employee.designation_id and employee.designation_id|string == designation.id|string and not form_data) %}selected{% endif %}>
+                                    <option value="{{ designation.id }}" {% if (form_data and
+                                        form_data.get('designation_id')==designation.id|string) or (employee and
+                                        employee.designation_id and
+                                        employee.designation_id|string==designation.id|string and not form_data)
+                                        %}selected{% endif %}>
                                         {{ designation.name }}
                                     </option>
                                     {% endfor %}
@@ -165,7 +191,9 @@
                                 <select class="form-select" id="user_role_id" name="user_role_id" required>
                                     <option value="">Select User Role</option>
                                     {% for role in user_roles %}
-                                    <option value="{{ role.id }}" {% if (form_data and form_data.get('user_role_id')|int == role.id) or (not form_data and employee and employee.user and employee.user.role_id == role.id) %}selected{% endif %}>
+                                    <option value="{{ role.id }}" {% if (form_data and
+                                        form_data.get('user_role_id')|int==role.id) or (not form_data and employee and
+                                        employee.user and employee.user.role_id==role.id) %}selected{% endif %}>
                                         {{ role.name }}
                                     </option>
                                     {% endfor %}
@@ -176,23 +204,28 @@
                                 <select class="form-select" id="department" name="department">
                                     <option value="">Select Department</option>
                                     {% for dept in departments %}
-                                    <option value="{{ dept.name }}" {% if (form_data and form_data.get('department') == dept.name) or (employee and employee.department == dept.name and not form_data) %}selected{% endif %}>
+                                    <option value="{{ dept.name }}" {% if (form_data and
+                                        form_data.get('department')==dept.name) or (employee and
+                                        employee.department==dept.name and not form_data) %}selected{% endif %}>
                                         {{ dept.name }}
-                                        {% if dept.manager %} - ({{ dept.manager.first_name }} {{ dept.manager.last_name }}){% endif %}
+                                        {% if dept.manager %} - ({{ dept.manager.first_name }} {{ dept.manager.last_name
+                                        }}){% endif %}
                                     </option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="form-grid-item">
                                 <label for="manager_id" class="form-label">Reporting Manager</label>
-                                <select class="form-select" id="manager_id" name="manager_id" data-current-manager-id="{{ employee.manager_id if employee else '' }}">
+                                <select class="form-select" id="manager_id" name="manager_id"
+                                    data-current-manager-id="{{ employee.manager_id if employee else '' }}">
                                     <option value="">Select Reporting Manager</option>
                                 </select>
                             </div>
                             <div class="form-grid-item">
                                 <div class="form-check mt-2">
-                                    <input type="checkbox" class="form-check-input" id="is_manager" name="is_manager" value="1"
-                                           {% if (form_data and form_data.get('is_manager')) or (employee and employee.is_manager and not form_data) %}checked{% endif %}>
+                                    <input type="checkbox" class="form-check-input" id="is_manager" name="is_manager"
+                                        value="1" {% if (form_data and form_data.get('is_manager')) or (employee and
+                                        employee.is_manager and not form_data) %}checked{% endif %}>
                                     <label class="form-check-label" for="is_manager">
                                         <i class="fas fa-shield-alt me-1"></i>Can be Reporting Manager
                                     </label>
@@ -201,48 +234,72 @@
                             <div class="form-grid-item">
                                 <label for="hire_date" class="form-label">Hire Date *</label>
                                 <input type="date" class="form-control" id="hire_date" name="hire_date"
-                                       value="{{ form_data.get('hire_date') if form_data else (employee.hire_date.strftime('%Y-%m-%d') if employee and employee.hire_date else '') }}"
-                                       {% if not employee %}required{% endif %}>
+                                    value="{{ form_data.get('hire_date') if form_data else (employee.hire_date.strftime('%Y-%m-%d') if employee and employee.hire_date else '') }}"
+                                    {% if not employee %}required{% endif %}>
                             </div>
                             <div class="form-grid-item">
                                 <label for="employment_type" class="form-label">Employment Type *</label>
                                 <select class="form-select" id="employment_type" name="employment_type" required>
                                     <option value="">Select Type</option>
-                                    <option value="Full-time" {% if (form_data and form_data.get('employment_type') == 'Full-time') or (employee and employee.employment_type == 'Full-time' and not form_data) %}selected{% endif %}>Full-time</option>
-                                    <option value="Part-time" {% if (form_data and form_data.get('employment_type') == 'Part-time') or (employee and employee.employment_type == 'Part-time' and not form_data) %}selected{% endif %}>Part-time</option>
-                                    <option value="Contract" {% if (form_data and form_data.get('employment_type') == 'Contract') or (employee and employee.employment_type == 'Contract' and not form_data) %}selected{% endif %}>Contract</option>
-                                    <option value="Intern" {% if (form_data and form_data.get('employment_type') == 'Intern') or (employee and employee.employment_type == 'Intern' and not form_data) %}selected{% endif %}>Intern</option>
+                                    <option value="Full-time" {% if (form_data and
+                                        form_data.get('employment_type')=='Full-time' ) or (employee and
+                                        employee.employment_type=='Full-time' and not form_data) %}selected{% endif %}>
+                                        Full-time</option>
+                                    <option value="Part-time" {% if (form_data and
+                                        form_data.get('employment_type')=='Part-time' ) or (employee and
+                                        employee.employment_type=='Part-time' and not form_data) %}selected{% endif %}>
+                                        Part-time</option>
+                                    <option value="Contract" {% if (form_data and
+                                        form_data.get('employment_type')=='Contract' ) or (employee and
+                                        employee.employment_type=='Contract' and not form_data) %}selected{% endif %}>
+                                        Contract</option>
+                                    <option value="Intern" {% if (form_data and
+                                        form_data.get('employment_type')=='Intern' ) or (employee and
+                                        employee.employment_type=='Intern' and not form_data) %}selected{% endif %}>
+                                        Intern</option>
                                 </select>
                             </div>
                             <div class="form-grid-item">
                                 <label for="work_permit_type" class="form-label">Work Permit Type *</label>
-                                <select class="form-select" id="work_permit_type" name="work_permit_type" required onchange="updateWorkPermitFieldsRequirement()">
+                                <select class="form-select" id="work_permit_type" name="work_permit_type" required
+                                    onchange="updateWorkPermitFieldsRequirement()">
                                     <option value="">Select Type</option>
-                                    <option value="Nil" {% if employee and employee.work_permit_type == 'Nil' %}selected{% endif %}>Nil</option>
-                                    <option value="Citizen" {% if employee and employee.work_permit_type == 'Citizen' %}selected{% endif %}>Singapore Citizen</option>
-                                    <option value="PR" {% if employee and employee.work_permit_type == 'PR' %}selected{% endif %}>Permanent Resident</option>
-                                    <option value="Work Permit" {% if employee and employee.work_permit_type == 'Work Permit' %}selected{% endif %}>Work Permit</option>
-                                    <option value="S Pass" {% if employee and employee.work_permit_type == 'S Pass' %}selected{% endif %}>S Pass</option>
-                                    <option value="Employment Pass" {% if employee and employee.work_permit_type == 'Employment Pass' %}selected{% endif %}>Employment Pass</option>
+                                    <option value="Nil" {% if employee and employee.work_permit_type=='Nil' %}selected{%
+                                        endif %}>Nil</option>
+                                    <option value="Citizen" {% if employee and employee.work_permit_type=='Citizen'
+                                        %}selected{% endif %}>Singapore Citizen</option>
+                                    <option value="PR" {% if employee and employee.work_permit_type=='PR' %}selected{%
+                                        endif %}>Permanent Resident</option>
+                                    <option value="Work Permit" {% if employee and
+                                        employee.work_permit_type=='Work Permit' %}selected{% endif %}>Work Permit
+                                    </option>
+                                    <option value="S Pass" {% if employee and employee.work_permit_type=='S Pass'
+                                        %}selected{% endif %}>S Pass</option>
+                                    <option value="Employment Pass" {% if employee and
+                                        employee.work_permit_type=='Employment Pass' %}selected{% endif %}>Employment
+                                        Pass</option>
                                 </select>
                             </div>
                             <div class="form-grid-item">
                                 <label for="work_permit_expiry" class="form-label">Work Permit Expiry</label>
-                                <input type="date" class="form-control" id="work_permit_expiry" name="work_permit_expiry"
-                                       value="{{ form_data.get('work_permit_expiry') if form_data else (employee.work_permit_expiry.strftime('%Y-%m-%d') if employee and employee.work_permit_expiry else '') }}">
+                                <input type="date" class="form-control" id="work_permit_expiry"
+                                    name="work_permit_expiry"
+                                    value="{{ form_data.get('work_permit_expiry') if form_data else (employee.work_permit_expiry.strftime('%Y-%m-%d') if employee and employee.work_permit_expiry else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="work_permit_number" class="form-label">Work Permit Number</label>
-                                <input type="text" class="form-control" id="work_permit_number" name="work_permit_number"
-                                       value="{{ form_data.get('work_permit_number') if form_data else (employee.work_permit_number or '' if employee else '') }}"
-                                       placeholder="e.g., WP123456789" required>
+                                <input type="text" class="form-control" id="work_permit_number"
+                                    name="work_permit_number"
+                                    value="{{ form_data.get('work_permit_number') if form_data else (employee.work_permit_number or '' if employee else '') }}"
+                                    placeholder="e.g., WP123456789" required>
                             </div>
                             <div class="form-grid-item">
                                 <label for="working_hours_id" class="form-label">Working Hours</label>
                                 <select class="form-select" id="working_hours_id" name="working_hours_id">
                                     <option value="">Select Working Hours</option>
                                     {% for wh in working_hours %}
-                                    <option value="{{ wh.id }}" {% if employee and employee.working_hours_id == wh.id %}selected{% endif %}>
+                                    <option value="{{ wh.id }}" {% if employee and employee.working_hours_id==wh.id
+                                        %}selected{% endif %}>
                                         {{ wh.name }} ({{ wh.hours_per_day }}h/day, {{ wh.hours_per_week }}h/week)
                                     </option>
                                     {% endfor %}
@@ -253,8 +310,12 @@
                                 <select class="form-select" id="work_schedule_id" name="work_schedule_id">
                                     <option value="">Select Work Schedule</option>
                                     {% for schedule in work_schedules %}
-                                    <option value="{{ schedule.id }}" {% if employee and employee.work_schedule_id == schedule.id %}selected{% endif %}>
-                                        {{ schedule.name }} ({{ schedule.start_time.strftime('%H:%M') }}-{{ schedule.end_time.strftime('%H:%M') }})
+                                    <option value="{{ schedule.id }}" {% if employee and
+                                        employee.work_schedule_id==schedule.id %}selected{% endif %}>
+                                        {{ schedule.name }} {% if schedule.working_hours and
+                                        schedule.working_hours.start_time and schedule.working_hours.end_time %}({{
+                                        schedule.working_hours.start_time.strftime('%H:%M') }}-{{
+                                        schedule.working_hours.end_time.strftime('%H:%M') }}){% endif %}
                                     </option>
                                     {% endfor %}
                                 </select>
@@ -264,7 +325,8 @@
                                 <select class="form-select" id="timezone" name="timezone">
                                     <option value="">Select Timezone</option>
                                     {% for tz in timezones %}
-                                    <option value="{{ tz }}" {% if (form_data and form_data.get('timezone') == tz) or (employee and employee.timezone == tz and not form_data) %}selected{% endif %}>
+                                    <option value="{{ tz }}" {% if (form_data and form_data.get('timezone')==tz) or
+                                        (employee and employee.timezone==tz and not form_data) %}selected{% endif %}>
                                         {{ tz }}
                                     </option>
                                     {% endfor %}
@@ -275,7 +337,9 @@
                                 <select class="form-select" id="employee_group_id" name="employee_group_id">
                                     <option value="">-- No Leave Group --</option>
                                     {% for group in leave_groups %}
-                                    <option value="{{ group.id }}" {% if (form_data and form_data.get('employee_group_id'|int) == group.id) or (employee and employee.employee_group_id == group.id and not form_data) %}selected{% endif %}>
+                                    <option value="{{ group.id }}" {% if (form_data and
+                                        form_data.get('employee_group_id'|int)==group.id) or (employee and
+                                        employee.employee_group_id==group.id and not form_data) %}selected{% endif %}>
                                         {{ group.name }}
                                     </option>
                                     {% endfor %}
@@ -287,58 +351,97 @@
                     </div>
                 </div>
 
-                {% if employee %}
-                <div class="card mt-4">
+                <div class="card mt-3">
                     <div class="card-header card-header-green">
                         <h5 class="mb-0">
                             <i class="fas fa-dollar-sign me-2"></i>Payroll Configuration
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="form-grid">
+                        <h6 class="text-primary mb-2">Salary Details</h6>
+                        <div class="form-grid mb-3">
                             <div class="form-grid-item">
                                 <label for="basic_salary" class="form-label">Basic Salary (SGD) *</label>
                                 <input type="number" class="form-control" id="basic_salary" name="basic_salary"
-                                       step="0.01" min="0" value="{{ form_data.get('basic_salary') if form_data else (employee.basic_salary or '' if employee else '') }}" required>
+                                    step="0.01" min="0"
+                                    value="{{ form_data.get('basic_salary') if form_data else (employee.basic_salary or '' if employee else '') }}"
+                                    required>
                             </div>
                             <div class="form-grid-item">
                                 <label for="allowances" class="form-label">Monthly Allowances (SGD)</label>
-                                <input type="number" class="form-control" id="allowances" name="allowances"
-                                       step="0.01" min="0" value="{{ form_data.get('allowances') if form_data else (employee.allowances or '' if employee else '') }}">
+                                <input type="number" class="form-control" id="allowances" name="allowances" step="0.01"
+                                    min="0"
+                                    value="{{ form_data.get('allowances') if form_data else (employee.allowances or '' if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="hourly_rate" class="form-label">Hourly Rate (SGD)</label>
                                 <input type="number" class="form-control" id="hourly_rate" name="hourly_rate"
-                                       step="0.01" min="0" value="{{ form_data.get('hourly_rate') if form_data else (employee.hourly_rate or '' if employee else '') }}">
+                                    step="0.01" min="0"
+                                    value="{{ form_data.get('hourly_rate') if form_data else (employee.hourly_rate or '' if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="overtime_group_id" class="form-label">Overtime Group</label>
                                 <select class="form-select" id="overtime_group_id" name="overtime_group_id">
                                     <option value="">Select Overtime Group</option>
                                     {% if overtime_groups %}
-                                        {% for group in overtime_groups %}
-                                        <option value="{{ group }}" {% if (form_data and form_data.get('overtime_group_id') == group) or (employee and employee.overtime_group_id == group and not form_data) %}selected{% endif %}>
-                                            {{ group }}
-                                        </option>
-                                        {% endfor %}
+                                    {% for group in overtime_groups %}
+                                    <option value="{{ group }}" {% if (form_data and
+                                        form_data.get('overtime_group_id')==group) or (employee and
+                                        employee.overtime_group_id==group and not form_data) %}selected{% endif %}>
+                                        {{ group }}
+                                    </option>
+                                    {% endfor %}
                                     {% else %}
-                                        <option value="Group 1" {% if employee and employee.overtime_group_id == 'Group 1' %}selected{% endif %}>Group 1</option>
-                                        <option value="Group 2" {% if employee and employee.overtime_group_id == 'Group 2' %}selected{% endif %}>Group 2</option>
-                                        <option value="Group 3" {% if employee and employee.overtime_group_id == 'Group 3' %}selected{% endif %}>Group 3</option>
+                                    <option value="Group 1" {% if employee and employee.overtime_group_id=='Group 1'
+                                        %}selected{% endif %}>Group 1</option>
+                                    <option value="Group 2" {% if employee and employee.overtime_group_id=='Group 2'
+                                        %}selected{% endif %}>Group 2</option>
+                                    <option value="Group 3" {% if employee and employee.overtime_group_id=='Group 3'
+                                        %}selected{% endif %}>Group 3</option>
                                     {% endif %}
                                 </select>
                             </div>
                             <div class="form-grid-item">
                                 <label for="cpf_account" class="form-label">CPF Account Number</label>
                                 <input type="text" class="form-control" id="cpf_account" name="cpf_account"
-                                       value="{{ form_data.get('cpf_account') if form_data else (employee.cpf_account or '' if employee else '') }}">
+                                    value="{{ form_data.get('cpf_account') if form_data else (employee.cpf_account or '' if employee else '') }}">
+                            </div>
+                        </div>
+
+                        <h6 class="text-primary mb-2 border-top pt-2">Bank Account Details</h6>
+                        <div class="form-grid">
+                            <div class="form-grid-item">
+                                <label for="bank_name" class="form-label">Bank Name</label>
+                                <input type="text" class="form-control" id="bank_name" name="bank_name"
+                                    value="{{ form_data.get('bank_name') if form_data else (employee.bank_name or '' if employee else '') }}">
+                            </div>
+                            <div class="form-grid-item">
+                                <label for="bank_account_number" class="form-label">Bank Account Number</label>
+                                <input type="text" class="form-control" id="bank_account_number"
+                                    name="bank_account_number"
+                                    value="{{ form_data.get('bank_account_number') if form_data else (employee.bank_account_number or '' if employee else '') }}">
+                            </div>
+                            <div class="form-grid-item">
+                                <label for="account_holder_name" class="form-label">Account Holder Name</label>
+                                <input type="text" class="form-control" id="account_holder_name"
+                                    name="account_holder_name"
+                                    value="{{ form_data.get('account_holder_name') if form_data else (employee.account_holder_name or '' if employee else '') }}">
+                            </div>
+                            <div class="form-grid-item">
+                                <label for="swift_code" class="form-label">SWIFT Code</label>
+                                <input type="text" class="form-control" id="swift_code" name="swift_code"
+                                    value="{{ form_data.get('swift_code') if form_data else (employee.swift_code or '' if employee else '') }}">
+                            </div>
+                            <div class="form-grid-item">
+                                <label for="ifsc_code" class="form-label">IFSC Code (if applicable)</label>
+                                <input type="text" class="form-control" id="ifsc_code" name="ifsc_code"
+                                    value="{{ form_data.get('ifsc_code') if form_data else (employee.ifsc_code or '' if employee else '') }}">
                             </div>
                         </div>
                     </div>
                 </div>
-                {% endif %}
 
-                <div class="card mt-4">
+                <div class="card mt-3">
                     <div class="card-header card-header-warning">
                         <h5 class="mb-0">
                             <i class="fas fa-calendar-check me-2"></i>Certifications & Pass Renewals
@@ -346,29 +449,31 @@
                     </div>
                     <div class="card-body">
                         <p class="text-muted mb-3">
-                            <i class="fas fa-info-circle me-2"></i>Important dates for certifications and passes that require periodic renewal. These dates are tracked for renewal management.
+                            <i class="fas fa-info-circle me-2"></i>Important dates for certifications and passes that
+                            require periodic renewal. These dates are tracked for renewal management.
                         </p>
                         <div class="form-grid">
                             <div class="form-grid-item">
                                 <label for="hazmat_expiry" class="form-label">HAZMAT Expiry Date</label>
                                 <input type="date" class="form-control" id="hazmat_expiry" name="hazmat_expiry"
-                                       value="{{ form_data.get('hazmat_expiry') if form_data else (employee.hazmat_expiry.strftime('%Y-%m-%d') if employee and employee.hazmat_expiry else '') | default('') }}">
+                                    value="{{ form_data.get('hazmat_expiry') if form_data else (employee.hazmat_expiry.strftime('%Y-%m-%d') if employee and employee.hazmat_expiry else '') | default('') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="airport_pass_expiry" class="form-label">Airport Pass Expiry Date</label>
-                                <input type="date" class="form-control" id="airport_pass_expiry" name="airport_pass_expiry"
-                                       value="{{ form_data.get('airport_pass_expiry') if form_data else (employee.airport_pass_expiry.strftime('%Y-%m-%d') if employee and employee.airport_pass_expiry else '') | default('') }}">
+                                <input type="date" class="form-control" id="airport_pass_expiry"
+                                    name="airport_pass_expiry"
+                                    value="{{ form_data.get('airport_pass_expiry') if form_data else (employee.airport_pass_expiry.strftime('%Y-%m-%d') if employee and employee.airport_pass_expiry else '') | default('') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="psa_pass_number" class="form-label">PSA PASS NO</label>
                                 <input type="text" class="form-control" id="psa_pass_number" name="psa_pass_number"
-                                       value="{{ form_data.get('psa_pass_number') if form_data else (employee.psa_pass_number or '' if employee else '') }}"
-                                       placeholder="e.g., PSA123456">
+                                    value="{{ form_data.get('psa_pass_number') if form_data else (employee.psa_pass_number or '' if employee else '') }}"
+                                    placeholder="e.g., PSA123456">
                             </div>
                             <div class="form-grid-item">
                                 <label for="psa_pass_expiry" class="form-label">PSA PASS NO Expiry Date</label>
                                 <input type="date" class="form-control" id="psa_pass_expiry" name="psa_pass_expiry"
-                                       value="{{ form_data.get('psa_pass_expiry') if form_data else (employee.psa_pass_expiry.strftime('%Y-%m-%d') if employee and employee.psa_pass_expiry else '') | default('') }}">
+                                    value="{{ form_data.get('psa_pass_expiry') if form_data else (employee.psa_pass_expiry.strftime('%Y-%m-%d') if employee and employee.psa_pass_expiry else '') | default('') }}">
                             </div>
                         </div>
                     </div>
@@ -394,322 +499,322 @@
 </div>
 
 <script>
-// Form validation
-(function() {
-    'use strict';
-    window.addEventListener('load', function() {
-        var forms = document.getElementsByClassName('needs-validation');
-        var validation = Array.prototype.filter.call(forms, function(form) {
-            form.addEventListener('submit', function(event) {
-                if (form.checkValidity() === false) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
+    // Form validation
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+
+    function updateWorkPermitValidation() {
+        const workPermitType = document.getElementById('work_permit_type');
+        const workPermitNumber = document.getElementById('work_permit_number');
+        const workPermitExpiry = document.getElementById('work_permit_expiry');
+        const numberRequiredSpan = document.getElementById('work_permit_number_required');
+        const expiryRequiredSpan = document.getElementById('work_permit_expiry_required');
+
+        const permitTypeValue = workPermitType.value;
+        const nilType = ['Nil'];
+        const citizenTypes = ['Citizen', 'PR'];
+
+        if (nilType.includes(permitTypeValue)) {
+            workPermitNumber.removeAttribute('required');
+            workPermitExpiry.removeAttribute('required');
+            workPermitNumber.disabled = true;
+            workPermitExpiry.disabled = true;
+            workPermitNumber.value = '';
+            workPermitExpiry.value = '';
+            numberRequiredSpan.style.display = 'none';
+            expiryRequiredSpan.style.display = 'none';
+            workPermitNumber.classList.remove('is-invalid');
+            workPermitExpiry.classList.remove('is-invalid');
+        } else if (citizenTypes.includes(permitTypeValue)) {
+            workPermitNumber.removeAttribute('required');
+            workPermitExpiry.removeAttribute('required');
+            workPermitNumber.disabled = true;
+            workPermitExpiry.disabled = true;
+            workPermitNumber.value = '';
+            workPermitExpiry.value = '';
+            numberRequiredSpan.style.display = 'none';
+            expiryRequiredSpan.style.display = 'none';
+            workPermitNumber.classList.remove('is-invalid');
+            workPermitExpiry.classList.remove('is-invalid');
+        } else {
+            workPermitNumber.setAttribute('required', 'required');
+            workPermitExpiry.setAttribute('required', 'required');
+            workPermitNumber.disabled = false;
+            workPermitExpiry.disabled = false;
+            numberRequiredSpan.style.display = 'inline';
+            expiryRequiredSpan.style.display = 'inline';
+        }
+    }
+
+    document.getElementById('work_permit_type').addEventListener('change', updateWorkPermitValidation);
+
+    document.addEventListener('DOMContentLoaded', function () {
+        updateWorkPermitValidation();
+    });
+
+    // Form submission - Show loading state and disable button
+    document.querySelector('form.needs-validation').addEventListener('submit', function (e) {
+        // Don't prevent default, but show loading state
+        if (this.checkValidity() !== false) {
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+
+                // In case of error, re-enable after 5 seconds
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }, 5000);
+            }
+        }
+    });
+</script>
+<script>
+    // Date of Birth UX & restrictions
+    (function () {
+        const dob = document.getElementById('date_of_birth');
+        if (!dob) return;
+
+        // Set allowed date range: 1900-01-01 to today
+        const today = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+        dob.setAttribute('min', '1900-01-01');
+        dob.setAttribute('max', todayStr);
+
+        // Helper to clamp value within min/max
+        function clampDate() {
+            if (!dob.value) return;
+            const min = dob.getAttribute('min');
+            const max = dob.getAttribute('max');
+            if (min && dob.value < min) dob.value = min;
+            if (max && dob.value > max) dob.value = max;
+        }
+
+        // Open calendar when focusing/clicking the field
+        const openPicker = () => { if (typeof dob.showPicker === 'function') try { dob.showPicker(); } catch (_) { } };
+        dob.addEventListener('focus', openPicker);
+        dob.addEventListener('click', openPicker);
+
+        // Prevent manual typing (allow navigation/edit keys)
+        dob.addEventListener('keydown', (e) => {
+            const allowed = ['Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Backspace', 'Delete', 'Home', 'End'];
+            if (!allowed.includes(e.key)) e.preventDefault();
         });
-    }, false);
-})();
 
-function updateWorkPermitValidation() {
-    const workPermitType = document.getElementById('work_permit_type');
-    const workPermitNumber = document.getElementById('work_permit_number');
-    const workPermitExpiry = document.getElementById('work_permit_expiry');
-    const numberRequiredSpan = document.getElementById('work_permit_number_required');
-    const expiryRequiredSpan = document.getElementById('work_permit_expiry_required');
-    
-    const permitTypeValue = workPermitType.value;
-    const nilType = ['Nil'];
-    const citizenTypes = ['Citizen', 'PR'];
-    
-    if (nilType.includes(permitTypeValue)) {
-        workPermitNumber.removeAttribute('required');
-        workPermitExpiry.removeAttribute('required');
-        workPermitNumber.disabled = true;
-        workPermitExpiry.disabled = true;
-        workPermitNumber.value = '';
-        workPermitExpiry.value = '';
-        numberRequiredSpan.style.display = 'none';
-        expiryRequiredSpan.style.display = 'none';
-        workPermitNumber.classList.remove('is-invalid');
-        workPermitExpiry.classList.remove('is-invalid');
-    } else if (citizenTypes.includes(permitTypeValue)) {
-        workPermitNumber.removeAttribute('required');
-        workPermitExpiry.removeAttribute('required');
-        workPermitNumber.disabled = true;
-        workPermitExpiry.disabled = true;
-        workPermitNumber.value = '';
-        workPermitExpiry.value = '';
-        numberRequiredSpan.style.display = 'none';
-        expiryRequiredSpan.style.display = 'none';
-        workPermitNumber.classList.remove('is-invalid');
-        workPermitExpiry.classList.remove('is-invalid');
-    } else {
-        workPermitNumber.setAttribute('required', 'required');
-        workPermitExpiry.setAttribute('required', 'required');
-        workPermitNumber.disabled = false;
-        workPermitExpiry.disabled = false;
-        numberRequiredSpan.style.display = 'inline';
-        expiryRequiredSpan.style.display = 'inline';
-    }
-}
-
-document.getElementById('work_permit_type').addEventListener('change', updateWorkPermitValidation);
-
-document.addEventListener('DOMContentLoaded', function() {
-    updateWorkPermitValidation();
-});
-
-// Form submission - Show loading state and disable button
-document.querySelector('form.needs-validation').addEventListener('submit', function(e) {
-    // Don't prevent default, but show loading state
-    if (this.checkValidity() !== false) {
-        const submitBtn = document.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
-            
-            // In case of error, re-enable after 5 seconds
-            setTimeout(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }, 5000);
-        }
-    }
-});
-</script>
-<script>
-// Date of Birth UX & restrictions
-(function() {
-  const dob = document.getElementById('date_of_birth');
-  if (!dob) return;
-
-  // Set allowed date range: 1900-01-01 to today
-  const today = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-  dob.setAttribute('min', '1900-01-01');
-  dob.setAttribute('max', todayStr);
-
-  // Helper to clamp value within min/max
-  function clampDate() {
-    if (!dob.value) return;
-    const min = dob.getAttribute('min');
-    const max = dob.getAttribute('max');
-    if (min && dob.value < min) dob.value = min;
-    if (max && dob.value > max) dob.value = max;
-  }
-
-  // Open calendar when focusing/clicking the field
-  const openPicker = () => { if (typeof dob.showPicker === 'function') try { dob.showPicker(); } catch(_) {} };
-  dob.addEventListener('focus', openPicker);
-  dob.addEventListener('click', openPicker);
-
-  // Prevent manual typing (allow navigation/edit keys)
-  dob.addEventListener('keydown', (e) => {
-    const allowed = ['Tab','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Backspace','Delete','Home','End'];
-    if (!allowed.includes(e.key)) e.preventDefault();
-  });
-
-  // Enforce range on change/blur
-  dob.addEventListener('change', clampDate);
-  dob.addEventListener('blur', clampDate);
-})();
+        // Enforce range on change/blur
+        dob.addEventListener('change', clampDate);
+        dob.addEventListener('blur', clampDate);
+    })();
 </script>
 
 <script>
-// Auto-generate Employee ID when company is selected
-{% if not employee %}
-document.addEventListener('DOMContentLoaded', function() {
-    const companySelect = document.getElementById('company_id');
-    const employeeIdField = document.getElementById('employee_id');
-    const generatingIcon = document.getElementById('generatingIcon');
-    const infoIcon = generatingIcon.nextElementSibling;
+    // Auto-generate Employee ID when company is selected
+    {% if not employee %}
+    document.addEventListener('DOMContentLoaded', function () {
+        const companySelect = document.getElementById('company_id');
+        const employeeIdField = document.getElementById('employee_id');
+        const generatingIcon = document.getElementById('generatingIcon');
+        const infoIcon = generatingIcon.nextElementSibling;
 
-    // Function to generate employee ID
-    function generateEmployeeId() {
-        const companyId = companySelect.value;
+        // Function to generate employee ID
+        function generateEmployeeId() {
+            const companyId = companySelect.value;
 
-        if (!companyId) {
-            employeeIdField.value = '';
-            employeeIdField.classList.remove('is-valid', 'is-invalid');
-            infoIcon.style.display = 'inline';
-            generatingIcon.style.display = 'none';
-            return;
-        }
+            if (!companyId) {
+                employeeIdField.value = '';
+                employeeIdField.classList.remove('is-valid', 'is-invalid');
+                infoIcon.style.display = 'inline';
+                generatingIcon.style.display = 'none';
+                return;
+            }
 
-        // Show loading state
-        generatingIcon.style.display = 'inline';
-        infoIcon.style.display = 'none';
+            // Show loading state
+            generatingIcon.style.display = 'inline';
+            infoIcon.style.display = 'none';
 
-        fetch(`/employees/generate-id?company_id=${encodeURIComponent(companyId)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.employee_id) {
-                    employeeIdField.value = data.employee_id;
-                    employeeIdField.classList.add('is-valid');
-                    employeeIdField.classList.remove('is-invalid');
+            fetch(`/employees/generate-id?company_id=${encodeURIComponent(companyId)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.employee_id) {
+                        employeeIdField.value = data.employee_id;
+                        employeeIdField.classList.add('is-valid');
+                        employeeIdField.classList.remove('is-invalid');
 
-                    // Show loading complete
-                    generatingIcon.style.display = 'none';
-                    infoIcon.style.display = 'inline';
-                } else {
+                        // Show loading complete
+                        generatingIcon.style.display = 'none';
+                        infoIcon.style.display = 'inline';
+                    } else {
+                        employeeIdField.value = '';
+                        employeeIdField.classList.add('is-invalid');
+                        employeeIdField.classList.remove('is-valid');
+                        generatingIcon.style.display = 'none';
+                        infoIcon.style.display = 'inline';
+                        console.error('Error generating Employee ID:', data.message);
+                    }
+                })
+                .catch(error => {
                     employeeIdField.value = '';
                     employeeIdField.classList.add('is-invalid');
                     employeeIdField.classList.remove('is-valid');
                     generatingIcon.style.display = 'none';
                     infoIcon.style.display = 'inline';
-                    console.error('Error generating Employee ID:', data.message);
-                }
-            })
-            .catch(error => {
-                employeeIdField.value = '';
-                employeeIdField.classList.add('is-invalid');
-                employeeIdField.classList.remove('is-valid');
-                generatingIcon.style.display = 'none';
-                infoIcon.style.display = 'inline';
-                console.error('Network error:', error);
-            });
-    }
+                    console.error('Network error:', error);
+                });
+        }
 
-    // Trigger generation when company changes
-    companySelect.addEventListener('change', generateEmployeeId);
+        // Trigger generation when company changes
+        companySelect.addEventListener('change', generateEmployeeId);
 
-    // If company is already selected (e.g., on form re-render), generate ID
-    if (companySelect.value) {
-        generateEmployeeId();
-    }
-});
-{% endif %}
+        // If company is already selected (e.g., on form re-render), generate ID
+        if (companySelect.value) {
+            generateEmployeeId();
+        }
+    });
+    {% endif %}
 </script>
 
 <!-- Manager Dropdown Filter by Company Script -->
 <script>
-// Function to load and update managers based on selected company
-function updateManagersByCompany() {
-    const companySelect = document.getElementById('company_id');
-    const managerSelect = document.getElementById('manager_id');
-    const currentManagerId = managerSelect.getAttribute('data-current-manager-id');
-    const companyId = companySelect.value;
+    // Function to load and update managers based on selected company
+    function updateManagersByCompany() {
+        const companySelect = document.getElementById('company_id');
+        const managerSelect = document.getElementById('manager_id');
+        const currentManagerId = managerSelect.getAttribute('data-current-manager-id');
+        const companyId = companySelect.value;
 
-    if (!companyId) {
-        // Clear managers if no company is selected
-        managerSelect.innerHTML = '<option value="">Select Reporting Manager</option>';
-        return;
-    }
+        if (!companyId) {
+            // Clear managers if no company is selected
+            managerSelect.innerHTML = '<option value="">Select Reporting Manager</option>';
+            return;
+        }
 
-    // Fetch managers for the selected company
-    fetch(`/api/employees/managers-by-company?company_id=${encodeURIComponent(companyId)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Build options from fetched managers
-                let optionsHTML = '<option value="">Select Reporting Manager</option>';
-                
-                data.managers.forEach(manager => {
-                    optionsHTML += `<option value="${manager.id}">${manager.name} - ${manager.designation}</option>`;
-                });
-                
-                managerSelect.innerHTML = optionsHTML;
-                
-                // Re-select the current manager if editing
-                if (currentManagerId) {
-                    managerSelect.value = currentManagerId;
+        // Fetch managers for the selected company
+        fetch(`/api/employees/managers-by-company?company_id=${encodeURIComponent(companyId)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Build options from fetched managers
+                    let optionsHTML = '<option value="">Select Reporting Manager</option>';
+
+                    data.managers.forEach(manager => {
+                        optionsHTML += `<option value="${manager.id}">${manager.name} - ${manager.designation}</option>`;
+                    });
+
+                    managerSelect.innerHTML = optionsHTML;
+
+                    // Re-select the current manager if editing
+                    if (currentManagerId) {
+                        managerSelect.value = currentManagerId;
+                    }
                 }
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching managers:', error);
-            managerSelect.innerHTML = '<option value="">Error loading managers</option>';
-        });
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const companySelect = document.getElementById('company_id');
-    
-    // Initial load: populate managers if company is already selected
-    if (companySelect.value) {
-        updateManagersByCompany();
+            })
+            .catch(error => {
+                console.error('Error fetching managers:', error);
+                managerSelect.innerHTML = '<option value="">Error loading managers</option>';
+            });
     }
-    
-    // Listen for company changes
-    companySelect.addEventListener('change', updateManagersByCompany);
-});
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const companySelect = document.getElementById('company_id');
+
+        // Initial load: populate managers if company is already selected
+        if (companySelect.value) {
+            updateManagersByCompany();
+        }
+
+        // Listen for company changes
+        companySelect.addEventListener('change', updateManagersByCompany);
+    });
 </script>
 
 <!-- Work Permit Fields Conditional Requirement Script -->
 <script>
-function updateWorkPermitFieldsRequirement() {
-    const companySelect = document.getElementById('company_id');
-    const workPermitTypeSelect = document.getElementById('work_permit_type');
-    const workPermitExpiryInput = document.getElementById('work_permit_expiry');
-    const workPermitNumberInput = document.getElementById('work_permit_number');
-    const workPermitExpiryRequiredSpan = document.getElementById('work_permit_expiry_required');
-    const workPermitNumberRequiredSpan = document.getElementById('work_permit_number_required');
-    
-    // Get the selected company's country code
-    const selectedCompanyOption = companySelect.options[companySelect.selectedIndex];
-    const companyCountryCode = selectedCompanyOption?.getAttribute('data-country-code') || '';
-    
-    const workPermitType = workPermitTypeSelect.value;
-    
-    // Make fields optional ONLY if:
-    // 1. Company country is Singapore (SG) AND
-    // 2. Work Permit Type is "Citizen" or "PR" (no work permit needed for Singapore citizens/PR)
-    const isOptionalCondition = (companyCountryCode === 'SG') && (workPermitType === 'Citizen' || workPermitType === 'PR');
-    
-    // Also make optional for "Nil" type (no work permit specified) regardless of country
-    if (workPermitType === 'Nil' || isOptionalCondition) {
-        workPermitExpiryInput.removeAttribute('required');
-        workPermitNumberInput.removeAttribute('required');
-        workPermitExpiryRequiredSpan.style.setProperty('display', 'none', 'important');
-        workPermitNumberRequiredSpan.style.setProperty('display', 'none', 'important');
-        workPermitExpiryInput.value = '';
-        workPermitNumberInput.value = '';
-    } else {
-        // For all other cases - make the fields required
-        workPermitExpiryInput.setAttribute('required', 'required');
-        workPermitNumberInput.setAttribute('required', 'required');
-        workPermitExpiryRequiredSpan.style.setProperty('display', 'inline', 'important');
-        workPermitNumberRequiredSpan.style.setProperty('display', 'inline', 'important');
-    }
-}
+    function updateWorkPermitFieldsRequirement() {
+        const companySelect = document.getElementById('company_id');
+        const workPermitTypeSelect = document.getElementById('work_permit_type');
+        const workPermitExpiryInput = document.getElementById('work_permit_expiry');
+        const workPermitNumberInput = document.getElementById('work_permit_number');
+        const workPermitExpiryRequiredSpan = document.getElementById('work_permit_expiry_required');
+        const workPermitNumberRequiredSpan = document.getElementById('work_permit_number_required');
 
-// Initialize on page load and handle form submission
-document.addEventListener('DOMContentLoaded', function() {
-    updateWorkPermitFieldsRequirement();
-    
-    // Get the form
-    const form = document.querySelector('form.needs-validation');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const companySelect = document.getElementById('company_id');
-            const workPermitTypeSelect = document.getElementById('work_permit_type');
-            const workPermitExpiryInput = document.getElementById('work_permit_expiry');
-            const workPermitNumberInput = document.getElementById('work_permit_number');
-            
-            // Get the selected company's country code
-            const selectedCompanyOption = companySelect.options[companySelect.selectedIndex];
-            const companyCountryCode = selectedCompanyOption?.getAttribute('data-country-code') || '';
-            
-            const workPermitType = workPermitTypeSelect.value;
-            
-            // Apply the same country-based validation logic
-            const isOptionalCondition = (companyCountryCode === 'SG') && (workPermitType === 'Citizen' || workPermitType === 'PR');
-            
-            // If "Nil" or (Singapore + Citizen/PR), remove required attribute before validation
-            if (workPermitType === 'Nil' || isOptionalCondition) {
-                workPermitExpiryInput.removeAttribute('required');
-                workPermitNumberInput.removeAttribute('required');
-            } else {
-                // For all other cases - ensure required attribute is present
-                workPermitExpiryInput.setAttribute('required', 'required');
-                workPermitNumberInput.setAttribute('required', 'required');
-            }
-        });
+        // Get the selected company's country code
+        const selectedCompanyOption = companySelect.options[companySelect.selectedIndex];
+        const companyCountryCode = selectedCompanyOption?.getAttribute('data-country-code') || '';
+
+        const workPermitType = workPermitTypeSelect.value;
+
+        // Make fields optional ONLY if:
+        // 1. Company country is Singapore (SG) AND
+        // 2. Work Permit Type is "Citizen" or "PR" (no work permit needed for Singapore citizens/PR)
+        const isOptionalCondition = (companyCountryCode === 'SG') && (workPermitType === 'Citizen' || workPermitType === 'PR');
+
+        // Also make optional for "Nil" type (no work permit specified) regardless of country
+        if (workPermitType === 'Nil' || isOptionalCondition) {
+            workPermitExpiryInput.removeAttribute('required');
+            workPermitNumberInput.removeAttribute('required');
+            workPermitExpiryRequiredSpan.style.setProperty('display', 'none', 'important');
+            workPermitNumberRequiredSpan.style.setProperty('display', 'none', 'important');
+            workPermitExpiryInput.value = '';
+            workPermitNumberInput.value = '';
+        } else {
+            // For all other cases - make the fields required
+            workPermitExpiryInput.setAttribute('required', 'required');
+            workPermitNumberInput.setAttribute('required', 'required');
+            workPermitExpiryRequiredSpan.style.setProperty('display', 'inline', 'important');
+            workPermitNumberRequiredSpan.style.setProperty('display', 'inline', 'important');
+        }
     }
-});
+
+    // Initialize on page load and handle form submission
+    document.addEventListener('DOMContentLoaded', function () {
+        updateWorkPermitFieldsRequirement();
+
+        // Get the form
+        const form = document.querySelector('form.needs-validation');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                const companySelect = document.getElementById('company_id');
+                const workPermitTypeSelect = document.getElementById('work_permit_type');
+                const workPermitExpiryInput = document.getElementById('work_permit_expiry');
+                const workPermitNumberInput = document.getElementById('work_permit_number');
+
+                // Get the selected company's country code
+                const selectedCompanyOption = companySelect.options[companySelect.selectedIndex];
+                const companyCountryCode = selectedCompanyOption?.getAttribute('data-country-code') || '';
+
+                const workPermitType = workPermitTypeSelect.value;
+
+                // Apply the same country-based validation logic
+                const isOptionalCondition = (companyCountryCode === 'SG') && (workPermitType === 'Citizen' || workPermitType === 'PR');
+
+                // If "Nil" or (Singapore + Citizen/PR), remove required attribute before validation
+                if (workPermitType === 'Nil' || isOptionalCondition) {
+                    workPermitExpiryInput.removeAttribute('required');
+                    workPermitNumberInput.removeAttribute('required');
+                } else {
+                    // For all other cases - ensure required attribute is present
+                    workPermitExpiryInput.setAttribute('required', 'required');
+                    workPermitNumberInput.setAttribute('required', 'required');
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}
