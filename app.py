@@ -80,6 +80,7 @@ from core import models  # noqa: E402,F401
 
 # Add hasattr to Jinja2 global functions
 app.jinja_env.globals['hasattr'] = hasattr
+app.jinja_env.globals['getattr'] = getattr
 
 # Add date module to Jinja2 globals for template use
 app.jinja_env.globals['date'] = date

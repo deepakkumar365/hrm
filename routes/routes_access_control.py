@@ -103,8 +103,8 @@ def initialize_access_control_matrix():
                                 sub_menu_name=sub_menu_name,
                                 super_admin_access='Editable',
                                 tenant_admin_access='Editable',
-                                hr_manager_access='Hidden',
-                                employee_access='Hidden',
+                                hr_manager_access='Editable',
+                                employee_access='View Only',
                                 created_by='system'
                             )
                         else:

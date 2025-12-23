@@ -7,7 +7,7 @@
     <!-- Header Section -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h1 class="h4 fw-bold mb-0">HR Manager Dashboard</h1>
+            <h4 class="h4 mb-0">HR Manager Dashboard</h4>
             <p class="text-muted small mb-0">Real-time performance and operations overview</p>
         </div>
         <div class="d-flex gap-2 align-items-center">
@@ -69,20 +69,7 @@
     </div>
 
     <!-- Operational Hub Section -->
-    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3 mb-3">
-        <!-- OT Approval HR -->
-        <div class="col">
-            <a href="/dashboard/hr-manager/ot-approval?company_id={{ selected_company.id }}"
-                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
-                <i class="fas fa-check-circle text-primary fs-4 mb-2"></i>
-                <div class="small fw-bold text-center">OT Approval (HR)</div>
-                {% if mtd_ot.pending_approvals > 0 %}
-                <div class="badge bg-danger rounded-pill mt-1">{{ mtd_ot.pending_approvals
-                    }} Pending</div>
-                {% endif %}
-            </a>
-        </div>
-
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3 mb-3">
         <!-- OT Approval Manager -->
         <div class="col">
             <a href="/ot/manager-approval"
@@ -165,7 +152,7 @@
 <div id="attendanceDetailModal" class="detail-modal">
     <div class="modal-content">
         <div class="modal-header d-flex justify-content-between align-items-center">
-            <h3 id="attendanceModalTitle" class="mb-0">Employee Details</h3>
+            <h4 id="attendanceModalTitle" class="mb-0">Employee Details</h4>
             <button class="modal-close" onclick="closeAttendanceModal()">&times;</button>
         </div>
         <div id="attendanceModalBody" class="modal-body-scroll">

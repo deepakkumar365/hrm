@@ -14,7 +14,8 @@ from core.auth import require_login, require_role, create_default_users
 from core.models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                     Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation,
-                    Organization)
+                    Organization, OTDailySummary)
+from sqlalchemy import tuple_
 from core.forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
 from services.singapore_payroll import SingaporePayrollCalculator
@@ -1944,18 +1945,36 @@ def payroll_finalize(payroll_id):
 def attendance_list():
     """List attendance records"""
     page = request.args.get('page', 1, type=int)
-    date_filter = request.args.get('date', type=str)
-    employee_filter = request.args.get('employee', type=int)
+    date_range = request.args.get('date_range', 'month')
+    employee_search = request.args.get('employee', '')
 
     query = Attendance.query.join(Employee)
 
-    if date_filter:
-        filter_date = parse_date(date_filter)
-        if filter_date:
-            query = query.filter(Attendance.date == filter_date)
+    # Date Range Filtering
+    today = date.today()
+    if date_range == 'today':
+        query = query.filter(Attendance.date == today)
+    elif date_range == 'week':
+        start_week = today - timedelta(days=today.weekday())
+        end_week = start_week + timedelta(days=6)
+        query = query.filter(Attendance.date.between(start_week, end_week))
+    else:  # Default to month
+        start_month = today.replace(day=1)
+        _, last_day = calendar.monthrange(today.year, today.month)
+        end_month = today.replace(day=last_day)
+        query = query.filter(Attendance.date.between(start_month, end_month))
 
-    if employee_filter:
-        query = query.filter(Attendance.employee_id == employee_filter)
+    # Employee Filtering
+    if employee_search:
+        if employee_search.isdigit():
+            query = query.filter(Attendance.employee_id == int(employee_search))
+        else:
+            query = query.filter(
+                db.or_(
+                    Employee.first_name.ilike(f'%{employee_search}%'),
+                    Employee.last_name.ilike(f'%{employee_search}%')
+                )
+            )
 
     # Role-based filtering
     if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
@@ -1982,6 +2001,28 @@ def attendance_list():
     attendance_records = query.order_by(Attendance.date.desc()).paginate(
         page=page, per_page=20, error_out=False)
 
+    # Process records to add display times converting to employee's timezone
+    for record in attendance_records.items:
+        # Use employee profile from the record if available
+        if record.employee:
+            # Set clock_in_display (datetime object for template strftime)
+            if record.clock_in:
+                record.clock_in_display = get_employee_local_time(
+                    record.employee, record.clock_in, record.date)
+            else:
+                record.clock_in_display = None
+                
+            # Set clock_out_display
+            if record.clock_out:
+                record.clock_out_display = get_employee_local_time(
+                    record.employee, record.clock_out, record.date)
+            else:
+                record.clock_out_display = None
+        else:
+            # Fallback if no employee profile
+            record.clock_in_display = None
+            record.clock_out_display = None
+
     # Get employees for filter dropdown based on role
     employees = []
     if (current_user.role.name if current_user.role else None) == 'Super Admin':
@@ -1998,11 +2039,27 @@ def attendance_list():
             )
         ).filter_by(is_active=True).order_by(Employee.first_name).all()
 
+    # Fetch related OT Daily Summaries
+    ot_summaries_map = {}
+    if attendance_records.items:
+        # Create a list of (employee_id, date) tuples for filtering
+        keys = [(r.employee_id, r.date) for r in attendance_records.items]
+        
+        # Query OT summaries matching these keys
+        ot_summaries = OTDailySummary.query.filter(
+            tuple_(OTDailySummary.employee_id, OTDailySummary.ot_date).in_(keys)
+        ).all()
+        
+        # Map by (employee_id, date) for easy lookup
+        for ot in ot_summaries:
+            ot_summaries_map[(ot.employee_id, ot.ot_date)] = ot
+
     return render_template('attendance/list.html',
                            attendance_records=attendance_records,
                            employees=employees,
-                           date_filter=date_filter,
-                           employee_filter=employee_filter)
+                           date_filter=date_range,
+                           employee_filter=employee_search,
+                           ot_summaries_map=ot_summaries_map)
 
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])

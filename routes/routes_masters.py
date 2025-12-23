@@ -18,7 +18,7 @@ from flask_login import current_user
 # ============================================================================
 
 @app.route('/masters/roles')
-@require_role(['Super Admin', 'Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager'])
 def role_list():
     """List all roles with search and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -44,7 +44,7 @@ def role_list():
 
 
 @app.route('/masters/roles/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager'])
 def role_add():
     """Add a new role"""
     if request.method == 'POST':
@@ -79,7 +79,7 @@ def role_add():
 
 
 @app.route('/masters/roles/<int:role_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager'])
 def role_edit(role_id):
     """Edit an existing role"""
     role = Role.query.get_or_404(role_id)
@@ -116,7 +116,7 @@ def role_edit(role_id):
 
 
 @app.route('/masters/roles/<int:role_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Admin', 'Tenant Admin', 'HR Manager'])
 def role_delete(role_id):
     """Delete a role"""
     role = Role.query.get_or_404(role_id)
@@ -144,7 +144,7 @@ def role_delete(role_id):
 # ============================================================================
 
 @app.route('/masters/departments')
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def department_list():
     """List all departments with search and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -170,7 +170,7 @@ def department_list():
 
 
 @app.route('/masters/departments/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def department_add():
     """Add a new department"""
     if request.method == 'POST':
@@ -214,7 +214,7 @@ def department_add():
 
 
 @app.route('/masters/departments/<int:department_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def department_edit(department_id):
     """Edit an existing department"""
     department = Department.query.get_or_404(department_id)
@@ -260,7 +260,7 @@ def department_edit(department_id):
 
 
 @app.route('/masters/departments/<int:department_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def department_delete(department_id):
     """Delete a department"""
     department = Department.query.get_or_404(department_id)
@@ -288,7 +288,7 @@ def department_delete(department_id):
 # ============================================================================
 
 @app.route('/masters/working-hours')
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def working_hours_list():
     """List all working hours configurations with search and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -314,7 +314,7 @@ def working_hours_list():
 
 
 @app.route('/masters/working-hours/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def working_hours_add():
     """Add a new working hours configuration"""
     if request.method == 'POST':
@@ -323,8 +323,9 @@ def working_hours_add():
         start_time = request.form.get('start_time')
         end_time = request.form.get('end_time')
         hours_per_day = request.form.get('hours_per_day', type=float)
+        hours_per_week = request.form.get('hours_per_week', type=float)
         
-        if not name or not start_time or not end_time or not hours_per_day:
+        if not name or not start_time or not end_time or not hours_per_day or not hours_per_week:
             flash('All required fields must be filled', 'error')
             return redirect(url_for('working_hours_add'))
         
@@ -336,7 +337,7 @@ def working_hours_add():
         
         try:
             # Parse time strings to time objects
-            from datetime import datetime
+            # Input format is HH:MM from HTML5 time input
             start_time_obj = datetime.strptime(start_time, '%H:%M').time()
             end_time_obj = datetime.strptime(end_time, '%H:%M').time()
             
@@ -345,12 +346,16 @@ def working_hours_add():
                 description=description if description else None,
                 start_time=start_time_obj,
                 end_time=end_time_obj,
-                hours_per_day=hours_per_day
+                hours_per_day=hours_per_day,
+                hours_per_week=hours_per_week
             )
             db.session.add(working_hours)
             db.session.commit()
             flash(f'Working hours configuration "{name}" added successfully', 'success')
             return redirect(url_for('working_hours_list'))
+        except ValueError:
+            flash('Invalid time format. Please use HH:MM format.', 'error')
+            return redirect(url_for('working_hours_add'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding working hours: {str(e)}', 'error')
@@ -360,7 +365,7 @@ def working_hours_add():
 
 
 @app.route('/masters/working-hours/<int:working_hours_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def working_hours_edit(working_hours_id):
     """Edit an existing working hours configuration"""
     working_hours = WorkingHours.query.get_or_404(working_hours_id)
@@ -371,8 +376,9 @@ def working_hours_edit(working_hours_id):
         start_time = request.form.get('start_time')
         end_time = request.form.get('end_time')
         hours_per_day = request.form.get('hours_per_day', type=float)
+        hours_per_week = request.form.get('hours_per_week', type=float)
         
-        if not name or not start_time or not end_time or not hours_per_day:
+        if not name or not start_time or not end_time or not hours_per_day or not hours_per_week:
             flash('All required fields must be filled', 'error')
             return redirect(url_for('working_hours_edit', working_hours_id=working_hours_id))
         
@@ -387,7 +393,7 @@ def working_hours_edit(working_hours_id):
         
         try:
             # Parse time strings to time objects
-            from datetime import datetime
+            # Input format is HH:MM from HTML5 time input
             start_time_obj = datetime.strptime(start_time, '%H:%M').time()
             end_time_obj = datetime.strptime(end_time, '%H:%M').time()
             
@@ -396,9 +402,13 @@ def working_hours_edit(working_hours_id):
             working_hours.start_time = start_time_obj
             working_hours.end_time = end_time_obj
             working_hours.hours_per_day = hours_per_day
+            working_hours.hours_per_week = hours_per_week
             db.session.commit()
             flash(f'Working hours configuration "{name}" updated successfully', 'success')
             return redirect(url_for('working_hours_list'))
+        except ValueError:
+            flash('Invalid time format. Please use HH:MM format.', 'error')
+            return redirect(url_for('working_hours_edit', working_hours_id=working_hours_id))
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating working hours: {str(e)}', 'error')
@@ -408,7 +418,7 @@ def working_hours_edit(working_hours_id):
 
 
 @app.route('/masters/working-hours/<int:working_hours_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def working_hours_delete(working_hours_id):
     """Delete a working hours configuration"""
     working_hours = WorkingHours.query.get_or_404(working_hours_id)
@@ -436,7 +446,7 @@ def working_hours_delete(working_hours_id):
 # ============================================================================
 
 @app.route('/masters/work-schedules')
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def work_schedule_list():
     """List all work schedules with search and pagination"""
     page = request.args.get('page', 1, type=int)
@@ -462,7 +472,7 @@ def work_schedule_list():
 
 
 @app.route('/masters/work-schedules/add', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def work_schedule_add():
     """Add a new work schedule"""
     if request.method == 'POST':
@@ -517,7 +527,7 @@ def work_schedule_add():
 
 
 @app.route('/masters/work-schedules/<int:work_schedule_id>/edit', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def work_schedule_edit(work_schedule_id):
     """Edit an existing work schedule"""
     work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
@@ -574,7 +584,7 @@ def work_schedule_edit(work_schedule_id):
 
 
 @app.route('/masters/work-schedules/<int:work_schedule_id>/delete', methods=['POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def work_schedule_delete(work_schedule_id):
     """Delete a work schedule"""
     work_schedule = WorkSchedule.query.get_or_404(work_schedule_id)
@@ -655,9 +665,14 @@ def ot_type_add():
         description = request.form.get('description', '').strip()
         rate_multiplier = request.form.get('rate_multiplier', '1.5')
         color_code = request.form.get('color_code', '#3498db')
-        applicable_days = request.form.get('applicable_days', '')
         display_order = request.form.get('display_order', '0')
         is_active = request.form.get('is_active') == 'on'
+        
+        # Get day flags
+        days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        day_flags = {}
+        for day in days:
+            day_flags[day] = request.form.get(day) == 'on'
         
         if not name or not code:
             flash('OT Type name and code are required', 'error')
@@ -676,8 +691,10 @@ def ot_type_add():
             flash('Error: User must be associated with a tenant', 'error')
             return redirect(url_for('ot_type_add'))
         
-        # Check if OT type with same code already exists for this tenant (since OT Types are tenant-level)
-        company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+        # Check if OT type with same code already exists for this tenant
+        # Get all company IDs for this tenant
+        company_ids = [c.id for c in Company.query.filter_by(tenant_id=tenant_id).all()]
+        
         existing_ot = OTType.query.filter(
             OTType.company_id.in_(company_ids),
             OTType.code == code
@@ -694,15 +711,19 @@ def ot_type_add():
                 description=description if description else None,
                 rate_multiplier=float(rate_multiplier),
                 color_code=color_code,
-                applicable_days=applicable_days if applicable_days else None,
+                # applicable_days=applicable_days if applicable_days else None, # Removed
                 display_order=int(display_order),
                 is_active=is_active,
-                created_by=current_user.username
+                created_by=current_user.username,
+                **day_flags # Unpack day flags
             )
             db.session.add(ot_type)
             db.session.commit()
             flash(f'OT Type "{name}" added successfully', 'success')
             return redirect(url_for('ot_type_list'))
+        except ValueError as e:
+            flash(f'Invalid input format: {str(e)}', 'error')
+            return redirect(url_for('ot_type_add'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding OT Type: {str(e)}', 'error')
@@ -762,13 +783,18 @@ def ot_type_edit(ot_type_id):
         try:
             ot_type.name = name
             ot_type.code = code
-            ot_type.description = description if description else None
+            ot_type.description = request.form.get('description')
             ot_type.rate_multiplier = float(rate_multiplier)
             ot_type.color_code = color_code
-            ot_type.applicable_days = applicable_days if applicable_days else None
             ot_type.display_order = int(display_order)
-            ot_type.is_active = is_active
-            ot_type.modified_by = current_user.username
+            ot_type.is_active = request.form.get('is_active') == 'on'
+            
+            # Update day flags
+            days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+            for day in days:
+                setattr(ot_type, day, request.form.get(day) == 'on')
+            
+            ot_type.modified_by = current_user.email
             ot_type.modified_at = datetime.now()
             
             db.session.commit()

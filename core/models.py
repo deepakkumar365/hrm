@@ -806,6 +806,8 @@ class WorkingHours(db.Model):
     __tablename__ = 'hrm_working_hours'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
+    start_time = db.Column(db.Time, nullable=True) # Making nullable initially for migration safety
+    end_time = db.Column(db.Time, nullable=True)
     hours_per_day = db.Column(db.Numeric(4, 2), nullable=False)
     hours_per_week = db.Column(db.Numeric(4, 2), nullable=False)
     description = db.Column(db.Text)
@@ -822,16 +824,26 @@ class WorkSchedule(db.Model):
     __tablename__ = 'hrm_work_schedules'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
-    start_time = db.Column(db.Time, nullable=False)
-    end_time = db.Column(db.Time, nullable=False)
-    break_duration = db.Column(db.Integer, default=60)
+    working_hours_id = db.Column(db.Integer, db.ForeignKey('hrm_working_hours.id'), nullable=True) # Check if null is okay during migration
+    
+    # Days active
+    monday = db.Column(db.Boolean, default=True)
+    tuesday = db.Column(db.Boolean, default=True)
+    wednesday = db.Column(db.Boolean, default=True)
+    thursday = db.Column(db.Boolean, default=True)
+    friday = db.Column(db.Boolean, default=True)
+    saturday = db.Column(db.Boolean, default=False)
+    sunday = db.Column(db.Boolean, default=False)
+    
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
+    working_hours = db.relationship('WorkingHours', backref='work_schedules')
+
     def __repr__(self):
-        return f'<WorkSchedule {self.name}: {self.start_time}-{self.end_time}>'
+        return f'<WorkSchedule {self.name}>'
 
 
 class Designation(db.Model):
@@ -1220,7 +1232,14 @@ class OTType(db.Model):
     rate_multiplier = db.Column(db.Numeric(5, 2), default=1.5)
     color_code = db.Column(db.String(20), default='#3498db')
     is_active = db.Column(db.Boolean, default=True)
-    applicable_days = db.Column(db.String(100), nullable=True)
+    # Days active
+    monday = db.Column(db.Boolean, default=True)
+    tuesday = db.Column(db.Boolean, default=True)
+    wednesday = db.Column(db.Boolean, default=True)
+    thursday = db.Column(db.Boolean, default=True)
+    friday = db.Column(db.Boolean, default=True)
+    saturday = db.Column(db.Boolean, default=False)
+    sunday = db.Column(db.Boolean, default=False)
     display_order = db.Column(db.Integer, default=0)
     created_by = db.Column(db.String(100), nullable=False, default='system')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
@@ -1246,16 +1265,24 @@ class OTAttendance(db.Model):
     __tablename__ = 'hrm_ot_attendance'
     __table_args__ = (
         Index('idx_ot_attendance_employee_date', 'employee_id', 'ot_date'),
-        UniqueConstraint('employee_id', 'ot_date', name='uq_ot_attendance_emp_date'),
+        # UniqueConstraint removed to allow multiple logs per day
     )
 
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
     ot_date = db.Column(db.Date, nullable=False)
+    
+    # Time-based fields (Optional now)
     ot_in_time = db.Column(db.DateTime, nullable=True)
     ot_out_time = db.Column(db.DateTime, nullable=True)
-    ot_hours = db.Column(db.Numeric(6, 2), nullable=True)
+    
+    # Quantity/Value fields
+    ot_hours = db.Column(db.Numeric(6, 2), nullable=True) # Kept for backward compatibility
+    quantity = db.Column(db.Numeric(6, 2), nullable=True, default=0) # New: Hours or Units
+    rate = db.Column(db.Numeric(8, 2), nullable=True, default=0) # New: Rate per unit
+    amount = db.Column(db.Numeric(10, 2), nullable=True, default=0) # New: Total amount
+    
     ot_type_id = db.Column(db.Integer, db.ForeignKey('hrm_ot_type.id'), nullable=True)
     status = db.Column(db.String(20), default='Draft')
     notes = db.Column(db.Text, nullable=True)
@@ -1270,6 +1297,7 @@ class OTAttendance(db.Model):
     ot_type = db.relationship('OTType')
 
     def calculate_ot_hours(self):
+        # Legacy calculation logic
         if self.ot_in_time and self.ot_out_time and self.ot_out_time > self.ot_in_time:
             duration = self.ot_out_time - self.ot_in_time
             hours = duration.total_seconds() / 3600

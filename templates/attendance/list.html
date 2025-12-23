@@ -2,185 +2,340 @@
 
 {% block title %}Attendance History{% endblock %}
 
-{% block head %}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/attendance.css') }}">
+<style>
+    /* Toolbar & Filter Styles (Local Override/Addition) */
+    .attendance-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 0;
+    }
+
+    .filter-toggle-btn {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 0.4rem 0.8rem;
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .filter-toggle-btn:hover,
+    .filter-toggle-btn.active {
+        background: var(--bg-muted);
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .header-title {
+        color: var(--text-header);
+    }
+
+    .filter-section-wrapper {
+        background: var(--bg-muted);
+        border-bottom: 1px solid var(--border-color);
+        overflow: hidden;
+        max-height: 0;
+        transition: max-height 0.3s ease-out;
+    }
+
+    .filter-section-wrapper.open {
+        max-height: 200px;
+        /* Limits transition height */
+        padding: 1rem;
+    }
+
+    /* OT Grid Styles */
+    .ot-section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-header);
+        margin: 1.5rem auto 1rem auto;
+        padding-left: 0.5rem;
+        border-left: 4px solid var(--primary);
+        width: 90%;
+    }
+
+    .ot-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 0.75rem;
+        width: 90%;
+        margin: 0 auto 2rem auto;
+    }
+
+    .ot-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+    }
+
+    .ot-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-color: var(--primary-light, #cbd5e1);
+    }
+
+    .ot-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .ot-date {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .ot-hours {
+        background: var(--bg-muted);
+        color: var(--primary);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .ot-allowance-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+    }
+
+    .ot-total {
+        margin-top: 0.75rem;
+        padding-top: 0.5rem;
+        border-top: 1px dotted var(--border-light);
+        display: flex;
+        justify-content: space-between;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+        .attendance-page-container {
+            padding: 0 !important;
+        }
+
+        .attendance-toolbar {
+            padding: 0.75rem;
+        }
+
+        .filter-section-wrapper.open {
+            max-height: 400px;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid attendance-page-container p-0">
     <div class="attendance-wrapper mx-auto">
 
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-title">
-                <h1>Attendance Records</h1>
-                <div class="breadcrumb">Attendance / History</div>
-            </div>
-            <div class="actions">
-                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary rounded-pill px-4">
-                    <i class="fas fa-plus me-2"></i>Mark Attendance
+        <!-- Toolbar -->
+        <div class="attendance-toolbar d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0 fw-bold header-title">Attendance</h4>
+            <div class="d-flex gap-2">
+                <button type="button" class="filter-toggle-btn" onclick="toggleFilters()" id="filterToggleBtn">
+                    <i class="fas fa-filter"></i> Filters
+                </button>
+
+                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-sm rounded-pill px-3">
+                    <i class="fas fa-plus me-2"></i>Mark
                 </a>
             </div>
         </div>
 
-        <!-- Summary -->
-        {% if summary %}
-        <div class="summary-grid">
-            <div class="summary-card primary">
-                <span class="label">Total Records</span>
-                <span class="value">{{ summary.total_records }}</span>
-            </div>
-            <div class="summary-card success">
-                <span class="label">Present Days</span>
-                <span class="value">{{ summary.present_days }}</span>
-            </div>
-            <div class="summary-card info">
-                <span class="label">Total Hours</span>
-                <span class="value">{{ "%.1f"|format(summary.total_hours) }}h</span>
-            </div>
-            <div class="summary-card warning">
-                <span class="label">Late Records</span>
-                <span class="value">{{ summary.late_days }}</span>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Filter -->
-        <div class="filter-section">
-            <form method="GET" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold">Date Range</label>
-                    <select name="date_range" class="form-select rounded-3">
-                        <option value="today">Today</option>
-                        <option value="week">This Week</option>
-                        <option value="month" selected>This Month</option>
-                        <option value="custom">Custom Range</option>
+        <!-- Filter Section (Collapsible) -->
+        <div class="filter-section-wrapper" id="filterSection">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-6 col-md-3">
+                    <label class="form-label small fw-bold mb-1">Date Range</label>
+                    <select name="date_range" class="form-select form-select-sm">
+                        <option value="today" {% if date_filter=='today' %}selected{% endif %}>Today</option>
+                        <option value="week" {% if date_filter=='week' %}selected{% endif %}>This Week</option>
+                        <option value="month" {% if not date_filter or date_filter=='month' %}selected{% endif %}>This
+                            Month</option>
                     </select>
                 </div>
                 {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager', 'HR
                 Manager'] %}
-                <div class="col-md-4">
-                    <label class="form-label small fw-bold">Employee</label>
-                    <input type="text" name="employee" class="form-control rounded-3" placeholder="Search employee..."
+                <div class="col-6 col-md-4">
+                    <label class="form-label small fw-bold mb-1">Employee</label>
+                    <input type="text" name="employee" class="form-control form-control-sm" placeholder="Search..."
                         value="{{ employee_filter or '' }}">
                 </div>
                 {% endif %}
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-dark w-100 rounded-3">
-                        <i class="fas fa-filter me-2"></i>Filter
-                    </button>
+                <div class="col-12 col-md-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100"
+                        onclick="resetFilters()">Reset</button>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-dark btn-sm w-100">Apply</button>
                 </div>
             </form>
         </div>
-
-        <!-- Data Display -->
-        <div class="data-card">
-            <!-- Desktop View -->
-            <div class="desktop-table table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Clock In</th>
-                            <th>Clock Out</th>
-                            <th>Total</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in attendance_records.items %}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-sm me-3">
-                                        {% if record.employee.profile_image_path %}
-                                        <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}"
-                                            class="rounded-circle" width="32" height="32">
-                                        {% else %}
-                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center">
-                                            {{ record.employee.first_name[0] }}
-                                        </div>
-                                        {% endif %}
+        <!-- Desktop View -->
+        <div class="desktop-table table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Clock In</th>
+                        <th>Clock Out</th>
+                        <th>Total</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in attendance_records.items %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-3">
+                                    {% if record.employee.profile_image_path %}
+                                    <img src="{{ url_for('static', filename=record.employee.profile_image_path) }}"
+                                        class="rounded-circle" width="32" height="32">
+                                    {% else %}
+                                    <div
+                                        class="rounded-circle bg-light d-flex align-items-center justify-content-center">
+                                        {{ record.employee.first_name[0] }}
                                     </div>
-                                    <span class="fw-bold">{{ record.employee.first_name }} {{ record.employee.last_name
-                                        }}</span>
+                                    {% endif %}
                                 </div>
-                            </td>
-                            <td>{{ record.date.strftime('%d %b %Y') }}</td>
-                            <td>
-                                <span
-                                    class="status-pill bg-{{ record.status.lower() if record.status else 'pending' }}">
-                                    {{ record.status or 'Pending' }}
-                                </span>
-                            </td>
-                            <td>{{ record.clock_in_display.strftime('%H:%M') if record.clock_in_display else '-' }}</td>
-                            <td>{{ record.clock_out_display.strftime('%H:%M') if record.clock_out_display else '-' }}
-                            </td>
-                            <td><span class="badge bg-light text-dark fw-bold border">{{
-                                    "%.1f"|format(record.total_hours or 0) }}h</span></td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-outline-secondary border-0" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Mobile View -->
-            <div class="mobile-cards p-3">
-                {% for record in attendance_records.items %}
-                <div class="m-card">
-                    <div class="m-card-header">
-                        <span class="fw-bold">{{ record.date.strftime('%d %b %Y') }}</span>
-                        <span class="status-pill bg-{{ record.status.lower() if record.status else 'pending' }}">
-                            {{ record.status or 'Pending' }}
-                        </span>
-                    </div>
-                    <div class="m-card-body">
-                        <div class="m-item">
-                            <label>In</label>
-                            <span>{{ record.clock_in_display.strftime('%H:%M') if record.clock_in_display else '-'
-                                }}</span>
-                        </div>
-                        <div class="m-item">
-                            <label>Out</label>
-                            <span>{{ record.clock_out_display.strftime('%H:%M') if record.clock_out_display else '-'
-                                }}</span>
-                        </div>
-                        <div class="m-item">
-                            <label>Total Hours</label>
-                            <span>{{ "%.1f"|format(record.total_hours or 0) }}h</span>
-                        </div>
-                        <div class="m-item text-end">
-                            <label>Overtime</label>
-                            <span>{{ "%.1f"|format(record.overtime_hours or 0) }}h</span>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+                                <span class="fw-bold">{{ record.employee.first_name }} {{ record.employee.last_name
+                                    }}</span>
+                            </div>
+                        </td>
+                        <td>{{ record.date.strftime('%d %b %Y') }}</td>
+                        <td>
+                            <span class="status-pill bg-{{ record.status.lower() if record.status else 'pending' }}">
+                                {{ record.status or 'Pending' }}
+                            </span>
+                        </td>
+                        <td>{{ record.clock_in_display.strftime('%H:%M') if record.clock_in_display else '-' }}</td>
+                        <td>{{ record.clock_out_display.strftime('%H:%M') if record.clock_out_display else '-' }}
+                        </td>
+                        <td><span class="badge bg-light text-dark fw-bold border">{{
+                                "%.1f"|format(record.total_hours or 0) }}h</span></td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-secondary border-0" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
-        <!-- Pagination -->
-        {% if attendance_records.pages > 1 %}
-        <nav class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% for page_num in attendance_records.iter_pages() %}
-                {% if page_num %}
-                <li class="page-item {{ 'active' if page_num == attendance_records.page }}">
-                    <a class="page-link shadow-none" href="{{ url_for('attendance_list_view', page=page_num) }}">{{
-                        page_num }}</a>
-                </li>
-                {% else %}
-                <li class="page-item disabled"><span class="page-link">...</span></li>
-                {% endif %}
-                {% endfor %}
-            </ul>
-        </nav>
+        {% if ot_summaries_map %}
+        <h5 class="ot-section-title">Overtime Details</h5>
+        <div class="ot-grid">
+            {% for record in attendance_records.items %}
+            {% set ot_key = (record.employee_id, record.date) %}
+            {% if ot_key in ot_summaries_map %}
+            {% set ot = ot_summaries_map[ot_key] %}
+            <div class="ot-card">
+                <div class="ot-card-header">
+                    <span class="ot-date">{{ record.date.strftime('%d %b %Y') }}</span>
+                    <span class="ot-hours">{{ "%.1f"|format(ot.ot_hours or 0) }}h OT</span>
+                </div>
+
+                <div class="ot-body">
+                    {% if ot.total_allowances > 0 %}
+                    {% if ot.kd_and_claim > 0 %}<div class="ot-allowance-item"><span>KD/Claim</span><span>${{
+                            "%.2f"|format(ot.kd_and_claim) }}</span></div>{% endif %}
+                    {% if ot.trips > 0 %}<div class="ot-allowance-item"><span>Trips</span><span>${{
+                            "%.2f"|format(ot.trips) }}</span></div>{% endif %}
+                    {% if ot.sinpost > 0 %}<div class="ot-allowance-item"><span>Sinpost</span><span>${{
+                            "%.2f"|format(ot.sinpost) }}</span></div>{% endif %}
+                    {% if ot.sandstone > 0 %}<div class="ot-allowance-item"><span>Sandstone</span><span>${{
+                            "%.2f"|format(ot.sandstone) }}</span></div>{% endif %}
+                    {% if ot.spx > 0 %}<div class="ot-allowance-item"><span>SPX</span><span>${{ "%.2f"|format(ot.spx)
+                            }}</span></div>{% endif %}
+                    {% if ot.psle > 0 %}<div class="ot-allowance-item"><span>PSLE</span><span>${{ "%.2f"|format(ot.psle)
+                            }}</span></div>{% endif %}
+                    {% if ot.night > 0 %}<div class="ot-allowance-item"><span>Night</span><span>${{
+                            "%.2f"|format(ot.night) }}</span></div>{% endif %}
+                    {% if ot.ph > 0 %}<div class="ot-allowance-item"><span>PH</span><span>${{ "%.2f"|format(ot.ph)
+                            }}</span></div>{% endif %}
+                    {% if ot.sun > 0 %}<div class="ot-allowance-item"><span>Sun</span><span>${{ "%.2f"|format(ot.sun)
+                            }}</span></div>{% endif %}
+
+                    <div class="ot-allowance-item text-muted"><em>Total Allow.</em><em>${{
+                            "%.2f"|format(ot.total_allowances) }}</em></div>
+                    {% else %}
+                    <div class="text-center text-muted small py-2">No extra allowances</div>
+                    {% endif %}
+
+                    <div class="ot-total">
+                        <span>Total Amount</span>
+                        <span class="text-success">${{ "%.2f"|format(ot.total_amount) }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
         {% endif %}
+
     </div>
+
+    <!-- Pagination -->
+    {% if attendance_records.pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% for page_num in attendance_records.iter_pages() %}
+            {% if page_num %}
+            <li class="page-item {{ 'active' if page_num == attendance_records.page }}">
+                <a class="page-link shadow-none" href="{{ url_for('attendance_list_view', page=page_num) }}">{{
+                    page_num }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleFilters() {
+        const section = document.getElementById('filterSection');
+        const btn = document.getElementById('filterToggleBtn');
+        section.classList.toggle('open');
+        btn.classList.toggle('active');
+    }
+
+    function resetFilters() {
+        window.location.href = "{{ url_for('attendance_list_view') }}";
+    }
+</script>
 {% endblock %}

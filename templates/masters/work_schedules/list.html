@@ -38,8 +38,8 @@
                 <div class="card-body">
                     <div class="row g-2">
                         <div class="col-md-6">
-                            <input type="text" name="search" class="form-control"
-                                   placeholder="Search schedules..." value="{{ search }}">
+                            <input type="text" name="search" class="form-control" placeholder="Search schedules..."
+                                value="{{ search }}">
                         </div>
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-outline-primary w-100">
@@ -62,8 +62,8 @@
                             <th>Schedule Name</th>
                             <th>Start Time</th>
                             <th>End Time</th>
-                            <th>Break Duration</th>
-                            <th>Total Hours</th>
+                            <th>Active Days</th>
+                            <th>Hours/Day</th>
                             <th>Description</th>
                             <th>Created</th>
                             <th class="text-end">Actions</th>
@@ -76,30 +76,51 @@
                                 <strong>{{ schedule.name }}</strong>
                             </td>
                             <td>
-                                <span class="badge bg-success">{{ schedule.start_time.strftime('%H:%M') }}</span>
+                                {% if schedule.working_hours and schedule.working_hours.start_time %}
+                                <span class="badge bg-success">{{ schedule.working_hours.start_time.strftime('%H:%M')
+                                    }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">-</span>
+                                {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-danger">{{ schedule.end_time.strftime('%H:%M') }}</span>
+                                {% if schedule.working_hours and schedule.working_hours.end_time %}
+                                <span class="badge bg-danger">{{ schedule.working_hours.end_time.strftime('%H:%M')
+                                    }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">-</span>
+                                {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-info">{{ schedule.break_duration }}min</span>
+                                <span class="badge bg-info">
+                                    {% set active_days = [] %}
+                                    {% if schedule.monday %}{% set _ = active_days.append('Mon') %}{% endif %}
+                                    {% if schedule.tuesday %}{% set _ = active_days.append('Tue') %}{% endif %}
+                                    {% if schedule.wednesday %}{% set _ = active_days.append('Wed') %}{% endif %}
+                                    {% if schedule.thursday %}{% set _ = active_days.append('Thu') %}{% endif %}
+                                    {% if schedule.friday %}{% set _ = active_days.append('Fri') %}{% endif %}
+                                    {% if schedule.saturday %}{% set _ = active_days.append('Sat') %}{% endif %}
+                                    {% if schedule.sunday %}{% set _ = active_days.append('Sun') %}{% endif %}
+                                    {{ active_days|join(', ') }}
+                                </span>
                             </td>
                             <td>
-                                {% set total_minutes = (schedule.end_time.hour * 60 + schedule.end_time.minute) - (schedule.start_time.hour * 60 + schedule.start_time.minute) - schedule.break_duration %}
-                                {% set hours = total_minutes // 60 %}
-                                {% set minutes = total_minutes % 60 %}
-                                <span class="badge bg-primary">{{ hours }}h {{ minutes }}m</span>
+                                {% if schedule.working_hours %}
+                                <span class="badge bg-primary">{{ schedule.working_hours.hours_per_day }}h / day</span>
+                                {% else %}
+                                <span class="badge bg-secondary">-</span>
+                                {% endif %}
                             </td>
                             <td>{{ schedule.description or '-' }}</td>
                             <td>{{ schedule.created_at.strftime('%d %b %Y') }}</td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('work_schedule_edit', work_schedule_id=schedule.id) }}" 
-                                       class="btn btn-outline-primary">
+                                    <a href="{{ url_for('work_schedule_edit', work_schedule_id=schedule.id) }}"
+                                        class="btn btn-outline-primary">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <button type="button" class="btn btn-outline-danger"
-                                            onclick="confirmDelete('{{ schedule.name }}', '{{ url_for('work_schedule_delete', work_schedule_id=schedule.id) }}')">
+                                        onclick="confirmDelete('{{ schedule.name }}', '{{ url_for('work_schedule_delete', work_schedule_id=schedule.id) }}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -116,31 +137,34 @@
                 <ul class="pagination justify-content-center">
                     {% if work_schedules.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('work_schedule_list', page=work_schedules.prev_num) }}">Previous</a>
+                        <a class="page-link"
+                            href="{{ url_for('work_schedule_list', page=work_schedules.prev_num) }}">Previous</a>
                     </li>
                     {% endif %}
-                    
+
                     {% for page_num in work_schedules.iter_pages() %}
-                        {% if page_num %}
-                            {% if page_num != work_schedules.page %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('work_schedule_list', page=page_num) }}">{{ page_num }}</a>
-                            </li>
-                            {% else %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ page_num }}</span>
-                            </li>
-                            {% endif %}
-                        {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link">...</span>
-                        </li>
-                        {% endif %}
+                    {% if page_num %}
+                    {% if page_num != work_schedules.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('work_schedule_list', page=page_num) }}">{{ page_num
+                            }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
                     {% endfor %}
-                    
+
                     {% if work_schedules.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('work_schedule_list', page=work_schedules.next_num) }}">Next</a>
+                        <a class="page-link"
+                            href="{{ url_for('work_schedule_list', page=work_schedules.next_num) }}">Next</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -182,10 +206,10 @@
 </div>
 
 <script>
-function confirmDelete(name, url) {
-    document.getElementById('scheduleName').textContent = name;
-    document.getElementById('deleteForm').action = url;
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
+    function confirmDelete(name, url) {
+        document.getElementById('scheduleName').textContent = name;
+        document.getElementById('deleteForm').action = url;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
 </script>
 {% endblock %}

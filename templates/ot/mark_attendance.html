@@ -2,816 +2,358 @@
 
 {% block title %}Mark OT Attendance - Nexar{% endblock %}
 
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+    /* Custom Styles for Log & Go Interface */
+    .log-and-go-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .log-and-go-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .lg-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    .lg-card-header {
+        background: #f8fafc;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .lg-card-body {
+        padding: 20px;
+    }
+
+    .calc-row {
+        display: flex;
+        justify-content: space-between;
+        background: #f0f9ff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+        margin-bottom: 20px;
+        border: 1px solid #bfdbfe;
+    }
+
+    .calc-item {
+        text-align: center;
+    }
+
+    .calc-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .calc-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #0f172a;
+    }
+
+    .log-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .log-list-item:last-child {
+        border-bottom: none;
+    }
+
+    .log-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .log-main {
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .log-sub {
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .log-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .badge-draft {
+        background: #e2e8f0;
+        color: #475569;
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="ot-container">
-    <!-- Header Section -->
-    <div class="header-section">
-        <div class="header-content">
-            <div class="header-title">
-                <i class="fas fa-bolt"></i>
-                <h1>Mark OT Attendance</h1>
-            </div>
-            <div class="header-info">
-                <div class="info-item">
-                    <span class="info-label">Employee</span>
-                    <span class="info-value">{{ employee.first_name }} {{ employee.last_name }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Employee ID</span>
-                    <span class="info-value">{{ employee.employee_id }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Department</span>
-                    <span class="info-value">{{ employee.department if employee.department else 'N/A' }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Company Timezone</span>
-                    <span class="info-value">{{ company_timezone }}</span>
-                </div>
-                <div class="header-clock">
-                    <div class="header-clock-label">Current Time in <span id="clockTimezone">Your Timezone</span></div>
-                    <div class="header-clock-time" id="liveClock">--:-- --</div>
-                </div>
-            </div>
+<div class="page-header">
+    <div class="header-title">
+        <h4>Log OT Attendance</h4>
+    </div>
+</div>
+
+<div class="log-and-go-container">
+    <!-- LEFT: Input Form -->
+    <div class="lg-card">
+        <div class="lg-card-header">
+            <span><i class="fas fa-plus-circle"></i> New Entry</span>
+            <span id="currentDateDisplay" class="text-muted" style="font-weight: normal; font-size: 0.9rem;"></span>
         </div>
-    </div>
-
-    <!-- Alerts Section -->
-    <div class="alerts-section">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' if category == 'warning' else 'info' }}">
-                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'times-circle' if category == 'danger' else 'exclamation-circle' if category == 'warning' else 'info-circle' }}"></i>
-                        <span>{{ message | safe }}</span>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
-
-    <!-- Main Content -->
-    <div class="content-wrapper">
-        <!-- Form Card -->
-        <div class="form-card">
-            {% if has_ot_types %}
-            <form method="POST" id="otForm">
-            {% else %}
-            <form method="POST" id="otForm">
-            {% endif %}
-                <div class="form-title">
-                    <i class="fas fa-edit"></i>
-                    Record Overtime
+        <div class="lg-card-body">
+            <form id="logOtForm">
+                <div class="form-group mb-3">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-control" id="ot_date" name="ot_date" value="{{ today }}">
                 </div>
 
-                <!-- OT Date & Working Hours Section -->
-                <div class="form-section">
-                    <div class="section-label">
-                        <i class="fas fa-calendar-alt"></i> Date Selection & Working Hours
-                    </div>
-                    <div class="time-input-group">
-                        <div class="time-input-wrapper">
-                            <label for="ot_date">OT Date <span class="required">*</span></label>
-                            <input type="date" class="form-control" id="ot_date" name="ot_date" 
-                                   value="{{ today }}" required {% if not has_ot_types %}disabled{% endif %}>
-                        </div>
-                        <div class="time-input-wrapper">
-                            <label for="ot_in_time">In Time</label>
-                            <input type="time" class="form-control" id="ot_in_time" name="ot_in_time" 
-                                   {% if not has_ot_types %}disabled{% endif %}>
-                        </div>
-                        <div class="time-button-wrapper">
-                            <button type="button" class="btn-time-now" onclick="setCurrentTime('ot_in_time')" 
-                                    {% if not has_ot_types %}disabled{% endif %}>
-                                <i class="fas fa-play-circle"></i> Set In
-                            </button>
-                        </div>
-                        <div class="time-input-wrapper">
-                            <label for="ot_out_time">Out Time</label>
-                            <input type="time" class="form-control" id="ot_out_time" name="ot_out_time"
-                                   {% if not has_ot_types %}disabled{% endif %}>
-                        </div>
-                        <div class="time-button-wrapper">
-                            <button type="button" class="btn-time-now" onclick="setCurrentTime('ot_out_time')" 
-                                    {% if not has_ot_types %}disabled{% endif %}>
-                                <i class="fas fa-stop-circle"></i> Set Out
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-help">📅 Select the date and times you worked overtime (cannot be future date)</div>
+                <div class="form-group mb-3">
+                    <label class="form-label">OT Type</label>
+                    <select class="form-control" id="ot_type_id" name="ot_type_id" required
+                        onchange="calculatePreview()">
+                        <option value="" data-multiplier="0">-- Select Type --</option>
+                        {% for type in ot_types %}
+                        <option value="{{ type.id }}" data-multiplier="{{ type.rate_multiplier }}">
+                            {{ type.name }} ({{ type.rate_multiplier }}x)
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
 
-                <!-- Time Mode (Hidden) -->
-                <div id="timeMode" class="form-section"></div>
+                <div class="form-group mb-3">
+                    <label class="form-label">Quantity (Hours/Units)</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" placeholder="e.g. 2.0"
+                        step="0.1" min="0.1" required oninput="calculatePreview()">
+                </div>
 
-                <!-- Hours Mode -->
-                <div id="hoursMode" class="form-section hidden">
-                    <div class="section-label">
-                        <i class="fas fa-hourglass-half"></i> Duration
+                <div class="form-group mb-3">
+                    <label class="form-label">Notes (Optional)</label>
+                    <input type="text" class="form-control" id="notes" name="notes" placeholder="Task description...">
+                </div>
+
+                <!-- Live Calculation Preview -->
+                <div class="calc-row">
+                    <div class="calc-item">
+                        <div class="calc-label">Est. Rate</div>
+                        <div class="calc-value" id="previewRate">$0.00</div>
                     </div>
-                    <div class="form-group">
-                        <label for="ot_hours">OT Hours <span class="required">*</span></label>
-                        <input type="number" class="form-control" id="ot_hours" name="ot_hours" 
-                               step="0.5" min="0" placeholder="e.g., 2, 2.5, 3"
-                               {% if not has_ot_types %}disabled{% endif %}>
-                        <div class="form-help">⏱️ Enter total overtime hours worked</div>
+                    <div class="calc-item border-start border-end px-3">
+                        <div class="calc-label">Multiplier</div>
+                        <div class="calc-value" id="previewMult">1.0x</div>
+                    </div>
+                    <div class="calc-item">
+                        <div class="calc-label">Est. Amount</div>
+                        <div class="calc-value text-primary" id="previewTotal">$0.00</div>
                     </div>
                 </div>
 
-                <!-- OT Type & Notes - Two Column Row -->
-                <div class="form-section-row">
-                    <!-- OT Type Section -->
-                    <div class="form-section">
-                        <div class="section-label">
-                            <i class="fas fa-tags"></i> OT Type
-                        </div>
-                        <div class="form-group">
-                            <label for="ot_type_id">Select Type <span class="required">*</span></label>
-                            <select class="form-control" id="ot_type_id" name="ot_type_id" required 
-                                    {% if not has_ot_types %}disabled{% endif %}>
-                                <option value="">-- Select --</option>
-                                {% for ot_type in ot_types %}
-                                    <option value="{{ ot_type.id }}">
-                                        {{ ot_type.name }} ({{ ot_type.rate_multiplier }}x)
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Notes Section -->
-                    <div class="form-section">
-                        <div class="section-label">
-                            <i class="fas fa-comment-dots"></i> Notes/Reason
-                        </div>
-                        <div class="form-group">
-                            <label for="notes">Additional Info</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="1" 
-                                      placeholder="Why overtime? What task?"
-                                      {% if not has_ot_types %}disabled{% endif %}></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="button-group">
-                    <button type="button" class="btn-secondary" onclick="saveDraft()" id="saveDraftBtn"
-                            title="Save Set In time as draft. You can update Set Out time later!"
-                            {% if not has_ot_types %}disabled{% endif %}>
-                        <i class="fas fa-save"></i> Save Draft
-                    </button>
-                    <button type="submit" class="btn-primary" {% if not has_ot_types %}disabled{% endif %}>
-                        <i class="fas fa-paper-plane"></i> Submit Attendance
-                    </button>
-                    <button type="reset" class="btn-secondary" {% if not has_ot_types %}disabled{% endif %}>
-                        <i class="fas fa-redo-alt"></i> Clear Form
-                    </button>
-                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2">
+                    <i class="fas fa-check"></i> Log Entry
+                </button>
             </form>
         </div>
+    </div>
 
-        <!-- Right Sidebar (Recent OT Records) -->
-        <div class="right-sidebar">
-            <!-- Today's Attendance Timeline Card -->
-            <div class="timeline-card">
-                <div class="timeline-title">
-                    <i class="fas fa-clock"></i>
-                    Today's Attendance
-                </div>
-                <div class="timeline-list" id="attendanceTimeline">
-                    {% if attendance_data %}
-                        {% for activity in attendance_data %}
-                        <div class="timeline-item">
-                            <div>
-                                {% if activity.activity_type == 'Clock In' %}
-                                    <div>
-                                        <i class="fas fa-sign-in-alt"></i>
-                                    </div>
-                                {% elif activity.activity_type == 'Clock Out' %}
-                                    <div>
-                                        <i class="fas fa-sign-out-alt"></i>
-                                    </div>
-                                {% elif activity.activity_type == 'Start Break' %}
-                                    <div>
-                                        <i class="fas fa-pause-circle"></i>
-                                    </div>
-                                {% elif activity.activity_type == 'End Break' %}
-                                    <div>
-                                        <i class="fas fa-play-circle"></i>
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div>
-                                <div>
-                                    {{ activity.activity }}
-                                </div>
-                                <div>
-                                    {{ activity.activity_time }}
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                    <div class="no-activity">
-                        <i class="fas fa-inbox"></i>
-                        <p>No attendance recorded today</p>
+    <!-- RIGHT: Today's Logs -->
+    <div class="lg-card">
+        <div class="lg-card-header">
+            <span><i class="fas fa-list"></i> Today's Logs</span>
+            <span class="badge bg-light text-dark">{{ today }}</span>
+        </div>
+        <div class="lg-card-body p-0">
+            <div id="todayLogsList">
+                {% if today_logs %}
+                {% for log in today_logs %}
+                <div class="log-list-item" id="log-{{ log.id }}">
+                    <div class="log-details">
+                        <span class="log-main">{{ log.ot_type.name }} • {{ log.quantity }} Units</span>
+                        <span class="log-sub">
+                            ${{ log.amount }}
+                            {% if log.status == 'Draft' %}<span class="badge-draft">Draft</span>{% endif %}
+                            {% if log.status == 'Submitted' %}<span class="badge bg-success"
+                                style="font-size: 0.7rem;">Submitted</span>{% endif %}
+                        </span>
                     </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Recent OT Records Card -->
-            <div class="timeline-card">
-                <div class="timeline-title">
-                    <i class="fas fa-file-invoice"></i>
-                    Recent OT Records
-                </div>
-                <div class="timeline-list" id="recentOtsList">
-                    {% if recent_ots %}
-                        {% for ot in recent_ots %}
-                        <div class="ot-record-item">
-                            <div>
-                                <div>
-                                    {{ ot.ot_date.strftime('%d %b %Y') if ot.ot_date else 'N/A' }}
-                                </div>
-                                <div>
-                                    {{ ot.ot_hours or 0 }} hrs - {{ ot.ot_type.name if ot.ot_type else 'General' }}
-                                </div>
-                                <div>
-                                    {% if ot.status == 'Draft' %}
-                                        <span>Draft</span>
-                                    {% elif ot.status == 'Submitted' %}
-                                        <span>Submitted</span>
-                                    {% elif ot.status == 'Approved' %}
-                                        <span>Approved</span>
-                                    {% elif ot.status == 'Rejected' %}
-                                        <span>Rejected</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <div>
-                                {% if ot.status == 'Draft' %}
-                                    <button type="button" class="btn btn-sm btn-success" 
-                                            onclick="submitOT({{ ot.id }}, '{{ ot.ot_date.strftime('%d %b %Y') if ot.ot_date else 'N/A' }}')">
-                                        <i class="fas fa-paper-plane"></i> Submit
-                                    </button>
-                                    <button type="button" class="record-delete-btn" 
-                                            onclick="deleteDraftOT({{ ot.id }}, '{{ ot.ot_date.strftime('%d %b %Y') if ot.ot_date else 'N/A' }}')"
-                                            title="Delete this draft record">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                    <div class="no-activity">
-                        <i class="fas fa-inbox"></i>
-                        <p>No OT records yet</p>
+                    <div class="log-actions">
+                        {% if log.status == 'Draft' %}
+                        <form action="{{ url_for('submit_ot_attendance', attendance_id=log.id) }}" method="POST"
+                            onsubmit="return confirm('Submit this entry?');" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-outline-success" title="Submit">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteEntry({{ log.id }})"
+                            title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% elif log.status == 'Submitted' or log.status == 'pending_manager' %}
+                        <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Pending</span>
+                        {% else %}
+                        <span class="text-muted small"><i class="fas fa-lock"></i> {{ log.status }}</span>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center p-4 text-muted">
+                    <i class="fas fa-clipboard-list fa-2x mb-2" style="opacity: 0.3;"></i>
+                    <p>No OT entries for today yet.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
+<!-- Recent History Section -->
+<div class="mt-4 px-3">
+    <h5 class="mb-3 text-muted">Recent History</h5>
+    <div class="lg-card">
+        <div class="lg-card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Type</th>
+                        <th>Qty</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_history %}
+                    <tr>
+                        <td class="ps-4">{{ log.ot_date }}</td>
+                        <td>{{ log.ot_type.name }}</td>
+                        <td>{{ log.quantity }}</td>
+                        <td>${{ log.amount }}</td>
+                        <td>
+                            <span
+                                class="badge bg-{{ 'secondary' if log.status=='Draft' else 'success' if log.status=='Approved' else 'warning' if log.status=='Submitted' else 'danger' }}">
+                                {{ log.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <script>
-    // Set company timezone from backend
-    const companyTimezone = '{{ company_timezone }}' || 'Asia/Singapore';
-    
-    // Submit OT Attendance with proper error handling
-    function submitOT(attendanceId, recordDate) {
-        if (!confirm(`Submit OT record for ${recordDate} to your reporting manager for approval?`)) {
-            return;
-        }
-        
-        // Show loading spinner
-        const submitBtn = event.target;
-        const originalText = submitBtn.textContent;
-        const originalDisabled = submitBtn.disabled;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
-        
-        // Use Fetch API with timeout handling
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-        
-        fetch(`/ot/submit/${attendanceId}`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            signal: controller.signal,
-            headers: {
-                'Accept': 'text/html'
-            },
-            redirect: 'follow'  // Important: Follow redirect responses
-        })
-        .then(response => {
-            clearTimeout(timeoutId);
-            
-            // After following redirect, reload page to show flash messages
-            // The backend will redirect to /ot/mark with flash message
-            if (response.ok) {
-                // Small delay to ensure database commit is complete
-                setTimeout(() => {
-                    window.location.href = '/ot/mark';
-                }, 500);
-                return;
-            }
-            
-            // Handle errors
-            return response.text().then(text => {
-                throw new Error(`Server error: ${response.status} - ${response.statusText}`);
-            });
-        })
-        .catch(error => {
-            clearTimeout(timeoutId);
-            console.error('Error submitting OT:', error);
-            
-            // Restore button
-            submitBtn.disabled = originalDisabled;
-            submitBtn.textContent = originalText;
-            
-            // Show error to user
-            if (error.name === 'AbortError') {
-                alert('❌ Request timed out. The server took too long to respond. Please try again.');
-            } else {
-                alert(`❌ Error submitting OT:\n\n${error.message}\n\nPlease check the browser console for details.`);
-            }
-        });
+    const HOURLY_RATE = {{ hourly_rate if hourly_rate else 0 }};
+
+    // Calculate preview values
+    function calculatePreview() {
+        const typeSelect = document.getElementById('ot_type_id');
+        const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+        const multiplier = parseFloat(selectedOption.getAttribute('data-multiplier') || 0);
+        const quantity = parseFloat(document.getElementById('quantity').value || 0);
+
+        const effectiveRate = HOURLY_RATE * multiplier;
+        const totalAmount = effectiveRate * quantity;
+
+        document.getElementById('previewMult').innerText = multiplier + 'x';
+        document.getElementById('previewRate').innerText = '$' + effectiveRate.toFixed(2);
+        document.getElementById('previewTotal').innerText = '$' + totalAmount.toFixed(2);
     }
 
-    /**
-     * Delete draft OT record with confirmation
-     */
-    function deleteDraftOT(attendanceId, recordDate) {
-        if (!confirm(`Are you sure you want to delete the draft OT record for ${recordDate}? This action cannot be undone.`)) {
-            return;
-        }
-        
-        // Show loading spinner
-        const deleteBtn = event.target;
-        const originalText = deleteBtn.innerHTML;
-        const originalDisabled = deleteBtn.disabled;
-        deleteBtn.disabled = true;
-        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-        
-        // Use Fetch API with timeout handling
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-        
-        fetch(`/api/ot/delete-draft/${attendanceId}`, {
-            method: 'POST',
-            credentials: 'same-origin',
-            signal: controller.signal,
-            headers: {
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => {
-            clearTimeout(timeoutId);
-            
-            if (response.ok) {
-                return response.json().then(data => {
-                    // Show success message
-                    const alertsSection = document.querySelector('.alerts-section');
-                    const alert = document.createElement('div');
-                    alert.className = 'alert alert-success';
-                    alert.innerHTML = `<i class="fas fa-check-circle"></i><span>Draft record deleted successfully</span>`;
-                    alertsSection.insertBefore(alert, alertsSection.firstChild);
-                    
-                    // Remove the record item from DOM
-                    const recordItem = deleteBtn.closest('.ot-record-item');
-                    if (recordItem) {
-                        recordItem.style.animation = 'slideIn 0.4s ease-out reverse';
-                        setTimeout(() => recordItem.remove(), 400);
-                    }
-                    
-                    // Auto-dismiss alert after 3 seconds
-                    setTimeout(() => {
-                        alert.style.animation = 'slideIn 0.4s ease-out reverse';
-                        setTimeout(() => alert.remove(), 400);
-                    }, 3000);
-                });
-            }
-            
-            // Handle errors
-            return response.json().then(data => {
-                throw new Error(data.message || 'Failed to delete record');
-            }).catch(err => {
-                throw new Error(`Server error: ${response.status}`);
-            });
-        })
-        .catch(error => {
-            clearTimeout(timeoutId);
-            console.error('Error deleting draft OT:', error);
-            
-            // Restore button
-            deleteBtn.disabled = originalDisabled;
-            deleteBtn.innerHTML = originalText;
-            
-            // Show error to user
-            if (error.name === 'AbortError') {
-                alert('❌ Request timed out. The server took too long to respond. Please try again.');
-            } else {
-                alert(`❌ Error deleting draft record:\n\n${error.message}\n\nPlease check the browser console for details.`);
-            }
-        });
-    }
+    // Handle Form Submission (AJAX)
+    document.getElementById('logOtForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
 
-    // Timezone mapping with IANA identifiers and display names
-    const timezoneMap = {
-        'UTC': { iana: 'UTC', display: 'UTC', label: 'UTC' },
-        'Asia/Singapore': { iana: 'Asia/Singapore', display: 'SGT (UTC+8)', label: 'Singapore (SGT)' },
-        'Asia/Kolkata': { iana: 'Asia/Kolkata', display: 'IST (UTC+5:30)', label: 'India - Kolkata (IST)' },
-        'Asia/Bangkok': { iana: 'Asia/Bangkok', display: 'ICT (UTC+7)', label: 'Bangkok (ICT)' },
-        'Asia/Jakarta': { iana: 'Asia/Jakarta', display: 'WIB (UTC+7)', label: 'Jakarta (WIB)' },
-        'Asia/Kuala_Lumpur': { iana: 'Asia/Kuala_Lumpur', display: 'MYT (UTC+8)', label: 'Malaysia (MYT)' },
-        'America/New_York': { iana: 'America/New_York', display: 'EST (UTC-5)', label: 'New York (EST)' },
-        'Europe/London': { iana: 'Europe/London', display: 'GMT (UTC+0)', label: 'London (GMT)' },
-        'Australia/Sydney': { iana: 'Australia/Sydney', display: 'AEDT (UTC+11)', label: 'Sydney (AEDT)' }
-    };
+        const btn = this.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging...';
 
-    /**
-     * Get current time in a specific timezone
-     * Uses Intl API for accurate timezone handling
-     */
-    function getTimeInTimezone(timezone) {
+        const formData = {
+            ot_date: document.getElementById('ot_date').value,
+            ot_type_id: document.getElementById('ot_type_id').value,
+            quantity: document.getElementById('quantity').value,
+            notes: document.getElementById('notes').value
+        };
+
         try {
-            const now = new Date();
-            const formatter = new Intl.DateTimeFormat('en-US', {
-                timeZone: timezone,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            });
-            
-            const parts = formatter.formatToParts(now);
-            const timeObj = {};
-            
-            parts.forEach(part => {
-                if (part.type !== 'literal') {
-                    timeObj[part.type] = part.value;
-                }
-            });
-            
-            return {
-                hours: timeObj.hour || '00',
-                minutes: timeObj.minute || '00',
-                seconds: timeObj.second || '00',
-                formatted12: new Intl.DateTimeFormat('en-US', {
-                    timeZone: timezone,
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                }).format(now)
-            };
-        } catch (e) {
-            console.error(`Error getting time for timezone ${timezone}:`, e);
-            return {
-                hours: '00',
-                minutes: '00',
-                seconds: '00',
-                formatted12: '--:-- --'
-            };
-        }
-    }
-
-    // [REMOVED] Today's Activity functions removed - section was removed from UI
-    // populateTimeline(), createTimelineItem(), updateTimezoneDisplay() - no longer used
-
-    // Prevent future dates
-    const dateInput = document.getElementById('ot_date');
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.max = today;
-
-    /**
-     * Update the live clock display
-     */
-    function updateLiveClock() {
-        const timezone = companyTimezone || 'Asia/Singapore';
-        const tzInfo = timezoneMap[timezone];
-        
-        if (!tzInfo) return;
-        
-        const timeInfo = getTimeInTimezone(timezone);
-        const clockElement = document.getElementById('liveClock');
-        const tzNameElement = document.getElementById('clockTimezone');
-        
-        if (clockElement) {
-            clockElement.textContent = timeInfo.formatted12;
-        }
-        if (tzNameElement) {
-            tzNameElement.textContent = tzInfo.label;
-        }
-    }
-
-    /**
-     * Set current time in time input with timezone conversion
-     */
-    function setCurrentTime(fieldId) {
-        const timezone = companyTimezone || 'Asia/Singapore';
-        const timeInfo = getTimeInTimezone(timezone);
-        const currentTime = `${timeInfo.hours}:${timeInfo.minutes}`;
-        
-        const field = document.getElementById(fieldId);
-        field.style.animation = 'none';
-        setTimeout(() => {
-            field.value = currentTime;
-            field.style.animation = 'pulse 0.6s ease-out';
-        }, 10);
-        
-        console.log(`✅ Set ${fieldId} to ${currentTime} (${timeInfo.formatted12}) in ${timezone}`);
-    }
-
-    // Switch between time and hours mode
-    function switchMode(mode) {
-        const timeMode = document.getElementById('timeMode');
-        const hoursMode = document.getElementById('hoursMode');
-        const buttons = document.querySelectorAll('.switch-btn');
-        
-        buttons.forEach(btn => btn.classList.remove('active'));
-        
-        if (mode === 'time') {
-            timeMode.classList.remove('hidden');
-            hoursMode.classList.add('hidden');
-            buttons[0].classList.add('active');
-            document.getElementById('ot_hours').value = '';
-        } else {
-            timeMode.classList.add('hidden');
-            hoursMode.classList.remove('hidden');
-            buttons[1].classList.add('active');
-            document.getElementById('ot_in_time').value = '';
-            document.getElementById('ot_out_time').value = '';
-        }
-    }
-
-    // Form validation with animations
-    document.getElementById('otForm').addEventListener('submit', function(e) {
-        const ot_date = document.getElementById('ot_date').value;
-        const ot_type_id = document.getElementById('ot_type_id').value;
-        const ot_in_time = document.getElementById('ot_in_time').value;
-        const ot_out_time = document.getElementById('ot_out_time').value;
-        const ot_hours = document.getElementById('ot_hours').value;
-        
-        if (!ot_date) {
-            e.preventDefault();
-            showErrorMessage('Please select an OT date');
-            return false;
-        }
-
-        // Validate date is not in future
-        const selectedDate = new Date(ot_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (selectedDate > today) {
-            e.preventDefault();
-            showErrorMessage('Future dates are not allowed. Please select today or an earlier date.');
-            return false;
-        }
-        
-        if (!ot_type_id) {
-            e.preventDefault();
-            showErrorMessage('Please select an OT type');
-            return false;
-        }
-        
-        const hasTime = ot_in_time && ot_out_time;
-        const hasHours = ot_hours;
-        
-        if (!hasTime && !hasHours) {
-            e.preventDefault();
-            showErrorMessage('Please provide either OT hours or OT in/out times');
-            return false;
-        }
-        
-        if (hasTime && !hasHours) {
-            if (ot_out_time <= ot_in_time) {
-                e.preventDefault();
-                showErrorMessage('Out Time must be after In Time');
-                return false;
-            }
-        }
-    });
-
-    function showErrorMessage(message) {
-        const alertsSection = document.querySelector('.alerts-section');
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-danger';
-        alert.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
-        alertsSection.insertBefore(alert, alertsSection.firstChild);
-        
-        setTimeout(() => {
-            alert.style.animation = 'slideIn 0.4s ease-out reverse';
-            setTimeout(() => alert.remove(), 400);
-        }, 4000);
-    }
-
-    // Add ripple effect to buttons
-    document.querySelectorAll('.btn-primary, .btn-secondary, .btn-time-now, .record-submit-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            const ripple = document.createElement('span');
-            const rect = this.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            const x = e.clientX - rect.left - size / 2;
-            const y = e.clientY - rect.top - size / 2;
-            
-            ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = x + 'px';
-            ripple.style.top = y + 'px';
-        });
-    });
-
-    // ============ SAVE DRAFT FUNCTION ============
-    /**
-     * Save OT attendance as draft with Set In time only.
-     * Allows user to update Set Out time later without losing data.
-     */
-    async function saveDraft() {
-        const otDate = document.getElementById('ot_date').value;
-        const otInTime = document.getElementById('ot_in_time').value;
-        const otOutTime = document.getElementById('ot_out_time').value;
-        const otTypeId = document.getElementById('ot_type_id').value;
-        const notes = document.getElementById('notes').value;
-        
-        // Validate required fields for draft
-        if (!otDate) {
-            showErrorMessage('Please select an OT date');
-            return;
-        }
-        
-        if (!otInTime) {
-            showErrorMessage('Please set the In Time');
-            return;
-        }
-        
-        // Optional: OT type can be added later, but let's require it
-        if (!otTypeId) {
-            showErrorMessage('Please select an OT type');
-            return;
-        }
-        
-        // Validate date is not in future
-        // Parse date string as local date (YYYY-MM-DD format)
-        const [year, month, day] = otDate.split('-').map(Number);
-        const selectedDate = new Date(year, month - 1, day);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (selectedDate > today) {
-            showErrorMessage('Future dates are not allowed.');
-            return;
-        }
-        
-        // Show loading state
-        const saveDraftBtn = document.getElementById('saveDraftBtn');
-        const originalText = saveDraftBtn.innerHTML;
-        saveDraftBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-        saveDraftBtn.disabled = true;
-        
-        try {
-            const response = await fetch('/api/ot/save-draft', {
+            const response = await fetch('/api/ot/log-entry', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    ot_date: otDate,
-                    ot_in_time: otInTime,
-                    ot_out_time: otOutTime,
-                    ot_type_id: otTypeId,
-                    notes: notes
-                })
+                body: JSON.stringify(formData)
             });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Show success message
-                const alertsSection = document.querySelector('.alerts-section');
-                const alert = document.createElement('div');
-                alert.className = 'alert alert-success';
-                alert.innerHTML = `<i class="fas fa-check-circle"></i><span>${data.message}</span>`;
-                alertsSection.insertBefore(alert, alertsSection.firstChild);
-                
-                console.log('[DRAFT SAVED]', data);
-                
-                // Hide success message after 3 seconds
-                setTimeout(() => {
-                    alert.style.animation = 'slideIn 0.4s ease-out reverse';
-                    setTimeout(() => alert.remove(), 400);
-                }, 3000);
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Determine if we should reload nicely or hard reload
+                // Since simpler to implement valid reload for now:
+                window.location.reload();
             } else {
-                showErrorMessage(data.message || 'Failed to save draft');
+                alert('Error: ' + result.message);
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
         } catch (error) {
-            console.error('Error saving draft:', error);
-            showErrorMessage('Error saving draft: ' + error.message);
-        } finally {
-            // Restore button state
-            saveDraftBtn.innerHTML = originalText;
-            saveDraftBtn.disabled = false;
+            console.error('Error:', error);
+            alert('An error occurred while logging OT.');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
-    }
-    
-    // ============ LOAD DRAFT FUNCTION ============
-    /**
-     * Load OT draft from database and populate the form.
-     * Called when user changes the OT date.
-     */
-    async function loadDraft(otDate) {
-        if (!otDate) return;
-        
+    });
+
+    // Handle Delete Entry
+    async function deleteEntry(id) {
+        if (!confirm('Are you sure you want to delete this draft?')) return;
+
         try {
-            const response = await fetch(`/api/ot/get-draft?ot_date=${otDate}`);
-            const data = await response.json();
-            
-            if (data.success) {
-                console.log('[DRAFT LOADED]', data);
-                
-                // Populate form fields from draft
-                if (data.ot_in_time) {
-                    document.getElementById('ot_in_time').value = data.ot_in_time;
-                    console.log(`[OK] Loaded Set In: ${data.ot_in_time}`);
+            const response = await fetch(`/api/ot/delete-entry/${id}`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // Remove element from DOM
+                const row = document.getElementById(`log-${id}`);
+                if (row) row.remove();
+
+                // If list empty, maybe reload or show empty state (optional)
+                if (document.querySelectorAll('.log-list-item').length === 0) {
+                    window.location.reload();
                 }
-                
-                if (data.ot_out_time) {
-                    document.getElementById('ot_out_time').value = data.ot_out_time;
-                    console.log(`[OK] Loaded Set Out: ${data.ot_out_time}`);
-                    // Switch to time mode if we have times
-                    switchMode('time');
-                }
-                
-                if (data.ot_hours) {
-                    document.getElementById('ot_hours').value = data.ot_hours;
-                    console.log(`[OK] Loaded OT Hours: ${data.ot_hours}`);
-                    switchMode('hours');
-                }
-                
-                if (data.ot_type_id) {
-                    document.getElementById('ot_type_id').value = data.ot_type_id;
-                    console.log(`[OK] Loaded OT Type ID: ${data.ot_type_id}`);
-                }
-                
-                if (data.notes) {
-                    document.getElementById('notes').value = data.notes;
-                    console.log(`[OK] Loaded Notes: ${data.notes}`);
-                }
-                
-                // Show info message
-                const alertsSection = document.querySelector('.alerts-section');
-                const alert = document.createElement('div');
-                alert.className = 'alert alert-info';
-                alert.innerHTML = `<i class="fas fa-info-circle"></i><span>Draft loaded for ${otDate}. You can now add Set Out time and submit.</span>`;
-                alertsSection.insertBefore(alert, alertsSection.firstChild);
-                
-                // Auto-hide info message
-                setTimeout(() => {
-                    alert.style.animation = 'slideIn 0.4s ease-out reverse';
-                    setTimeout(() => alert.remove(), 400);
-                }, 4000);
+            } else {
+                alert('Error deleting: ' + result.message);
             }
-        } catch (error) {
-            console.log('No draft found for this date (this is normal):', error.message);
+        } catch (e) {
+            console.error(e);
+            alert('Failed to delete entry');
         }
     }
-
-    // Initialize page on load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize displays
-        updateLiveClock();
-        
-        // Load draft for today's date if it exists
-        const todayDate = document.getElementById('ot_date').value;
-        if (todayDate) {
-            loadDraft(todayDate);
-        }
-        
-        // Start live clock update (every second)
-        const clockInterval = setInterval(updateLiveClock, 1000);
-        
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            clearInterval(clockInterval);
-        });
-        
-        // Load draft when OT date changes
-        document.getElementById('ot_date').addEventListener('change', function() {
-            loadDraft(this.value);
-        });
-    });
-
-    // Log time changes with company timezone
-    document.getElementById('ot_in_time').addEventListener('change', function() {
-        console.log(`[OK] In Time set: ${this.value} [${companyTimezone}]`);
-    });
-
-    document.getElementById('ot_out_time').addEventListener('change', function() {
-        console.log(`[OK] Out Time set: ${this.value} [${companyTimezone}]`);
-    });
 </script>
 {% endblock %}

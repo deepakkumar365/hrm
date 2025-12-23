@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ "Edit Work Schedule" if work_schedule else "Add Work Schedule" }} - TalaTalent{% endblock %}
+{% block title %}{{ "Edit Work Schedule" if work_schedule else "Add Work Schedule" }} - Nexar{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -30,77 +30,57 @@
                     <div class="card-body">
                         <div class="mb-3">
                             <label for="name" class="form-label">Schedule Name *</label>
-                            <input type="text" class="form-control" id="name" name="name" 
-                                   value="{{ work_schedule.name if work_schedule else '' }}" 
-                                   placeholder="e.g., Standard Hours, Morning Shift, Evening Shift" required>
+                            <input type="text" class="form-control" id="name" name="name"
+                                value="{{ work_schedule.name if work_schedule else '' }}"
+                                placeholder="e.g., General Shift, Mon-Sat Shift" required>
                             <div class="invalid-feedback">Please provide a schedule name.</div>
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="start_time" class="form-label">Start Time *</label>
-                                    <input type="time" class="form-control" id="start_time" name="start_time" 
-                                           value="{{ work_schedule.start_time.strftime('%H:%M') if work_schedule else '' }}" 
-                                           required>
-                                    <div class="invalid-feedback">Please provide a start time.</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="end_time" class="form-label">End Time *</label>
-                                    <input type="time" class="form-control" id="end_time" name="end_time" 
-                                           value="{{ work_schedule.end_time.strftime('%H:%M') if work_schedule else '' }}" 
-                                           required>
-                                    <div class="invalid-feedback">Please provide an end time.</div>
-                                </div>
-                            </div>
-                        </div>
-                        
+
                         <div class="mb-3">
-                            <label for="break_duration" class="form-label">Break Duration *</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" id="break_duration" name="break_duration" 
-                                       min="0" max="480" step="15"
-                                       value="{{ work_schedule.break_duration if work_schedule else '60' }}" 
-                                       required>
-                                <span class="input-group-text">minutes</span>
-                            </div>
-                            <small class="form-text text-muted">Total break time during the work day</small>
-                            <div class="invalid-feedback">Please provide valid break duration.</div>
+                            <label for="working_hours_id" class="form-label">Working Hours Configuration *</label>
+                            <select class="form-select" id="working_hours_id" name="working_hours_id" required>
+                                <option value="">Select Working Hours...</option>
+                                {% for wh in working_hours_list %}
+                                <option value="{{ wh.id }}" {% if work_schedule and
+                                    work_schedule.working_hours_id==wh.id %}selected{% endif %}>
+                                    {{ wh.name }} {% if wh.start_time and wh.end_time %}({{
+                                    wh.start_time.strftime('%H:%M') }} - {{
+                                    wh.end_time.strftime('%H:%M') }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">Please select a working hours configuration.</div>
+                            <small class="text-muted">
+                                Defines the daily timing. <a href="{{ url_for('working_hours_add') }}">Add new
+                                    configuration</a>
+                            </small>
                         </div>
-                        
+
+                        <div class="mb-3">
+                            <label class="form-label d-block">Working Days *</label>
+                            <div class="row g-2">
+                                {% for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
+                                'sunday'] %}
+                                <div class="col-6 col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="{{ day }}" name="{{ day }}"
+                                            {% if work_schedule and getattr(work_schedule, day) %}checked{% endif %} {%
+                                            if not work_schedule and day not in ['saturday', 'sunday' ] %}checked{%
+                                            endif %}>
+                                        <label class="form-check-label text-capitalize" for="{{ day }}">
+                                            {{ day }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <small class="form-text text-muted">Select the days when this schedule applies.</small>
+                        </div>
+
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" 
-                                      rows="3" placeholder="Optional description or notes about this schedule">{{ work_schedule.description if work_schedule else '' }}</textarea>
-                        </div>
-
-                        <!-- Quick presets -->
-                        <div class="mb-3">
-                            <label class="form-label">Quick Presets</label>
-                            <div class="d-flex flex-wrap gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        onclick="setPreset('Standard Hours', '09:00', '18:00', 60)">
-                                    Standard (9:00-18:00, 1h break)
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        onclick="setPreset('Early Shift', '07:00', '16:00', 60)">
-                                    Early (7:00-16:00, 1h break)
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        onclick="setPreset('Late Shift', '14:00', '23:00', 60)">
-                                    Late (14:00-23:00, 1h break)
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Live preview -->
-                        <div class="alert alert-info">
-                            <h6><i class="fas fa-info-circle me-1"></i>Schedule Preview</h6>
-                            <div id="schedulePreview">
-                                <span class="text-muted">Select times to see preview</span>
-                            </div>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                placeholder="Optional description">{{ work_schedule.description if work_schedule else '' }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -125,73 +105,21 @@
 </div>
 
 <script>
-// Form validation
-(function() {
-    'use strict';
-    window.addEventListener('load', function() {
-        var forms = document.getElementsByClassName('needs-validation');
-        var validation = Array.prototype.filter.call(forms, function(form) {
-            form.addEventListener('submit', function(event) {
-                if (form.checkValidity() === false) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    }, false);
-})();
-
-// Preset functionality
-function setPreset(name, startTime, endTime, breakDuration) {
-    if (!document.getElementById('name').value) {
-        document.getElementById('name').value = name;
-    }
-    document.getElementById('start_time').value = startTime;
-    document.getElementById('end_time').value = endTime;
-    document.getElementById('break_duration').value = breakDuration;
-    updatePreview();
-}
-
-// Preview functionality
-function updatePreview() {
-    const startTime = document.getElementById('start_time').value;
-    const endTime = document.getElementById('end_time').value;
-    const breakDuration = parseInt(document.getElementById('break_duration').value) || 0;
-    
-    if (startTime && endTime) {
-        const start = new Date('2000-01-01 ' + startTime);
-        const end = new Date('2000-01-01 ' + endTime);
-        
-        if (end > start) {
-            const totalMinutes = (end - start) / 60000; // Convert to minutes
-            const workingMinutes = totalMinutes - breakDuration;
-            const hours = Math.floor(workingMinutes / 60);
-            const minutes = workingMinutes % 60;
-            
-            document.getElementById('schedulePreview').innerHTML = `
-                <strong>Working Hours:</strong> ${hours}h ${minutes}m<br>
-                <strong>Total Time:</strong> ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m (including breaks)<br>
-                <strong>Schedule:</strong> ${startTime} - ${endTime} with ${breakDuration}min break
-            `;
-        } else {
-            document.getElementById('schedulePreview').innerHTML = 
-                '<span class="text-danger">End time must be after start time</span>';
-        }
-    } else {
-        document.getElementById('schedulePreview').innerHTML = 
-            '<span class="text-muted">Select times to see preview</span>';
-    }
-}
-
-// Add event listeners for live preview
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('start_time').addEventListener('change', updatePreview);
-    document.getElementById('end_time').addEventListener('change', updatePreview);
-    document.getElementById('break_duration').addEventListener('input', updatePreview);
-    
-    // Initial preview
-    updatePreview();
-});
+    // Form validation
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
 </script>
 {% endblock %}

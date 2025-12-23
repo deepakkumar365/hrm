@@ -164,8 +164,9 @@
                 </div>
                 {% endif %}
 
-                <!-- Super Admin / Tenant Admin Menu (Masters) -->
-                {% if check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' %}
+                <!-- Super Admin / Tenant Admin / HR Manager Menu (Masters) -->
+                {% if check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' or user_role == 'HR
+                Manager' %}
                 <div class="nav-group">
                     <a class="sidebar-link" href="#" role="button">
                         <i class="fas fa-cogs"></i>
@@ -173,10 +174,15 @@
                     </a>
                     <div class="sidebar-submenu">
                         <div class="sidebar-submenu-header">Masters</div>
+
+                        <!-- Tenant & Company (Admin Only) -->
+                        {% if user_role in ['Super Admin', 'Tenant Admin'] %}
                         <a class="nav-link" href="{{ url_for('tenant_list') }}">Tenants</a>
                         <a class="nav-link" href="{{ url_for('company_list') }}">Companies</a>
-                        <a class="nav-link" href="{{ url_for('employee_list') }}">All Employees</a>
                         <a class="nav-link" href="{{ url_for('tenant_payment_config_list') }}">Payment Config</a>
+                        {% endif %}
+
+                        <!-- Configuration Masters (HR Manager & Admin) -->
                         <a class="nav-link" href="{{ url_for('role_list') }}">Roles</a>
                         <a class="nav-link" href="{{ url_for('department_list') }}">Departments</a>
                         <a class="nav-link" href="{{ url_for('working_hours_list') }}">Working Hours</a>

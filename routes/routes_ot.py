@@ -76,7 +76,7 @@ def setup_create_ot_table():
 
 
 # ============ MARK OT ATTENDANCE (Employee Self-Service) ============
-@app.route('/ot/mark', methods=['GET', 'POST'])
+@app.route('/ot/mark', methods=['GET'])
 @login_required
 def mark_ot_attendance():
     """Mark OT Attendance - Self-service for all employees (except Super Admin)"""
@@ -95,107 +95,12 @@ def mark_ot_attendance():
         employee = current_user.employee_profile
         company_id = employee.company_id
         
-        if request.method == 'POST':
-            try:
-                ot_date_str = request.form.get('ot_date')
-                ot_in_time_str = request.form.get('ot_in_time')
-                ot_out_time_str = request.form.get('ot_out_time')
-                ot_hours = request.form.get('ot_hours')
-                ot_type_id = request.form.get('ot_type_id')
-                notes = request.form.get('notes', '')
-                
-                # Validate inputs
-                if not ot_date_str:
-                    flash('Please select an OT date', 'danger')
-                    return redirect(url_for('mark_ot_attendance'))
-                
-                if not ot_type_id:
-                    flash('Please select an OT type', 'danger')
-                    return redirect(url_for('mark_ot_attendance'))
-                
-                # Parse date
-                ot_date = datetime.strptime(ot_date_str, '%Y-%m-%d').date()
-                
-                # Check if OT record for this date already exists
-                existing_ot = OTAttendance.query.filter_by(
-                    employee_id=employee.id,
-                    ot_date=ot_date
-                ).first()
-                
-                if existing_ot:
-                    existing_ot.notes = notes
-                    existing_ot.ot_type_id = ot_type_id
-                    existing_ot.status = 'Draft'
-                    
-                    # Handle time or hours entry
-                    if ot_in_time_str and ot_out_time_str:
-                        ot_in_time = datetime.strptime(ot_in_time_str, '%H:%M').time()
-                        ot_out_time = datetime.strptime(ot_out_time_str, '%H:%M').time()
-                        
-                        ot_in_dt = datetime.combine(ot_date, ot_in_time)
-                        ot_out_dt = datetime.combine(ot_date, ot_out_time)
-                        
-                        existing_ot.ot_in_time = ot_in_dt
-                        existing_ot.ot_out_time = ot_out_dt
-                        existing_ot.calculate_ot_hours()
-                    elif ot_hours:
-                        existing_ot.ot_hours = float(ot_hours)
-                    else:
-                        flash('Please provide either OT hours or OT in/out times', 'danger')
-                        return redirect(url_for('mark_ot_attendance'))
-                    
-                    existing_ot.modified_at = datetime.now()
-                else:
-                    # Create new OT attendance record
-                    ot_record = OTAttendance(
-                        employee_id=employee.id,
-                        company_id=company_id,
-                        ot_date=ot_date,
-                        ot_type_id=ot_type_id,
-                        status='Draft',
-                        notes=notes,
-                        created_by=current_user.username
-                    )
-                    
-                    # Handle time or hours entry
-                    if ot_in_time_str and ot_out_time_str:
-                        ot_in_time = datetime.strptime(ot_in_time_str, '%H:%M').time()
-                        ot_out_time = datetime.strptime(ot_out_time_str, '%H:%M').time()
-                        
-                        ot_in_dt = datetime.combine(ot_date, ot_in_time)
-                        ot_out_dt = datetime.combine(ot_date, ot_out_time)
-                        
-                        ot_record.ot_in_time = ot_in_dt
-                        ot_record.ot_out_time = ot_out_dt
-                        ot_record.calculate_ot_hours()
-                    elif ot_hours:
-                        ot_record.ot_hours = float(ot_hours)
-                    else:
-                        flash('Please provide either OT hours or OT in/out times', 'danger')
-                        return redirect(url_for('mark_ot_attendance'))
-                    
-                    db.session.add(ot_record)
-                
-                db.session.commit()
-                flash('OT Attendance recorded successfully!', 'success')
-                return redirect(url_for('mark_ot_attendance'))
-                
-            except ValueError as e:
-                flash(f'Invalid input: {str(e)}', 'danger')
-                return redirect(url_for('mark_ot_attendance'))
-            except Exception as e:
-                db.session.rollback()
-                logger.error(f"Error marking OT attendance: {str(e)}")
-                flash('Error recording OT attendance', 'danger')
-                return redirect(url_for('mark_ot_attendance'))
-        
         # GET request - Show form
-        # Get active OT types for this tenant (applicable to all companies in tenant)
+        # Get active OT types for this tenant
         company = Company.query.get(company_id)
         tenant_id = company.tenant_id if company else None
         
         if tenant_id:
-            # Get all companies in the tenant
             company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
             ot_types = OTType.query.filter(
                 OTType.company_id.in_(company_ids),
@@ -204,72 +109,52 @@ def mark_ot_attendance():
         else:
             ot_types = []
         
-        # Check if OT types are configured
         if not ot_types:
-            flash('⚠️  No OT types are configured for your tenant. Please contact your Tenant Admin to set up OT types first in Masters > OT Types.', 'warning')
+            flash('⚠️  No OT types are configured for your tenant.', 'warning')
         
         # Get today's date in company timezone
         from pytz import timezone, utc
-        company = Company.query.get(company_id)
         timezone_str = company.timezone if company else 'UTC'
         company_tz = timezone(timezone_str)
         now_utc = datetime.now(utc)
         today = now_utc.astimezone(company_tz).date()
         
-        # Get today's attendance record for timeline
-        today_attendance = Attendance.query.filter_by(
+        # Get today's logs (Drafts and Submitted)
+        today_logs = OTAttendance.query.filter_by(
             employee_id=employee.id,
-            date=today
-        ).first()
+            ot_date=today
+        ).order_by(OTAttendance.created_at.desc()).all()
         
-        # Format attendance data for timeline
-        attendance_data = []
-        if today_attendance:
-            if today_attendance.clock_in:
-                attendance_data.append({
-                    'time': today_attendance.clock_in.strftime('%I:%M %p'),
-                    'activity': 'Clock In',
-                    'activity_time': today_attendance.clock_in.strftime('%I:%M %p'),
-                    'activity_type': 'Clock In'
-                })
-            if today_attendance.break_start:
-                attendance_data.append({
-                    'time': today_attendance.break_start.strftime('%I:%M %p'),
-                    'activity': 'Start Break',
-                    'activity_time': today_attendance.break_start.strftime('%I:%M %p'),
-                    'activity_type': 'Start Break'
-                })
-            if today_attendance.break_end:
-                attendance_data.append({
-                    'time': today_attendance.break_end.strftime('%I:%M %p'),
-                    'activity': 'End Break',
-                    'activity_time': today_attendance.break_end.strftime('%I:%M %p'),
-                    'activity_type': 'End Break'
-                })
-            if today_attendance.clock_out:
-                attendance_data.append({
-                    'time': today_attendance.clock_out.strftime('%I:%M %p'),
-                    'activity': 'Clock Out',
-                    'activity_time': today_attendance.clock_out.strftime('%I:%M %p'),
-                    'activity_type': 'Clock Out'
-                })
+        # Get Recent History (Past 5 days excluding today)
+        recent_history = OTAttendance.query.filter(
+            OTAttendance.employee_id == employee.id,
+            OTAttendance.ot_date < today
+        ).order_by(OTAttendance.ot_date.desc()).limit(10).all()
         
-        # Get recent OT records for this employee
-        recent_ots = OTAttendance.query.filter_by(
-            employee_id=employee.id
-        ).order_by(OTAttendance.ot_date.desc()).limit(3).all()
+        # Determine Employee Hourly Rate
+        # Priority: PayrollConfig > Employee Profile > Calculated from Basic
+        hourly_rate = 0
+        if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
+             hourly_rate = float(employee.payroll_config.ot_rate_per_hour)
+        elif employee.hourly_rate:
+             hourly_rate = float(employee.hourly_rate)
+        else:
+             # Fallback calculation: Basic / 173.33 (Standard approx hours/month)
+             # This is a Rough Estimate if not configured
+             if employee.basic_salary:
+                 hourly_rate = float(employee.basic_salary) / 173.33
         
-        # Get company timezone
-        company = Company.query.get(company_id)
+        hourly_rate = round(hourly_rate, 2)
+
         company_timezone = company.timezone if company and company.timezone else 'Asia/Singapore'
         
         return render_template('ot/mark_attendance.html',
                              employee=employee,
                              ot_types=ot_types,
                              today=today,
-                             recent_ots=recent_ots,
-                             has_ot_types=bool(ot_types),
-                             attendance_data=attendance_data,
+                             today_logs=today_logs,
+                             recent_history=recent_history,
+                             hourly_rate=hourly_rate,
                              company_timezone=company_timezone)
         
     except Exception as e:
@@ -278,16 +163,15 @@ def mark_ot_attendance():
         return redirect(url_for('dashboard'))
 
 
-# ============ SAVE OT DRAFT (Partial - Set In Only) ============
-@app.route('/api/ot/save-draft', methods=['POST'])
+# ============ LOG OT ENTRY (New Log & Go) ============
+@app.route('/api/ot/log-entry', methods=['POST'])
 @login_required
-def save_ot_draft():
+def log_ot_entry():
     """
-    Save OT attendance as draft with only Set In date.
-    Allows user to update Set Out date later without losing data on page refresh.
+    Log a new OT entry (Log & Go).
+    Calculates rate and amount, saves as Draft.
     """
     try:
-        # Get employee profile
         if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
             return jsonify({'success': False, 'message': 'Employee profile required'}), 403
         
@@ -296,95 +180,71 @@ def save_ot_draft():
         
         data = request.get_json()
         ot_date_str = data.get('ot_date')
-        ot_in_time_str = data.get('ot_in_time')
-        ot_out_time_str = data.get('ot_out_time')
         ot_type_id = data.get('ot_type_id')
+        quantity = data.get('quantity')
         notes = data.get('notes', '')
         
-        # Validate required fields for draft
-        if not ot_date_str:
-            return jsonify({'success': False, 'message': 'OT date is required'}), 400
-        
-        if not ot_in_time_str:
-            return jsonify({'success': False, 'message': 'Set In time is required'}), 400
-        
+        if not ot_date_str or not ot_type_id or not quantity:
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+            
         try:
             ot_date = datetime.strptime(ot_date_str, '%Y-%m-%d').date()
-            ot_in_time = datetime.strptime(ot_in_time_str, '%H:%M').time()
-            ot_in_dt = datetime.combine(ot_date, ot_in_time)
+            quantity = float(quantity)
+            ot_type_id = int(ot_type_id)
+        except ValueError:
+             return jsonify({'success': False, 'message': 'Invalid data format'}), 400
+             
+        # Calculate Rate and Amount
+        ot_type = OTType.query.get(ot_type_id)
+        if not ot_type:
+            return jsonify({'success': False, 'message': 'Invalid OT Type'}), 400
             
-            # Parse out time if provided
-            ot_out_dt = None
-            if ot_out_time_str:
-                ot_out_time = datetime.strptime(ot_out_time_str, '%H:%M').time()
-                ot_out_dt = datetime.combine(ot_date, ot_out_time)
-        except ValueError as e:
-            return jsonify({'success': False, 'message': f'Invalid date/time format: {str(e)}'}), 400
+        # Determine Base Rate
+        base_rate = 0
+        if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
+             base_rate = float(employee.payroll_config.ot_rate_per_hour)
+        elif employee.hourly_rate:
+             base_rate = float(employee.hourly_rate)
+        elif employee.basic_salary:
+             base_rate = float(employee.basic_salary) / 173.33
+             
+        # Effective Rate = Base * Multiplier
+        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 1.0
+        effective_rate = round(base_rate * multiplier, 2)
         
-        # Check if OT draft already exists for this date
-        existing_ot = OTAttendance.query.filter_by(
+        # Total Amount
+        total_amount = round(effective_rate * quantity, 2)
+        
+        # Create Record
+        new_ot = OTAttendance(
             employee_id=employee.id,
+            company_id=company_id,
             ot_date=ot_date,
-            status='Draft'
-        ).first()
+            ot_type_id=ot_type_id,
+            quantity=quantity,
+            rate=effective_rate,
+            amount=total_amount,
+            status='Draft',
+            notes=notes,
+            created_by=current_user.username,
+            # Maintain legacy fields for compatibility if needed
+            ot_hours=quantity # Assuming quantity is usually hours for now
+        )
         
-        if existing_ot:
-            # Update existing draft
-            existing_ot.ot_in_time = ot_in_dt
-            if ot_out_dt:
-                existing_ot.ot_out_time = ot_out_dt
-                # Recalculate OT hours if both times are set
-                existing_ot.calculate_ot_hours()
-            existing_ot.ot_type_id = ot_type_id
-            existing_ot.notes = notes
-            existing_ot.status = 'Draft'
-            existing_ot.modified_at = datetime.now()
-            logger.info(f"Updated OT draft for employee {employee.id} on {ot_date}")
-        else:
-            # Check if a submitted/approved record exists for this date
-            submitted_ot = OTAttendance.query.filter_by(
-                employee_id=employee.id,
-                ot_date=ot_date
-            ).filter(OTAttendance.status.in_(['Submitted', 'Approved', 'Rejected'])).first()
-            
-            if submitted_ot:
-                return jsonify({
-                    'success': False, 
-                    'message': f'Cannot save as draft. An OT record with status "{submitted_ot.status}" already exists for this date. Please edit the existing record or contact your manager.'
-                }), 400
-            
-            # Create new OT attendance record as draft
-            ot_record = OTAttendance(
-                employee_id=employee.id,
-                company_id=company_id,
-                ot_date=ot_date,
-                ot_in_time=ot_in_dt,
-                ot_out_time=ot_out_dt,
-                ot_type_id=ot_type_id,
-                status='Draft',
-                notes=notes,
-                created_by=current_user.username
-            )
-            # Calculate OT hours if both times are set
-            if ot_out_dt:
-                ot_record.calculate_ot_hours()
-            db.session.add(ot_record)
-            logger.info(f"Created new OT draft for employee {employee.id} on {ot_date}")
-        
+        db.session.add(new_ot)
         db.session.commit()
         
-        response_data = {
+        return jsonify({
             'success': True,
-            'message': 'OT draft saved successfully!',
-            'ot_date': ot_date_str,
-            'ot_in_time': ot_in_time_str
-        }
-        
-        # Include ot_out_time in response if provided
-        if ot_out_time_str:
-            response_data['ot_out_time'] = ot_out_time_str
-        
-        return jsonify(response_data), 200
+            'message': 'OT Logged Successfully',
+            'entry': {
+                'id': new_ot.id,
+                'ot_type_name': ot_type.name,
+                'quantity': quantity,
+                'amount': total_amount,
+                'status': 'Draft'
+            }
+        }), 200
         
     except Exception as e:
         db.session.rollback()
@@ -615,11 +475,15 @@ def submit_ot_attendance(attendance_id):
             flash('❌ Cannot submit: OT Type is not assigned. Please select an OT Type before submitting.', 'danger')
             return redirect(url_for('mark_ot_attendance'))
         
-        # Check if OT has hours assigned
-        if not ot_attendance.ot_hours or ot_attendance.ot_hours <= 0:
-            flash('❌ Cannot submit: OT Hours must be greater than 0. Please enter valid hours.', 'danger')
-            return redirect(url_for('mark_ot_attendance'))
+        # Validation for Hours/Quantity
+        # Logic: Must have explicit quantity OR calculated ot_hours > 0
+        has_quantity = ot_attendance.quantity and ot_attendance.quantity > 0
+        has_hours = ot_attendance.ot_hours and ot_attendance.ot_hours > 0
         
+        if not (has_quantity or has_hours):
+             flash('❌ Cannot submit: Invalid Quantity/Hours.', 'danger')
+             return redirect(url_for('mark_ot_attendance'))
+
         # Check if employee has a manager assigned
         if not employee.manager_id:
             flash('❌ Cannot submit: No reporting manager assigned to your profile. Contact HR.', 'danger')
@@ -636,22 +500,13 @@ def submit_ot_attendance(attendance_id):
                 flash('❌ Your reporting manager does not have a user account. Contact HR.', 'danger')
                 return redirect(url_for('mark_ot_attendance'))
             
-            # ⚡ OPTIMIZED: Combine multiple checks into single query operations
-            # Check if already submitted + get OT type + validate in one logical flow
-            existing_request = OTRequest.query.filter_by(
-                employee_id=employee.id,
-                ot_date=ot_attendance.ot_date
-            ).first()
-            
-            if existing_request:
-                flash('⚠️  OT for this date already in approval workflow', 'warning')
-                return redirect(url_for('mark_ot_attendance'))
-            
-            # ⚡ OPTIMIZED: Store manager name BEFORE commit to avoid post-commit lazy loading
+            # ⚡ OPTIMIZED: Store manager name BEFORE commit
             manager_name = manager.user.full_name if manager.user else manager.first_name
-            requested_hours = float(ot_attendance.ot_hours) if ot_attendance.ot_hours else 0
+            # Use Quantity as primary if available, else OT hours
+            requested_hours = float(ot_attendance.quantity) if ot_attendance.quantity else (float(ot_attendance.ot_hours) if ot_attendance.ot_hours else 0)
             
             # Create OT Request with pending_manager status
+            # Note: We allow multiple requests per day now
             ot_request = OTRequest(
                 employee_id=employee.id,
                 company_id=employee.company_id,
@@ -681,7 +536,7 @@ def submit_ot_attendance(attendance_id):
             
             db.session.commit()
             
-            flash(f'✅ OT submitted to {manager_name} for approval. Hours: {ot_attendance.ot_hours}', 'success')
+            flash(f'✅ OT submitted to {manager_name} for approval.', 'success')
             return redirect(url_for('mark_ot_attendance'))
         
         except ValueError as ve:
@@ -699,6 +554,34 @@ def submit_ot_attendance(attendance_id):
         logger.error(f"Error in submit_ot_attendance: {str(e)}")
         flash('Error submitting OT', 'danger')
         return redirect(url_for('mark_ot_attendance'))
+
+# ============ DELETE OT ENTRY (Draft Only) ============
+@app.route('/api/ot/delete-entry/<int:attendance_id>', methods=['POST'])
+@login_required
+def delete_ot_entry(attendance_id):
+    """
+    Delete a Draft OT entry.
+    """
+    try:
+        ot_attendance = OTAttendance.query.get_or_404(attendance_id)
+        
+        # Verify ownership
+        employee = current_user.employee_profile
+        if not employee or ot_attendance.employee_id != employee.id:
+             return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+             
+        if ot_attendance.status != 'Draft':
+             return jsonify({'success': False, 'message': 'Only drafts can be deleted'}), 400
+             
+        db.session.delete(ot_attendance)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Entry deleted successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting OT: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 # ============ SUBMIT OT FOR MANAGER APPROVAL (HR Manager Action) ============
@@ -892,7 +775,6 @@ def ot_requests():
         return redirect(url_for('dashboard'))
 
 
-# ============ MANAGER APPROVAL DASHBOARD (Level 1) ============
 @app.route('/ot/manager-approval', methods=['GET', 'POST'])
 @login_required
 def ot_manager_approval():
@@ -905,7 +787,7 @@ def ot_manager_approval():
     - Manager Rejects → Status = 'manager_rejected' → Back to Employee
     """
     try:
-        # Get current user's employee profile to find OT assigned to them as manager
+        # Get current user's employee profile
         if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
             flash('No employee profile found', 'danger')
             return redirect(url_for('dashboard'))
@@ -916,222 +798,162 @@ def ot_manager_approval():
         if not manager_employee.is_manager:
             flash('You are not configured as a manager', 'danger')
             return redirect(url_for('dashboard'))
-        
-        if request.method == 'POST':
-            # Handle approval actions
-            try:
-                ot_request_id = request.form.get('ot_request_id')
-                action = request.form.get('action')  # approve or reject
-                comments = request.form.get('comments', '')
-                modified_hours = request.form.get('modified_hours')
-                
-                logger.info(f"[OT_APPROVAL] POST received - Request ID: {ot_request_id}, Action: {action}")
-                
-                ot_request = OTRequest.query.get(ot_request_id)
-                if not ot_request:
-                    flash('OT request not found', 'danger')
-                    return redirect(url_for('ot_manager_approval'))
-                
-                # Verify the OT is assigned to this manager
-                ot_approval = OTApproval.query.filter_by(
-                    ot_request_id=ot_request_id,
-                    approval_level=1
-                ).first()
-                
-                if not ot_approval or ot_approval.approver_id != current_user.id:
-                    flash('This OT is not assigned to you for approval', 'danger')
-                    return redirect(url_for('ot_manager_approval'))
-                
-                if action == 'approve':
-                    logger.info(f"[OT_APPROVAL] Processing APPROVE action for approval ID: {ot_approval.id}")
-                    
-                    # Manager Approves
-                    ot_approval.status = 'manager_approved'
-                    ot_approval.comments = comments
-                    if modified_hours:
-                        ot_approval.approved_hours = float(modified_hours)
-                        ot_request.approved_hours = float(modified_hours)
-                    # Don't update created_at - it's immutable. Use created_at for record creation time
-                    
-                    # Update OTRequest status
-                    ot_request.status = 'manager_approved'
-                    logger.info(f"[OT_APPROVAL] Updated approval and request to manager_approved")
-                    
-                    # Create Level 2 OTApproval for HR Manager
-                    # Get HR Manager (user with HR Manager role)
-                    logger.info(f"[OT_APPROVAL] Looking for HR Manager role...")
-                    hr_manager_role = Role.query.filter_by(name='HR Manager').first()
-                    
-                    if not hr_manager_role:
-                        logger.error("HR Manager role not found in database")
-                        flash('Error: HR Manager role not configured. Contact administrator.', 'danger')
-                        return redirect(url_for('ot_manager_approval'))
-                    
-                    logger.info(f"[OT_APPROVAL] Found HR Manager role, querying users...")
-                    hr_managers = User.query.filter_by(role_id=hr_manager_role.id).all()
-                    logger.info(f"[OT_APPROVAL] Found {len(hr_managers)} HR Manager(s)")
-                    
-                    if not hr_managers:
-                        logger.warning("[OT_APPROVAL] No HR Manager found for level 2 approval")
-                        flash('Warning: No HR Manager found for level 2 approval', 'warning')
-                    else:
-                        # Create approval for first available HR Manager (or can assign logic)
-                        hr_manager = hr_managers[0]
-                        logger.info(f"[OT_APPROVAL] Creating Level 2 approval for HR Manager ID: {hr_manager.id}")
-                        ot_approval_l2 = OTApproval(
-                            ot_request_id=ot_request.id,
-                            approver_id=hr_manager.id,
-                            approval_level=2,
-                            status='pending_hr',
-                            comments=f'Approved by {current_user.full_name} ({manager_employee.first_name}), pending HR Manager approval'
-                        )
-                        db.session.add(ot_approval_l2)
-                        logger.info(f"[OT_APPROVAL] Level 2 approval object added to session")
-                    
-                    # ✅ NEW: Auto-create OTDailySummary record for HR Manager to fill allowances
-                    logger.info(f"[OT_APPROVAL] Creating OTDailySummary record for payroll grid...")
-                    logger.info(f"[OT_APPROVAL] OT Request: emp_id={ot_request.employee_id}, date={ot_request.ot_date}, company={ot_request.company_id}")
-                    try:
-                        # Get employee and their OT rate
-                        employee = Employee.query.get(ot_request.employee_id)
-                        if employee:
-                            logger.info(f"[OT_APPROVAL] Found employee: {employee.first_name} {employee.last_name}")
-                            
-                            # Get OT rate from PayrollConfiguration
-                            ot_rate = 0
-                            if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
-                                ot_rate = float(employee.payroll_config.ot_rate_per_hour)
-                                logger.info(f"[OT_APPROVAL] OT Rate from PayrollConfiguration: ₹{ot_rate}")
-                            elif employee.hourly_rate:
-                                ot_rate = float(employee.hourly_rate)
-                                logger.info(f"[OT_APPROVAL] OT Rate from Employee hourly_rate: ₹{ot_rate}")
-                            else:
-                                logger.warning(f"[OT_APPROVAL] ⚠️ NO OT RATE FOUND! Please set in Masters > Payroll Configuration")
-                            
-                            # Calculate OT amount
-                            approved_hours = ot_request.approved_hours or ot_request.requested_hours or 0
-                            ot_amount = float(approved_hours) * ot_rate
-                            logger.info(f"[OT_APPROVAL] OT Calculation: {approved_hours} hours × ₹{ot_rate} = ₹{ot_amount}")
-                            
-                            # Check if OTDailySummary already exists for this employee/date
-                            existing_summary = OTDailySummary.query.filter_by(
-                                employee_id=ot_request.employee_id,
-                                ot_date=ot_request.ot_date
-                            ).first()
-                            
-                            if not existing_summary:
-                                # Create new OTDailySummary record
-                                logger.info(f"[OT_APPROVAL] Creating NEW OTDailySummary record...")
-                                ot_summary = OTDailySummary(
-                                    employee_id=ot_request.employee_id,
-                                    company_id=ot_request.company_id,
-                                    ot_request_id=ot_request.id,
-                                    ot_date=ot_request.ot_date,
-                                    ot_hours=approved_hours,
-                                    ot_rate_per_hour=ot_rate,
-                                    ot_amount=ot_amount,
-                                    status='Draft',
-                                    created_by=current_user.username
-                                )
-                                db.session.add(ot_summary)
-                                logger.info(f"[OT_APPROVAL] ✅ OTDailySummary created successfully for employee {employee.id} on {ot_request.ot_date}")
-                                logger.info(f"[OT_APPROVAL] Grid will show this record when HR Manager filters by date: {ot_request.ot_date}")
-                            else:
-                                # Update existing record with OT hours and amount
-                                logger.info(f"[OT_APPROVAL] UPDATING existing OTDailySummary record...")
-                                existing_summary.ot_hours = approved_hours
-                                existing_summary.ot_rate_per_hour = ot_rate
-                                existing_summary.ot_amount = ot_amount
-                                existing_summary.ot_request_id = ot_request.id
-                                existing_summary.modified_by = current_user.username
-                                existing_summary.modified_at = datetime.now()
-                                logger.info(f"[OT_APPROVAL] ✅ OTDailySummary updated successfully for employee {employee.id} on {ot_request.ot_date}")
-                        else:
-                            logger.error(f"[OT_APPROVAL] ❌ Employee {ot_request.employee_id} NOT FOUND! Cannot create OTDailySummary")
-                    except Exception as e:
-                        logger.error(f"[OT_APPROVAL] ❌ Error creating OTDailySummary: {str(e)}", exc_info=True)
-                        # Don't fail the approval if summary creation fails
-                    
-                    logger.info(f"[OT_APPROVAL] Ready to commit changes...")
-                    flash(f'✓ OT Approved. Sent to HR Manager for final approval.', 'success')
-                
-                elif action == 'reject':
-                    # Manager Rejects
-                    ot_approval.status = 'manager_rejected'
-                    ot_approval.comments = comments
-                    # Don't update created_at - it's immutable. It tracks when the approval record was created
-                    
-                    # Update OTRequest status
-                    ot_request.status = 'manager_rejected'
-                    
-                    # Reset OTAttendance back to Draft for employee to re-mark
-                    ot_attendance = OTAttendance.query.filter_by(
-                        employee_id=ot_request.employee_id,
-                        ot_date=ot_request.ot_date
-                    ).first()
-                    
-                    if ot_attendance:
-                        ot_attendance.status = 'Draft'
-                        ot_attendance.modified_at = datetime.now()
-                    
-                    flash(f'✗ OT Rejected. Returned to employee to re-mark.', 'danger')
-                
-                logger.info(f"[OT_APPROVAL] About to commit all changes...")
-                db.session.commit()
-                logger.info(f"[OT_APPROVAL] ✓ Commit successful! Redirecting to dashboard...")
-                return redirect(url_for('ot_manager_approval'))
             
-            except Exception as e:
-                logger.error(f"[OT_APPROVAL] ✗ Exception occurred: {str(e)}", exc_info=True)
-                db.session.rollback()
-                flash(f'Error: {str(e)}', 'danger')
-                logger.error(f"Error processing manager approval: {str(e)}")
-                return redirect(url_for('ot_manager_approval'))
+        # Handle Single Action POST (Legacy support, though we'll move to new Bulk route mostly)
+        if request.method == 'POST':
+            # Redirect to the new bulk action handler if it's a form submit from the new UI
+            # But for now, let's keep the legacy logic inline or just use the separate route.
+            # We will implement the logic here to support single actions via the same route if needed,
+            # but ideally, the UI will point to the bulk route even for single items.
+            pass
+
+        # GET Request - Show Dashboard
+        status_filter = request.args.get('status', 'pending') # 'pending' or 'history'
+        page = request.args.get('page', 1, type=int)
         
-        # GET: Display OT pending manager approval
-        query = OTApproval.query.filter(
-            OTApproval.approver_id == current_user.id,
-            OTApproval.approval_level == 1,
-            OTApproval.status == 'pending_manager'
+        # Base Query: Approvals assigned to this manager (Level 1)
+        query = OTApproval.query.filter_by(
+            approver_id=current_user.id,
+            approval_level=1
         )
         
-        page = request.args.get('page', 1, type=int)
-        pending_approvals = query.order_by(OTApproval.created_at.asc()).paginate(page=page, per_page=20)
+        # Apply Status Filter
+        if status_filter == 'history':
+            # Show approved or rejected items
+            query = query.filter(OTApproval.status.in_(['manager_approved', 'manager_rejected']))
+            query = query.order_by(OTApproval.updated_at.desc())
+        else:
+            # Default: Show pending items
+            query = query.filter_by(status='pending_manager')
+            query = query.order_by(OTApproval.created_at.asc())
+            
+        # Pagination
+        approvals = query.paginate(page=page, per_page=20)
         
-        # Get statistics for this manager
-        pending_count = OTApproval.query.filter(
-            OTApproval.approver_id == current_user.id,
-            OTApproval.approval_level == 1,
-            OTApproval.status == 'pending_manager'
-        ).count()
-        
-        approved_count = OTApproval.query.filter(
-            OTApproval.approver_id == current_user.id,
-            OTApproval.approval_level == 1,
-            OTApproval.status == 'manager_approved'
-        ).count()
-        
-        rejected_count = OTApproval.query.filter(
-            OTApproval.approver_id == current_user.id,
-            OTApproval.approval_level == 1,
-            OTApproval.status == 'manager_rejected'
-        ).count()
+        # Stats for the Header
+        pending_count = OTApproval.query.filter_by(approver_id=current_user.id, approval_level=1, status='pending_manager').count()
+        approved_count = OTApproval.query.filter_by(approver_id=current_user.id, approval_level=1, status='manager_approved').count()
+        rejected_count = OTApproval.query.filter_by(approver_id=current_user.id, approval_level=1, status='manager_rejected').count()
         
         stats = {
             'pending': pending_count,
             'approved': approved_count,
-            'rejected': rejected_count,
+            'rejected': rejected_count, 
+            'total_history': approved_count + rejected_count
         }
-        
+
         return render_template('ot/manager_approval_dashboard.html',
-                             pending_approvals=pending_approvals,
+                             approvals=approvals,
                              stats=stats,
-                             manager_name=manager_employee.first_name)
-    
+                             current_tab=status_filter)
+
     except Exception as e:
         logger.error(f"Error in ot_manager_approval: {str(e)}")
-        flash('Error loading manager approval dashboard', 'danger')
+        flash('Error loading dashboard', 'danger')
         return redirect(url_for('dashboard'))
+
+
+# ============ BULK ACTIONS (Manager) ============
+@app.route('/ot/manager-bulk-action', methods=['POST'])
+@login_required
+def ot_manager_bulk_action():
+    """
+    Handle Bulk Approve/Reject for Manager
+    """
+    try:
+        action = request.form.get('action') # 'approve' or 'reject'
+        approval_ids_str = request.form.get('approval_ids') # Comma separated list
+        comments = request.form.get('comments', '')
+        
+        if not action or not approval_ids_str:
+            flash('Invalid action parameters', 'warning')
+            return redirect(url_for('ot_manager_approval'))
+            
+        approval_ids = [int(id) for id in approval_ids_str.split(',') if id.strip()]
+        
+        if not approval_ids:
+            flash('No items selected', 'warning')
+            return redirect(url_for('ot_manager_approval'))
+            
+        success_count = 0
+        error_count = 0
+        
+        for approval_id in approval_ids:
+            try:
+                # Get Approval Record
+                approval = OTApproval.query.get(approval_id)
+                
+                # Security Check
+                if not approval or approval.approver_id != current_user.id or approval.status != 'pending_manager':
+                    error_count += 1
+                    continue
+                
+                ot_request = approval.ot_request
+                
+                if action == 'approve':
+                    # Update Approval Record
+                    approval.status = 'manager_approved'
+                    approval.comments = comments if comments else 'Approved by Manager'
+                    approval.updated_at = datetime.now()
+                    
+                    # Update Request Status
+                    ot_request.status = 'manager_approved'
+                    
+                    # Create Level 2 Approval (HR)
+                    # Find HR Managers or Tenant Admin
+                    # For simplicity, we create one generic Level 2 record pending 'HR Manager' role
+                    # In a real system, you might assign to a specific HR person.
+                    # Here we just create the record, and the HR dashboard queries by role/company.
+                    
+                    hr_approval = OTApproval(
+                        ot_request_id=ot_request.id,
+                        approval_level=2,
+                        status='pending_hr',
+                        comments='Pending HR Approval'
+                    )
+                    db.session.add(hr_approval)
+                    
+                elif action == 'reject':
+                    # Update Approval Record
+                    approval.status = 'manager_rejected'
+                    approval.comments = comments if comments else 'Rejected by Manager'
+                    approval.updated_at = datetime.now()
+                    
+                    # Update Request Status
+                    ot_request.status = 'manager_rejected'
+                    
+                    # Also update the original OT Attendance record to 'Draft' or 'Rejected'?
+                    # Workflow says: Back to Employee. 
+                    # Usually we update the OTAttendance to 'Rejected' so they can see it and maybe delete/re-submit.
+                    ot_attendance = OTAttendance.query.filter_by(
+                        employee_id=ot_request.employee_id, 
+                        ot_date=ot_request.ot_date
+                    ).first()
+                    
+                    if ot_attendance:
+                        ot_attendance.status = 'Rejected' # Or 'Draft' if you want them to edit immediately
+                        # Let's set to Rejected so history is preserved, they can clone or delete.
+                
+                success_count += 1
+                
+            except Exception as e:
+                logger.error(f"Error processing approval {approval_id}: {str(e)}")
+                error_count += 1
+                
+
+        db.session.commit()
+        
+        if success_count > 0:
+            flash(f'Successfully {action}ed {success_count} requests.', 'success')
+        if error_count > 0:
+            flash(f'Failed to process {error_count} requests.', 'warning')
+            
+        return redirect(url_for('ot_manager_approval', status='pending'))
+
+    except Exception as e:
+        logger.error(f"Error in ot_manager_bulk_action: {str(e)}")
+        flash('Error processing bulk action', 'danger')
+        return redirect(url_for('ot_manager_approval'))
 
 
 # ============ OT APPROVAL DASHBOARD - HR Manager (Level 2) ============
