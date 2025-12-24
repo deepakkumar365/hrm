@@ -1305,6 +1305,12 @@ def employee_edit(employee_id):
                          # Log warning but allow employee update to proceed
                          print(f"Warning: Could not create user account: {e}")
 
+            # --- Automatic Name Sync ---
+            # If the employee has a linked user account, keep the names in sync
+            if employee.user:
+                employee.user.first_name = employee.first_name
+                employee.user.last_name = employee.last_name
+
             db.session.commit()
             flash('Employee updated successfully', 'success')
             return redirect(url_for('employee_list'))
@@ -2148,6 +2154,39 @@ def attendance_mark():
             elif existing:
                 if action == 'clock_out':
                     existing.clock_out = utc_action_time
+                    
+                    # Calculate hours
+                    if existing.clock_in:
+                        clock_in_dt = datetime.combine(existing.date, existing.clock_in)
+                        clock_out_dt = datetime.combine(existing.date, utc_action_time)
+                        total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
+
+                        # Subtract break time if applicable
+                        if existing.break_start and existing.break_end:
+                            break_start_dt = datetime.combine(existing.date, existing.break_start)
+                            break_end_dt = datetime.combine(existing.date, existing.break_end)
+                            break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                            total_seconds -= break_seconds
+
+                        total_hours = total_seconds / 3600
+                        
+                        # Get standard working hours from employee profile or default to 8
+                        standard_hours = 8.0
+                        if employee_profile.working_hours and employee_profile.working_hours.hours_per_day:
+                            standard_hours = float(employee_profile.working_hours.hours_per_day)
+
+                        if total_hours > standard_hours:
+                            existing.regular_hours = standard_hours
+                            existing.overtime_hours = total_hours - standard_hours
+                            existing.has_overtime = True
+                            existing.overtime_approved = False
+                        else:
+                            existing.regular_hours = total_hours
+                            existing.overtime_hours = 0
+                            existing.has_overtime = False
+                            
+                        existing.total_hours = total_hours
+
                     flash('Clocked out successfully', 'success')
                 elif action == 'break_start':
                     existing.break_start = utc_action_time
@@ -2176,6 +2215,40 @@ def attendance_mark():
         ).first()
 
         if today_attendance:
+            # Auto-calculate if clock_out exists but stats are zero (legacy correction)
+            if today_attendance.clock_out and (not today_attendance.total_hours or today_attendance.total_hours == 0):
+                # Calculate hours
+                clock_in_dt = datetime.combine(today_attendance.date, today_attendance.clock_in)
+                clock_out_dt = datetime.combine(today_attendance.date, today_attendance.clock_out)
+                total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
+
+                # Subtract break time if applicable
+                if today_attendance.break_start and today_attendance.break_end:
+                    break_start_dt = datetime.combine(today_attendance.date, today_attendance.break_start)
+                    break_end_dt = datetime.combine(today_attendance.date, today_attendance.break_end)
+                    break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                    total_seconds -= break_seconds
+
+                total_hours = total_seconds / 3600
+                
+                # Get standard working hours from employee profile or default to 8
+                standard_hours = 8.0
+                if employee_profile.working_hours and employee_profile.working_hours.hours_per_day:
+                    standard_hours = float(employee_profile.working_hours.hours_per_day)
+
+                if total_hours > standard_hours:
+                    today_attendance.regular_hours = standard_hours
+                    today_attendance.overtime_hours = total_hours - standard_hours
+                    today_attendance.has_overtime = True
+                    today_attendance.overtime_approved = False
+                else:
+                    today_attendance.regular_hours = total_hours
+                    today_attendance.overtime_hours = 0
+                    today_attendance.has_overtime = False
+                    
+                today_attendance.total_hours = total_hours
+                db.session.commit()
+
             clock_in_time = get_employee_local_time(employee_profile, today_attendance.clock_in, today_attendance.date)
             clock_out_time = get_employee_local_time(employee_profile, today_attendance.clock_out, today_attendance.date)
             break_start_time = get_employee_local_time(employee_profile, today_attendance.break_start, today_attendance.date)

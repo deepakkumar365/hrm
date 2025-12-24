@@ -24,6 +24,7 @@
 
     <!-- Main CSS - includes responsive design -->
     <link href="{{ url_for('static', filename='css/styles.css') }}?v=20250924-navbar-fix-v2" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom_sidebar.css') }}" rel="stylesheet">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -165,16 +166,16 @@
                 {% endif %}
 
                 <!-- Super Admin / Tenant Admin / HR Manager Menu (Masters) -->
-                {% if check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' or user_role == 'HR
-                Manager' %}
+                {% if (check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' or user_role == 'HR
+                Manager') and user_role != 'Employee' %}
                 <div class="nav-group">
                     <a class="sidebar-link" href="#" role="button">
                         <i class="fas fa-cogs"></i>
                         <span>Masters</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">Masters</div>
 
+                        <!-- Tenant & Company (Admin Only) -->
                         <!-- Tenant & Company (Admin Only) -->
                         {% if user_role in ['Super Admin', 'Tenant Admin'] %}
                         <a class="nav-link" href="{{ url_for('tenant_list') }}">Tenants</a>
@@ -215,7 +216,7 @@
                         <span>Employees</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">Employees</div>
+                        <!-- Employee Management -->
                         <!-- Employee Management -->
                         {% if emp_mgmt_access != 'Hidden' and user_role != 'Employee' %}
                         <a class="nav-link" href="{{ url_for('employee_add') }}">Add Employee</a>
@@ -239,7 +240,6 @@
                         <span>Attendance</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">Attendance</div>
                         {% if check_ui_access(user_role, 'Attendance', 'Attendance Management') != 'Hidden' %}
                         <a class="nav-link" href="{{ url_for('attendance_mark') }}">Mark Attendance</a>
                         <a class="nav-link" href="{{ url_for('attendance_list_view') }}">View Records</a>
@@ -265,7 +265,6 @@
                         <span>Leave</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">Leave</div>
                         <a class="nav-link" href="{{ url_for('leave_request') }}">Request Leave</a>
                         <a class="nav-link" href="{{ url_for('leave_list') }}">View Requests</a>
                     </div>
@@ -281,7 +280,6 @@
                         <span>Leave Mgmt</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">Leave Management</div>
                         <a class="nav-link" href="{{ url_for('leave_configuration') }}">Configure Leave Types</a>
                     </div>
                 </div>
@@ -295,7 +293,6 @@
                         <span>OT Mgmt</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">OT Management</div>
                         {% if is_admin %}
                         <a class="nav-link" href="{{ url_for('ot_attendance') }}">OT Attendance</a>
                         {% endif %}
@@ -317,7 +314,6 @@
                         <span>Payroll</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">Payroll</div>
                         {% if check_ui_access(user_role, 'Payroll', 'Payroll Management') != 'Hidden' %}
                         <a class="nav-link" href="{{ url_for('payroll_list') }}">Payroll List</a>
                         <a class="nav-link" href="{{ url_for('payroll_generate') }}">Generate Payroll</a>
@@ -338,7 +334,6 @@
                         <span>Reports</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">Reports</div>
                         <a class="nav-link" href="{{ url_for('reports_menu') }}">All Reports</a>
                         <a class="nav-link" href="{{ url_for('report_employee_history') }}">Employee History</a>
                         <a class="nav-link" href="{{ url_for('report_payroll_configuration') }}">Payroll
@@ -356,7 +351,6 @@
                         <span>Admin</span>
                     </a>
                     <div class="sidebar-submenu">
-                        <div class="sidebar-submenu-header">Admin Settings</div>
                         {% if check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' %}
                         <a class="nav-link" href="{{ url_for('tenant_list') }}">Tenants</a>
                         <a class="nav-link" href="{{ url_for('company_list') }}">Companies</a>

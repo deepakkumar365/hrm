@@ -584,7 +584,9 @@
     }
 
     .btn-circle .sub-label {
-        display: none;
+        display: block;
+        font-size: 0.6rem;
+        margin-top: 2px;
     }
 
     /* Show only Clock In/Out */

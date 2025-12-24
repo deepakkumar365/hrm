@@ -3607,6 +3607,17 @@ textarea.form-control.is-valid:focus {
     margin-top: 10px;
 }
 
+@media (max-width: 576px) {
+    .profile-card-dropdown {
+        width: 90vw;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        position: absolute;
+        padding: 16px;
+    }
+}
+
 .profile-card-header {
     display: flex;
     flex-direction: column;

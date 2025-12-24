@@ -49,7 +49,7 @@
                 <!-- State: Not Clocked In -->
                 <div class="btn-circle-container">
                     <div class="btn-circle-outer"></div>
-                    <button type="button" class="btn-circle btn-clock-in" onclick="submitAction('clock_in')">
+                    <button type="button" class="btn-circle btn-clock-in" onclick="submitAction('clock_in', this)">
                         <span class="main-label">CLOCK IN</span>
                         <span class="sub-label">Start your day</span>
                     </button>
@@ -58,7 +58,7 @@
                 <!-- State: Working / On Break -->
                 <div class="btn-circle-container">
                     <div class="btn-circle-outer"></div>
-                    <button type="button" class="btn-circle btn-clock-out" onclick="submitAction('clock_out')">
+                    <button type="button" class="btn-circle btn-clock-out" onclick="submitAction('clock_out', this)">
                         <span class="main-label">CLOCK OUT</span>
                         <span class="sub-label">End your shift</span>
                     </button>
@@ -66,7 +66,8 @@
 
                 <div class="secondary-action">
                     {% if not today_attendance.break_start %}
-                    <button type="button" class="btn-pill" onclick="submitAction('break_end')">Resume Work</button>
+                    <button type="button" class="btn-pill" onclick="submitAction('break_end', this)">Resume
+                        Work</button>
                     {% endif %}
                 </div>
                 <!-- Extra Action: Register OT -->
@@ -96,15 +97,31 @@
         <div class="dashboard-panel stats-panel">
             <div class="stats-card-vertical">
                 <div class="stat-item">
-                    <span class="val">{{ "%.2f"|format(today_attendance.regular_hours or 0.0) }}</span>
+                    <span class="val" style="color: #0d9488;">{{ "%.2f"|format(today_attendance.regular_hours or 0.0)
+                        }}</span>
                     <span class="lbl">Regular</span>
                 </div>
                 <div class="stat-item">
-                    <span class="val">{{ "%.2f"|format(today_attendance.overtime_hours or 0.0) }}</span>
-                    <span class="lbl">Overtime</span>
+                    {% if today_attendance and today_attendance.overtime_approved %}
+                    <span class="val" style="color: #16a34a;">{{ "%.2f"|format(today_attendance.overtime_hours or 0.0)
+                        }}</span>
+                    {% else %}
+                    <span class="val" style="color: #16a34a;">0.00</span>
+                    {% endif %}
+                    <span class="lbl">Approved OT</span>
                 </div>
                 <div class="stat-item">
-                    <span class="val">{{ "%.2f"|format(today_attendance.total_hours or 0.0) }}</span>
+                    {% if today_attendance and not today_attendance.overtime_approved %}
+                    <span class="val" style="color: #f59e0b;">{{ "%.2f"|format(today_attendance.overtime_hours or 0.0)
+                        }}</span>
+                    {% else %}
+                    <span class="val" style="color: #f59e0b;">0.00</span>
+                    {% endif %}
+                    <span class="lbl">Pending OT</span>
+                </div>
+                <div class="stat-item">
+                    <span class="val" style="color: #1e3a8a; font-weight: 800;">{{
+                        "%.2f"|format(today_attendance.total_hours or 0.0) }}</span>
                     <span class="lbl">Total</span>
                 </div>
             </div>
@@ -233,31 +250,38 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        function submitAction(action) {
-            const btn = event.currentTarget;
-            const originalContent = btn.innerHTML;
+        function submitAction(action, btnElement) {
+            // Fallback for button element if not passed
+            const btn = btnElement || event.currentTarget;
 
-            // Visual feedback for the circular button specifically
-            if (btn.classList.contains('btn-circle')) {
-                btn.innerHTML = '<div class="spinner"></div>';
-            } else {
+            // Visual feedback
+            if (btn && btn.classList.contains('btn-circle')) {
+                btn.innerHTML = '<div class="spinner-border text-light" role="status" style="width: 2rem; height: 2rem;"><span class="visually-hidden">Loading...</span></div>';
                 btn.disabled = true;
+            } else if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             }
 
             document.getElementById('action-input').value = action;
+            const form = document.getElementById('attendanceForm');
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         document.getElementById('lat').value = pos.coords.latitude;
                         document.getElementById('lng').value = pos.coords.longitude;
-                        document.getElementById('attendanceForm').submit();
+                        form.submit();
                     },
-                    () => { document.getElementById('attendanceForm').submit(); },
-                    { timeout: 5000 }
+                    (err) => {
+                        console.warn("Geolocation error:", err);
+                        // Continue even if location fails
+                        form.submit();
+                    },
+                    { timeout: 3000, enableHighAccuracy: false }
                 );
             } else {
-                document.getElementById('attendanceForm').submit();
+                form.submit();
             }
         }
     </script>
