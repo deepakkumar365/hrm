@@ -36,17 +36,21 @@
                         <div class="col-md-3">
                             <select name="status" class="form-select">
                                 <option value="">All Status</option>
-                                <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
-                                <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
-                                <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+                                <option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>Pending
+                                </option>
+                                <option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>Approved
+                                </option>
+                                <option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>Rejected
+                                </option>
                             </select>
                         </div>
-                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and employees %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and
+                        employees %}
                         <div class="col-md-4">
                             <select name="employee" class="form-select">
                                 <option value="">All Employees</option>
                                 {% for emp in employees %}
-                                <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
+                                <option value="{{ emp.id }}" {% if emp.id==employee_filter %}selected{% endif %}>
                                     {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
                                 </option>
                                 {% endfor %}
@@ -78,12 +82,13 @@
                         <span class="badge bg-primary">{{ leave.leave_type }}</span>
                     </div>
                     <div class="text-end">
-                        <span class="badge bg-{{ 'success' if leave.status == 'Approved' else 'danger' if leave.status == 'Rejected' else 'warning' }}">
+                        <span
+                            class="badge bg-{{ 'success' if leave.status == 'Approved' else 'danger' if leave.status == 'Rejected' else 'warning' }}">
                             {{ leave.status }}
                         </span>
                     </div>
                 </div>
-                
+
                 <div class="row text-center border-top pt-2">
                     <div class="col-4">
                         <small class="text-muted d-block">Start Date</small>
@@ -98,7 +103,7 @@
                         <strong>{{ leave.days_requested }}</strong>
                     </div>
                 </div>
-                
+
                 {% if leave.reason %}
                 <div class="mt-2 pt-2 border-top">
                     <small class="text-muted">
@@ -106,27 +111,29 @@
                     </small>
                 </div>
                 {% endif %}
-                
+
                 {% if leave.status == 'Pending' %}
                 <div class="mt-3 pt-2 border-top">
                     {% set can_edit = false %}
                     <!-- Check if user can edit this leave request -->
                     {% if current_user.employee_profile and leave.employee_id == current_user.employee_profile.id %}
-                        {% set can_edit = true %}
-                    {% elif (current_user.role.name if current_user.role else None) == 'Manager' and current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
-                        {% set can_edit = true %}
+                    {% set can_edit = true %}
+                    {% elif (current_user.role.name if current_user.role else None) == 'Manager' and
+                    current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
+                    {% set can_edit = true %}
                     {% elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin'] %}
-                        {% set can_edit = true %}
+                    {% set can_edit = true %}
                     {% endif %}
-                    
+
                     <div class="btn-group w-100">
                         {% if can_edit %}
                         <a href="{{ url_for('leave_edit', leave_id=leave.id) }}" class="btn btn-sm btn-primary">
                             <i class="fas fa-edit me-1"></i>Edit
                         </a>
                         {% endif %}
-                        
-                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'Super Admin'] %}
+
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'Super
+                        Admin'] %}
                         <button class="btn btn-sm btn-success" onclick="approveLeave({{ leave.id }}, 'approve')">
                             <i class="fas fa-check me-1"></i>Approve
                         </button>
@@ -189,43 +196,52 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-{{ 'success' if leave.status == 'Approved' else 'danger' if leave.status == 'Rejected' else 'warning' }}">
+                                <span
+                                    class="badge bg-{{ 'success' if leave.status == 'Approved' else 'danger' if leave.status == 'Rejected' else 'warning' }}">
                                     {{ leave.status }}
                                 </span>
                                 {% if leave.approved_by_user and leave.status != 'Pending' %}
                                 <br><small class="text-muted">by {{ leave.approved_by_user.first_name }}</small>
                                 {% endif %}
                             </td>
-                            <td>{{ leave.created_at.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ leave.created_at | date('%d/%m/%Y') }}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     {% if leave.status == 'Pending' %}
-                                        {% set can_edit = false %}
-                                        <!-- Check if user can edit this leave request -->
-                                        {% if current_user.employee_profile and leave.employee_id == current_user.employee_profile.id %}
-                                            {% set can_edit = true %}
-                                        {% elif (current_user.role.name if current_user.role else None) == 'Manager' and current_user.employee_profile and leave.employee.manager_id == current_user.employee_profile.id %}
-                                            {% set can_edit = true %}
-                                        {% elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super Admin'] %}
-                                            {% set can_edit = true %}
-                                        {% endif %}
-                                        
-                                        {% if can_edit %}
-                                        <a href="{{ url_for('leave_edit', leave_id=leave.id) }}" class="btn btn-outline-primary" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        {% endif %}
-                                        
-                                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'Super Admin'] %}
-                                        <button class="btn btn-outline-success" onclick="approveLeave({{ leave.id }}, 'approve')" title="Approve">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger" onclick="showRejectModal({{ leave.id }})" title="Reject">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        {% endif %}
+                                    {% set can_edit = false %}
+                                    <!-- Check if user can edit this leave request -->
+                                    {% if current_user.employee_profile and leave.employee_id ==
+                                    current_user.employee_profile.id %}
+                                    {% set can_edit = true %}
+                                    {% elif (current_user.role.name if current_user.role else None) == 'Manager' and
+                                    current_user.employee_profile and leave.employee.manager_id ==
+                                    current_user.employee_profile.id %}
+                                    {% set can_edit = true %}
+                                    {% elif (current_user.role.name if current_user.role else None) in ['Admin', 'Super
+                                    Admin'] %}
+                                    {% set can_edit = true %}
+                                    {% endif %}
+
+                                    {% if can_edit %}
+                                    <a href="{{ url_for('leave_edit', leave_id=leave.id) }}"
+                                        class="btn btn-outline-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+
+                                    {% if (current_user.role.name if current_user.role else None) in ['Admin',
+                                    'Manager', 'Super Admin'] %}
+                                    <button class="btn btn-outline-success"
+                                        onclick="approveLeave({{ leave.id }}, 'approve')" title="Approve">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="showRejectModal({{ leave.id }})"
+                                        title="Reject">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% endif %}
                                     {% else %}
-                                        <span class="text-muted small">{{ leave.status }}</span>
+                                    <span class="text-muted small">{{ leave.status }}</span>
                                     {% endif %}
                                 </div>
                             </td>
@@ -241,7 +257,8 @@
     <div class="text-center py-5">
         <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
         <h5 class="text-muted">No leave requests found</h5>
-        <p class="text-muted">{% if (current_user.role.name if current_user.role else None) == 'Employee' %}Submit your first leave request to see it here{% else %}No leave requests match your criteria{% endif %}</p>
+        <p class="text-muted">{% if (current_user.role.name if current_user.role else None) == 'Employee' %}Submit your
+            first leave request to see it here{% else %}No leave requests match your criteria{% endif %}</p>
         {% if (current_user.role.name if current_user.role else None) == 'Employee' %}
         <a href="{{ url_for('leave_request') }}" class="btn btn-primary">
             <i class="fas fa-plus me-1"></i>Request Leave
@@ -256,35 +273,38 @@
         <ul class="pagination justify-content-center">
             {% if leave_requests.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('leave_list', page=leave_requests.prev_num, status=status_filter, employee=employee_filter) }}">
+                <a class="page-link"
+                    href="{{ url_for('leave_list', page=leave_requests.prev_num, status=status_filter, employee=employee_filter) }}">
                     <i class="fas fa-chevron-left"></i>
                 </a>
             </li>
             {% endif %}
-            
+
             {% for page_num in leave_requests.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num != leave_requests.page %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('leave_list', page=page_num, status=status_filter, employee=employee_filter) }}">
-                            {{ page_num }}
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ page_num }}</span>
-                    </li>
-                    {% endif %}
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-                {% endif %}
+            {% if page_num %}
+            {% if page_num != leave_requests.page %}
+            <li class="page-item">
+                <a class="page-link"
+                    href="{{ url_for('leave_list', page=page_num, status=status_filter, employee=employee_filter) }}">
+                    {{ page_num }}
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% endif %}
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {% endif %}
             {% endfor %}
-            
+
             {% if leave_requests.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('leave_list', page=leave_requests.next_num, status=status_filter, employee=employee_filter) }}">
+                <a class="page-link"
+                    href="{{ url_for('leave_list', page=leave_requests.next_num, status=status_filter, employee=employee_filter) }}">
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
@@ -307,8 +327,8 @@
             <form id="rejectForm" method="POST">
                 <div class="modal-body">
                     <p>Please provide a reason for rejecting this leave request:</p>
-                    <textarea class="form-control" name="rejection_reason" rows="3" 
-                              placeholder="Enter rejection reason..." required></textarea>
+                    <textarea class="form-control" name="rejection_reason" rows="3"
+                        placeholder="Enter rejection reason..." required></textarea>
                     <input type="hidden" name="action" value="reject">
                 </div>
                 <div class="modal-footer">
@@ -323,29 +343,29 @@
 </div>
 
 <script>
-function approveLeave(leaveId, action) {
-    if (confirm('Are you sure you want to ' + action + ' this leave request?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/leave/${leaveId}/approve`;
-        
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = action;
-        
-        form.appendChild(actionInput);
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
+    function approveLeave(leaveId, action) {
+        if (confirm('Are you sure you want to ' + action + ' this leave request?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/leave/${leaveId}/approve`;
 
-function showRejectModal(leaveId) {
-    const form = document.getElementById('rejectForm');
-    form.action = `/leave/${leaveId}/approve`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
-    modal.show();
-}
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = action;
+
+            form.appendChild(actionInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function showRejectModal(leaveId) {
+        const form = document.getElementById('rejectForm');
+        form.action = `/leave/${leaveId}/approve`;
+
+        const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+        modal.show();
+    }
 </script>
 {% endblock %}

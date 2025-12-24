@@ -18,7 +18,9 @@ from core.models import (
     RoleAccessControl, UserRoleMapping, User, Role, 
     Organization, Company, AuditLog, UserCompanyAccess
 )
-from core.utils import check_permission
+
+from core.utils import check_permission, check_module_access, check_ui_access
+
 
 # Create blueprint
 access_control_bp = Blueprint('access_control', __name__, url_prefix='/access-control')
@@ -599,48 +601,10 @@ def save_user_role_mapping():
 
 
 # =====================================================================
-# UTILITY: Check Role Access to Module/Menu
-# =====================================================================
-
-def check_module_access(user_role, module_name, menu_name=None, sub_menu_name=None):
-    """
-    Check if a role has access to a module/menu/sub-menu
-    Returns: 'Editable', 'View Only', 'Hidden'
-    """
-    try:
-        query = RoleAccessControl.query.filter_by(module_name=module_name)
-        
-        if menu_name:
-            query = query.filter_by(menu_name=menu_name)
-        if sub_menu_name:
-            query = query.filter_by(sub_menu_name=sub_menu_name)
-        
-        ac = query.first()
-        if not ac:
-            return 'Hidden'  # Default to hidden if not found
-        
-        # Map role to column name
-        role_column_map = {
-            'Super Admin': 'super_admin_access',
-            'Tenant Admin': 'tenant_admin_access',
-            'HR Manager': 'hr_manager_access',
-            'Employee': 'employee_access',
-        }
-        
-        column = role_column_map.get(user_role, 'employee_access')
-        access_level = getattr(ac, column, 'Hidden')
-        
-        return access_level
-    except Exception as e:
-        print(f"Error checking module access: {str(e)}")
-        return 'Hidden'
-
-
-# =====================================================================
 # API: Get User Role Mappings
 # =====================================================================
 
-@app.route('/api/user-role-mappings/<int:user_id>', methods=['GET'])
+@access_control_bp.route('/api/user-role-mappings/<int:user_id>', methods=['GET'])
 @login_required
 @require_role('Super Admin')
 def get_user_role_mappings(user_id):
@@ -665,18 +629,6 @@ def get_user_role_mappings(user_id):
         return jsonify({'success': True, 'mappings': result})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
-
-
-# =====================================================================
-# UTILITY: Enforce Access Control in Routes
-# =====================================================================
-
-def check_ui_access(user_role, module_name, menu_name=None, sub_menu_name=None):
-    """
-    Check if UI element should be visible based on role access
-    Returns 'Editable', 'View Only', or 'Hidden'
-    """
-    return check_module_access(user_role, module_name, menu_name, sub_menu_name)
 
 
 def check_edit_permission(user_role, module_name, menu_name=None):

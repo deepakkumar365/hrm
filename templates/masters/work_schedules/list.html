@@ -112,7 +112,7 @@
                                 {% endif %}
                             </td>
                             <td>{{ schedule.description or '-' }}</td>
-                            <td>{{ schedule.created_at.strftime('%d %b %Y') }}</td>
+                            <td>{{ schedule.created_at | date('%d %b %Y') }}</td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
                                     <a href="{{ url_for('work_schedule_edit', work_schedule_id=schedule.id) }}"

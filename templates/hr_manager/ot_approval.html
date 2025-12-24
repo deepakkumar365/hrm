@@ -12,79 +12,79 @@
     </div>
 
     {% if approvals.items %}
-        <div class="approval-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Employee</th>
-                        <th>OT Date</th>
-                        <th>In Time</th>
-                        <th>Out Time</th>
-                        <th>OT Hours</th>
-                        <th>OT Type</th>
-                        <th>Requested On</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for approval in approvals.items %}
-                        <tr>
-                            <td>{{ approval.ot_request.employee.first_name }} {{ approval.ot_request.employee.last_name }}</td>
-                            <td>{{ approval.ot_request.ot_date.strftime('%d/%m/%Y') }}</td>
-                            <td colspan="2">-</td>
-                            <td><strong>{{ "%.2f" | format(approval.ot_request.requested_hours) }}h</strong></td>
-                            <td>{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else 'N/A' }}</td>
-                            <td>{{ approval.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-                            <td>
-                                <div class="approval-row-actions">
-                                    <form method="POST" action="/ot/approval/{{ approval.id }}/approve">
-                                        <button type="submit" class="btn-approve" onclick="return confirm('Approve this OT?');">
-                                            <i class="fas fa-check"></i> Approve
-                                        </button>
-                                    </form>
-                                    <form method="POST" action="/ot/approval/{{ approval.id }}/reject">
-                                        <button type="submit" class="btn-reject" onclick="return confirm('Reject this OT?');">
-                                            <i class="fas fa-times"></i> Reject
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pagination -->
-        {% if approvals.pages > 1 %}
-            <div class="pagination">
-                {% if approvals.has_prev %}
-                    <a href="?page=1">&laquo; First</a>
-                    <a href="?page={{ approvals.prev_num }}">Previous</a>
-                {% endif %}
-
-                {% for page_num in approvals.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num == approvals.page %}
-                            <span class="active">{{ page_num }}</span>
-                        {% else %}
-                            <a href="?page={{ page_num }}">{{ page_num }}</a>
-                        {% endif %}
-                    {% endif %}
+    <div class="approval-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>OT Date</th>
+                    <th>In Time</th>
+                    <th>Out Time</th>
+                    <th>OT Hours</th>
+                    <th>OT Type</th>
+                    <th>Requested On</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for approval in approvals.items %}
+                <tr>
+                    <td>{{ approval.ot_request.employee.first_name }} {{ approval.ot_request.employee.last_name }}</td>
+                    <td>{{ approval.ot_request.ot_date | date('%d/%m/%Y') }}</td>
+                    <td colspan="2">-</td>
+                    <td><strong>{{ "%.2f" | format(approval.ot_request.requested_hours) }}h</strong></td>
+                    <td>{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else 'N/A' }}</td>
+                    <td>{{ approval.created_at | date('%d/%m/%Y %H:%M') }}</td>
+                    <td>
+                        <div class="approval-row-actions">
+                            <form method="POST" action="/ot/approval/{{ approval.id }}/approve">
+                                <button type="submit" class="btn-approve" onclick="return confirm('Approve this OT?');">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                            </form>
+                            <form method="POST" action="/ot/approval/{{ approval.id }}/reject">
+                                <button type="submit" class="btn-reject" onclick="return confirm('Reject this OT?');">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-                {% if approvals.has_next %}
-                    <a href="?page={{ approvals.next_num }}">Next</a>
-                    <a href="?page={{ approvals.pages }}">Last &raquo;</a>
-                {% endif %}
-            </div>
+    <!-- Pagination -->
+    {% if approvals.pages > 1 %}
+    <div class="pagination">
+        {% if approvals.has_prev %}
+        <a href="?page=1">&laquo; First</a>
+        <a href="?page={{ approvals.prev_num }}">Previous</a>
         {% endif %}
+
+        {% for page_num in approvals.iter_pages() %}
+        {% if page_num %}
+        {% if page_num == approvals.page %}
+        <span class="active">{{ page_num }}</span>
+        {% else %}
+        <a href="?page={{ page_num }}">{{ page_num }}</a>
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+
+        {% if approvals.has_next %}
+        <a href="?page={{ approvals.next_num }}">Next</a>
+        <a href="?page={{ approvals.pages }}">Last &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
     {% else %}
-        <div class="empty-state">
-            <i class="fas fa-inbox"></i>
-            <h3>No Pending OT Approvals</h3>
-            <p>All overtime requests have been processed!</p>
-        </div>
+    <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>No Pending OT Approvals</h3>
+        <p>All overtime requests have been processed!</p>
+    </div>
     {% endif %}
 
     <div>

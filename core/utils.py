@@ -1,12 +1,10 @@
 import csv
-from io import StringIO, BytesIO
+from io import StringIO
 from flask import make_response
-import pandas as pd
 from datetime import datetime, date, timedelta
 import logging
 from pytz import timezone, utc
 import re
-
 
 def export_to_csv(data, filename, headers=None):
     """Export data to CSV and return as downloadable response"""
@@ -262,3 +260,50 @@ def get_employee_local_time(employee, time_obj, event_date):
         logging.error(f"Error converting time for employee {employee.id}: {e}")
         # Fallback to UTC time if conversion fails
         return time_obj
+
+# =====================================================================
+# UTILITY: Check Role Access to Module/Menu
+# =====================================================================
+
+def check_module_access(user_role, module_name, menu_name=None, sub_menu_name=None):
+    """
+    Check if a role has access to a module/menu/sub-menu
+    Returns: 'Editable', 'View Only', 'Hidden'
+    """
+    try:
+        from core.models import RoleAccessControl
+        
+        query = RoleAccessControl.query.filter_by(module_name=module_name)
+        
+        if menu_name:
+            query = query.filter_by(menu_name=menu_name)
+        if sub_menu_name:
+            query = query.filter_by(sub_menu_name=sub_menu_name)
+        
+        ac = query.first()
+        if not ac:
+            return 'Hidden'  # Default to hidden if not found
+        
+        # Map role to column name
+        role_column_map = {
+            'Super Admin': 'super_admin_access',
+            'Tenant Admin': 'tenant_admin_access',
+            'HR Manager': 'hr_manager_access',
+            'Employee': 'employee_access',
+        }
+        
+        column = role_column_map.get(user_role, 'employee_access')
+        access_level = getattr(ac, column, 'Hidden')
+        
+        return access_level
+    except Exception as e:
+        print(f"Error checking module access: {str(e)}")
+        return 'Hidden'
+
+
+def check_ui_access(user_role, module_name, menu_name=None, sub_menu_name=None):
+    """
+    Check if UI element should be visible based on role access
+    Returns 'Editable', 'View Only', or 'Hidden'
+    """
+    return check_module_access(user_role, module_name, menu_name, sub_menu_name)

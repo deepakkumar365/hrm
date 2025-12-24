@@ -44,15 +44,15 @@
                                 <span class="badge bg-info">{{ wh.hours_per_week }}h</span>
                             </td>
                             <td>{{ wh.description or '-' }}</td>
-                            <td>{{ wh.created_at.strftime('%d %b %Y') }}</td>
+                            <td>{{ wh.created_at | date('%d %b %Y') }}</td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('working_hours_edit', working_hours_id=wh.id) }}" 
-                                       class="btn btn-outline-primary">
+                                    <a href="{{ url_for('working_hours_edit', working_hours_id=wh.id) }}"
+                                        class="btn btn-outline-primary">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <button type="button" class="btn btn-outline-danger"
-                                            onclick="confirmDelete('{{ wh.name }}', '{{ url_for('working_hours_delete', working_hours_id=wh.id) }}')">
+                                        onclick="confirmDelete('{{ wh.name }}', '{{ url_for('working_hours_delete', working_hours_id=wh.id) }}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -69,31 +69,34 @@
                 <ul class="pagination justify-content-center">
                     {% if working_hours.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('working_hours_list', page=working_hours.prev_num) }}">Previous</a>
+                        <a class="page-link"
+                            href="{{ url_for('working_hours_list', page=working_hours.prev_num) }}">Previous</a>
                     </li>
                     {% endif %}
-                    
+
                     {% for page_num in working_hours.iter_pages() %}
-                        {% if page_num %}
-                            {% if page_num != working_hours.page %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('working_hours_list', page=page_num) }}">{{ page_num }}</a>
-                            </li>
-                            {% else %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ page_num }}</span>
-                            </li>
-                            {% endif %}
-                        {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link">...</span>
-                        </li>
-                        {% endif %}
+                    {% if page_num %}
+                    {% if page_num != working_hours.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('working_hours_list', page=page_num) }}">{{ page_num
+                            }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
                     {% endfor %}
-                    
+
                     {% if working_hours.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('working_hours_list', page=working_hours.next_num) }}">Next</a>
+                        <a class="page-link"
+                            href="{{ url_for('working_hours_list', page=working_hours.next_num) }}">Next</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -135,10 +138,10 @@
 </div>
 
 <script>
-function confirmDelete(name, url) {
-    document.getElementById('workingHoursName').textContent = name;
-    document.getElementById('deleteForm').action = url;
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
+    function confirmDelete(name, url) {
+        document.getElementById('workingHoursName').textContent = name;
+        document.getElementById('deleteForm').action = url;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
 </script>
 {% endblock %}
