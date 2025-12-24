@@ -2,398 +2,18 @@
 
 {% block title %}Payroll Configuration - Nexar{% endblock %}
 
-{% block content %}
-<style>
-    /* Payroll Configuration Grid Styles */
-    :root {
-        --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    body {
-        margin: 0;
-        padding: 0;
-    }
-
-    .payroll-config-container {
-        font-family: var(--font-primary);
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        padding: 0;
-        margin: 0;
-        background: #f5f5f5;
-    }
-
-    .payroll-header {
-        background: white;
-        padding: 12px 16px;
-        border-bottom: 1px solid #e0e0e0;
-        flex-shrink: 0;
-    }
-
-    .payroll-header h3 {
-        margin: 0;
-        font-family: var(--font-primary);
-        font-size: 18px;
-        font-weight: 600;
-        color: #004d4d;
-    }
-
-    .payroll-header p {
-        margin: 2px 0 0 0;
-        font-size: 12px;
-        color: #666;
-    }
-
-    .payroll-toolbar {
-        background: white;
-        padding: 8px 12px;
-        border-bottom: 1px solid #e0e0e0;
-        flex-shrink: 0;
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .payroll-toolbar input {
-        padding: 4px 8px;
-        border: 1px solid #ddd;
-        border-radius: 2px;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        height: 24px;
-    }
-
-    .payroll-toolbar button {
-        padding: 4px 10px;
-        border: 1px solid #ddd;
-        background: white;
-        color: #333;
-        border-radius: 2px;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        font-size: 10px;
-        height: 24px;
-        transition: all 0.15s;
-    }
-
-    .payroll-toolbar button:hover {
-        background: #f0f0f0;
-        border-color: #999;
-    }
-
-    .payroll-content {
-        flex: 1;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        padding: 8px 12px;
-    }
-
-    .grid-wrapper {
-        flex: 1;
-        overflow: auto;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-    }
-
-    .payroll-grid {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: var(--font-primary);
-        font-size: 12px;
-    }
-
-    .payroll-grid thead {
-        background: #f8f9fa;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .payroll-grid th {
-        padding: 4px 6px;
-        text-align: left;
-        font-weight: 600;
-        color: #333;
-        border-bottom: 1px solid #ddd;
-        border-right: 1px solid #eee;
-        white-space: nowrap;
-        user-select: none;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        height: 24px;
-    }
-
-    .payroll-grid th:last-child {
-        border-right: none;
-    }
-
-    /* Stronger separation between Name and Designation columns */
-    .payroll-grid th:nth-child(3) {
-        border-right: 2px solid #008080;
-    }
-
-    .payroll-grid td:nth-child(3) {
-        border-right: 2px solid #d0e0df;
-    }
-
-    .payroll-grid th:hover {
-        background: #f0f0f0;
-    }
-
-    .payroll-grid th.sortable::after {
-        content: ' ⇅';
-        opacity: 0.4;
-        font-size: 10px;
-    }
-
-    .payroll-grid th.sorted-asc::after {
-        content: ' ↑';
-        opacity: 1;
-        color: #008080;
-        font-size: 11px;
-    }
-
-    .payroll-grid th.sorted-desc::after {
-        content: ' ↓';
-        opacity: 1;
-        color: #008080;
-        font-size: 11px;
-    }
-
-    .payroll-grid tbody tr {
-        height: 24px;
-        border-bottom: 1px solid #eee;
-        transition: background-color 0.15s;
-    }
-
-    .payroll-grid tbody tr:hover {
-        background: #f9f9f9;
-    }
-
-    .payroll-grid td {
-        padding: 3px 5px;
-        border-right: 1px solid #eee;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        vertical-align: middle;
-    }
-
-    .payroll-grid td:last-child {
-        border-right: none;
-    }
-
-    .payroll-grid tbody tr.editing td {
-        padding: 2px 4px;
-    }
-
-    /* Input fields in edit mode */
-    .payroll-grid input[type="text"],
-    .payroll-grid input[type="number"] {
-        width: 100%;
-        padding: 2px 4px;
-        border: 1px solid #008080;
-        border-radius: 2px;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        box-sizing: border-box;
-    }
-
-    .payroll-grid input[type="number"] {
-        text-align: right;
-    }
-
-    /* Numeric columns - right aligned */
-    .numeric {
-        text-align: right;
-    }
-
-    /* Action buttons */
-    .action-buttons {
-        display: flex;
-        gap: 2px;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .btn-edit, .btn-save, .btn-cancel {
-        padding: 3px 5px;
-        border: none;
-        border-radius: 2px;
-        font-size: 10px;
-        font-family: var(--font-primary);
-        cursor: pointer;
-        transition: all 0.15s;
-        white-space: nowrap;
-        min-width: 30px;
-        height: 20px;
-        line-height: 14px;
-    }
-
-    .btn-edit {
-        background: #008080;
-        color: white;
-        border: 1px solid #008080;
-        min-width: 38px;
-    }
-
-    .btn-edit:hover {
-        background: #006666;
-    }
-
-    .btn-save {
-        background: #28a745;
-        color: white;
-        border: 1px solid #28a745;
-        min-width: 38px;
-    }
-
-    .btn-save:hover {
-        background: #218838;
-    }
-
-    .btn-cancel {
-        background: #dc3545;
-        color: white;
-        border: 1px solid #dc3545;
-        min-width: 22px;
-        padding: 3px 4px;
-        font-weight: bold;
-    }
-
-    .btn-cancel:hover {
-        background: #c82333;
-    }
-
-    /* Footer with pagination and records per page */
-    .payroll-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        background: white;
-        border-top: 1px solid #ddd;
-        margin-top: 8px;
-        border-radius: 3px;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        flex-shrink: 0;
-    }
-
-    .pagination-info {
-        color: #666;
-        flex: 0 0 auto;
-    }
-
-    .pagination-controls {
-        display: flex;
-        gap: 4px;
-        align-items: center;
-        flex: 1;
-        justify-content: center;
-    }
-
-    .pagination-controls button {
-        padding: 4px 8px;
-        border: 1px solid #ddd;
-        background: white;
-        color: #333;
-        border-radius: 2px;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        transition: all 0.15s;
-    }
-
-    .pagination-controls button:hover:not(:disabled) {
-        background: #f0f0f0;
-        border-color: #999;
-    }
-
-    .pagination-controls button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .pagination-input {
-        width: 35px;
-        padding: 3px 6px;
-        border: 1px solid #ddd;
-        border-radius: 2px;
-        text-align: center;
-        font-family: var(--font-primary);
-        font-size: 11px;
-    }
-
-    .records-per-page {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex: 0 0 auto;
-    }
-
-    .records-per-page label {
-        margin: 0;
-        font-size: 11px;
-    }
-
-    .records-per-page select {
-        padding: 4px 6px;
-        border: 1px solid #ddd;
-        border-radius: 2px;
-        background: white;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        font-size: 11px;
-    }
-
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 300px;
-        color: #999;
-    }
-
-    .empty-state i {
-        font-size: 48px;
-        margin-bottom: 16px;
-        opacity: 0.5;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 1200px) {
-        .payroll-config-container {
-            height: auto;
-        }
-
-        .payroll-content {
-            height: auto;
-        }
-
-        .grid-wrapper {
-            height: auto;
-            max-height: 500px;
-        }
-    }
-</style>
-
-<div class="payroll-config-container">
+{% block content %}<div class="payroll-config-container">
     <!-- Header Section -->
     <div class="payroll-header">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
             <div>
                 <h3>
-                    <i class="fas fa-dollar-sign me-2" style="color: #008080;"></i>Payroll Configuration
+                    <i class="fas fa-dollar-sign me-2"></i>Payroll Configuration
                 </h3>
-                <p style="font-family: 'Segoe UI'; margin: 2px 0 0 0; font-size: 12px; color: #666;">Manage salary components and CPF contributions</p>
+                <p>Manage salary components and CPF contributions</p>
             </div>
-            <div style="display: flex; gap: 8px;">
-                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary" style="font-family: 'Segoe UI'; font-size: 11px; padding: 4px 8px;">
+            <div>
+                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i>Back
                 </a>
             </div>
@@ -402,13 +22,13 @@
 
     <!-- Toolbar Section -->
     <div class="payroll-toolbar">
-        <form method="GET" style="display: flex; gap: 8px; align-items: center; flex: 1;">
-            <input type="text" name="search" placeholder="Search employee..." value="{{ search }}" style="flex: 1; max-width: 300px;">
-            <button type="submit" style="background: #008080; color: white; border-color: #008080;">
+        <form method="GET">
+            <input type="text" name="search" placeholder="Search employee..." value="{{ search }}">
+            <button type="submit">
                 <i class="fas fa-search"></i> Search
             </button>
             {% if search %}
-            <a href="{{ url_for('payroll_config') }}" style="padding: 4px 10px; border: 1px solid #ddd; background: white; color: #333; border-radius: 2px; cursor: pointer; font-family: 'Segoe UI'; font-size: 10px; height: 24px; display: flex; align-items: center; text-decoration: none;">
+            <a href="{{ url_for('payroll_config') }}">
                 <i class="fas fa-times"></i> Clear
             </a>
             {% endif %}
@@ -422,18 +42,18 @@
             <table class="payroll-grid">
                 <thead>
                     <tr>
-                        <th class="sortable" data-column="employee_id" style="width: 70px;">Emp ID</th>
-                        <th class="sortable" data-column="first_name" style="width: 130px;">Employee Name</th>
-                        <th class="sortable" data-column="designation" style="width: 140px;">Job Title</th>
-                        <th class="sortable numeric" data-column="basic_salary" style="width: 100px;">Basic Salary</th>
-                        <th class="sortable numeric" style="width: 80px;">Transport</th>
-                        <th class="sortable numeric" style="width: 80px;">Housing</th>
-                        <th class="sortable numeric" style="width: 80px;">Meal</th>
-                        <th class="sortable numeric" style="width: 80px;">Other</th>
-                        <th class="sortable numeric" data-column="ot_rate_per_hour" style="width: 75px;">OT Rate</th>
-                        <th class="sortable numeric" style="width: 80px;">Emp. CPF</th>
-                        <th class="sortable numeric" style="width: 80px;">Net Salary</th>
-                        <th style="width: 70px;">Action</th>
+                        <th class="sortable" data-column="employee_id">Emp ID</th>
+                        <th class="sortable" data-column="first_name">Employee Name</th>
+                        <th class="sortable" data-column="designation">Job Title</th>
+                        <th class="sortable numeric" data-column="basic_salary">Basic Salary</th>
+                        <th class="sortable numeric">Transport</th>
+                        <th class="sortable numeric">Housing</th>
+                        <th class="sortable numeric">Meal</th>
+                        <th class="sortable numeric">Other</th>
+                        <th class="sortable numeric" data-column="ot_rate_per_hour">OT Rate</th>
+                        <th class="sortable numeric">Emp. CPF</th>
+                        <th class="sortable numeric">Net Salary</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -444,27 +64,27 @@
                         <td>{{ employee.designation.name if employee.designation else '-' }}</td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(employee.basic_salary or 0) }}</span>
-                            <input type="number" class="edit-value" name="basic_salary" value="{{ employee.basic_salary or 0 }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="basic_salary" value="{{ employee.basic_salary or 0 }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_1_amount if employee.payroll_config else 0) }}</span>
-                            <input type="number" class="edit-value" name="allowance_1_amount" value="{{ employee.payroll_config.allowance_1_amount if employee.payroll_config else 0 }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="allowance_1_amount" value="{{ employee.payroll_config.allowance_1_amount if employee.payroll_config else 0 }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_2_amount if employee.payroll_config else 0) }}</span>
-                            <input type="number" class="edit-value" name="allowance_2_amount" value="{{ employee.payroll_config.allowance_2_amount if employee.payroll_config else 0 }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="allowance_2_amount" value="{{ employee.payroll_config.allowance_2_amount if employee.payroll_config else 0 }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_3_amount if employee.payroll_config else 0) }}</span>
-                            <input type="number" class="edit-value" name="allowance_3_amount" value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="allowance_3_amount" value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_4_amount if employee.payroll_config else 0) }}</span>
-                            <input type="number" class="edit-value" name="allowance_4_amount" value="{{ employee.payroll_config.allowance_4_amount if employee.payroll_config else 0 }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="allowance_4_amount" value="{{ employee.payroll_config.allowance_4_amount if employee.payroll_config else 0 }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else 0) }}</span>
-                            <input type="number" class="edit-value" name="ot_rate_per_hour" value="{{ employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else 0 }}" step="0.01" style="display:none;">
+                            <input type="number" class="edit-value" name="ot_rate_per_hour" value="{{ employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else 0 }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(employee.payroll_config.employee_cpf if employee.payroll_config else 0) }}</span>
@@ -475,8 +95,8 @@
                         <td>
                             <div class="action-buttons">
                                 <button class="btn-edit" onclick="enableEdit(this)" title="Edit">Edit</button>
-                                <button class="btn-save" style="display:none;" onclick="saveConfig(this, {{ employee.id }})" title="Save">Save</button>
-                                <button class="btn-cancel" style="display:none;" onclick="cancelEdit(this)" title="Cancel">✕</button>
+                                <button class="btn-save" onclick="saveConfig(this, {{ employee.id }})" title="Save">Save</button>
+                                <button class="btn-cancel" onclick="cancelEdit(this)" title="Cancel">✕</button>
                             </div>
                         </td>
                     </tr>
@@ -497,7 +117,7 @@
                 
                 <input type="number" class="pagination-input" id="pageInput" value="{{ employees.page }}" min="1" max="{{ employees.pages }}" onchange="goToPage(this.value)">
                 
-                <span style="color: #999;">of {{ employees.pages }}</span>
+                <span>of {{ employees.pages }}</span>
                 
                 <button {% if not employees.has_next %}disabled{% endif %} onclick="goToPage({{ employees.next_num }})">Next</button>
                 <button {% if not employees.has_next %}disabled{% endif %} onclick="goToPage({{ employees.pages }})">Last</button>

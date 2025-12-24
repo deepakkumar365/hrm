@@ -35,19 +35,19 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="d-flex align-items-start">
-                        <span class="badge badge-success mr-2" style="padding: 8px 12px;">Editable</span>
+                        <span class="badge badge-success mr-2">Editable</span>
                         <small>Full access: view, create, edit, and delete</small>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="d-flex align-items-start">
-                        <span class="badge badge-info mr-2" style="padding: 8px 12px;">View Only</span>
+                        <span class="badge badge-info mr-2">View Only</span>
                         <small>Read-only access: view data only</small>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="d-flex align-items-start">
-                        <span class="badge badge-secondary mr-2" style="padding: 8px 12px;">Hidden</span>
+                        <span class="badge badge-secondary mr-2">Hidden</span>
                         <small>No access: menu hidden</small>
                     </div>
                 </div>
@@ -64,11 +64,11 @@
             <table class="table table-hover table-striped mb-0" id="accessMatrix">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 15%;">Module</th>
-                        <th style="width: 20%;">Menu</th>
-                        <th style="width: 20%;">Sub-Menu</th>
+                        <th>Module</th>
+                        <th>Menu</th>
+                        <th>Sub-Menu</th>
                         {% for role in roles %}
-                        <th class="text-center" style="width: 15%;">
+                        <th class="text-center">
                             <span class="badge badge-primary">{{ role }}</span>
                         </th>
                         {% endfor %}
@@ -151,53 +151,7 @@
             </div>
         </div>
     </div>
-</div>
-
-<style>
-.page-title {
-    color: #333;
-    font-weight: 600;
-    margin-bottom: 5px;
-}
-
-.access-level-select {
-    cursor: pointer;
-    font-size: 13px;
-    text-align: center;
-}
-
-.access-level-select:hover {
-    border-color: #007bff;
-}
-
-.table-responsive {
-    max-height: 600px;
-    overflow-y: auto;
-}
-
-thead {
-    position: sticky;
-    top: 0;
-}
-
-.badge-primary {
-    font-size: 11px;
-    padding: 5px 8px;
-}
-
-@media (max-width: 768px) {
-    .table {
-        font-size: 12px;
-    }
-    
-    .access-level-select {
-        font-size: 11px;
-        padding: 4px 2px;
-    }
-}
-</style>
-
-<script>
+</div><script>
 // Helper function to get role column name
 function roleColumn(roleIndex) {
     const columns = ['super_admin_access', 'tenant_admin_access', 'hr_manager_access', 'employee_access'];

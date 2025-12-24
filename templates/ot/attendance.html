@@ -2,71 +2,7 @@
 
 {% block title %}OT Attendance - Nexar{% endblock %}
 
-{% block head %}
-<style>
-    .filter-card {
-        background: var(--white);
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .filter-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        margin-bottom: 15px;
-    }
-    
-    .attendance-table {
-        background: var(--white);
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .table {
-        margin: 0;
-    }
-    
-    .badge-approved {
-        background-color: #10b981;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    .badge-pending {
-        background-color: #f59e0b;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    .badge-rejected {
-        background-color: #ef4444;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    .badge-submitted {
-        background-color: #3b82f6;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-</style>
-{% endblock %}
+{% block head %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -81,7 +17,7 @@
     <!-- Filters -->
     <div class="filter-card">
         <form method="GET" class="form-inline">
-            <div class="filter-row" style="width: 100%;">
+            <div class="filter-row">
                 <div class="form-group">
                     <label for="employee_id" class="form-label small text-muted">Employee</label>
                     <select class="form-control" id="employee_id" name="employee_id">
@@ -104,7 +40,7 @@
                     <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date or '' }}">
                 </div>
 
-                <div class="form-group" style="align-self: flex-end;">
+                <div class="form-group">
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="fas fa-filter"></i> Filter
                     </button>
@@ -121,16 +57,16 @@
         <table class="table table-hover mb-0">
             <thead class="table-light">
                 <tr>
-                    <th style="width: 12%;">Employee</th>
-                    <th style="width: 10%;">Date</th>
-                    <th style="width: 10%;">Check In</th>
-                    <th style="width: 10%;">Check Out</th>
-                    <th style="width: 8%;">Hours</th>
-                    <th style="width: 15%;">Reason</th>
-                    <th style="width: 8%;">OT Status</th>
-                    <th style="width: 10%;">Manager Action Status</th>
-                    <th style="width: 10%;">HR Manager Action Status</th>
-                    <th style="width: 4%; text-align: center;">Action</th>
+                    <th>Employee</th>
+                    <th>Date</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
+                    <th>Hours</th>
+                    <th>Reason</th>
+                    <th>OT Status</th>
+                    <th>Manager Action Status</th>
+                    <th>HR Manager Action Status</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -174,7 +110,7 @@
                                     <span class="badge bg-secondary">{{ record.manager_approval_status }}</span>
                                 {% endif %}
                             {% else %}
-                                <span class="badge bg-light text-muted" style="border: 1px solid #ccc;">-</span>
+                                <span class="badge bg-light text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>
@@ -189,10 +125,10 @@
                                     <span class="badge bg-secondary">{{ record.hr_approval_status }}</span>
                                 {% endif %}
                             {% else %}
-                                <span class="badge bg-light text-muted" style="border: 1px solid #ccc;">-</span>
+                                <span class="badge bg-light text-muted">-</span>
                             {% endif %}
                         </td>
-                        <td style="text-align: center;">
+                        <td>
                             {% if record.status == 'Draft' %}
                                 <button type="button" class="btn btn-sm btn-success" 
                                         onclick="submitOT({{ record.id }}, '{{ record.employee.first_name }} {{ record.employee.last_name }}')"
@@ -212,7 +148,7 @@
                 {% else %}
                 <tr>
                     <td colspan="10" class="text-center py-4 text-muted">
-                        <i class="fas fa-inbox" style="font-size: 2rem; opacity: 0.5;"></i>
+                        <i class="fas fa-inbox"></i>
                         <p class="mt-2">No OT attendance records found</p>
                     </td>
                 </tr>

@@ -10,7 +10,11 @@
     "background_color": "#FBEFF1",
     "lang": "en-SG",
     "scope": "/",
-    "categories": ["business", "productivity", "finance"],
+    "categories": [
+        "business",
+        "productivity",
+        "finance"
+    ],
     "screenshots": [
         {
             "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='390' height='844' viewBox='0 0 390 844'%3e%3crect width='390' height='844' fill='%23FBEFF1'/%3e%3ctext x='195' y='422' fill='%234A4A4A' text-anchor='middle' font-size='24' font-family='Helvetica,Arial,sans-serif'%3eNoltrion Dashboard%3c/text%3e%3c/svg%3e",
@@ -29,39 +33,39 @@
     ],
     "icons": [
         {
-            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3e%3crect width='48' height='48' rx='8' fill='%236C8F91'/%3e%3cpath d='M12 16h24v2H12zm0 6h24v2H12zm0 6h16v2H12z' fill='%23ffffff'/%3e%3cpath d='M32 28h4v8h-4z' fill='%23ffffff'/%3e%3c/svg%3e",
+            "src": "/static/icons/icon-48x48.png",
             "sizes": "48x48",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3e%3crect width='72' height='72' rx='12' fill='%236C8F91'/%3e%3cpath d='M18 24h36v3H18zm0 9h36v3H18zm0 9h24v3H18z' fill='%23ffffff'/%3e%3cpath d='M48 42h6v12h-6z' fill='%23ffffff'/%3e%3c/svg%3e",
+            "src": "/static/icons/icon-72x72.png",
             "sizes": "72x72",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3e%3crect width='96' height='96' rx='16' fill='%236C8F91'/%3e%3cpath d='M24 32h48v4H24zm0 12h48v4H24zm0 12h32v4H24z' fill='%23ffffff'/%3e%3cpath d='M64 56h8v16h-8z' fill='%23ffffff'/%3e%3c/svg%3e",
+            "src": "/static/icons/icon-96x96.png",
             "sizes": "96x96",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='144' height='144' viewBox='0 0 144 144'%3e%3crect width='144' height='144' rx='24' fill='%236C8F91'/%3e%3cpath d='M36 48h72v6H36zm0 18h72v6H36zm0 18h48v6H36z' fill='%23ffffff'/%3e%3cpath d='M96 84h12v24h-12z' fill='%23ffffff'/%3e%3c/svg%3e",
+            "src": "/static/icons/icon-144x144.png",
             "sizes": "144x144",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3e%3crect width='192' height='192' rx='32' fill='%236C8F91'/%3e%3cpath d='M48 64h96v8H48zm0 24h96v8H48zm0 24h64v8H48z' fill='%23ffffff'/%3e%3cpath d='M128 112h16v32h-16z' fill='%23ffffff'/%3e%3c/svg%3e",
+            "src": "/static/icons/icon-192x192.png",
             "sizes": "192x192",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any maskable"
         },
         {
-            "src": "data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3e%3crect width='512' height='512' rx='85' fill='%236C8F91'/%3e%3cpath d='M128 171h256v21H128zm0 64h256v21H128zm0 64h171v21H128z' fill='%23ffffff'/%3e%3cpath d='M341 299h43v85h-43z' fill='%23ffffff'/%3e%3c/svg%3e",
+            "src": "/static/icons/icon-512x512.png",
             "sizes": "512x512",
-            "type": "image/svg+xml",
+            "type": "image/png",
             "purpose": "any maskable"
         }
     ],
@@ -146,8 +150,13 @@
         {
             "action": "/import",
             "accept": {
-                "text/csv": [".csv"],
-                "application/vnd.ms-excel": [".xls", ".xlsx"]
+                "text/csv": [
+                    ".csv"
+                ],
+                "application/vnd.ms-excel": [
+                    ".xls",
+                    ".xlsx"
+                ]
             }
         }
     ]

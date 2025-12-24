@@ -2,175 +2,7 @@
 
 {% block title %}OT Payroll Summary - Nexar{% endblock %}
 
-{% block head %}
-<style>
-    .summary-container {
-        background: var(--white);
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .month-selector {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 20px;
-        align-items: flex-end;
-        flex-wrap: wrap;
-    }
-    
-    .form-group-inline {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        min-width: 150px;
-    }
-    
-    .form-group-inline label {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--grey-600);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .form-group-inline select {
-        padding: 8px 12px;
-        border: 1px solid var(--grey-200);
-        border-radius: 6px;
-        font-size: 14px;
-    }
-    
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        margin-bottom: 30px;
-    }
-    
-    .stat-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 8px;
-        padding: 20px;
-        text-align: center;
-    }
-    
-    .stat-card.secondary {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-    
-    .stat-card.tertiary {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-    
-    .stat-card.quaternary {
-        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    }
-    
-    .stat-value {
-        font-size: 28px;
-        font-weight: 700;
-        margin: 10px 0;
-    }
-    
-    .stat-label {
-        font-size: 12px;
-        opacity: 0.9;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .summary-table {
-        background: var(--white);
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-    }
-    
-    .table {
-        margin: 0;
-        border-collapse: collapse;
-    }
-    
-    .table thead {
-        background: var(--grey-50);
-        border-bottom: 2px solid var(--grey-200);
-    }
-    
-    .table thead th {
-        padding: 15px;
-        text-align: left;
-        font-weight: 600;
-        font-size: 12px;
-        color: var(--grey-600);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .table tbody td {
-        padding: 15px;
-        border-bottom: 1px solid var(--grey-100);
-        font-size: 14px;
-    }
-    
-    .table tbody tr:hover {
-        background: var(--grey-50);
-    }
-    
-    .table tbody tr.total-row {
-        background: linear-gradient(to right, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-        font-weight: 600;
-        border-top: 2px solid #667eea;
-        border-bottom: 2px solid #667eea;
-    }
-    
-    .export-buttons {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-    
-    .btn-export {
-        padding: 10px 20px;
-        border-radius: 6px;
-        border: 1px solid var(--grey-300);
-        background: var(--white);
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-export:hover {
-        background: var(--grey-50);
-        border-color: var(--grey-400);
-    }
-    
-    .btn-export.primary {
-        background: #667eea;
-        color: white;
-        border-color: #667eea;
-    }
-    
-    .btn-export.primary:hover {
-        background: #5568d3;
-    }
-    
-    .no-data {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--grey-500);
-    }
-    
-    .no-data-icon {
-        font-size: 48px;
-        margin-bottom: 15px;
-        opacity: 0.5;
-    }
-</style>
-{% endblock %}
+{% block head %}{% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
@@ -286,28 +118,28 @@
             <thead>
                 <tr>
                     <th>OT Type</th>
-                    <th style="text-align: right;">Count</th>
-                    <th style="text-align: right;">Hours</th>
-                    <th style="text-align: right;">Rate/Hour</th>
-                    <th style="text-align: right;">Amount</th>
+                    <th>Count</th>
+                    <th>Hours</th>
+                    <th>Rate/Hour</th>
+                    <th>Amount</th>
                 </tr>
             </thead>
             <tbody>
                 {% for ot_type, data in summary.items() %}
                 <tr>
                     <td><strong>{{ ot_type }}</strong></td>
-                    <td style="text-align: right;">{{ data.count }}</td>
-                    <td style="text-align: right;">{{ "%.2f"|format(data.hours) }}</td>
-                    <td style="text-align: right;">₹{{ "%.2f"|format(data.rate_per_hour) }}</td>
-                    <td style="text-align: right;">₹{{ "%.2f"|format(data.amount) }}</td>
+                    <td>{{ data.count }}</td>
+                    <td>{{ "%.2f"|format(data.hours) }}</td>
+                    <td>₹{{ "%.2f"|format(data.rate_per_hour) }}</td>
+                    <td>₹{{ "%.2f"|format(data.amount) }}</td>
                 </tr>
                 {% endfor %}
                 <tr class="total-row">
                     <td><strong>Total</strong></td>
-                    <td style="text-align: right;">{{ summary.values()|map(attribute='count')|sum }}</td>
-                    <td style="text-align: right;">{{ "%.2f"|format(total_hours) }}</td>
-                    <td style="text-align: right;">-</td>
-                    <td style="text-align: right;">₹{{ "%.2f"|format(total_amount) }}</td>
+                    <td>{{ summary.values()|map(attribute='count')|sum }}</td>
+                    <td>{{ "%.2f"|format(total_hours) }}</td>
+                    <td>-</td>
+                    <td>₹{{ "%.2f"|format(total_amount) }}</td>
                 </tr>
             </tbody>
         </table>

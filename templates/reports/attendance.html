@@ -83,11 +83,9 @@
                                         {% if record.employee.profile_image %}
                                         <img src="{{ url_for('static', filename='uploads/profiles/' + record.employee.profile_image) }}" 
                                              alt="{{ record.employee.first_name }}" 
-                                             class="rounded-circle me-2" 
-                                             style="width: 32px; height: 32px; object-fit: cover;">
+                                             class="rounded-circle me-2">
                                         {% else %}
-                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
-                                             style="width: 32px; height: 32px; font-size: 14px;">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2">
                                             {{ record.employee.first_name[0] }}{{ record.employee.last_name[0] }}
                                         </div>
                                         {% endif %}

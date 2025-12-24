@@ -1,34 +1,54 @@
 // Simple Service Worker for Noltrion
-const CACHE_NAME = 'noltrion-v1';
+const CACHE_NAME = 'noltrion-v2'; // Increment version to force update
 const urlsToCache = [
-    '/',
     '/static/css/styles.css',
     '/static/js/app.js',
-    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
+    '/static/vendors/bootstrap/css/bootstrap.min.css',
+    '/static/vendors/fontawesome/css/all.min.css'
+    // Removed '/' to avoid caching the dynamic dashboard/attendance page
 ];
 
 // Install event
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function (event) {
+    self.skipWaiting(); // Force activation
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(function(cache) {
+            .then(function (cache) {
                 return cache.addAll(urlsToCache);
             })
     );
 });
 
-// Fetch event
-self.addEventListener('fetch', function(event) {
-    event.respondWith(
-        caches.match(event.request)
-            .then(function(response) {
-                // Return cached version or fetch from network
-                if (response) {
-                    return response;
-                }
-                return fetch(event.request);
-            }
-        )
+// Activate event - clean up old caches
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cache => {
+                    if (cache !== CACHE_NAME) {
+                        return caches.delete(cache);
+                    }
+                })
+            );
+        })
     );
+    return self.clients.claim();
+});
+
+// Fetch event
+self.addEventListener('fetch', function (event) {
+    // Network-first for HTML, Cache-first for static assets
+    if (event.request.headers.get('accept').includes('text/html')) {
+        event.respondWith(
+            fetch(event.request)
+                .catch(() => caches.match(event.request))
+        );
+    } else {
+        event.respondWith(
+            caches.match(event.request)
+                .then(function (response) {
+                    return response || fetch(event.request);
+                })
+        );
+    }
 });

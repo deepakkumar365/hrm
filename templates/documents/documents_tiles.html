@@ -1,124 +1,89 @@
 {% extends "base.html" %}
 
-{% block title %}My Documents{% endblock %}
+{% block title %}My Documents - Nexar{% endblock %}
 
 {% block head %}
 {{ super() }}
-<style>
-    .document-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .document-card {
-        border: 1px solid #e0e0e0;
-        border-radius: 0.5rem;
-        transition: all 0.3s ease;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .document-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    }
-
-    .document-card-header {
-        padding: 1rem;
-        display: flex;
-        align-items: center;
-        color: white;
-    }
-
-    .document-card-header .icon {
-        font-size: 1.5rem;
-        margin-right: 1rem;
-    }
-
-    .document-card-body {
-        padding: 1rem;
-        flex-grow: 1;
-    }
-
-    .document-card-footer {
-        padding: 1rem;
-        background-color: #f8f9fa;
-        border-top: 1px solid #e0e0e0;
-        text-align: right;
-    }
-
-    .bg-offer-letter { background-color: #0d6efd; }
-    .bg-appraisal { background-color: #198754; }
-    .bg-salary-slip { background-color: #ffc107; color: #343a40 !important; }
-    .bg-salary-slip .icon, .bg-salary-slip .text-white { color: #343a40 !important; }
-    .bg-other { background-color: #6c757d; }
-
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        border: 2px dashed #ced4da;
-        border-radius: 0.5rem;
-        background-color: #f8f9fa;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/documents.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-0">My Documents</h1>
-            <p class="text-muted mb-0">All your important documents in one place.</p>
+<div class="documents-page">
+
+    <!-- Premium Header -->
+    <div class="documents-header-row mb-5">
+        <div class="documents-title">
+            <h1 class="mb-2">My Documents</h1>
+            <p class="mb-0">Securely access and manage your important employment records.</p>
         </div>
     </div>
 
     {% if documents %}
-        <div class="document-grid">
-            {% for doc in documents %}
-                {% set card_class = 'bg-other' %}
-                {% set icon_class = 'fa-file-alt' %}
-                {% if doc.document_type == 'Offer Letter' %}
-                    {% set card_class = 'bg-offer-letter' %}
-                    {% set icon_class = 'fa-file-signature' %}
-                {% elif doc.document_type == 'Appraisal Letter' %}
-                    {% set card_class = 'bg-appraisal' %}
-                    {% set icon_class = 'fa-chart-line' %}
-                {% elif doc.document_type == 'Salary Slip' %}
-                    {% set card_class = 'bg-salary-slip' %}
-                    {% set icon_class = 'fa-file-invoice-dollar' %}
-                {% endif %}
+    <!-- Premium Grid Layout -->
+    <div class="documents-grid">
+        {% for doc in documents %}
+        {% set type_slug = 'other' %}
+        {% if doc.document_type == 'Offer Letter' %}{% set type_slug = 'offer' %}
+        {% elif doc.document_type == 'Appraisal Letter' %}{% set type_slug = 'appraisal' %}
+        {% elif doc.document_type == 'Salary Slip' %}{% set type_slug = 'salary' %}
+        {% endif %}
 
-                <div class="document-card">
-                    <div class="document-card-header {{ card_class }}">
-                        <i class="fas {{ icon_class }} icon"></i>
-                        <h5 class="mb-0 text-white">{{ doc.document_type }}</h5>
-                    </div>
-                    <div class="document-card-body">
-                        {% if doc.document_type == 'Salary Slip' and doc.year and doc.month %}
-                            <h6 class="card-title">{{ doc.year }}-{{ "%02d"|format(doc.month) }}</h6>
-                            <p class="card-text text-muted">{{ doc.description or 'Salary Slip' }}</p>
-                        {% else %}
-                            <h6 class="card-title">{{ doc.description or doc.document_type }}</h6>
-                        {% endif %}
-                        <p class="card-text"><small class="text-muted">Issued: {{ doc.issue_date.strftime('%d %b %Y') }}</small></p>
-                    </div>
-                    <div class="document-card-footer">
-                        <a href="{{ url_for('document_download', document_id=doc.id) }}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-download me-1"></i> Download
-                        </a>
-                    </div>
+        <div class="doc-card" data-type="{{ type_slug }}">
+            <!-- Icon Area -->
+            <div class="doc-card-icon type-{{ type_slug }}">
+                {% if type_slug == 'offer' %}<i class="fas fa-file-contract"></i>
+                {% elif type_slug == 'appraisal' %}<i class="fas fa-chart-line"></i>
+                {% elif type_slug == 'salary' %}<i class="fas fa-file-invoice-dollar"></i>
+                {% else %}<i class="fas fa-file-alt"></i>
+                {% endif %}
+            </div>
+
+            <!-- Content Area -->
+            <div class="doc-card-info">
+                <div class="doc-card-title">
+                    {% if doc.document_type == 'Salary Slip' and doc.year and doc.month %}
+                    Salary Slip - {{ doc.year }} {{ ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+                    "Oct", "Nov", "Dec"][doc.month] }}
+                    {% else %}
+                    {{ doc.description or doc.document_type }}
+                    {% endif %}
                 </div>
-            {% endfor %}
+                <div class="doc-card-meta">
+                    <span>{{ doc.document_type }}</span>
+                    <span>Added {{ doc.created_at.strftime('%d %b, %Y') if doc.created_at else
+                        (doc.issue_date.strftime('%d %b, %Y') if doc.issue_date else '-') }}</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="doc-card-actions mt-4">
+                <a href="{{ url_for('document_download', document_id=doc.id) }}" class="btn-download-card">
+                    <i class="fas fa-download"></i> <span>Download</span>
+                </a>
+            </div>
         </div>
+        {% endfor %}
+    </div>
+
     {% else %}
-        <div class="empty-state">
-            <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-            <h4 class="mb-2">No Documents Found</h4>
-            <p class="text-muted">Your documents will appear here once they are uploaded by HR.</p>
+
+    <!-- Premium Empty State -->
+    <div class="empty-state-hero">
+        <!-- Folder Icon Illustration (Using FontAwesome for now, but styled large) -->
+        <div class="mb-4" style="background: rgba(6, 148, 148, 0.05); padding: 40px; border-radius: 50%;">
+            <i class="fas fa-folder-open"
+                style="font-size: 5rem; color: var(--primary); opacity: 0.8; filter: drop-shadow(0 10px 15px rgba(6, 148, 148, 0.2));"></i>
         </div>
+
+        <h3 class="fw-bold text-dark mb-3">No Documents Yet</h3>
+        <p class="text-secondary" style="max-width: 400px; line-height: 1.6;">
+            Your important documents like offer letters, appraisals, and salary slips will appear here safely once
+            uploaded by HR.
+        </p>
+    </div>
+
     {% endif %}
+
 </div>
 {% endblock %}
 

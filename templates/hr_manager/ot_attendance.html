@@ -2,401 +2,10 @@
 
 {% block title %}OT Attendance - HR Manager{% endblock %}
 
-{% block content %}
-<style>
-    :root {
-        --font-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        --theme-color: #008080;
-        --theme-hover: #006666;
-    }
-
-    .ot-container {
-        font-family: var(--font-primary);
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        padding: 0;
-        margin: 0;
-        background: #f5f5f5;
-    }
-
-    .ot-header {
-        background: white;
-        padding: 12px 16px;
-        border-bottom: 1px solid #e0e0e0;
-        flex-shrink: 0;
-    }
-
-    .ot-header h3 {
-        margin: 0;
-        font-family: var(--font-primary);
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--theme-color);
-    }
-
-    .ot-header p {
-        margin: 2px 0 0 0;
-        font-size: 12px;
-        color: #666;
-    }
-
-    .ot-header-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 8px;
-    }
-
-    .btn-primary-theme {
-        background: var(--theme-color);
-        color: white;
-        border: none;
-        padding: 5px 12px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 500;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        transition: all 0.15s;
-    }
-
-    .btn-primary-theme:hover {
-        background: var(--theme-hover);
-    }
-
-    .btn-secondary-theme {
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 5px 12px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 500;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        transition: all 0.15s;
-    }
-
-    .btn-secondary-theme:hover {
-        background: #5a6268;
-    }
-
-    .btn-success-theme {
-        background: #28a745;
-        color: white;
-        border: none;
-        padding: 5px 12px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 500;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        transition: all 0.15s;
-    }
-
-    .btn-success-theme:hover {
-        background: #218838;
-    }
-
-    .filter-section {
-        background: white;
-        padding: 10px 12px;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-        margin: 8px 12px;
-        flex-shrink: 0;
-    }
-
-    .filter-row {
-        display: grid;
-        grid-template-columns: auto auto auto auto 1fr;
-        gap: 12px;
-        align-items: center;
-    }
-
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-    }
-
-    .filter-group label {
-        font-size: 11px;
-        font-weight: 600;
-        color: #333;
-        font-family: var(--font-primary);
-    }
-
-    .filter-group input[type="date"] {
-        padding: 5px 6px;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-        font-size: 11px;
-        font-family: var(--font-primary);
-    }
-
-    .ot-content {
-        flex: 1;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        padding: 8px 12px;
-    }
-
-    .stats-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 8px;
-        margin-bottom: 8px;
-        flex-shrink: 0;
-    }
-
-    .stat-card {
-        background: white;
-        padding: 10px 12px;
-        border-radius: 3px;
-        border-left: 3px solid var(--theme-color);
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-
-    .stat-label {
-        font-size: 10px;
-        color: #666;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        margin-bottom: 4px;
-    }
-
-    .stat-value {
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--theme-color);
-    }
-
-    .grid-wrapper {
-        flex: 1;
-        overflow: auto;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-    }
-
-    .ot-grid {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: var(--font-primary);
-        font-size: 11px;
-    }
-
-    .ot-grid thead {
-        background: #f8f9fa;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
-
-    .ot-grid th {
-        padding: 5px 6px;
-        text-align: left;
-        font-weight: 600;
-        color: #333;
-        border-bottom: 1px solid #ddd;
-        border-right: 1px solid #eee;
-        white-space: nowrap;
-        user-select: none;
-        height: 24px;
-    }
-
-    .ot-grid th:last-child {
-        border-right: none;
-    }
-
-    .ot-grid th:nth-child(1) {
-        border-right: 2px solid var(--theme-color);
-        width: 150px;
-    }
-
-    .ot-grid td:nth-child(1) {
-        border-right: 2px solid #d0e0df;
-        font-weight: 600;
-    }
-
-    .ot-grid tbody tr {
-        height: 24px;
-        border-bottom: 1px solid #eee;
-        transition: background-color 0.15s;
-    }
-
-    .ot-grid tbody tr:hover {
-        background: #f9f9f9;
-    }
-
-    .ot-grid td {
-        padding: 3px 5px;
-        border-right: 1px solid #eee;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        vertical-align: middle;
-    }
-
-    .ot-grid td:last-child {
-        border-right: none;
-    }
-
-    .numeric {
-        text-align: right;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 2px 6px;
-        border-radius: 2px;
-        font-size: 10px;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-
-    .badge-recorded {
-        background: #d4edda;
-        color: #155724;
-    }
-
-    .badge-draft {
-        background: #fff3cd;
-        color: #856404;
-    }
-
-    .badge-submitted {
-        background: #cfe2ff;
-        color: #084298;
-    }
-
-    .badge-approved {
-        background: #d1e7dd;
-        color: #0f5132;
-    }
-
-    .badge-rejected {
-        background: #f8d7da;
-        color: #842029;
-    }
-
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        color: #999;
-    }
-
-    .empty-state i {
-        font-size: 48px;
-        margin-bottom: 12px;
-        opacity: 0.5;
-    }
-
-    .ot-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 12px;
-        background: white;
-        border-top: 1px solid #ddd;
-        margin-top: 8px;
-        border-radius: 3px;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        flex-shrink: 0;
-    }
-
-    .pagination-info {
-        color: #666;
-        flex: 0 0 auto;
-    }
-
-    .pagination-controls {
-        display: flex;
-        gap: 4px;
-        align-items: center;
-        flex: 1;
-        justify-content: center;
-    }
-
-    .pagination-controls button {
-        padding: 4px 8px;
-        border: 1px solid #ddd;
-        background: white;
-        color: #333;
-        border-radius: 2px;
-        cursor: pointer;
-        font-family: var(--font-primary);
-        font-size: 11px;
-        transition: all 0.15s;
-    }
-
-    .pagination-controls button:hover:not(:disabled) {
-        background: #f0f0f0;
-        border-color: #999;
-    }
-
-    .pagination-controls button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .pagination-input {
-        width: 35px;
-        padding: 3px 6px;
-        border: 1px solid #ddd;
-        border-radius: 2px;
-        text-align: center;
-        font-family: var(--font-primary);
-        font-size: 11px;
-    }
-
-    .back-button {
-        color: #666;
-        flex: 0 0 auto;
-    }
-
-    .back-button a {
-        color: var(--theme-color);
-        text-decoration: none;
-        font-size: 11px;
-        transition: all 0.15s;
-    }
-
-    .back-button a:hover {
-        color: var(--theme-hover);
-    }
-
-    @media (max-width: 1200px) {
-        .ot-container {
-            height: auto;
-        }
-
-        .ot-content {
-            height: auto;
-        }
-
-        .grid-wrapper {
-            height: auto;
-            max-height: 500px;
-        }
-
-        .filter-row {
-            grid-template-columns: auto auto 1fr;
-        }
-    }
-</style>
-
-<div class="ot-container">
+{% block content %}<div class="ot-container">
     <!-- Header Section -->
     <div class="ot-header">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
             <div>
                 <h3><i class="fas fa-clock me-2"></i>OT Attendance</h3>
                 <p>View and manage overtime attendance records</p>
@@ -405,7 +14,7 @@
                 <button class="btn-primary-theme" onclick="exportToExcel()">
                     <i class="fas fa-download me-1"></i>Export CSV
                 </button>
-                <a href="{{ url_for('hr_manager_dashboard') }}" class="btn-secondary-theme" style="text-decoration: none; display: inline-flex; align-items: center;">
+                <a href="{{ url_for('hr_manager_dashboard') }}" class="btn-secondary-theme">
                     <i class="fas fa-arrow-left me-1"></i>Back
                 </a>
             </div>
@@ -423,11 +32,11 @@
                 <label for="date_to">To Date</label>
                 <input type="date" id="date_to" name="date_to" value="{{ date_to }}" required>
             </div>
-            <div style="display: flex; gap: 6px; align-items: flex-end;">
+            <div>
                 <button type="submit" class="btn-primary-theme">
                     <i class="fas fa-filter me-1"></i>Filter
                 </button>
-                <a href="{{ url_for('hr_manager_ot_attendance') }}" class="btn-secondary-theme" style="text-decoration: none;">
+                <a href="{{ url_for('hr_manager_ot_attendance') }}" class="btn-secondary-theme">
                     <i class="fas fa-times me-1"></i>Clear
                 </a>
             </div>
@@ -463,12 +72,12 @@
                     <thead>
                         <tr>
                             <th>Employee</th>
-                            <th style="width: 70px;">OT Date</th>
-                            <th style="width: 60px;">In Time</th>
-                            <th style="width: 60px;">Out Time</th>
-                            <th style="width: 50px; text-align: right;">OT Hours</th>
-                            <th style="width: 80px;">OT Type</th>
-                            <th style="width: 70px;">Status</th>
+                            <th>OT Date</th>
+                            <th>In Time</th>
+                            <th>Out Time</th>
+                            <th>OT Hours</th>
+                            <th>OT Type</th>
+                            <th>Status</th>
                             <th>Notes</th>
                         </tr>
                     </thead>
@@ -500,7 +109,7 @@
                                     <span class="status-badge badge-recorded">{{ record.status }}</span>
                                 {% endif %}
                             </td>
-                            <td style="overflow: visible; text-overflow: clip;">{{ record.notes or '-' }}</td>
+                            <td>{{ record.notes or '-' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -538,8 +147,8 @@
         {% else %}
             <div class="empty-state">
                 <i class="fas fa-inbox"></i>
-                <h3 style="color: #333; margin: 8px 0;">No OT Records Found</h3>
-                <p style="margin: 0; color: #999;">No overtime records for the selected date range</p>
+                <h3>No OT Records Found</h3>
+                <p>No overtime records for the selected date range</p>
             </div>
         {% endif %}
     </div>

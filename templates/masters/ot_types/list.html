@@ -18,14 +18,15 @@
 
     <!-- Alerts -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }} alert-dismissible fade show"
+        role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 
     <div class="card">
@@ -57,22 +58,28 @@
                                 <code>{{ ot_type.code }}</code>
                             </td>
                             <td>
-                                <span class="badge" style="background-color: {{ ot_type.color_code or '#3498db' }}">
+                                <span class="badge bg-secondary">
                                     {{ "%.2f" % ot_type.rate_multiplier }}x
                                 </span>
                             </td>
                             <td>
-                                {% if ot_type.applicable_days %}
-                                    <small>{{ ot_type.applicable_days }}</small>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
+                                <span class="badge bg-info">
+                                    {% set active_days = [] %}
+                                    {% if ot_type.monday %}{% set _ = active_days.append('Mon') %}{% endif %}
+                                    {% if ot_type.tuesday %}{% set _ = active_days.append('Tue') %}{% endif %}
+                                    {% if ot_type.wednesday %}{% set _ = active_days.append('Wed') %}{% endif %}
+                                    {% if ot_type.thursday %}{% set _ = active_days.append('Thu') %}{% endif %}
+                                    {% if ot_type.friday %}{% set _ = active_days.append('Fri') %}{% endif %}
+                                    {% if ot_type.saturday %}{% set _ = active_days.append('Sat') %}{% endif %}
+                                    {% if ot_type.sunday %}{% set _ = active_days.append('Sun') %}{% endif %}
+                                    {{ active_days|join(', ') }}
+                                </span>
                             </td>
                             <td>
                                 {% if ot_type.is_active %}
-                                    <span class="badge bg-success">Active</span>
+                                <span class="badge bg-success">Active</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">Inactive</span>
+                                <span class="badge bg-secondary">Inactive</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -80,12 +87,12 @@
                             </td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('ot_type_edit', ot_type_id=ot_type.id) }}" 
-                                       class="btn btn-outline-primary">
+                                    <a href="{{ url_for('ot_type_edit', ot_type_id=ot_type.id) }}"
+                                        class="btn btn-outline-primary">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <button type="button" class="btn btn-outline-danger"
-                                            onclick="confirmDelete('{{ ot_type.name }}', '{{ url_for('ot_type_delete', ot_type_id=ot_type.id) }}')">
+                                        onclick="confirmDelete('{{ ot_type.name }}', '{{ url_for('ot_type_delete', ot_type_id=ot_type.id) }}')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -102,31 +109,34 @@
                 <ul class="pagination justify-content-center">
                     {% if ot_types.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('ot_type_list', page=ot_types.prev_num, search=search) }}">Previous</a>
+                        <a class="page-link"
+                            href="{{ url_for('ot_type_list', page=ot_types.prev_num, search=search) }}">Previous</a>
                     </li>
                     {% endif %}
-                    
+
                     {% for page_num in ot_types.iter_pages() %}
-                        {% if page_num %}
-                            {% if page_num != ot_types.page %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('ot_type_list', page=page_num, search=search) }}">{{ page_num }}</a>
-                            </li>
-                            {% else %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ page_num }}</span>
-                            </li>
-                            {% endif %}
-                        {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link">...</span>
-                        </li>
-                        {% endif %}
+                    {% if page_num %}
+                    {% if page_num != ot_types.page %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('ot_type_list', page=page_num, search=search) }}">{{
+                            page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page_num }}</span>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
                     {% endfor %}
-                    
+
                     {% if ot_types.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('ot_type_list', page=ot_types.next_num, search=search) }}">Next</a>
+                        <a class="page-link"
+                            href="{{ url_for('ot_type_list', page=ot_types.next_num, search=search) }}">Next</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -159,7 +169,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form id="deleteForm" method="POST" style="display: inline;">
+                <form id="deleteForm" method="POST">
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
             </div>
@@ -168,10 +178,10 @@
 </div>
 
 <script>
-function confirmDelete(name, url) {
-    document.getElementById('otTypeName').textContent = name;
-    document.getElementById('deleteForm').action = url;
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-}
+    function confirmDelete(name, url) {
+        document.getElementById('otTypeName').textContent = name;
+        document.getElementById('deleteForm').action = url;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
 </script>
 {% endblock %}

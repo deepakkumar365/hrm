@@ -76,10 +76,12 @@ db = SQLAlchemy(app, model_class=Base)
 migrate = Migrate(app, db)
 
 # Import models so they're registered with SQLAlchemy metadata
-import models  # noqa: E402,F401
+from core import models  # noqa: E402,F401
 
 # Add hasattr to Jinja2 global functions
 app.jinja_env.globals['hasattr'] = hasattr
+app.jinja_env.globals['getattr'] = getattr
+
 
 # Add date module to Jinja2 globals for template use
 app.jinja_env.globals['date'] = date
@@ -115,5 +117,15 @@ app.jinja_env.filters['date'] = date_filter
 app.jinja_env.filters['currency'] = currency_filter
 
 # Import seed after models to avoid circular import
-from seed import seed
+from services.seed import seed
 app.cli.add_command(seed)
+
+# Final registration of access control helpers to ensure they are available in all templates
+from core.utils import check_ui_access, check_module_access
+app.jinja_env.globals['check_ui_access'] = check_ui_access
+app.jinja_env.globals['check_module_access'] = check_module_access
+app.jinja_env.filters['check_ui_access'] = check_ui_access
+
+@app.context_processor
+def utility_processor():
+    return dict(check_ui_access=check_ui_access, check_module_access=check_module_access)

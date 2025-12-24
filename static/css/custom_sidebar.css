@@ -1,0 +1,17 @@
+/* Sidebar Submenu Text Color Fix */
+/* Ensure the submenu background is dark to match the white text */
+.sidebar-submenu {
+    background-color: #034646 !important;
+    /* var(--nav-bg) */
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.sidebar-submenu .nav-link {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.sidebar-submenu .nav-link:hover,
+.sidebar-submenu .nav-link:focus {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}

@@ -52,7 +52,7 @@
                 </div>
 
                 <!-- Current Mappings Display -->
-                <div id="currentMappingsContainer" style="display: none;" class="mb-4">
+                <div id="currentMappingsContainer" class="mb-4">
                     <div class="alert alert-info">
                         <strong>Current Mappings:</strong>
                         <span id="currentMappingsList"></span>
@@ -62,7 +62,7 @@
                 <!-- Roles Selection -->
                 <div class="form-group">
                     <label>Assign Roles *</label>
-                    <div id="rolesContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                    <div id="rolesContainer">
                         {% for role in roles %}
                         <div class="form-check">
                             <input class="form-check-input role-checkbox" type="checkbox" value="{{ role.id }}" 
@@ -81,7 +81,7 @@
                 <!-- Company Access Selection -->
                 <div class="form-group">
                     <label>Company Access (Optional)</label>
-                    <div id="companiesContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px;">
+                    <div id="companiesContainer">
                         {% if companies %}
                             {% for company in companies %}
                             <div class="form-check">
@@ -99,7 +99,7 @@
                         {% endif %}
                     </div>
                     <small class="form-text text-muted mt-2">Leave empty for all companies. Check specific companies to restrict access.</small>
-                    <div id="loadingIndicator" style="display: none; margin-top: 8px;">
+                    <div id="loadingIndicator">
                         <small class="text-info"><i class="fas fa-spinner fa-spin"></i> Loading user company mappings...</small>
                     </div>
                 </div>
@@ -186,55 +186,7 @@
             </table>
         </div>
     </div>
-</div>
-
-<style>
-.page-title {
-    color: #333;
-    font-weight: 600;
-    margin-bottom: 5px;
-}
-
-.form-check {
-    padding-left: 0;
-    margin-bottom: 8px;
-}
-
-.form-check-label {
-    margin-bottom: 0;
-    cursor: pointer;
-    padding-left: 25px;
-}
-
-.form-check-input {
-    margin-left: -25px;
-    margin-top: 2px;
-    cursor: pointer;
-}
-
-#rolesContainer, #companiesContainer {
-    background-color: #f9f9f9;
-}
-
-.badge {
-    font-size: 11px;
-    margin-right: 4px;
-    margin-bottom: 4px;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-@media (max-width: 768px) {
-    .btn-lg {
-        padding: .5rem 1rem;
-        font-size: 1rem;
-    }
-}
-</style>
-
-<script>
+</div><script>
 // Load user mappings when user is selected
 function loadUserMappings() {
     const userId = document.getElementById('userSelect').value;

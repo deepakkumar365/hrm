@@ -91,7 +91,7 @@
                                     </td>
                                     <td>{{ alloc.leave_type.name }}</td>
                                     <td>
-                                        <span class="badge bg-success" style="font-size: 1.1em;">{{ alloc.total_days }} days</span>
+                                        <span class="badge bg-success">{{ alloc.total_days }} days</span>
                                     </td>
                                     <td>
                                         <span class="badge bg-secondary">{{ alloc.leave_type.code }}</span>
@@ -104,7 +104,7 @@
                                             <a href="{{ url_for('leave_allocation_employee_group_form', company_id=alloc.company_id, allocation_id=alloc.id) }}" class="btn btn-outline-primary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form method="POST" action="{{ url_for('leave_allocation_employee_group_delete', allocation_id=alloc.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this allocation?');">
+                                            <form method="POST" action="{{ url_for('leave_allocation_employee_group_delete', allocation_id=alloc.id) }}" onsubmit="return confirm('Are you sure you want to delete this allocation?');">
                                                 <button type="submit" class="btn btn-outline-danger" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
