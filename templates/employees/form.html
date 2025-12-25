@@ -95,11 +95,11 @@
                                 <label for="gender" class="form-label">Gender</label>
                                 <select class="form-select" id="gender" name="gender">
                                     <option value="">Select Gender</option>
-                                    <option value="Male" {% if (form_data and form_data.get('gender')=='Male' ) or
-                                        (employee and employee.gender=='Male' and not form_data) %}selected{% endif %}>
-                                        Male</option>
+                                    <option value="Male" {% if (form_data and form_data.get('gender')=='Male' ) or (not
+                                        form_data and employee and employee.gender=='Male' ) %}selected{% endif %}>Male
+                                    </option>
                                     <option value="Female" {% if (form_data and form_data.get('gender')=='Female' ) or
-                                        (employee and employee.gender=='Female' and not form_data) %}selected{% endif
+                                        (not form_data and employee and employee.gender=='Female' ) %}selected{% endif
                                         %}>Female</option>
                                 </select>
                             </div>
@@ -107,19 +107,26 @@
                                 <label for="nationality" class="form-label">Nationality</label>
                                 <select class="form-select" id="nationality" name="nationality">
                                     <option value="">Select Nationality</option>
-                                    <option value="Singaporean" {% if employee and employee.nationality=='Singaporean'
-                                        %}selected{% endif %}>Singaporean</option>
-                                    <option value="Malaysian" {% if employee and employee.nationality=='Malaysian'
-                                        %}selected{% endif %}>Malaysian</option>
-                                    <option value="Indian" {% if employee and employee.nationality=='Indian'
-                                        %}selected{% endif %}>Indian</option>
-                                    <option value="Chinese" {% if employee and employee.nationality=='Chinese'
+                                    <option value="Singaporean" {% if (form_data and
+                                        form_data.get('nationality')=='Singaporean' ) or (not form_data and employee and
+                                        employee.nationality=='Singaporean' ) %}selected{% endif %}>Singaporean</option>
+                                    <option value="Malaysian" {% if (form_data and
+                                        form_data.get('nationality')=='Malaysian' ) or (not form_data and employee and
+                                        employee.nationality=='Malaysian' ) %}selected{% endif %}>Malaysian</option>
+                                    <option value="Indian" {% if (form_data and form_data.get('nationality')=='Indian' )
+                                        or (not form_data and employee and employee.nationality=='Indian' ) %}selected{%
+                                        endif %}>Indian</option>
+                                    <option value="Chinese" {% if (form_data and form_data.get('nationality')=='Chinese'
+                                        ) or (not form_data and employee and employee.nationality=='Chinese' )
                                         %}selected{% endif %}>Chinese</option>
-                                    <option value="Filipino" {% if employee and employee.nationality=='Filipino'
-                                        %}selected{% endif %}>Filipino</option>
-                                    <option value="Indonesian" {% if employee and employee.nationality=='Indonesian'
-                                        %}selected{% endif %}>Indonesian</option>
-                                    <option value="Other" {% if employee and employee.nationality=='Other' %}selected{%
+                                    <option value="Filipino" {% if (form_data and
+                                        form_data.get('nationality')=='Filipino' ) or (not form_data and employee and
+                                        employee.nationality=='Filipino' ) %}selected{% endif %}>Filipino</option>
+                                    <option value="Indonesian" {% if (form_data and
+                                        form_data.get('nationality')=='Indonesian' ) or (not form_data and employee and
+                                        employee.nationality=='Indonesian' ) %}selected{% endif %}>Indonesian</option>
+                                    <option value="Other" {% if (form_data and form_data.get('nationality')=='Other' )
+                                        or (not form_data and employee and employee.nationality=='Other' ) %}selected{%
                                         endif %}>Other</option>
                                 </select>
                             </div>
@@ -217,7 +224,7 @@
                             <div class="form-grid-item">
                                 <label for="manager_id" class="form-label">Reporting Manager</label>
                                 <select class="form-select" id="manager_id" name="manager_id"
-                                    data-current-manager-id="{{ employee.manager_id if employee else '' }}">
+                                    data-current-manager-id="{{ form_data.get('manager_id') if form_data else (employee.manager_id if employee else '') }}">
                                     <option value="">Select Reporting Manager</option>
                                 </select>
                             </div>
@@ -230,6 +237,14 @@
                                         <i class="fas fa-shield-alt me-1"></i>Can be Reporting Manager
                                     </label>
                                 </div>
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                                        value="1" {% if (form_data and form_data.get('is_active')) or (not form_data and
+                                        (employee.is_active if employee else True)) %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        <i class="fas fa-toggle-on me-1"></i>Active Employee
+                                    </label>
+                                </div>
                             </div>
                             <div class="form-grid-item">
                                 <label for="hire_date" class="form-label">Hire Date *</label>
@@ -238,25 +253,29 @@
                                     {% if not employee %}required{% endif %}>
                             </div>
                             <div class="form-grid-item">
+                                <label for="termination_date" class="form-label">Termination Date</label>
+                                <input type="date" class="form-control" id="termination_date" name="termination_date"
+                                    value="{{ form_data.get('termination_date') if form_data else (employee.termination_date.strftime('%Y-%m-%d') if employee and employee.termination_date else '') }}">
+                            </div>
+                            <div class="form-grid-item">
                                 <label for="employment_type" class="form-label">Employment Type *</label>
                                 <select class="form-select" id="employment_type" name="employment_type" required>
                                     <option value="">Select Type</option>
                                     <option value="Full-time" {% if (form_data and
-                                        form_data.get('employment_type')=='Full-time' ) or (employee and
-                                        employee.employment_type=='Full-time' and not form_data) %}selected{% endif %}>
-                                        Full-time</option>
+                                        form_data.get('employment_type')=='Full-time' ) or (not form_data and employee
+                                        and employee.employment_type=='Full-time' ) %}selected{% endif %}>Full-time
+                                    </option>
                                     <option value="Part-time" {% if (form_data and
-                                        form_data.get('employment_type')=='Part-time' ) or (employee and
-                                        employee.employment_type=='Part-time' and not form_data) %}selected{% endif %}>
-                                        Part-time</option>
+                                        form_data.get('employment_type')=='Part-time' ) or (not form_data and employee
+                                        and employee.employment_type=='Part-time' ) %}selected{% endif %}>Part-time
+                                    </option>
                                     <option value="Contract" {% if (form_data and
-                                        form_data.get('employment_type')=='Contract' ) or (employee and
-                                        employee.employment_type=='Contract' and not form_data) %}selected{% endif %}>
-                                        Contract</option>
+                                        form_data.get('employment_type')=='Contract' ) or (not form_data and employee
+                                        and employee.employment_type=='Contract' ) %}selected{% endif %}>Contract
+                                    </option>
                                     <option value="Intern" {% if (form_data and
-                                        form_data.get('employment_type')=='Intern' ) or (employee and
-                                        employee.employment_type=='Intern' and not form_data) %}selected{% endif %}>
-                                        Intern</option>
+                                        form_data.get('employment_type')=='Intern' ) or (not form_data and employee and
+                                        employee.employment_type=='Intern' ) %}selected{% endif %}>Intern</option>
                                 </select>
                             </div>
                             <div class="form-grid-item">
@@ -264,20 +283,27 @@
                                 <select class="form-select" id="work_permit_type" name="work_permit_type" required
                                     onchange="updateWorkPermitFieldsRequirement()">
                                     <option value="">Select Type</option>
-                                    <option value="Nil" {% if employee and employee.work_permit_type=='Nil' %}selected{%
-                                        endif %}>Nil</option>
-                                    <option value="Citizen" {% if employee and employee.work_permit_type=='Citizen'
-                                        %}selected{% endif %}>Singapore Citizen</option>
-                                    <option value="PR" {% if employee and employee.work_permit_type=='PR' %}selected{%
+                                    <option value="Nil" {% if (form_data and form_data.get('work_permit_type')=='Nil' )
+                                        or (not form_data and employee and employee.work_permit_type=='Nil' )
+                                        %}selected{% endif %}>Nil</option>
+                                    <option value="Citizen" {% if (form_data and
+                                        form_data.get('work_permit_type')=='Citizen' ) or (not form_data and employee
+                                        and employee.work_permit_type=='Citizen' ) %}selected{% endif %}>Singapore
+                                        Citizen</option>
+                                    <option value="PR" {% if (form_data and form_data.get('work_permit_type')=='PR' ) or
+                                        (not form_data and employee and employee.work_permit_type=='PR' ) %}selected{%
                                         endif %}>Permanent Resident</option>
-                                    <option value="Work Permit" {% if employee and
-                                        employee.work_permit_type=='Work Permit' %}selected{% endif %}>Work Permit
-                                    </option>
-                                    <option value="S Pass" {% if employee and employee.work_permit_type=='S Pass'
-                                        %}selected{% endif %}>S Pass</option>
-                                    <option value="Employment Pass" {% if employee and
-                                        employee.work_permit_type=='Employment Pass' %}selected{% endif %}>Employment
-                                        Pass</option>
+                                    <option value="Work Permit" {% if (form_data and
+                                        form_data.get('work_permit_type')=='Work Permit' ) or (not form_data and
+                                        employee and employee.work_permit_type=='Work Permit' ) %}selected{% endif %}>
+                                        Work Permit</option>
+                                    <option value="S Pass" {% if (form_data and
+                                        form_data.get('work_permit_type')=='S Pass' ) or (not form_data and employee and
+                                        employee.work_permit_type=='S Pass' ) %}selected{% endif %}>S Pass</option>
+                                    <option value="Employment Pass" {% if (form_data and
+                                        form_data.get('work_permit_type')=='Employment Pass' ) or (not form_data and
+                                        employee and employee.work_permit_type=='Employment Pass' ) %}selected{% endif
+                                        %}>Employment Pass</option>
                                 </select>
                             </div>
                             <div class="form-grid-item">
@@ -298,8 +324,9 @@
                                 <select class="form-select" id="working_hours_id" name="working_hours_id">
                                     <option value="">Select Working Hours</option>
                                     {% for wh in working_hours %}
-                                    <option value="{{ wh.id }}" {% if employee and employee.working_hours_id==wh.id
-                                        %}selected{% endif %}>
+                                    <option value="{{ wh.id }}" {% if (form_data and
+                                        form_data.get('working_hours_id')|string==wh.id|string) or (not form_data and
+                                        employee and employee.working_hours_id==wh.id) %}selected{% endif %}>
                                         {{ wh.name }} ({{ wh.hours_per_day }}h/day, {{ wh.hours_per_week }}h/week)
                                     </option>
                                     {% endfor %}
@@ -310,8 +337,9 @@
                                 <select class="form-select" id="work_schedule_id" name="work_schedule_id">
                                     <option value="">Select Work Schedule</option>
                                     {% for schedule in work_schedules %}
-                                    <option value="{{ schedule.id }}" {% if employee and
-                                        employee.work_schedule_id==schedule.id %}selected{% endif %}>
+                                    <option value="{{ schedule.id }}" {% if (form_data and
+                                        form_data.get('work_schedule_id')|string==schedule.id|string) or (not form_data
+                                        and employee and employee.work_schedule_id==schedule.id) %}selected{% endif %}>
                                         {{ schedule.name }} {% if schedule.working_hours and
                                         schedule.working_hours.start_time and schedule.working_hours.end_time %}({{
                                         schedule.working_hours.start_time.strftime('%H:%M') }}-{{
@@ -406,6 +434,18 @@
                                 <input type="text" class="form-control" id="cpf_account" name="cpf_account"
                                     value="{{ form_data.get('cpf_account') if form_data else (employee.cpf_account or '' if employee else '') }}">
                             </div>
+                            <div class="form-grid-item">
+                                <label for="employee_cpf_rate" class="form-label">Employee CPF Rate (%)</label>
+                                <input type="number" class="form-control" id="employee_cpf_rate"
+                                    name="employee_cpf_rate" step="0.01" min="0" max="100"
+                                    value="{{ form_data.get('employee_cpf_rate') if form_data else (employee.employee_cpf_rate or '20.00' if employee else '20.00') }}">
+                            </div>
+                            <div class="form-grid-item">
+                                <label for="employer_cpf_rate" class="form-label">Employer CPF Rate (%)</label>
+                                <input type="number" class="form-control" id="employer_cpf_rate"
+                                    name="employer_cpf_rate" step="0.01" min="0" max="100"
+                                    value="{{ form_data.get('employer_cpf_rate') if form_data else (employee.employer_cpf_rate or '17.00' if employee else '17.00') }}">
+                            </div>
                         </div>
 
                         <h6 class="text-primary mb-2 border-top pt-2">Bank Account Details</h6>
@@ -416,10 +456,9 @@
                                     value="{{ form_data.get('bank_name') if form_data else (employee.bank_name or '' if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
-                                <label for="bank_account_number" class="form-label">Bank Account Number</label>
-                                <input type="text" class="form-control" id="bank_account_number"
-                                    name="bank_account_number"
-                                    value="{{ form_data.get('bank_account_number') if form_data else (employee.bank_account_number or '' if employee else '') }}">
+                                <label for="bank_account" class="form-label">Bank Account Number</label>
+                                <input type="text" class="form-control" id="bank_account" name="bank_account"
+                                    value="{{ form_data.get('bank_account') if form_data else (employee.bank_account or '' if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="account_holder_name" class="form-label">Account Holder Name</label>

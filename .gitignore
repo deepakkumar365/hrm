@@ -37,3 +37,4 @@ ENV/
 .DS_Store
 Thumbs.db
 /templates_backup/
+*.txt
