@@ -1112,6 +1112,7 @@ def profile_edit():
 @require_role(['Super Admin', 'Admin', 'HR Manager', 'Tenant Admin'])
 def employee_edit(employee_id):
     """Edit employee details"""
+    employee = Employee.query.get_or_404(employee_id)
     is_super_admin = current_user.role == 'Super Admin'
     tenant_id = get_current_user_tenant_id()
     if is_super_admin:
