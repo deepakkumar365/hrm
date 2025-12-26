@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flasgger import Swagger
 import os
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
@@ -24,6 +25,46 @@ class Base(DeclarativeBase):
 # Initialize Flask app
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1) # needed for url_for to generate with https
+
+# Swagger Configuration
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec_1',
+            "route": '/apispec_1.json',
+            "rule_filter": lambda rule: True,  # all in
+            "model_filter": lambda tag: True,  # all in
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs"
+}
+
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "HRM Mobile API",
+        "description": "API Documentation for HRM Mobile Application",
+        "version": "1.0.0"
+    },
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\""
+        }
+    },
+    "security": [
+        {
+            "Bearer": []
+        }
+    ]
+}
+
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
 # Environment-based configuration
 environment = os.environ.get("ENVIRONMENT", "development").lower()

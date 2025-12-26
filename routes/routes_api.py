@@ -161,29 +161,45 @@ def get_user_from_token_or_session():
 @app.route('/api/auth/login', methods=['POST'])
 def mobile_api_login():
     """
-    Mobile App Login - JSON API
-    
-    Request:
-    {
-        "username": "user@example.com" or "username",
-        "password": "password123"
-    }
-    
-    Response (200):
-    {
-        "status": "success",
-        "message": "Login successful",
-        "data": {
-            "user_id": 1,
-            "email": "user@example.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "role": "HR Manager",
-            "company_id": 1,
-            "token": "eyJhbGc...",
-            "expires_in": 86400
-        }
-    }
+    Mobile App Login
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+              description: Email or Username
+              example: user@example.com
+            password:
+              type: string
+              description: User Password
+              example: password123
+    responses:
+      200:
+        description: Login successful
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+                user_id:
+                  type: integer
+      401:
+        description: Invalid credentials
     """
     try:
         if not request.is_json:
@@ -242,8 +258,15 @@ def mobile_api_login():
 @token_required
 def mobile_api_logout():
     """
-    Mobile App Logout - JSON API
-    Requires: Valid token or session
+    Mobile App Logout
+    ---
+    tags:
+      - Authentication
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Logout successful
     """
     try:
         logout_user()
@@ -256,17 +279,39 @@ def mobile_api_logout():
 @app.route('/api/auth/register', methods=['POST'])
 def mobile_api_register():
     """
-    Mobile App User Registration - JSON API
-    
-    Request:
-    {
-        "username": "newuser",
-        "email": "newuser@example.com",
-        "first_name": "John",
-        "last_name": "Doe",
-        "password": "password123",
-        "company_id": 1
-    }
+    User Registration
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - username
+            - email
+            - password
+            - first_name
+            - last_name
+          properties:
+            username:
+              type: string
+            email:
+              type: string
+            password:
+              type: string
+            first_name:
+              type: string
+            last_name:
+              type: string
+            company_id:
+              type: integer
+    responses:
+      201:
+        description: Registration successful
+      409:
+        description: Username or Email already exists
     """
     try:
         if not request.is_json:
@@ -320,8 +365,23 @@ def mobile_api_register():
 @token_required
 def mobile_api_refresh_token():
     """
-    Refresh Token - JSON API
-    Requires: Valid token
+    Refresh Token
+    ---
+    tags:
+      - Authentication
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Token refreshed
+        schema:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
     """
     try:
         user = get_user_from_token_or_session()
@@ -348,8 +408,27 @@ def mobile_api_refresh_token():
 @token_required
 def mobile_api_get_profile():
     """
-    Get Current User Profile - JSON API
-    Requires: Valid JWT token
+    Get User Profile
+    ---
+    tags:
+      - User
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: User profile details
+        schema:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                role:
+                  type: string
     """
     try:
         user = get_user_from_token_or_session()
@@ -388,9 +467,27 @@ def mobile_api_get_profile():
 @token_required
 def mobile_api_get_employees():
     """
-    Get Employees List - JSON API
-    Supports pagination and filtering
-    Query params: page=1, per_page=20, search=term, status=active
+    List Employees
+    ---
+    tags:
+      - Employees
+    security:
+      - Bearer: []
+    parameters:
+      - name: page
+        in: query
+        type: integer
+        default: 1
+      - name: per_page
+        in: query
+        type: integer
+        default: 20
+      - name: search
+        in: query
+        type: string
+    responses:
+      200:
+        description: List of employees
     """
     try:
         page = request.args.get('page', 1, type=int)
@@ -454,7 +551,22 @@ def mobile_api_get_employees():
 @token_required
 def mobile_api_get_employee(employee_id):
     """
-    Get Employee Details - JSON API
+    Get Employee Detail
+    ---
+    tags:
+      - Employees
+    security:
+      - Bearer: []
+    parameters:
+      - name: employee_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Employee details
+      404:
+        description: Employee not found
     """
     try:
         employee = Employee.query.get(employee_id)
@@ -493,8 +605,27 @@ def mobile_api_get_employee(employee_id):
 @token_required
 def mobile_api_get_attendance():
     """
-    Get Attendance Records - JSON API
-    Query params: employee_id, from_date, to_date, page, per_page
+    list Attendance
+    ---
+    tags:
+      - Attendance
+    security:
+      - Bearer: []
+    parameters:
+      - name: employee_id
+        in: query
+        type: integer
+      - name: from_date
+        in: query
+        type: string
+        format: date
+      - name: to_date
+        in: query
+        type: string
+        format: date
+    responses:
+      200:
+        description: Attendance history
     """
     try:
         page = request.args.get('page', 1, type=int)
@@ -555,15 +686,33 @@ def mobile_api_get_attendance():
 @token_required
 def mobile_api_mark_attendance():
     """
-    Mark Attendance (Check In/Out) - JSON API
-    
-    Request:
-    {
-        "employee_id": 1,
-        "action": "check_in" or "check_out",
-        "latitude": 1.3521,
-        "longitude": 103.8198
-    }
+    Mark Attendance
+    ---
+    tags:
+      - Attendance
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - employee_id
+            - action
+          properties:
+            employee_id:
+              type: integer
+            action:
+              type: string
+              enum: [check_in, check_out]
+            latitude:
+              type: number
+            longitude:
+              type: number
+    responses:
+      200:
+        description: Attendance marked successfully
     """
     try:
         if not request.is_json:
@@ -639,8 +788,20 @@ def mobile_api_mark_attendance():
 @token_required
 def mobile_api_get_leave_requests():
     """
-    Get Leave Requests - JSON API
-    Query params: employee_id, status, page, per_page
+    List Leave Requests
+    ---
+    tags:
+      - Leave
+    security:
+      - Bearer: []
+    parameters:
+      - name: status
+        in: query
+        type: string
+        enum: [pending, approved, rejected]
+    responses:
+      200:
+        description: List of leave requests
     """
     try:
         page = request.args.get('page', 1, type=int)
@@ -691,16 +852,38 @@ def mobile_api_get_leave_requests():
 @token_required
 def mobile_api_create_leave_request():
     """
-    Create Leave Request - JSON API
-    
-    Request:
-    {
-        "employee_id": 1,
-        "from_date": "2024-01-15",
-        "to_date": "2024-01-17",
-        "leave_type": "Annual Leave",
-        "reason": "Personal reasons"
-    }
+    Create Leave Request
+    ---
+    tags:
+      - Leave
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - employee_id
+            - from_date
+            - to_date
+            - leave_type
+          properties:
+            employee_id:
+              type: integer
+            from_date:
+              type: string
+              format: date
+            to_date:
+              type: string
+              format: date
+            leave_type:
+              type: string
+            reason:
+              type: string
+    responses:
+      201:
+        description: Leave request created
     """
     try:
         if not request.is_json:
@@ -757,8 +940,15 @@ def mobile_api_create_leave_request():
 @token_required
 def mobile_api_get_payslips():
     """
-    Get Payslips - JSON API
-    Query params: employee_id, from_date, to_date, page, per_page
+    Get Payslips
+    ---
+    tags:
+      - Payroll
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of payslips
     """
     try:
         page = request.args.get('page', 1, type=int)
@@ -825,8 +1015,15 @@ def mobile_api_get_payslips():
 @token_required
 def mobile_api_get_dashboard_stats():
     """
-    Get Dashboard Statistics - JSON API
-    Returns key metrics for dashboard
+    Dashboard Stats
+    ---
+    tags:
+      - Dashboard
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Dashboard statistics
     """
     try:
         user = get_user_from_token_or_session()
@@ -874,7 +1071,13 @@ def mobile_api_get_dashboard_stats():
 @app.route('/api/health', methods=['GET'])
 def mobile_api_health_check():
     """
-    API Health Check - JSON API (No authentication required)
+    Health Check
+    ---
+    tags:
+      - System
+    responses:
+      200:
+        description: API is healthy
     """
     try:
         from sqlalchemy import text
