@@ -17,8 +17,10 @@ import hashlib
 from app import app, db
 from core.models import (
     User, Employee, Attendance, Leave, Payroll, Role, 
-    Department, Company, Designation, EmployeeGroup, OTRequest
+    Department, Company, Designation, EmployeeGroup, OTRequest,
+    OTType, OTAttendance, OTApproval
 )
+from sqlalchemy.orm import joinedload
 from core.auth import login_manager
 
 logger = logging.getLogger(__name__)
@@ -778,6 +780,229 @@ def mobile_api_mark_attendance():
         db.session.rollback()
         logger.error(f"Mark attendance error: {e}")
         return api_response('error', f'Failed to mark attendance: {str(e)}', None, 500)
+
+
+# ============================================================================
+# OT MANAGEMENT API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/ot/types', methods=['GET'])
+@token_required
+def mobile_api_get_ot_types():
+    """
+    Get OT Types
+    ---
+    tags:
+      - Overtime
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of available OT types
+        schema:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  multiplier:
+                    type: number
+    """
+    try:
+        user = get_user_from_token_or_session()
+        if not user:
+             return api_response('error', 'User not found', None, 401)
+        
+        # Get company ID (handle both direct user.company_id and employee profile)
+        company_id = user.company_id
+        if not company_id and hasattr(user, 'employee_profile') and user.employee_profile:
+             company_id = user.employee_profile.company_id
+             
+        if not company_id:
+             return api_response('error', 'Company not found for user', None, 400)
+
+        # Get company to find tenant
+        company = Company.query.get(company_id)
+        tenant_id = company.tenant_id if company else None
+        
+        ot_types = []
+        if tenant_id:
+            # Find all companies in this tenant to get shared OT types (or specific ones)
+            # Simplified: Just match company_id or share logic if needed. 
+            # For now, following logic in routes_ot.py: match company_id in list of tenant companies.
+            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+            types = OTType.query.filter(
+                OTType.company_id.in_(company_ids),
+                OTType.is_active == True
+            ).order_by(OTType.display_order).all()
+            
+            for t in types:
+                ot_types.append({
+                    'id': t.id,
+                    'name': t.name,
+                    'multiplier': float(t.rate_multiplier) if t.rate_multiplier else 1.0,
+                    'code': t.code
+                })
+        
+        return api_response('success', 'OT Types retrieved', ot_types, 200)
+
+    except Exception as e:
+        logger.error(f"Get OT types error: {e}")
+        return api_response('error', f'Failed to retrieve OT types: {str(e)}', None, 500)
+
+
+@app.route('/api/ot/request', methods=['POST'])
+@token_required
+def mobile_api_create_ot_request():
+    """
+    Create OT Request
+    ---
+    tags:
+      - Overtime
+    description: Logs OT and immediately submits it for approval
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - ot_date
+            - ot_type_id
+            - quantity
+          properties:
+            ot_date:
+              type: string
+              format: date
+              example: "2024-01-15"
+            ot_type_id:
+              type: integer
+            quantity:
+              type: number
+              description: Number of hours
+            notes:
+              type: string
+    responses:
+      200:
+        description: OT submitted successfully
+    """
+    try:
+        user = get_user_from_token_or_session()
+        employee = Employee.query.filter_by(user_id=user.id).first()
+        
+        if not employee:
+            return api_response('error', 'Employee profile not found', None, 404)
+            
+        data = request.get_json()
+        if not data:
+             return api_response('error', 'No input data provided', None, 400)
+             
+        ot_date_str = data.get('ot_date')
+        ot_type_id = data.get('ot_type_id')
+        quantity = data.get('quantity')
+        notes = data.get('notes', '')
+        
+        if not ot_date_str or not ot_type_id or not quantity:
+            return api_response('error', 'Missing required fields: ot_date, ot_type_id, quantity', None, 400)
+
+        # 1. Parse Data
+        try:
+             ot_date = datetime.strptime(ot_date_str, '%Y-%m-%d').date()
+             quantity = float(quantity)
+             ot_type_id = int(ot_type_id)
+        except ValueError:
+             return api_response('error', 'Invalid date or number format', None, 400)
+
+        # 2. Validation
+        ot_type = OTType.query.get(ot_type_id)
+        if not ot_type:
+             return api_response('error', 'Invalid OT Type', None, 400)
+             
+        if not employee.manager_id:
+             return api_response('error', 'No reporting manager assigned to your profile', None, 400)
+             
+        manager = Employee.query.options(joinedload(Employee.user)).filter_by(id=employee.manager_id).first()
+        if not manager or not manager.user_id:
+             return api_response('error', 'Reporting manager has no user account', None, 400)
+
+        # 3. Calculate Amount (Logic from routes_ot.py)
+        base_rate = 0
+        if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
+             base_rate = float(employee.payroll_config.ot_rate_per_hour)
+        elif employee.hourly_rate:
+             base_rate = float(employee.hourly_rate)
+        elif employee.basic_salary:
+             base_rate = float(employee.basic_salary) / 173.33
+             
+        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 1.0
+        effective_rate = round(base_rate * multiplier, 2)
+        total_amount = round(effective_rate * quantity, 2)
+
+        # 4. Create OT Request (Directly to Pending Manager)
+        # We skip the "Draft" state of OTAttendance and go straight to OTRequest if possible,
+        # BUT the logic in routes_ot.py uses OTAttendance as the base record.
+        # So we follow: Create OTAttendance (Submitted) -> Create OTRequest -> Create OTApproval
+        
+        # Step A: Create OTAttendance
+        new_attendance = OTAttendance(
+            employee_id=employee.id,
+            company_id=employee.company_id,
+            ot_date=ot_date,
+            ot_type_id=ot_type_id,
+            quantity=quantity,
+            rate=effective_rate,
+            amount=total_amount,
+            status='Submitted',
+            notes=notes,
+            created_by=user.username,
+            ot_hours=quantity
+        )
+        db.session.add(new_attendance)
+        db.session.flush()
+
+        # Step B: Create OTRequest
+        ot_request = OTRequest(
+            employee_id=employee.id,
+            company_id=employee.company_id,
+            ot_date=ot_date,
+            ot_type_id=ot_type_id,
+            requested_hours=quantity,
+            reason=notes or 'Mobile OT Submission',
+            status='pending_manager',
+            created_by=user.username
+        )
+        db.session.add(ot_request)
+        db.session.flush()
+
+        # Step C: Create Approval 
+        ot_approval = OTApproval(
+            ot_request_id=ot_request.id,
+            approver_id=manager.user_id,
+            approval_level=1,
+            status='pending_manager',
+            comments='Submitted via Mobile App'
+        )
+        db.session.add(ot_approval)
+        
+        db.session.commit()
+        
+        return api_response('success', 'OT request submitted successfully', {
+            'id': ot_request.id,
+            'status': 'pending_manager',
+            'amount': total_amount
+        }, 200)
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Create OT request error: {e}")
+        return api_response('error', f'Failed to create OT request: {str(e)}', None, 500)
 
 
 # ============================================================================
