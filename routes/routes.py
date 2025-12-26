@@ -84,6 +84,7 @@ def serve_sw():
 @app.route('/manifest.json')
 def serve_manifest():
     """Serve manifest from root"""
+
     return app.send_static_file('manifest.json')
 
 # Create default users and master data on first run
@@ -569,12 +570,17 @@ def dashboard():
 @app.route('/employees')
 @require_login
 def employee_list():
+    
     """List all employees with search and pagination"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     department = request.args.get('department', '', type=str)
     sort_by = request.args.get('sort_by', 'first_name', type=str)
     sort_order = request.args.get('sort_order', 'asc', type=str)
+
+    print("\n[DEBUG] === Employee List Request ===")
+    print(f"[DEBUG] Args: page={page}, search={search}, department={department}, sort_by={sort_by}, sort_order={sort_order}")
+    print(f"[DEBUG] User: {current_user.username}, Role: {current_user.role.name if current_user.role else 'None'}")
 
     # Join with Company and Tenant to get tenant_name and company_name
     query = db.session.query(
@@ -604,6 +610,9 @@ def employee_list():
                                                   'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
+
+    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile'):
+        query = query.filter(Employee.company_id == current_user.employee_profile.company_id)
 
     # Sorting
     if sort_by == 'tenant_name':
@@ -664,7 +673,9 @@ def employee_list():
     departments = db.session.query(Employee.department).distinct().filter(
         Employee.department.isnot(None), Employee.is_active == True).all()
     departments = [d[0] for d in departments]
-
+    
+    print(f"[DEBUG] Found {pagination.total} employees. Returning page {page} of {pagination.pages}.")
+    print("[DEBUG] ===============================\n")
     return render_template('employees/list.html',
                            employees=employees,
                            search=search,
