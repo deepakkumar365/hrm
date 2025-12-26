@@ -17,8 +17,10 @@ import hashlib
 from app import app, db
 from core.models import (
     User, Employee, Attendance, Leave, Payroll, Role, 
-    Department, Company, Designation, EmployeeGroup, OTRequest
+    Department, Company, Designation, EmployeeGroup, OTRequest,
+    OTType, OTAttendance, OTApproval
 )
+from sqlalchemy.orm import joinedload
 from core.auth import login_manager
 
 logger = logging.getLogger(__name__)
@@ -161,29 +163,45 @@ def get_user_from_token_or_session():
 @app.route('/api/auth/login', methods=['POST'])
 def mobile_api_login():
     """
-    Mobile App Login - JSON API
-    
-    Request:
-    {
-        "username": "user@example.com" or "username",
-        "password": "password123"
-    }
-    
-    Response (200):
-    {
-        "status": "success",
-        "message": "Login successful",
-        "data": {
-            "user_id": 1,
-            "email": "user@example.com",
-            "first_name": "John",
-            "last_name": "Doe",
-            "role": "HR Manager",
-            "company_id": 1,
-            "token": "eyJhbGc...",
-            "expires_in": 86400
-        }
-    }
+    Mobile App Login
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+              description: Email or Username
+              example: user@example.com
+            password:
+              type: string
+              description: User Password
+              example: password123
+    responses:
+      200:
+        description: Login successful
+        schema:
+          type: object
+          properties:
+            status:
+              type: string
+              example: success
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+                user_id:
+                  type: integer
+      401:
+        description: Invalid credentials
     """
     try:
         if not request.is_json:
@@ -242,8 +260,15 @@ def mobile_api_login():
 @token_required
 def mobile_api_logout():
     """
-    Mobile App Logout - JSON API
-    Requires: Valid token or session
+    Mobile App Logout
+    ---
+    tags:
+      - Authentication
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Logout successful
     """
     try:
         logout_user()
@@ -256,17 +281,39 @@ def mobile_api_logout():
 @app.route('/api/auth/register', methods=['POST'])
 def mobile_api_register():
     """
-    Mobile App User Registration - JSON API
-    
-    Request:
-    {
-        "username": "newuser",
-        "email": "newuser@example.com",
-        "first_name": "John",
-        "last_name": "Doe",
-        "password": "password123",
-        "company_id": 1
-    }
+    User Registration
+    ---
+    tags:
+      - Authentication
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - username
+            - email
+            - password
+            - first_name
+            - last_name
+          properties:
+            username:
+              type: string
+            email:
+              type: string
+            password:
+              type: string
+            first_name:
+              type: string
+            last_name:
+              type: string
+            company_id:
+              type: integer
+    responses:
+      201:
+        description: Registration successful
+      409:
+        description: Username or Email already exists
     """
     try:
         if not request.is_json:
@@ -320,8 +367,23 @@ def mobile_api_register():
 @token_required
 def mobile_api_refresh_token():
     """
-    Refresh Token - JSON API
-    Requires: Valid token
+    Refresh Token
+    ---
+    tags:
+      - Authentication
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Token refreshed
+        schema:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
     """
     try:
         user = get_user_from_token_or_session()
@@ -348,8 +410,27 @@ def mobile_api_refresh_token():
 @token_required
 def mobile_api_get_profile():
     """
-    Get Current User Profile - JSON API
-    Requires: Valid JWT token
+    Get User Profile
+    ---
+    tags:
+      - User
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: User profile details
+        schema:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                role:
+                  type: string
     """
     try:
         user = get_user_from_token_or_session()
@@ -388,9 +469,27 @@ def mobile_api_get_profile():
 @token_required
 def mobile_api_get_employees():
     """
-    Get Employees List - JSON API
-    Supports pagination and filtering
-    Query params: page=1, per_page=20, search=term, status=active
+    List Employees
+    ---
+    tags:
+      - Employees
+    security:
+      - Bearer: []
+    parameters:
+      - name: page
+        in: query
+        type: integer
+        default: 1
+      - name: per_page
+        in: query
+        type: integer
+        default: 20
+      - name: search
+        in: query
+        type: string
+    responses:
+      200:
+        description: List of employees
     """
     try:
         page = request.args.get('page', 1, type=int)
@@ -454,7 +553,22 @@ def mobile_api_get_employees():
 @token_required
 def mobile_api_get_employee(employee_id):
     """
-    Get Employee Details - JSON API
+    Get Employee Detail
+    ---
+    tags:
+      - Employees
+    security:
+      - Bearer: []
+    parameters:
+      - name: employee_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Employee details
+      404:
+        description: Employee not found
     """
     try:
         employee = Employee.query.get(employee_id)
@@ -493,8 +607,27 @@ def mobile_api_get_employee(employee_id):
 @token_required
 def mobile_api_get_attendance():
     """
-    Get Attendance Records - JSON API
-    Query params: employee_id, from_date, to_date, page, per_page
+    list Attendance
+    ---
+    tags:
+      - Attendance
+    security:
+      - Bearer: []
+    parameters:
+      - name: employee_id
+        in: query
+        type: integer
+      - name: from_date
+        in: query
+        type: string
+        format: date
+      - name: to_date
+        in: query
+        type: string
+        format: date
+    responses:
+      200:
+        description: Attendance history
     """
     try:
         page = request.args.get('page', 1, type=int)
@@ -555,15 +688,33 @@ def mobile_api_get_attendance():
 @token_required
 def mobile_api_mark_attendance():
     """
-    Mark Attendance (Check In/Out) - JSON API
-    
-    Request:
-    {
-        "employee_id": 1,
-        "action": "check_in" or "check_out",
-        "latitude": 1.3521,
-        "longitude": 103.8198
-    }
+    Mark Attendance
+    ---
+    tags:
+      - Attendance
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - employee_id
+            - action
+          properties:
+            employee_id:
+              type: integer
+            action:
+              type: string
+              enum: [check_in, check_out]
+            latitude:
+              type: number
+            longitude:
+              type: number
+    responses:
+      200:
+        description: Attendance marked successfully
     """
     try:
         if not request.is_json:
@@ -632,6 +783,229 @@ def mobile_api_mark_attendance():
 
 
 # ============================================================================
+# OT MANAGEMENT API ENDPOINTS
+# ============================================================================
+
+@app.route('/api/ot/types', methods=['GET'])
+@token_required
+def mobile_api_get_ot_types():
+    """
+    Get OT Types
+    ---
+    tags:
+      - Overtime
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of available OT types
+        schema:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  multiplier:
+                    type: number
+    """
+    try:
+        user = get_user_from_token_or_session()
+        if not user:
+             return api_response('error', 'User not found', None, 401)
+        
+        # Get company ID (handle both direct user.company_id and employee profile)
+        company_id = user.company_id
+        if not company_id and hasattr(user, 'employee_profile') and user.employee_profile:
+             company_id = user.employee_profile.company_id
+             
+        if not company_id:
+             return api_response('error', 'Company not found for user', None, 400)
+
+        # Get company to find tenant
+        company = Company.query.get(company_id)
+        tenant_id = company.tenant_id if company else None
+        
+        ot_types = []
+        if tenant_id:
+            # Find all companies in this tenant to get shared OT types (or specific ones)
+            # Simplified: Just match company_id or share logic if needed. 
+            # For now, following logic in routes_ot.py: match company_id in list of tenant companies.
+            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+            types = OTType.query.filter(
+                OTType.company_id.in_(company_ids),
+                OTType.is_active == True
+            ).order_by(OTType.display_order).all()
+            
+            for t in types:
+                ot_types.append({
+                    'id': t.id,
+                    'name': t.name,
+                    'multiplier': float(t.rate_multiplier) if t.rate_multiplier else 1.0,
+                    'code': t.code
+                })
+        
+        return api_response('success', 'OT Types retrieved', ot_types, 200)
+
+    except Exception as e:
+        logger.error(f"Get OT types error: {e}")
+        return api_response('error', f'Failed to retrieve OT types: {str(e)}', None, 500)
+
+
+@app.route('/api/ot/request', methods=['POST'])
+@token_required
+def mobile_api_create_ot_request():
+    """
+    Create OT Request
+    ---
+    tags:
+      - Overtime
+    description: Logs OT and immediately submits it for approval
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - ot_date
+            - ot_type_id
+            - quantity
+          properties:
+            ot_date:
+              type: string
+              format: date
+              example: "2024-01-15"
+            ot_type_id:
+              type: integer
+            quantity:
+              type: number
+              description: Number of hours
+            notes:
+              type: string
+    responses:
+      200:
+        description: OT submitted successfully
+    """
+    try:
+        user = get_user_from_token_or_session()
+        employee = Employee.query.filter_by(user_id=user.id).first()
+        
+        if not employee:
+            return api_response('error', 'Employee profile not found', None, 404)
+            
+        data = request.get_json()
+        if not data:
+             return api_response('error', 'No input data provided', None, 400)
+             
+        ot_date_str = data.get('ot_date')
+        ot_type_id = data.get('ot_type_id')
+        quantity = data.get('quantity')
+        notes = data.get('notes', '')
+        
+        if not ot_date_str or not ot_type_id or not quantity:
+            return api_response('error', 'Missing required fields: ot_date, ot_type_id, quantity', None, 400)
+
+        # 1. Parse Data
+        try:
+             ot_date = datetime.strptime(ot_date_str, '%Y-%m-%d').date()
+             quantity = float(quantity)
+             ot_type_id = int(ot_type_id)
+        except ValueError:
+             return api_response('error', 'Invalid date or number format', None, 400)
+
+        # 2. Validation
+        ot_type = OTType.query.get(ot_type_id)
+        if not ot_type:
+             return api_response('error', 'Invalid OT Type', None, 400)
+             
+        if not employee.manager_id:
+             return api_response('error', 'No reporting manager assigned to your profile', None, 400)
+             
+        manager = Employee.query.options(joinedload(Employee.user)).filter_by(id=employee.manager_id).first()
+        if not manager or not manager.user_id:
+             return api_response('error', 'Reporting manager has no user account', None, 400)
+
+        # 3. Calculate Amount (Logic from routes_ot.py)
+        base_rate = 0
+        if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
+             base_rate = float(employee.payroll_config.ot_rate_per_hour)
+        elif employee.hourly_rate:
+             base_rate = float(employee.hourly_rate)
+        elif employee.basic_salary:
+             base_rate = float(employee.basic_salary) / 173.33
+             
+        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 1.0
+        effective_rate = round(base_rate * multiplier, 2)
+        total_amount = round(effective_rate * quantity, 2)
+
+        # 4. Create OT Request (Directly to Pending Manager)
+        # We skip the "Draft" state of OTAttendance and go straight to OTRequest if possible,
+        # BUT the logic in routes_ot.py uses OTAttendance as the base record.
+        # So we follow: Create OTAttendance (Submitted) -> Create OTRequest -> Create OTApproval
+        
+        # Step A: Create OTAttendance
+        new_attendance = OTAttendance(
+            employee_id=employee.id,
+            company_id=employee.company_id,
+            ot_date=ot_date,
+            ot_type_id=ot_type_id,
+            quantity=quantity,
+            rate=effective_rate,
+            amount=total_amount,
+            status='Submitted',
+            notes=notes,
+            created_by=user.username,
+            ot_hours=quantity
+        )
+        db.session.add(new_attendance)
+        db.session.flush()
+
+        # Step B: Create OTRequest
+        ot_request = OTRequest(
+            employee_id=employee.id,
+            company_id=employee.company_id,
+            ot_date=ot_date,
+            ot_type_id=ot_type_id,
+            requested_hours=quantity,
+            reason=notes or 'Mobile OT Submission',
+            status='pending_manager',
+            created_by=user.username
+        )
+        db.session.add(ot_request)
+        db.session.flush()
+
+        # Step C: Create Approval 
+        ot_approval = OTApproval(
+            ot_request_id=ot_request.id,
+            approver_id=manager.user_id,
+            approval_level=1,
+            status='pending_manager',
+            comments='Submitted via Mobile App'
+        )
+        db.session.add(ot_approval)
+        
+        db.session.commit()
+        
+        return api_response('success', 'OT request submitted successfully', {
+            'id': ot_request.id,
+            'status': 'pending_manager',
+            'amount': total_amount
+        }, 200)
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Create OT request error: {e}")
+        return api_response('error', f'Failed to create OT request: {str(e)}', None, 500)
+
+
+# ============================================================================
 # LEAVE MANAGEMENT API ENDPOINTS
 # ============================================================================
 
@@ -639,8 +1013,20 @@ def mobile_api_mark_attendance():
 @token_required
 def mobile_api_get_leave_requests():
     """
-    Get Leave Requests - JSON API
-    Query params: employee_id, status, page, per_page
+    List Leave Requests
+    ---
+    tags:
+      - Leave
+    security:
+      - Bearer: []
+    parameters:
+      - name: status
+        in: query
+        type: string
+        enum: [pending, approved, rejected]
+    responses:
+      200:
+        description: List of leave requests
     """
     try:
         page = request.args.get('page', 1, type=int)
@@ -691,16 +1077,38 @@ def mobile_api_get_leave_requests():
 @token_required
 def mobile_api_create_leave_request():
     """
-    Create Leave Request - JSON API
-    
-    Request:
-    {
-        "employee_id": 1,
-        "from_date": "2024-01-15",
-        "to_date": "2024-01-17",
-        "leave_type": "Annual Leave",
-        "reason": "Personal reasons"
-    }
+    Create Leave Request
+    ---
+    tags:
+      - Leave
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - employee_id
+            - from_date
+            - to_date
+            - leave_type
+          properties:
+            employee_id:
+              type: integer
+            from_date:
+              type: string
+              format: date
+            to_date:
+              type: string
+              format: date
+            leave_type:
+              type: string
+            reason:
+              type: string
+    responses:
+      201:
+        description: Leave request created
     """
     try:
         if not request.is_json:
@@ -757,8 +1165,15 @@ def mobile_api_create_leave_request():
 @token_required
 def mobile_api_get_payslips():
     """
-    Get Payslips - JSON API
-    Query params: employee_id, from_date, to_date, page, per_page
+    Get Payslips
+    ---
+    tags:
+      - Payroll
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: List of payslips
     """
     try:
         page = request.args.get('page', 1, type=int)
@@ -825,8 +1240,15 @@ def mobile_api_get_payslips():
 @token_required
 def mobile_api_get_dashboard_stats():
     """
-    Get Dashboard Statistics - JSON API
-    Returns key metrics for dashboard
+    Dashboard Stats
+    ---
+    tags:
+      - Dashboard
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Dashboard statistics
     """
     try:
         user = get_user_from_token_or_session()
@@ -874,7 +1296,13 @@ def mobile_api_get_dashboard_stats():
 @app.route('/api/health', methods=['GET'])
 def mobile_api_health_check():
     """
-    API Health Check - JSON API (No authentication required)
+    Health Check
+    ---
+    tags:
+      - System
+    responses:
+      200:
+        description: API is healthy
     """
     try:
         from sqlalchemy import text

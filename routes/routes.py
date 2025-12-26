@@ -12,9 +12,9 @@ import pytz
 from app import app, db
 from core.auth import require_login, require_role, create_default_users
 from core.models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
-                    ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
-                    Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation,
-                    Organization, OTDailySummary)
+                     ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
+                     Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation,
+                     Organization, OTDailySummary, EmployeeGroup)
 from sqlalchemy import tuple_
 from core.forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
@@ -36,6 +36,31 @@ def get_current_user_tenant_id():
     if current_user and current_user.organization:
         return current_user.organization.tenant_id
     return None
+
+def get_overtime_groups(tenant_id=None):
+    """
+    Get available overtime groups from current tenant configuration.
+    If 'By Group' calculation is enabled, use the configured group type.
+    Otherwise fall back to defaults.
+    """
+    if not tenant_id:
+        tenant_id = get_current_user_tenant_id()
+    
+    if not tenant_id:
+        return ["Group 1", "Group 2", "Group 3"]
+        
+    try:
+        from core.models import TenantConfiguration
+        config = TenantConfiguration.query.filter_by(tenant_id=tenant_id).first()
+        if config and config.overtime_calculation_method == 'By Group' and config.overtime_group_type:
+            # If multiple groups were stored as comma-separated values
+            if ',' in config.overtime_group_type:
+                return [g.strip() for g in config.overtime_group_type.split(',')]
+            return [config.overtime_group_type]
+    except Exception as e:
+        print(f"Error fetching overtime groups: {e}")
+        
+    return ["Group 1", "Group 2", "Group 3"]
 
 # Initialize payroll calculator
 payroll_calc = SingaporePayrollCalculator()
@@ -59,6 +84,7 @@ def serve_sw():
 @app.route('/manifest.json')
 def serve_manifest():
     """Serve manifest from root"""
+
     return app.send_static_file('manifest.json')
 
 # Create default users and master data on first run
@@ -544,12 +570,17 @@ def dashboard():
 @app.route('/employees')
 @require_login
 def employee_list():
+    
     """List all employees with search and pagination"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
     department = request.args.get('department', '', type=str)
     sort_by = request.args.get('sort_by', 'first_name', type=str)
     sort_order = request.args.get('sort_order', 'asc', type=str)
+
+    print("\n[DEBUG] === Employee List Request ===")
+    print(f"[DEBUG] Args: page={page}, search={search}, department={department}, sort_by={sort_by}, sort_order={sort_order}")
+    print(f"[DEBUG] User: {current_user.username}, Role: {current_user.role.name if current_user.role else 'None'}")
 
     # Join with Company and Tenant to get tenant_name and company_name
     query = db.session.query(
@@ -579,6 +610,9 @@ def employee_list():
                                                   'employee_profile'):
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
+
+    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile'):
+        query = query.filter(Employee.company_id == current_user.employee_profile.company_id)
 
     # Sorting
     if sort_by == 'tenant_name':
@@ -639,7 +673,9 @@ def employee_list():
     departments = db.session.query(Employee.department).distinct().filter(
         Employee.department.isnot(None), Employee.is_active == True).all()
     departments = [d[0] for d in departments]
-
+    
+    print(f"[DEBUG] Found {pagination.total} employees. Returning page {page} of {pagination.pages}.")
+    print("[DEBUG] ===============================\n")
     return render_template('employees/list.html',
                            employees=employees,
                            search=search,
@@ -653,23 +689,32 @@ def employee_list():
 @app.route('/employees/add', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin','HR Manager','Tenant Admin'])
 def employee_add():
-    """Add new employee"""
+    is_super_admin = current_user.role.name == 'Super Admin' if current_user.role else False
+    tenant_id = get_current_user_tenant_id()
+    if is_super_admin:
+        companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+    else:
+        companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
+
+    # Load master data for all paths
+    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
+    timezones = pytz.all_timezones
+    leave_groups = EmployeeGroup.query.filter_by(is_active=True).all()
+    overtime_groups = get_overtime_groups(tenant_id)
+
     if request.method == 'POST':
         try:
             # Validate NRIC
-            nric = request.form.get('nric', '').upper()
+            nric_raw = request.form.get('nric', '').strip().upper()
+            nric = nric_raw if nric_raw else None
             if not validate_nric(nric):
                 flash('Invalid NRIC format', 'error')
-                # Load master data and preserve form data for re-rendering
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                tenant_id = get_current_user_tenant_id()
-                companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -679,22 +724,14 @@ def employee_add():
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
                                        managers=managers,
-                                       companies=companies)
+                                       companies=companies,
+                                       timezones=timezones,
+                                       leave_groups=leave_groups,
+                                       overtime_groups=overtime_groups)
 
             # Check for duplicate NRIC
-            if Employee.query.filter_by(nric=nric).first():
+            if nric and Employee.query.filter_by(nric=nric).first():
                 flash('Employee with this NRIC already exists', 'error')
-                # Load master data and preserve form data for re-rendering
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                # Position field removed - use designation_id instead
-                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                tenant_id = get_current_user_tenant_id()
-                companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -704,7 +741,10 @@ def employee_add():
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
                                        managers=managers,
-                                       companies=companies)
+                                       companies=companies,
+                                       timezones=timezones,
+                                       leave_groups=leave_groups,
+                                       overtime_groups=overtime_groups)
 
             # Create new employee
             employee = Employee()
@@ -741,8 +781,17 @@ def employee_add():
             employee.department = request.form.get('department')
             # Position field removed - use designation_id instead
             employee.hire_date = parse_date(request.form.get('hire_date'))
+            termination_date = request.form.get('termination_date')
+            if termination_date:
+                employee.termination_date = parse_date(termination_date)
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
+            employee.timezone = request.form.get('timezone', 'UTC')
+            employee.overtime_group_id = request.form.get('overtime_group_id')
+            
+            leave_group_id = request.form.get('employee_group_id')
+            if leave_group_id:
+                employee.employee_group_id = int(leave_group_id)
 
             work_permit_number = request.form.get('work_permit_number')
             if work_permit_number:
@@ -771,6 +820,9 @@ def employee_add():
 
             employee.basic_salary = float(request.form.get('basic_salary', 0))
             employee.allowances = float(request.form.get('allowances', 0))
+            
+            employee.employee_cpf_rate = float(request.form.get('employee_cpf_rate', 20.00))
+            employee.employer_cpf_rate = float(request.form.get('employer_cpf_rate', 17.00))
 
             hourly_rate = request.form.get('hourly_rate')
             if hourly_rate:
@@ -802,21 +854,12 @@ def employee_add():
 
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
+            employee.is_active = bool(request.form.get('is_active'))
 
             # Handle profile image upload (optional)
             file = request.files.get('profile_image')
             if file and file.filename.strip():
                 if not _allowed_image(file.filename):
-                    flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
-                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                    tenant_id = get_current_user_tenant_id()
-                    companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                     return render_template('employees/form.html',
                                            form_data=request.form,
                                            roles=roles,
@@ -826,7 +869,10 @@ def employee_add():
                                            working_hours=working_hours,
                                            work_schedules=work_schedules,
                                            managers=managers,
-                                           companies=companies)
+                                           companies=companies,
+                                           timezones=timezones,
+                                           leave_groups=leave_groups,
+                                           overtime_groups=overtime_groups)
 
                 # Save image with unique name based on employee_id and timestamp
                 original = secure_filename(file.filename)
@@ -897,16 +943,6 @@ def employee_add():
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding employee: {str(e)}', 'error')
-            # Load master data and preserve form data for re-rendering
-            roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-            departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-            working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-            work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-            managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-            tenant_id = get_current_user_tenant_id()
-            companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
             return render_template('employees/form.html',
                                    form_data=request.form,
                                    roles=roles,
@@ -916,18 +952,10 @@ def employee_add():
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
                                    managers=managers,
-                                   companies=companies)
-
-    # Get managers for dropdown
-    # Load master data for dropdowns
-    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                                   companies=companies,
+                                   timezones=timezones,
+                                   leave_groups=leave_groups,
+                                   overtime_groups=overtime_groups)
 
     return render_template('employees/form.html',
                            managers=managers,
@@ -937,7 +965,10 @@ def employee_add():
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
-                           companies=companies)
+                           companies=companies,
+                           timezones=timezones,
+                           leave_groups=leave_groups,
+                           overtime_groups=overtime_groups)
 
 
 @app.route('/employees/<int:employee_id>')
@@ -1081,7 +1112,24 @@ def profile_edit():
 @require_role(['Super Admin', 'Admin', 'HR Manager', 'Tenant Admin'])
 def employee_edit(employee_id):
     """Edit employee details"""
-    employee = Employee.query.get_or_404(employee_id)
+    is_super_admin = current_user.role == 'Super Admin'
+    tenant_id = get_current_user_tenant_id()
+    if is_super_admin:
+        companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+    else:
+        companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
+
+    # Load master data for all paths
+    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
+    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
+    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
+    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
+    managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
+    timezones = pytz.all_timezones
+    leave_groups = EmployeeGroup.query.filter_by(is_active=True).all()
+    overtime_groups = get_overtime_groups(tenant_id)
 
     if request.method == 'POST':
         try:
@@ -1097,7 +1145,47 @@ def employee_edit(employee_id):
             email = request.form.get('email', '').strip()
             employee.email = email if email else None
             employee.phone = request.form.get('phone')
-            employee.nric = request.form.get('nric')
+            
+            # Validate NRIC
+            nric_raw = request.form.get('nric', '').strip().upper()
+            nric = nric_raw if nric_raw else None
+            if not validate_nric(nric):
+                flash('Invalid NRIC format', 'error')
+                return render_template('employees/form.html',
+                                       employee=employee,
+                                       form_data=request.form,
+                                       roles=roles,
+                                       user_roles=user_roles,
+                                       designations=designations,
+                                       departments=departments,
+                                       working_hours=working_hours,
+                                       work_schedules=work_schedules,
+                                       managers=managers,
+                                       companies=companies,
+                                       timezones=timezones,
+                                       leave_groups=leave_groups,
+                                       overtime_groups=overtime_groups)
+
+            # Check for duplicate NRIC
+            if nric:
+                duplicate = Employee.query.filter(Employee.nric == nric, Employee.id != employee_id).first()
+                if duplicate:
+                    flash('Employee with this NRIC already exists', 'error')
+                    return render_template('employees/form.html',
+                                           employee=employee,
+                                           form_data=request.form,
+                                           roles=roles,
+                                           user_roles=user_roles,
+                                           designations=designations,
+                                           departments=departments,
+                                           working_hours=working_hours,
+                                           work_schedules=work_schedules,
+                                           managers=managers,
+                                           companies=companies,
+                                           timezones=timezones,
+                                           leave_groups=leave_groups,
+                                           overtime_groups=overtime_groups)
+            employee.nric = nric
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
             employee.department = request.form.get('department')
@@ -1117,6 +1205,12 @@ def employee_edit(employee_id):
             hire_date = request.form.get('hire_date')
             if hire_date:
                 employee.hire_date = parse_date(hire_date)
+
+            termination_date = request.form.get('termination_date')
+            if termination_date:
+                employee.termination_date = parse_date(termination_date)
+            else:
+                employee.termination_date = None
 
             date_of_birth = request.form.get('date_of_birth')
             if date_of_birth:
@@ -1170,19 +1264,12 @@ def employee_edit(employee_id):
             employee.swift_code = request.form.get('swift_code')
             employee.ifsc_code = request.form.get('ifsc_code')
 
+            employee.employee_cpf_rate = float(request.form.get('employee_cpf_rate', 20.00))
+            employee.employer_cpf_rate = float(request.form.get('employer_cpf_rate', 17.00))
+
             # Validate mandatory banking field
             if not (employee.account_holder_name and employee.account_holder_name.strip()):
                 flash('Account Holder Name is required', 'error')
-                roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                # Position field removed - use designation_id instead
-                managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                tenant_id = get_current_user_tenant_id()
-                companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                 return render_template('employees/form.html',
                                        form_data=request.form,
                                        roles=roles,
@@ -1192,23 +1279,16 @@ def employee_edit(employee_id):
                                        working_hours=working_hours,
                                        work_schedules=work_schedules,
                                        managers=managers,
-                                       companies=companies)
+                                       companies=companies,
+                                       timezones=timezones,
+                                       leave_groups=leave_groups,
+                                       overtime_groups=overtime_groups)
 
             # Optional profile image replace on edit
             file = request.files.get('profile_image')
             if file and file.filename.strip():
                 if not _allowed_image(file.filename):
                     flash('Invalid image type. Allowed: ' + ', '.join(sorted(app.config.get('ALLOWED_IMAGE_EXTENSIONS', []))), 'error')
-                    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-                    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-                    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-                    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-                    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-                    # Position field removed - use designation_id instead
-                    managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
-                    tenant_id = get_current_user_tenant_id()
-                    companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
                     return render_template('employees/form.html',
                                            employee=employee,
                                            form_data=request.form,
@@ -1219,7 +1299,10 @@ def employee_edit(employee_id):
                                            working_hours=working_hours,
                                            work_schedules=work_schedules,
                                            managers=managers,
-                                           companies=companies)
+                                           companies=companies,
+                                           timezones=timezones,
+                                           leave_groups=leave_groups,
+                                           overtime_groups=overtime_groups)
                 # Save new image
                 original = secure_filename(file.filename)
                 ext = original.rsplit('.', 1)[1].lower()
@@ -1263,6 +1346,7 @@ def employee_edit(employee_id):
 
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
+            employee.is_active = bool(request.form.get('is_active'))
 
             # Update user role if changed
             user_role_id = request.form.get('user_role_id')
@@ -1318,15 +1402,6 @@ def employee_edit(employee_id):
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating employee: {str(e)}', 'error')
-            # Load master data and preserve form data for re-rendering
-            roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-            designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-            departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-            working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-            work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-            managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
-            companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
             return render_template('employees/form.html',
                                    employee=employee,
                                    form_data=request.form,
@@ -1337,17 +1412,10 @@ def employee_edit(employee_id):
                                    departments=departments,
                                    working_hours=working_hours,
                                    work_schedules=work_schedules,
-                                   companies=companies)
-
-    # Load master data for dropdowns
-    roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    user_roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
-    designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
-    departments = Department.query.filter_by(is_active=True).order_by(Department.name).all()
-    working_hours = WorkingHours.query.filter_by(is_active=True).order_by(WorkingHours.name).all()
-    work_schedules = WorkSchedule.query.filter_by(is_active=True).order_by(WorkSchedule.name).all()
-    managers = Employee.query.filter_by(is_active=True, is_manager=True).filter(Employee.id != employee_id).all()
-    companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+                                   companies=companies,
+                                   timezones=timezones,
+                                   leave_groups=leave_groups,
+                                   overtime_groups=overtime_groups)
 
     return render_template('employees/form.html',
                            employee=employee,
@@ -1358,7 +1426,10 @@ def employee_edit(employee_id):
                            departments=departments,
                            working_hours=working_hours,
                            work_schedules=work_schedules,
-                           companies=companies)
+                           companies=companies,
+                           timezones=timezones,
+                           leave_groups=leave_groups,
+                           overtime_groups=overtime_groups)
 
 
 # Payroll Management Routes

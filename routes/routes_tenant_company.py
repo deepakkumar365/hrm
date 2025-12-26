@@ -651,7 +651,7 @@ def link_employee_to_company(employee_id):
 
 
 @app.route('/api/companies/<uuid:company_id>/employees', methods=['GET'])
-@require_role(['Super Admin', 'Admin', 'Manager', 'Tenant Admin', 'User'])
+@require_role(['Super Admin', 'Admin', 'Manager', 'Tenant Admin', 'Employee'])
 def get_company_employees(company_id):
     """Get all employees for a specific company"""
     try:

@@ -26,10 +26,21 @@ from core.auth import require_role
 
 @app.route('/api/supported-timezones', methods=['GET'])
 def get_supported_timezones():
-    """Get list of all supported IANA timezones
-    
-    Returns:
-        JSON: List of supported timezone identifiers
+    """
+    Get Supported Timezones
+    ---
+    tags:
+      - Utilities
+    responses:
+      200:
+        description: List of supported timezones
+        schema:
+          type: object
+          properties:
+            timezones:
+              type: array
+              items:
+                type: string
     """
     try:
         timezones = get_all_timezones()

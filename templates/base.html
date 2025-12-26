@@ -140,7 +140,7 @@
             <div class="sidebar-nav flex-grow-1" id="sidebarNav">
                 {% set user_role = current_user.role.name if current_user.role else None %}
                 {% set is_manager = user_role == 'Manager' %}
-                {% set is_user = user_role == 'User' %}
+                {% set is_user = user_role == 'Employee' %}
                 {# Check if employee has manager flag enabled #}
                 {% set is_reporting_manager = hasattr(current_user, 'employee_profile') and
                 current_user.employee_profile and current_user.employee_profile.is_manager %}
@@ -432,7 +432,7 @@
 
 
         <!-- Mobile Floating Action Button -->
-        {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) == 'User' %}
+        {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) == 'Employee' %}
         <div class="dropdown dropup position-fixed">
             <button class="fab" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-plus"></i>
