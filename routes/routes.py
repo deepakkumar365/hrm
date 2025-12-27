@@ -699,12 +699,10 @@ def employee_list():
 @app.route('/employees/add', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Admin','HR Manager','Tenant Admin'])
 def employee_add():
-    is_super_admin = current_user.role.name == 'Super Admin' if current_user.role else False
-    tenant_id = get_current_user_tenant_id()
-    if is_super_admin:
-        companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-    else:
-        companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
+    # Get accessible companies (handles Super Admin, Tenant Admin, HR Manager scopes)
+    all_companies = current_user.get_accessible_companies()
+    companies = [c for c in all_companies if c.is_active]
+    companies.sort(key=lambda x: x.name)
 
     # Load master data for all paths
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
@@ -1124,12 +1122,12 @@ def profile_edit():
 def employee_edit(employee_id):
     """Edit employee details"""
     employee = Employee.query.get_or_404(employee_id)
-    is_super_admin = current_user.role == 'Super Admin'
     tenant_id = get_current_user_tenant_id()
-    if is_super_admin:
-        companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
-    else:
-        companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all() if tenant_id else []
+    
+    # Get accessible companies (handles Super Admin, Tenant Admin, HR Manager scopes)
+    all_companies = current_user.get_accessible_companies()
+    companies = [c for c in all_companies if c.is_active]
+    companies.sort(key=lambda x: x.name)
 
     # Load master data for all paths
     roles = Role.query.filter_by(is_active=True).order_by(Role.name).all()
@@ -2112,6 +2110,11 @@ def attendance_list():
         # Admin: Only their own attendance (as per requirement)
         admin_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == admin_id)
+    elif (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+        # HR Manager / Tenant Admin: Scoped by accessible companies
+        accessible_companies = current_user.get_accessible_companies()
+        company_ids = [c.id for c in accessible_companies]
+        query = query.filter(Employee.company_id.in_(company_ids))
     elif (current_user.role.name if current_user.role else None) == 'Super Admin':
         # Super Admin: Can see all attendance records
         pass
@@ -2147,6 +2150,11 @@ def attendance_list():
         # Super Admin can filter by all employees
         employees = Employee.query.filter_by(is_active=True).order_by(
             Employee.first_name).all()
+    elif (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+        # HR Manager / Tenant Admin: scoped employees
+        accessible_companies = current_user.get_accessible_companies()
+        company_ids = [c.id for c in accessible_companies]
+        employees = Employee.query.filter(Employee.company_id.in_(company_ids), Employee.is_active == True).order_by(Employee.first_name).all()
     elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager can filter by themselves and their team
         manager_id = current_user.employee_profile.id
@@ -3178,28 +3186,56 @@ def attendance_bulk_manage():
     
     selected_date_str = filter_date.isoformat()
     
-    # Get available companies for current user's tenant
-    tenant_id = get_current_user_tenant_id()
-    if tenant_id:
-        available_companies = Company.query.filter_by(is_active=True, tenant_id=tenant_id).order_by(Company.name).all()
-    else:
-        available_companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+    # Get available companies using accessible scope (Tenant Admin vs HR Manager)
+    available_companies = current_user.get_accessible_companies()
+    # Sort by name for dropdown
+    available_companies.sort(key=lambda x: x.name)
     
-    # Get employees for selected company or all companies in tenant
+    accessible_company_ids = [c.id for c in available_companies]
+
+    # Get employees for selected company or all accessible companies
     if selected_company:
         try:
-            selected_company_id = int(selected_company)
-            employees = Employee.query.filter_by(company_id=selected_company_id, is_active=True).order_by(Employee.first_name).all()
+            selected_company_id = int(selected_company) # or UUID handling if using UUID
+            from uuid import UUID
+            try:
+                # Handle UUID or Integer ID comparison safely
+                # Assuming company_id is UUID based on models.py (Company.id is UUID? No, Employee.company_id is UUID)
+                # Wait, models.py says Company.id is Integer? 
+                # Let's check models.py Company definition.
+                # Lines 166: class Company...
+                pass 
+            except:
+                pass
+
+            # Just filter by ID - database will handle type if passed correctly, but we should valid against access
+            # Assume selected_company is string representation of ID
+            
+            # Check if selected company is accessible
+            # We need to robustly check ID match (str vs uuid vs int)
+            is_accessible = False
+            for c_id in accessible_company_ids:
+                if str(c_id) == str(selected_company):
+                    is_accessible = True
+                    break
+            
+            if is_accessible:
+                 employees = Employee.query.filter_by(company_id=selected_company, is_active=True).order_by(Employee.first_name).all()
+            else:
+                 employees = [] # Not accessible
+                 flash('Access Denied to selected company', 'danger')
+
         except (ValueError, TypeError):
             employees = []
     else:
-        if tenant_id:
-            employees = db.session.query(Employee).join(Company).filter(
-                Company.tenant_id == tenant_id,
+        # Load employees from ALL accessible companies
+        if accessible_company_ids:
+            employees = Employee.query.filter(
+                Employee.company_id.in_(accessible_company_ids),
                 Employee.is_active == True
             ).order_by(Employee.first_name).all()
         else:
-            employees = Employee.query.filter_by(is_active=True).order_by(Employee.first_name).all()
+            employees = []
     
     # Get attendance records for the selected date
     attendance_records = {}

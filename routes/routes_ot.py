@@ -393,12 +393,14 @@ def ot_attendance():
         query = OTAttendance.query
         
         # Filter by company if not Super Admin
+        # Filter by accessible companies (Tenant Admin vs HR Manager scope)
         if user_role != 'Super Admin':
-            user_company_id = None
-            if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-                user_company_id = current_user.employee_profile.company_id
-            if user_company_id:
-                query = query.filter_by(company_id=user_company_id)
+            accessible_companies = current_user.get_accessible_companies()
+            company_ids = [c.id for c in accessible_companies]
+            if company_ids:
+                query = query.filter(OTAttendance.company_id.in_(company_ids))
+            else:
+                query = query.filter(OTAttendance.id == None) # Return nothing
         
         # Apply filters
         if employee_id:
@@ -710,12 +712,18 @@ def ot_requests():
         query = OTRequest.query
         
         # Filter by company
-        user_company_id = None
-        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-            user_company_id = current_user.employee_profile.company_id
+        # Filter by accessible companies
+        user_company_id = None # Keep variable for stats logic below if needed, but primary filter is list
         
-        if user_company_id:
-            query = query.filter(OTRequest.company_id == user_company_id)
+        if user_role != 'Super Admin':
+            accessible_companies = current_user.get_accessible_companies()
+            company_ids = [c.id for c in accessible_companies]
+            
+            if company_ids:
+                query = query.filter(OTRequest.company_id.in_(company_ids))
+                # optimize stats queries below by using list if multiple, or single if only one
+            else:
+                query = query.filter(OTRequest.id == None)
         
         # Filter by status (only show manager_approved and hr_rejected for review)
         if status and status != 'all':
