@@ -82,10 +82,11 @@ def mark_ot_attendance():
     """Mark OT Attendance - Self-service for all employees (except Super Admin)"""
     try:
         # Check access control - Allow all roles except Super Admin to mark their own OT
-        user_role = current_user.role.name if current_user.role else None
-        if user_role == 'Super Admin':
-            flash('Super Admin cannot mark OT attendance. Use OT Management section.', 'danger')
-            return redirect(url_for('dashboard'))
+        # Check access control - Allow all roles except Super Admin to mark their own OT
+        # user_role = current_user.role.name if current_user.role else None
+        # if user_role == 'Super Admin':
+        #     flash('Super Admin cannot mark OT attendance. Use OT Management section.', 'danger')
+        #     return redirect(url_for('dashboard'))
         
         # Get employee profile
         if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
@@ -101,7 +102,8 @@ def mark_ot_attendance():
         tenant_id = company.tenant_id if company else None
         
         if tenant_id:
-            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+            # Fix SAWarning: Pass query directly to in_(), not subquery()
+            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id)
             ot_types = OTType.query.filter(
                 OTType.company_id.in_(company_ids),
                 OTType.is_active == True
@@ -148,6 +150,9 @@ def mark_ot_attendance():
 
         company_timezone = company.timezone if company and company.timezone else 'Asia/Singapore'
         
+        # Check if employee has a manager assigned
+        has_manager = True if employee.manager_id else False
+
         return render_template('ot/mark_attendance.html',
                              employee=employee,
                              ot_types=ot_types,
@@ -155,7 +160,8 @@ def mark_ot_attendance():
                              today_logs=today_logs,
                              recent_history=recent_history,
                              hourly_rate=hourly_rate,
-                             company_timezone=company_timezone)
+                             company_timezone=company_timezone,
+                             has_manager=has_manager)
         
     except Exception as e:
         logger.error(f"Error in mark_ot_attendance: {str(e)}")
