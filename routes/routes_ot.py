@@ -75,7 +75,41 @@ def setup_create_ot_table():
         }), 500
 
 
-# ============ MARK OT ATTENDANCE (Employee Self-Service) ============
+# ============ TEMPORARY: FIX OT CONSTRAINT ============
+@app.route('/admin/setup/fix-ot-constraint', methods=['GET'])
+@login_required
+def setup_fix_ot_constraint():
+    """TEMPORARY: Drop the unique constraint uq_ot_attendance_emp_date to allow multiple OT entries"""
+    try:
+        # Security: Only allow access in development or from admin
+        user_role = current_user.role.name if (hasattr(current_user, 'role') and current_user.role) else None
+        if user_role not in ['Super Admin', 'Tenant Admin']:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        from sqlalchemy import text
+        
+        # SQL to drop the constraint
+        sql = text("ALTER TABLE hrm_ot_attendance DROP CONSTRAINT IF EXISTS uq_ot_attendance_emp_date")
+        
+        logger.info("Dropping constraint uq_ot_attendance_emp_date...")
+        db.session.execute(sql)
+        db.session.commit()
+        logger.info("✅ Constraint dropped successfully")
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Constraint uq_ot_attendance_emp_date dropped successfully!',
+            'next_steps': 'You can now log multiple OT entries per day. Try marking OT again.'
+        }), 200
+    
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error dropping constraint: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
 @app.route('/ot/mark', methods=['GET'])
 @login_required
 def mark_ot_attendance():
@@ -521,6 +555,7 @@ def submit_ot_attendance(attendance_id):
                 ot_date=ot_attendance.ot_date,
                 ot_type_id=ot_attendance.ot_type_id,
                 requested_hours=requested_hours,
+                amount=ot_attendance.amount or 0,
                 reason=ot_attendance.notes or 'OT submitted for approval',
                 status='pending_manager',
                 created_by=current_user.username
@@ -656,6 +691,7 @@ def submit_ot_for_manager_approval(attendance_id):
                 ot_date=ot_attendance.ot_date,
                 ot_type_id=ot_attendance.ot_type_id,
                 requested_hours=requested_hours,
+                amount=ot_attendance.amount or 0,
                 reason=ot_attendance.notes or 'OT submitted for approval',
                 status='pending_manager',  # Status: Pending Manager Approval
                 created_by=current_user.username
@@ -822,7 +858,8 @@ def ot_manager_approval():
             pass
 
         # GET Request - Show Dashboard
-        status_filter = request.args.get('status', 'pending') # 'pending' or 'history'
+        status_filter = request.args.get('status', 'pending') # Default to pending, but UI will have 'all' option
+        
         page = request.args.get('page', 1, type=int)
         
         # Base Query: Approvals assigned to this manager (Level 1)
@@ -832,14 +869,21 @@ def ot_manager_approval():
         )
         
         # Apply Status Filter
-        if status_filter == 'history':
-            # Show approved or rejected items
-            query = query.filter(OTApproval.status.in_(['manager_approved', 'manager_rejected']))
-            query = query.order_by(OTApproval.updated_at.desc())
-        else:
-            # Default: Show pending items
+        if status_filter == 'all':
+            pass # No filter
+        elif status_filter == 'pending':
             query = query.filter_by(status='pending_manager')
-            query = query.order_by(OTApproval.created_at.asc())
+        elif status_filter == 'approved':
+            query = query.filter_by(status='manager_approved')
+        elif status_filter == 'rejected':
+            query = query.filter_by(status='manager_rejected')
+        
+        # Sort by Date (Join with OTRequest)
+        # We need to join OTRequest to sort by ot_date usually, or just by created_at
+        query = query.join(OTRequest).order_by(OTRequest.ot_date.desc(), OTApproval.created_at.desc())
+            
+        # Pagination
+        approvals = query.paginate(page=page, per_page=20)
             
         # Pagination
         approvals = query.paginate(page=page, per_page=20)
@@ -856,15 +900,91 @@ def ot_manager_approval():
             'total_history': approved_count + rejected_count
         }
 
+        # Get active OT Types for the modification dropdown
+        ot_types = []
+        if manager_employee.company_id:
+             ot_types = OTType.query.filter_by(company_id=manager_employee.company_id, is_active=True).all()
+        # Fallback or additional global types? For now company specific or all if no company set (safer to show none if no company)
+        if not ot_types and not manager_employee.company_id:
+             # Maybe tenant based? Assuming manager has company.
+             pass
+
         return render_template('ot/manager_approval_dashboard.html',
                              approvals=approvals,
                              stats=stats,
-                             current_tab=status_filter)
+                             ot_types=ot_types,
+                             current_filter=status_filter)
 
     except Exception as e:
+        import traceback
         logger.error(f"Error in ot_manager_approval: {str(e)}")
-        flash('Error loading dashboard', 'danger')
+        logger.error(traceback.format_exc())
+        flash(f'Error loading dashboard: {str(e)}', 'danger')
         return redirect(url_for('dashboard'))
+
+@app.route('/ot/manager/export')
+@login_required
+def export_ot_manager_report():
+    try:
+        status_filter = request.args.get('status', 'all')
+        
+        query = OTApproval.query.filter_by(
+            approver_id=current_user.id,
+            approval_level=1
+        )
+        
+        if status_filter != 'all':
+            if status_filter == 'pending':
+                query = query.filter_by(status='pending_manager')
+            elif status_filter == 'approved':
+                query = query.filter_by(status='manager_approved')
+            elif status_filter == 'rejected':
+                query = query.filter_by(status='manager_rejected')
+        
+        # Join with OTRequest to get date
+        query = query.join(OTRequest).order_by(OTRequest.ot_date.desc())
+        
+        approvals = query.all()
+        
+        # Generate CSV
+        import io
+        import csv
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Headers
+        writer.writerow(['Date', 'Employee', 'Type', 'Status', 'Requested Qty', 'Amount', 'Reason', 'Approver Comments', 'Approved/Rejected At'])
+        
+        for app in approvals:
+            req = app.ot_request
+            emp = req.employee.first_name + ' ' + req.employee.last_name if req.employee else 'Unknown'
+            type_name = req.ot_type.name if req.ot_type else 'Unknown'
+            
+            writer.writerow([
+                req.ot_date,
+                emp,
+                type_name,
+                app.status,
+                req.requested_hours,
+                req.amount,
+                req.reason,
+                app.comments,
+                app.updated_at or app.created_at
+            ])
+            
+        output.seek(0)
+        
+        return Response(
+            output,
+            mimetype="text/csv",
+            headers={"Content-Disposition": "attachment;filename=ot_report.csv"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Export Error: {str(e)}")
+        flash('Failed to export report', 'danger')
+        return redirect(url_for('ot_manager_approval'))
 
 
 # ============ BULK ACTIONS (Manager) ============
@@ -905,6 +1025,33 @@ def ot_manager_bulk_action():
                 ot_request = approval.ot_request
                 
                 if action == 'approve':
+                    # Check for modifications
+                    modified_date = request.form.get('modified_date')
+                    modified_ot_type_id = request.form.get('modified_ot_type')
+                    modified_quantity = request.form.get('modified_quantity')
+                    modified_amount = request.form.get('modified_amount')
+                    modified_reason = request.form.get('modified_reason')
+
+                    # Update Request if modifications exist (only for the specific item if single, or all if bulk? 
+                    # The modal usually is for single item modification. If bulk, we skip modification or apply to all?
+                    # The current UI modal is per-item. Bulk modify is complex.
+                    # Assumption: The modification fields are passed when actioning likely a SINGLE item via the specific form or modal.
+                    # However, the form submits to this route. If `approval_ids` contains one ID, we can apply mods. 
+                    # If multiple, applying same date/qty is risky.
+                    # LIMITATION: Modification only works for single item approval via the modal.
+                    
+                    if len(approval_ids) == 1:
+                        if modified_date:
+                            ot_request.ot_date = datetime.strptime(modified_date, '%Y-%m-%d').date()
+                        if modified_ot_type_id:
+                            ot_request.ot_type_id = int(modified_ot_type_id)
+                        if modified_quantity:
+                            ot_request.requested_hours = float(modified_quantity)
+                        if modified_amount:
+                            ot_request.amount = float(modified_amount)
+                        if modified_reason:
+                            ot_request.reason = modified_reason
+
                     # Update Approval Record
                     approval.status = 'manager_approved'
                     approval.comments = comments if comments else 'Approved by Manager'
@@ -949,7 +1096,22 @@ def ot_manager_bulk_action():
                         status='pending_hr',
                         comments='Pending HR Approval'
                     )
+                    hr_approval = OTApproval(
+                        ot_request_id=ot_request.id,
+                        approver_id=hr_approver_id,
+                        approval_level=2,
+                        status='pending_hr',
+                        comments='Pending HR Approval'
+                    )
                     db.session.add(hr_approval)
+                    
+                    # Update Original OT Attendance Status
+                    ot_attendance = OTAttendance.query.filter_by(
+                        employee_id=ot_request.employee_id, 
+                        ot_date=ot_request.ot_date
+                    ).first()
+                    if ot_attendance:
+                        ot_attendance.status = 'manager_approved'
                     
                 elif action == 'reject':
                     # Update Approval Record
@@ -969,7 +1131,7 @@ def ot_manager_bulk_action():
                     ).first()
                     
                     if ot_attendance:
-                        ot_attendance.status = 'Rejected' # Or 'Draft' if you want them to edit immediately
+                        ot_attendance.status = 'manager_rejected' # Or 'Draft' if you want them to edit immediately
                         # Let's set to Rejected so history is preserved, they can clone or delete.
                 
                 success_count += 1

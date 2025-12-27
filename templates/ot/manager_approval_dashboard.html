@@ -242,23 +242,26 @@
     <div class="card border-0 shadow-sm">
         <!-- Tabs -->
         <div class="card-header bg-white border-bottom-0 pb-0 pt-2 px-4">
-            <ul class="nav nav-tabs" id="otTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ 'active' if current_tab == 'pending' else '' }}"
-                        href="{{ url_for('ot_manager_approval', status='pending') }}">
-                        <i class="fas fa-clock me-2"></i>Pending Reviews
-                        {% if stats.pending > 0 %}
-                        <span class="badge bg-warning text-dark ms-2 rounded-pill">{{ stats.pending }}</span>
-                        {% endif %}
+            <!-- Filters & Actions Row (Replaces Tabs) -->
+            <div class="row g-3 align-items-center mb-3">
+                <div class="col-md-3">
+                    <label class="small text-muted mb-1 fw-bold">Status Filter</label>
+                    <select class="form-select form-select-sm" onchange="window.location.href='?status=' + this.value">
+                        <option value="all" {% if current_filter=='all' %}selected{% endif %}>All Requests</option>
+                        <option value="pending" {% if current_filter=='pending' %}selected{% endif %}>Pending</option>
+                        <option value="approved" {% if current_filter=='approved' %}selected{% endif %}>Approved
+                        </option>
+                        <option value="rejected" {% if current_filter=='rejected' %}selected{% endif %}>Rejected
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-9 text-md-end mt-4 mt-md-0 pt-3">
+                    <a href="{{ url_for('export_ot_manager_report', status=current_filter) }}"
+                        class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-file-export me-1"></i> Export Report
                     </a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ 'active' if current_tab == 'history' else '' }}"
-                        href="{{ url_for('ot_manager_approval', status='history') }}">
-                        <i class="fas fa-history me-2"></i>Approval History
-                    </a>
-                </li>
-            </ul>
+                </div>
+            </div>
         </div>
 
         <div class="card-body p-0">
@@ -282,7 +285,8 @@
                                 {% endif %}
                                 <th class="ps-4">Employee</th>
                                 <th>Date & Type</th>
-                                <th>Hours</th>
+                                <th>Quantity</th>
+                                <th>Amount</th>
                                 <th>Reason</th>
                                 <th>Status</th>
                                 {% if current_tab == 'pending' %}
@@ -331,8 +335,12 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="fs-6 fw-bold text-dark">{{ approval.ot_request.requested_hours }}
-                                        hrs</span>
+                                    <span class="fs-6 fw-bold text-dark">{{
+                                        "%.2f"|format(approval.ot_request.requested_hours|float) }}</span>
+                                </td>
+                                <td>
+                                    <span class="fs-6 fw-bold text-success">${{
+                                        "%.2f"|format(approval.ot_request.amount|float) }}</span>
                                 </td>
                                 <td>
                                     {% if approval.ot_request.reason %}
@@ -372,7 +380,12 @@
                                             <i class="fas fa-times me-1"></i> Reject
                                         </button>
                                         <button type="button" class="btn btn-sm btn-light text-muted"
-                                            onclick="openModifyModal('{{ approval.id }}', '{{ approval.ot_request.requested_hours }}')">
+                                            data-id="{{ approval.id }}" data-date="{{ approval.ot_request.ot_date }}"
+                                            data-type-id="{{ approval.ot_request.ot_type_id }}"
+                                            data-quantity="{{ approval.ot_request.requested_hours }}"
+                                            data-amount="{{ approval.ot_request.amount }}"
+                                            data-reason="{{ approval.ot_request.reason }}"
+                                            onclick="openModifyModal(this)">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                     </div>
@@ -404,7 +417,10 @@
                                 </div>
                             </div>
                             <div class="text-end">
-                                <div class="h5 mb-0 fw-bold">{{ approval.ot_request.requested_hours }}h</div>
+                                <div class="h5 mb-0 fw-bold">{{ "%.2f"|format(approval.ot_request.requested_hours|float)
+                                    }}</div>
+                                <div class="text-success fw-bold">${{ "%.2f"|format(approval.ot_request.amount|float) }}
+                                </div>
                             </div>
                         </div>
 
@@ -515,7 +531,7 @@
     </div>
 </div>
 
-<!-- Modify Hours Modal -->
+<!-- Modify & Approve Modal -->
 <div class="modal fade" id="modifyModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -527,19 +543,50 @@
                 <form id="modifyForm" action="{{ url_for('ot_manager_bulk_action') }}" method="POST">
                     <input type="hidden" name="action" value="approve">
                     <input type="hidden" name="approval_ids" id="modifyApprovalId">
+
                     <div class="mb-3">
-                        <label class="form-label">Approved Hours</label>
-                        <input type="number" step="0.5" class="form-control" name="modified_hours" id="modifyHoursInput"
-                            required>
+                        <label class="form-label">OT Date</label>
+                        <input type="date" class="form-control" name="modified_date" id="modifyDate" required>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">OT Type</label>
+                        <select class="form-select" name="modified_ot_type" id="modifyOtType" required>
+                            <option value="">Select Type</option>
+                            {% for type in ot_types %}
+                            <option value="{{ type.id }}" data-multiplier="{{ type.rate_multiplier }}">{{ type.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Quantity (Hrs/Units)</label>
+                        <input type="number" step="0.5" class="form-control" name="modified_quantity"
+                            id="modifyQuantity" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Amount ($)</label>
+                        <input type="number" step="0.01" class="form-control text-success fw-bold"
+                            name="modified_amount" id="modifyAmount" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <textarea class="form-control" name="modified_reason" id="modifyReason" rows="2"
+                            required></textarea>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Comments (Optional)</label>
                         <textarea class="form-control" name="comments" rows="2"
                             placeholder="Note on modification..."></textarea>
                     </div>
+
                     <div class="text-end">
                         <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success">Approve New Hours</button>
+                        <button type="submit" class="btn btn-success">Approve Changes</button>
                     </div>
                 </form>
             </div>
@@ -560,7 +607,6 @@
 
     function updateSelection() {
         const selected = document.querySelectorAll('.row-checkbox:checked, .row-checkbox-mobile:checked');
-        // De-duplicate IDs (since we might have both desktop and mobile inputs for same item)
         const ids = new Set();
         selected.forEach(cb => ids.add(cb.value));
 
@@ -577,7 +623,6 @@
 
     // Actions
     function singleAction(action, id) {
-        // For simple approve, just submit
         const form = document.getElementById('bulkActionForm');
         document.getElementById('bulkActionInput').value = action;
         document.getElementById('bulkIdsInput').value = id;
@@ -590,14 +635,10 @@
         selected.forEach(cb => ids.add(cb.value));
 
         if (action === 'reject') {
-            // Bulk reject needs comments -> use modal? Layout suggests single rejection logic usually.
-            // If bulk reject, we need a bulk reject modal.
-            // Let's modify the reject modal to support bulk.
             document.getElementById('rejectApprovalId').value = Array.from(ids).join(',');
             const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
             modal.show();
         } else {
-            // Approve
             const form = document.getElementById('bulkActionForm');
             document.getElementById('bulkActionInput').value = action;
             document.getElementById('bulkIdsInput').value = Array.from(ids).join(',');
@@ -612,9 +653,23 @@
         modal.show();
     }
 
-    function openModifyModal(id, currentHours) {
+    function openModifyModal(btn) {
+        // Get data from attributes
+        const id = btn.dataset.id;
+        const date = btn.dataset.date;
+        const typeId = btn.dataset.typeId;
+        const qty = btn.dataset.quantity;
+        const amount = btn.dataset.amount;
+        const reason = btn.dataset.reason;
+
+        // Populate Form
         document.getElementById('modifyApprovalId').value = id;
-        document.getElementById('modifyHoursInput').value = currentHours;
+        document.getElementById('modifyDate').value = date;
+        document.getElementById('modifyOtType').value = typeId;
+        document.getElementById('modifyQuantity').value = qty;
+        document.getElementById('modifyAmount').value = amount;
+        document.getElementById('modifyReason').value = reason;
+
         const modal = new bootstrap.Modal(document.getElementById('modifyModal'));
         modal.show();
     }
