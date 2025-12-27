@@ -833,14 +833,17 @@ def employee_add():
             if psa_pass_expiry:
                 employee.psa_pass_expiry = parse_date(psa_pass_expiry)
 
-            employee.basic_salary = float(request.form.get('basic_salary', 0))
-            employee.allowances = float(request.form.get('allowances', 0))
+            employee.basic_salary = float(request.form.get('basic_salary') or 0)
+            employee.allowances = float(request.form.get('allowances') or 0)
             
-            employee.employee_cpf_rate = float(request.form.get('employee_cpf_rate', 20.00))
-            employee.employer_cpf_rate = float(request.form.get('employer_cpf_rate', 17.00))
+            employee_cpf_rate = request.form.get('employee_cpf_rate')
+            employee.employee_cpf_rate = float(employee_cpf_rate) if employee_cpf_rate else 20.00
+            
+            employer_cpf_rate = request.form.get('employer_cpf_rate')
+            employee.employer_cpf_rate = float(employer_cpf_rate) if employer_cpf_rate else 17.00
 
             hourly_rate = request.form.get('hourly_rate')
-            if hourly_rate:
+            if hourly_rate and hourly_rate.strip():
                 employee.hourly_rate = float(hourly_rate)
 
             employee.cpf_account = request.form.get('cpf_account')

@@ -1343,6 +1343,7 @@ class OTRequest(db.Model):
     ot_date = db.Column(db.Date, nullable=False)
     ot_type_id = db.Column(db.Integer, db.ForeignKey('hrm_ot_type.id'), nullable=False)
     requested_hours = db.Column(db.Numeric(6, 2), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), default=0) # Total amount for this request
     reason = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), default='Pending')
     approved_hours = db.Column(db.Numeric(6, 2), nullable=True)
@@ -1371,7 +1372,9 @@ class OTApproval(db.Model):
     status = db.Column(db.String(20), nullable=False)
     comments = db.Column(db.Text, nullable=True)
     approved_hours = db.Column(db.Numeric(6, 2), nullable=True)
+    approved_hours = db.Column(db.Numeric(6, 2), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    updated_at = db.Column(db.DateTime, nullable=True, onupdate=datetime.now)
 
     ot_request = db.relationship('OTRequest', foreign_keys=[ot_request_id])
     approver = db.relationship('User', foreign_keys=[approver_id])
