@@ -617,8 +617,12 @@ def employee_list():
         query = query.filter(
             Employee.manager_id == current_user.employee_profile.id)
 
-    if (current_user.role.name if current_user.role else None) == 'HR Manager' and hasattr(current_user, 'employee_profile'):
-        query = query.filter(Employee.company_id == current_user.employee_profile.company_id)
+    user_role = current_user.role.name if current_user.role else None
+    
+    if user_role in ['HR Manager', 'Tenant Admin']:
+        accessible_companies = current_user.get_accessible_companies()
+        company_ids = [c.id for c in accessible_companies]
+        query = query.filter(Employee.company_id.in_(company_ids))
 
     # Sorting
     if sort_by == 'tenant_name':

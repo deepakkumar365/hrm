@@ -108,9 +108,8 @@ class User(db.Model, UserMixin):
             from core.models import Company
             return Company.query.all()
 
-        if self.role and self.role.name in ['HR Manager', 'Tenant Admin']:
-            # For HR Manager and Tenant Admin, return only companies from their tenant
-            # Prioritize Tenant from Employee Profile
+        elif self.role and self.role.name == 'Tenant Admin':
+            # Tenant Admin sees ALL companies in their tenant
             tenant_id = None
             if self.employee_profile and self.employee_profile.company and self.employee_profile.company.tenant_id:
                 tenant_id = self.employee_profile.company.tenant_id
@@ -120,6 +119,12 @@ class User(db.Model, UserMixin):
             if tenant_id:
                 from core.models import Company
                 return Company.query.filter_by(tenant_id=tenant_id).all()
+            return []
+
+        elif self.role and self.role.name == 'HR Manager':
+            # HR Manager sees ONLY their own company
+            if self.employee_profile and self.employee_profile.company:
+                return [self.employee_profile.company]
             return []
 
         elif self.company_access:
