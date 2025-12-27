@@ -714,6 +714,12 @@ def employee_add():
     managers = Employee.query.filter_by(is_active=True, is_manager=True).all()
     timezones = pytz.all_timezones
     leave_groups = EmployeeGroup.query.filter_by(is_active=True).all()
+    # Determine tenant_id
+    tenant_id = get_current_user_tenant_id()
+    if not tenant_id and companies:
+        # Fallback: use tenant from first accessible company if not explicitly set on user
+        tenant_id = companies[0].tenant_id
+
     overtime_groups = get_overtime_groups(tenant_id)
 
     if request.method == 'POST':
