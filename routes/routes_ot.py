@@ -82,10 +82,11 @@ def mark_ot_attendance():
     """Mark OT Attendance - Self-service for all employees (except Super Admin)"""
     try:
         # Check access control - Allow all roles except Super Admin to mark their own OT
-        user_role = current_user.role.name if current_user.role else None
-        if user_role == 'Super Admin':
-            flash('Super Admin cannot mark OT attendance. Use OT Management section.', 'danger')
-            return redirect(url_for('dashboard'))
+        # Check access control - Allow all roles except Super Admin to mark their own OT
+        # user_role = current_user.role.name if current_user.role else None
+        # if user_role == 'Super Admin':
+        #     flash('Super Admin cannot mark OT attendance. Use OT Management section.', 'danger')
+        #     return redirect(url_for('dashboard'))
         
         # Get employee profile
         if not hasattr(current_user, 'employee_profile') or not current_user.employee_profile:
@@ -101,7 +102,8 @@ def mark_ot_attendance():
         tenant_id = company.tenant_id if company else None
         
         if tenant_id:
-            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
+            # Fix SAWarning: Pass query directly to in_(), not subquery()
+            company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id)
             ot_types = OTType.query.filter(
                 OTType.company_id.in_(company_ids),
                 OTType.is_active == True
@@ -148,6 +150,9 @@ def mark_ot_attendance():
 
         company_timezone = company.timezone if company and company.timezone else 'Asia/Singapore'
         
+        # Check if employee has a manager assigned
+        has_manager = True if employee.manager_id else False
+
         return render_template('ot/mark_attendance.html',
                              employee=employee,
                              ot_types=ot_types,
@@ -155,7 +160,8 @@ def mark_ot_attendance():
                              today_logs=today_logs,
                              recent_history=recent_history,
                              hourly_rate=hourly_rate,
-                             company_timezone=company_timezone)
+                             company_timezone=company_timezone,
+                             has_manager=has_manager)
         
     except Exception as e:
         logger.error(f"Error in mark_ot_attendance: {str(e)}")
@@ -393,12 +399,14 @@ def ot_attendance():
         query = OTAttendance.query
         
         # Filter by company if not Super Admin
+        # Filter by accessible companies (Tenant Admin vs HR Manager scope)
         if user_role != 'Super Admin':
-            user_company_id = None
-            if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-                user_company_id = current_user.employee_profile.company_id
-            if user_company_id:
-                query = query.filter_by(company_id=user_company_id)
+            accessible_companies = current_user.get_accessible_companies()
+            company_ids = [c.id for c in accessible_companies]
+            if company_ids:
+                query = query.filter(OTAttendance.company_id.in_(company_ids))
+            else:
+                query = query.filter(OTAttendance.id == None) # Return nothing
         
         # Apply filters
         if employee_id:
@@ -710,12 +718,18 @@ def ot_requests():
         query = OTRequest.query
         
         # Filter by company
-        user_company_id = None
-        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-            user_company_id = current_user.employee_profile.company_id
+        # Filter by accessible companies
+        user_company_id = None # Keep variable for stats logic below if needed, but primary filter is list
         
-        if user_company_id:
-            query = query.filter(OTRequest.company_id == user_company_id)
+        if user_role != 'Super Admin':
+            accessible_companies = current_user.get_accessible_companies()
+            company_ids = [c.id for c in accessible_companies]
+            
+            if company_ids:
+                query = query.filter(OTRequest.company_id.in_(company_ids))
+                # optimize stats queries below by using list if multiple, or single if only one
+            else:
+                query = query.filter(OTRequest.id == None)
         
         # Filter by status (only show manager_approved and hr_rejected for review)
         if status and status != 'all':
