@@ -105,6 +105,18 @@
                                     </div>
                                     {% endif %}
 
+                                    {% if current_user.tenant %}
+                                    <div class="small text-muted mb-0">
+                                        Tenant: {{ current_user.tenant.name }}
+                                    </div>
+                                    {% endif %}
+
+                                    {% if current_user.company %}
+                                    <div class="small text-muted mb-1">
+                                        Company: {{ current_user.company.name }}
+                                    </div>
+                                    {% endif %}
+
                                     {% if current_user.role %}
                                     <div class="mt-1"><span class="badge bg-secondary rounded-pill">{{
                                             current_user.role.name }}</span></div>

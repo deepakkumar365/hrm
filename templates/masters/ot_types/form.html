@@ -71,13 +71,10 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="rate_multiplier" class="form-label">Rate Multiplier *</label>
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" id="rate_multiplier"
-                                            name="rate_multiplier" step="0.1" min="0.5" max="10"
-                                            value="{{ ot_type.rate_multiplier if ot_type else '1.5' }}"
-                                            placeholder="1.5" required>
-                                        <span class="input-group-text">x base salary</span>
-                                    </div>
+                                    <input type="number" class="form-control" id="rate_multiplier"
+                                        name="rate_multiplier" step="0.1" min="0.5"
+                                        value="{{ ot_type.rate_multiplier if ot_type else '1.5' }}" placeholder="1.5"
+                                        required>
                                     <small class="form-text text-muted">Multiplier for overtime pay calculation</small>
                                     <div class="invalid-feedback">Please provide a valid rate multiplier.</div>
                                 </div>

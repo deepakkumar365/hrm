@@ -33,6 +33,12 @@ def _allowed_image(filename: str) -> bool:
 
 def get_current_user_tenant_id():
     """Get current user's tenant ID for multi-tenant filtering"""
+    # Prioritize Tenant from Employee Profile
+    if current_user and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        if current_user.employee_profile.company and current_user.employee_profile.company.tenant_id:
+            return current_user.employee_profile.company.tenant_id
+
+    # Fallback to Organization
     if current_user and current_user.organization:
         return current_user.organization.tenant_id
     return None
@@ -748,7 +754,8 @@ def employee_add():
 
             # Create new employee
             employee = Employee()
-            employee.organization_id = current_user.organization_id
+            # Organization is no longer used for employees
+            # employee.organization_id = current_user.organization_id
 
             # Set company_id from form
             company_id = request.form.get('company_id')

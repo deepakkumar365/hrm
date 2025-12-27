@@ -89,6 +89,18 @@ class User(db.Model, UserMixin):
             return self.employee_profile.company_id
         return None
 
+    @property
+    def tenant(self):
+        """Get tenant from employee profile company, fallback to organization"""
+        # 1. Prefer Tenant from Employee Profile
+        if self.employee_profile and self.employee_profile.company and self.employee_profile.company.tenant:
+            return self.employee_profile.company.tenant
+        
+        # 2. Fallback to Organization
+        if self.organization and self.organization.tenant:
+            return self.organization.tenant
+        return None
+
     def get_accessible_companies(self):
         """Get all companies accessible by this user"""
         if self.role and self.role.name == 'Super Admin':
@@ -98,9 +110,16 @@ class User(db.Model, UserMixin):
 
         if self.role and self.role.name in ['HR Manager', 'Tenant Admin']:
             # For HR Manager and Tenant Admin, return only companies from their tenant
-            if self.organization and self.organization.tenant_id:
+            # Prioritize Tenant from Employee Profile
+            tenant_id = None
+            if self.employee_profile and self.employee_profile.company and self.employee_profile.company.tenant_id:
+                tenant_id = self.employee_profile.company.tenant_id
+            elif self.organization and self.organization.tenant_id:
+                tenant_id = self.organization.tenant_id
+            
+            if tenant_id:
                 from core.models import Company
-                return Company.query.filter_by(tenant_id=self.organization.tenant_id).all()
+                return Company.query.filter_by(tenant_id=tenant_id).all()
             return []
 
         elif self.company_access:
@@ -423,7 +442,7 @@ class Employee(db.Model):
     termination_date = db.Column(db.Date)
 
     user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
-    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=True)
     manager_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='SET NULL'), nullable=True)
 
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
