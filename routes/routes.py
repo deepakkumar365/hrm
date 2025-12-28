@@ -793,7 +793,16 @@ def employee_add():
             employee.nationality = request.form.get('nationality')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            employee.department = request.form.get('department')
+            # Clean up department field
+            dept_val = request.form.get('department')
+            if dept_val:
+                dept_val = dept_val.strip()
+                # Validate it exists in master
+                valid_dept = Department.query.filter_by(name=dept_val, is_active=True).first()
+                if not valid_dept:
+                    print(f"Warning: New Employee trying to save invalid department '{dept_val}'")
+            
+            employee.department = dept_val if dept_val else None
             # Position field removed - use designation_id instead
             employee.hire_date = parse_date(request.form.get('hire_date'))
             termination_date = request.form.get('termination_date')
@@ -1150,6 +1159,10 @@ def employee_edit(employee_id):
     leave_groups = EmployeeGroup.query.filter_by(is_active=True).all()
     overtime_groups = get_overtime_groups(tenant_id)
 
+    # DEBUG: Log department status
+    print(f"[DEBUG] Employee Edit {employee_id}: Found {len(departments)} active departments")
+    print(f"[DEBUG] Employee Edit {employee_id}: Current Employee Dept: '{employee.department}'")
+
     if request.method == 'POST':
         try:
             # Update company_id from form
@@ -1207,7 +1220,16 @@ def employee_edit(employee_id):
             employee.nric = nric
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            employee.department = request.form.get('department')
+            # Clean up department field
+            dept_val = request.form.get('department')
+            if dept_val:
+                dept_val = dept_val.strip()
+                # Validate it exists in master
+                valid_dept = Department.query.filter_by(name=dept_val, is_active=True).first()
+                if not valid_dept:
+                    print(f"Warning: Employee {employee_id} trying to save invalid department '{dept_val}'")
+            
+            employee.department = dept_val if dept_val else None
             # Position field removed - use designation_id instead
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')

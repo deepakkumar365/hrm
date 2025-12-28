@@ -2,178 +2,355 @@
 
 {% block title %}HR Manager Dashboard - Nexar{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modern-dashboard.css') }}">
+<style>
+    /* Specific overrides for HR Dashboard */
+    .stat-value-large {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--brand-primary);
+    }
+
+    .stat-label-small {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .clickable-card {
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .clickable-card:hover {
+        transform: translateY(-3px);
+    }
+
+    /* Modal styles from original */
+    .detail-modal {
+        display: none;
+        position: fixed;
+        z-index: 1050;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 0;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 800px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-body-scroll {
+        padding: 20px;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    .modal-close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .modal-close:hover,
+    .modal-close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid px-3 py-2">
-    <!-- Header Section -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h4 class="h4 mb-0">HR Manager Dashboard</h4>
-            <p class="text-muted small mb-0">Real-time performance and operations overview</p>
-        </div>
-        <div class="d-flex gap-2 align-items-center">
-            <div class="company-selector">
-                <form method="GET" class="d-flex gap-2 align-items-center">
-                    <select name="company_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-                        {% for company in companies %}
-                        <option value="{{ company.id }}" {% if company.id==selected_company.id %}selected{% endif %}>
-                            {{ company.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </form>
-            </div>
-            <button class="btn btn-sm btn-outline-primary" onclick="refreshDashboard()">
-                <i class="fas fa-sync-alt"></i>
-                <span>Refresh</span>
+<div class="dashboard-container">
+    <!-- Top Navigation & Controls -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <!-- Module Tabs -->
+        <nav class="dashboard-nav-tabs">
+            <a href="{{ url_for('hr_manager_dashboard') }}" class="dashboard-nav-link active">Dashboard</a>
+            <a href="{{ url_for('employee_list') }}" class="dashboard-nav-link">Employees</a>
+            <a href="{{ url_for('attendance_list_view') }}" class="dashboard-nav-link">Attendance</a>
+            <a href="{{ url_for('leave_list') }}" class="dashboard-nav-link">Leaves</a>
+            <a href="{{ url_for('payroll_list') }}" class="dashboard-nav-link">Payroll</a>
+            <a href="{{ url_for('hr_manager_ot_attendance') }}" class="dashboard-nav-link">Overtime</a>
+        </nav>
+
+        <!-- Controls -->
+        <div class="d-flex gap-3 align-items-center">
+            <form method="GET" class="d-flex gap-2 align-items-center">
+                <select name="company_id" class="form-select form-select-sm w-auto border-0 shadow-sm"
+                    style="min-width: 200px;" onchange="this.form.submit()">
+                    {% for company in companies %}
+                    <option value="{{ company.id }}" {% if company.id==selected_company.id %}selected{% endif %}>
+                        {{ company.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            <button class="btn btn-action btn-sm" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i> Refresh
             </button>
+            <div class="text-muted small fw-bold ms-2" id="todayDate"></div>
         </div>
     </div>
 
-    <!-- Today's Summary Row (4-column grid) -->
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3 mb-3">
-        <!-- Present -->
-        <div class="col">
-            <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
-                onclick="openAttendanceModal('Present', {{ today_summary.attendance.present }})">
-                <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.present }}</div>
-                <div class="text-secondary small text-uppercase fw-bold">Present</div>
-            </div>
-        </div>
-
-        <!-- Absent -->
-        <div class="col">
-            <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
-                onclick="openAttendanceModal('Absent', {{ today_summary.attendance.absent }})">
-                <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.absent }}</div>
-                <div class="text-secondary small text-uppercase fw-bold">Absent</div>
-            </div>
-        </div>
-
-        <!-- Late -->
-        <div class="col">
-            <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
-                onclick="openAttendanceModal('Late', {{ today_summary.attendance.late }})">
-                <div class="h2 fw-bold text-info mb-1">{{ today_summary.attendance.late }}</div>
-                <div class="text-secondary small text-uppercase fw-bold">Late</div>
-            </div>
-        </div>
-
-        <!-- On Leave -->
-        <div class="col">
-            <div class="stat-card border border-1 p-3 h-100 text-center cursor-pointer"
-                onclick="openAttendanceModal('leaves', {{ today_summary.leaves }})">
-                <div class="h2 fw-bold text-info mb-1">{{ today_summary.leaves }}</div>
-                <div class="text-secondary small text-uppercase fw-bold">On Leave</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Operational Hub Section -->
-    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3 mb-3">
-        <!-- OT Approval Manager -->
-        <div class="col">
-            <a href="/ot/manager-approval"
-                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
-                <i class="fas fa-user-check text-success fs-4 mb-2"></i>
-                <div class="small fw-bold text-center">OT Approval (Manager)</div>
-            </a>
-        </div>
-
-        <!-- OT Attendance -->
-        <div class="col">
-            <a href="/dashboard/hr-manager/ot-attendance?company_id={{ selected_company.id }}"
-                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
-                <i class="fas fa-clock text-info fs-4 mb-2"></i>
-                <div class="small fw-bold text-center">OT Hours</div>
-                <div class="small fw-bold mt-1">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
-            </a>
-        </div>
-
-        <!-- Payroll Reminder -->
-        <div class="col">
-            <a href="/dashboard/hr-manager/payroll-reminder?company_id={{ selected_company.id }}"
-                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
-                <i class="fas fa-bell text-warning fs-4 mb-2"></i>
-                <div class="small fw-bold text-center">Payroll Reminder</div>
-            </a>
-        </div>
-
-        <!-- Generate Payroll -->
-        <div class="col">
-            <a href="/dashboard/hr-manager/generate-payroll"
-                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
-                <i class="fas fa-file-invoice-dollar text-primary fs-4 mb-2"></i>
-                <div class="small fw-bold text-center">Generate Payroll</div>
-            </a>
-        </div>
-
-        <!-- Payroll History -->
-        <div class="col">
-            <a href="#payroll-history"
-                class="stat-card border border-1 d-flex flex-column align-items-center justify-content-center text-decoration-none p-3 h-100 text-dark">
-                <i class="fas fa-history text-muted fs-4 mb-2"></i>
-                <div class="small fw-bold text-center">Payroll History</div>
-            </a>
-        </div>
-    </div>
-
-    <!-- Additional Info Section (Max Space) -->
-    <div class="row g-3">
-        <div class="col-lg-12">
-            <div class="stat-card p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-bold mb-0">System Summary</h6>
-                    <span id="todayDate" class="text-muted smaller"></span>
+    <!-- Main Grid -->
+    <div class="dashboard-grid">
+        <!-- Column 1: Identity & Status -->
+        <div class="grid-col-1 d-flex flex-column gap-3">
+            <!-- Profile Card -->
+            <div class="dash-card profile-card">
+                <div class="dash-card-header">
+                    <span>HR Manager</span>
+                    <i class="fas fa-id-badge"></i>
                 </div>
-                <div class="row text-center">
-                    <div class="col-3 border-end">
-                        <div class="small text-muted">Total Employees</div>
-                        <div class="h6 fw-bold mb-0">{{ today_summary.attendance.total }}</div>
-                    </div>
-                    <div class="col-3 border-end">
-                        <div class="small text-muted">Attendance Sync</div>
-                        <div class="h6 fw-bold mb-0">{{ today_summary.not_updated }} Pending</div>
-                    </div>
-                    <div class="col-3 border-end">
-                        <div class="small text-muted">MTD OT</div>
-                        <div class="h6 fw-bold mb-0">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
-                    </div>
-                    <div class="col-3">
-                        <div class="small text-muted">Current Month</div>
-                        <div class="h6 fw-bold mb-0">{{ month_name }}</div>
+                <div class="profile-card-content">
+                    <div class="profile-info-row">
+                        <div class="profile-avatar">
+                            {% if current_user.employee_profile and current_user.employee_profile.profile_image_path %}
+                            <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}"
+                                alt="Profile">
+                            {% else %}
+                            <i class="fas fa-user-tie"></i>
+                            {% endif %}
+                        </div>
+                        <div class="profile-details">
+                            <h4>{{ current_user.full_name }}</h4>
+                            <p>{{ current_user.role.name }}</p>
+                            <div class="profile-meta">
+                                <i class="fas fa-building"></i>
+                                <span>{{ selected_company.name }}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <span>System Status</span>
+                    <i class="fas fa-server"></i>
+                </div>
+                <div class="d-flex flex-column gap-3">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Employees</span>
+                        <span class="stat-value">{{ today_summary.attendance.total }}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Attendance Sync</span>
+                        {% if today_summary.not_updated > 0 %}
+                        <span class="badge bg-warning text-dark">{{ today_summary.not_updated }} Pending</span>
+                        {% else %}
+                        <span class="badge bg-success">Up to Date</span>
+                        {% endif %}
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Current Period</span>
+                        <span class="stat-value">{{ month_name }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 2: Operations Center (Wide) -->
+        <div class="grid-col-2 d-flex flex-column gap-3">
+            <!-- Today's Attendance Overview -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <span>Today's Attendance</span>
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <!-- 4 color cards row -->
+                <div class="row g-3">
+                    <!-- Present -->
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 rounded-3 bg-light border text-center clickable-card h-100"
+                            onclick="openAttendanceModal('Present', {{ today_summary.attendance.present }})">
+                            <div class="stat-value-large text-success">{{ today_summary.attendance.present }}</div>
+                            <div class="stat-label-small">Present</div>
+                        </div>
+                    </div>
+                    <!-- Absent -->
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 rounded-3 bg-light border text-center clickable-card h-100"
+                            onclick="openAttendanceModal('Absent', {{ today_summary.attendance.absent }})">
+                            <div class="stat-value-large text-danger">{{ today_summary.attendance.absent }}</div>
+                            <div class="stat-label-small">Absent</div>
+                        </div>
+                    </div>
+                    <!-- Late -->
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 rounded-3 bg-light border text-center clickable-card h-100"
+                            onclick="openAttendanceModal('Late', {{ today_summary.attendance.late }})">
+                            <div class="stat-value-large text-warning">{{ today_summary.attendance.late }}</div>
+                            <div class="stat-label-small">Late</div>
+                        </div>
+                    </div>
+                    <!-- On Leave -->
+                    <div class="col-md-3 col-6">
+                        <div class="p-3 rounded-3 bg-light border text-center clickable-card h-100"
+                            onclick="openAttendanceModal('leaves', {{ today_summary.leaves }})">
+                            <div class="stat-value-large text-primary">{{ today_summary.leaves }}</div>
+                            <div class="stat-label-small">On Leave</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 border-top pt-3">
+                    <h6 class="text-muted small fw-bold mb-3 text-uppercase">Month to Date</h6>
+                    <div class="row text-center">
+                        <div class="col">
+                            <div class="h5 mb-0 fw-bold">{{ mtd_attendance.present }}</div>
+                            <div class="small text-muted">Present</div>
+                        </div>
+                        <div class="col border-start">
+                            <div class="h5 mb-0 fw-bold">{{ mtd_attendance.absent }}</div>
+                            <div class="small text-muted">Absent</div>
+                        </div>
+                        <div class="col border-start">
+                            <div class="h5 mb-0 fw-bold">{{ "%.1f" | format(mtd_ot.total_hours) }}h</div>
+                            <div class="small text-muted">OT Hours</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <span>Quick Actions</span>
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{{ url_for('hr_manager_generate_payroll') }}" class="btn-action">
+                        <i class="fas fa-file-invoice-dollar"></i> Generate Payroll
+                    </a>
+                    <a href="{{ url_for('hr_manager_ot_approval') }}" class="btn-action">
+                        <i class="fas fa-check-double"></i> OT Approvals
+                    </a>
+                    <a href="{{ url_for('hr_manager_payroll_reminder', company_id=selected_company.id) }}"
+                        class="btn-action">
+                        <i class="fas fa-bell"></i> Payroll Reminder
+                    </a>
+                    <a href="{{ url_for('employee_add') }}" class="btn-action">
+                        <i class="fas fa-user-plus"></i> Add Employee
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 3: Alerts & History -->
+        <div class="grid-col-3 d-flex flex-column gap-3">
+            <!-- Pending Approvals -->
+            <div class="dash-card" style="min-height: 250px;">
+                <div class="dash-card-header">
+                    <span>Pending OT Approvals</span>
+                    <i class="fas fa-clock"></i>
+                </div>
+                {% if pending_ot_approvals %}
+                <div class="d-flex flex-column gap-2 overflow-auto" style="max-height: 300px;">
+                    {% for item in pending_ot_approvals %}
+                    <div class="p-2 border rounded bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold small">{{ item.emp_name }}</span>
+                            <span class="badge bg-warning text-dark">{{ item.requested_hours }}h</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted smaller">{{ item.ot_date.strftime('%b %d') }}</span>
+                            <a href="{{ url_for('hr_manager_ot_approval', company_id=selected_company.id) }}"
+                                class="btn btn-xs btn-outline-primary py-0" style="font-size: 10px;">Review</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    No pending approvals
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Payroll History -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <span>Recent Payrolls</span>
+                    <i class="fas fa-history"></i>
+                </div>
+                {% if payroll_history %}
+                <div class="d-flex flex-column gap-0">
+                    {% for p in payroll_history %}
+                    <div class="stat-row">
+                        <div class="d-flex flex-column">
+                            <span class="stat-label text-dark">{{ p.month }}/{{ p.year }}</span>
+                            <span class="smaller text-muted">{{ p.emp_count }} Employees</span>
+                        </div>
+                        <span class="stat-value">{{ "%.2f" | format(p.total_salary) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    No history found
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Attendance Details Modal -->
+<!-- Attendance Details Modal (Preserved Functionality) -->
 <div id="attendanceDetailModal" class="detail-modal">
     <div class="modal-content">
-        <div class="modal-header d-flex justify-content-between align-items-center">
-            <h4 id="attendanceModalTitle" class="mb-0">Employee Details</h4>
+        <div class="modal-header">
+            <h4 id="attendanceModalTitle" class="mb-0 h5 fw-bold">Employee Details</h4>
             <button class="modal-close" onclick="closeAttendanceModal()">&times;</button>
         </div>
         <div id="attendanceModalBody" class="modal-body-scroll">
-            <!-- Content will be populated via JavaScript -->
+            <!-- Content -->
         </div>
     </div>
 </div>
 
 <script>
     // Set today's date
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
     const dateStr = new Date().toLocaleDateString('en-US', options);
     const dateEl = document.getElementById('todayDate');
     if (dateEl) dateEl.textContent = dateStr;
 
     // Refresh Dashboard Function
     function refreshDashboard() {
-        const refreshBtn = document.querySelector('.btn i.fa-sync-alt').parentElement;
+        const refreshBtn = document.querySelector('.btn-action i.fa-sync-alt').parentElement;
         refreshBtn.disabled = true;
-        refreshBtn.querySelector('i').classList.add('fa-spin');
-
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
         setTimeout(() => {
             location.reload();
         }, 300);
@@ -182,7 +359,6 @@
     // Attendance Modal Functions
     let presentData = {{ today_summary.present_details_json | safe }};
 
-    // Ensure present data is an array
     if (!Array.isArray(presentData)) {
         presentData = [];
     }
@@ -197,12 +373,9 @@
 
     function openAttendanceModal(status, count) {
         if (count === 0) {
-            if (typeof showNotification === 'function') {
-                showNotification(`No ${status} employees today`, 'info');
-            } else {
-                alert(`No ${status} employees today`);
-            }
-            return;
+            // Optional: still show modal saying empty or just alert
+            // alert(`No ${status} employees today`);
+            // Better UX: Show modal with "No Data" state
         }
 
         const modal = document.getElementById('attendanceDetailModal');
@@ -227,7 +400,7 @@
             modal.style.display = 'block';
         } else {
             // Fetch via AJAX
-            bodyEl.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x mb-2"></i><p>Loading...</p></div>';
+            bodyEl.innerHTML = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin fa-2x mb-2 text-primary"></i><p>Loading data...</p></div>';
             modal.style.display = 'block';
 
             const company_id = document.querySelector('select[name="company_id"]').value;
@@ -253,20 +426,20 @@
 
     function displayAttendanceData(data, container) {
         if (!data || data.length === 0) {
-            container.innerHTML = '<div class="text-center p-4 text-muted">No employees found</div>';
+            container.innerHTML = '<div class="text-center p-5 text-muted"><i class="fas fa-inbox fa-3x mb-3"></i><p>No records found for this category.</p></div>';
             return;
         }
 
         let html = `
             <div class="table-responsive">
-                <table class="table mb-0">
-                    <thead>
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
-                            <th>Employee Name</th>
+                            <th>Employee</th>
                             <th>ID</th>
                             <th>Department</th>
                             <th>Designation</th>
-                            <th>Time/Status</th>
+                            <th>Time/Type</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -275,11 +448,13 @@
         data.forEach(emp => {
             html += `
                 <tr>
-                    <td><strong>${emp.name}</strong></td>
-                    <td>${emp.id}</td>
-                    <td>${emp.department || 'N/A'}</td>
-                    <td>${emp.designation || 'N/A'}</td>
-                    <td><span class="badge bg-secondary">${emp.time || 'N/A'}</span></td>
+                    <td>
+                        <div class="fw-bold text-dark">${emp.name}</div>
+                    </td>
+                    <td><span class="badge bg-light text-dark border">${emp.id}</span></td>
+                    <td class="small">${emp.department || '-'}</td>
+                    <td class="small">${emp.designation || '-'}</td>
+                    <td><span class="badge bg-info text-dark">${emp.time || '-'}</span></td>
                 </tr>
             `;
         });
