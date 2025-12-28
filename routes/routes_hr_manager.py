@@ -51,15 +51,15 @@ def get_attendance_stats(company_id, date_from, date_to):
     attendance = db.session.query(
         func.count(Attendance.id).label('total'),
         func.sum(case(
-            (Attendance.status.in_(['Present', 'Late']), 1),
+            (func.lower(Attendance.status).in_(['present', 'late']), 1),
             else_=0
         )).label('present'),
         func.sum(case(
-            (Attendance.status == 'Absent', 1),
+            (func.lower(Attendance.status) == 'absent', 1),
             else_=0
         )).label('absent'),
         func.sum(case(
-            (Attendance.status == 'Late', 1),
+            (func.lower(Attendance.status) == 'late', 1),
             else_=0
         )).label('late')
     ).join(Employee, Attendance.employee_id == Employee.id).filter(
@@ -84,7 +84,8 @@ def get_leave_stats(company_id, month_start, month_end):
         Employee.company_id == company_id,
         Leave.start_date >= month_start,
         Leave.end_date <= month_end,
-        Leave.status == 'Approved'
+        Leave.end_date <= month_end,
+        func.lower(Leave.status) == 'approved'
     ).group_by(Leave.leave_type).all()
     
     return leaves
@@ -176,10 +177,10 @@ def get_attendance_details(company_id, status):
         # Apply status filter with special handling for 'Present' status
         if status == 'Present':
             # Include both 'Present' and 'Late' records for the Present section
-            query = query.filter(Attendance.status.in_(['Present', 'Late']))
+            query = query.filter(func.lower(Attendance.status).in_(['present', 'late']))
         else:
             # For other statuses (Late, Absent), filter by exact status
-            query = query.filter(Attendance.status == status)
+            query = query.filter(func.lower(Attendance.status) == status.lower())
         
         records = query.all()
         
@@ -201,15 +202,15 @@ def get_today_summary(company_id):
     today_attendance = db.session.query(
         func.count(Attendance.id).label('total'),
         func.sum(case(
-            (Attendance.status.in_(['Present', 'Late']), 1),
+            (func.lower(Attendance.status).in_(['present', 'late']), 1),
             else_=0
         )).label('present'),
         func.sum(case(
-            (Attendance.status == 'Absent', 1),
+            (func.lower(Attendance.status) == 'absent', 1),
             else_=0
         )).label('absent'),
         func.sum(case(
-            (Attendance.status == 'Late', 1),
+            (func.lower(Attendance.status) == 'late', 1),
             else_=0
         )).label('late')
     ).join(Employee, Attendance.employee_id == Employee.id).filter(

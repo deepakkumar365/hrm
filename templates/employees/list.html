@@ -34,35 +34,135 @@
 
             <hr class="mt-0 mb-1">
 
-            <!-- Filters -->
-            <form method="GET" class="filter-card">
-                <div class="card-header card-header-green">
-                    <i class="fas fa-filter me-2"></i>Filter
+            <!-- Toolbar: Search and Filter Button -->
+            <div class="row align-items-center mb-3">
+                <div class="col-md-6">
+                    <form method="GET" class="d-flex">
+                        <!-- Preserve other GET params if needed -->
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                            <input type="text" name="search" class="form-control border-start-0 ps-0"
+                                placeholder="Search employees..." value="{{ search }}">
+                            <button type="submit" class="btn btn-outline-secondary">Search</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <input type="text" name="search" class="form-control" placeholder="Search employees..."
-                                value="{{ search }}">
-                        </div>
-                        <div class="col-md-4">
-                            <select name="department" class="form-select">
-                                <option value="">All Departments</option>
-                                {% for dept in departments %}
-                                <option value="{{ dept }}" {% if dept==department %}selected{% endif %}>
-                                    {{ dept }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <button type="submit" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-search me-1"></i>Filter
-                            </button>
-                        </div>
+                <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-1"></i>Filter
+                        {% if current_filters.status != 'active' or current_filters.department or
+                        current_filters.designation_id or current_filters.employment_type or current_filters.company_id
+                        %}
+                        <span class="badge bg-primary ms-1">!</span>
+                        {% endif %}
+                    </button>
+                    {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'Super Admin',
+                    'Admin', 'HR Manager', 'HR_MANAGER', 'ADMIN', 'SUPER_ADMIN'] %}
+                    <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary ms-1"
+                        title="Clear Filters">
+                        <i class="fas fa-undo"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Filter Modal -->
+            <div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="GET" action="{{ url_for('employee_list') }}">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-filter me-2"></i>Filter Employees</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Preserve Search -->
+                                <input type="hidden" name="search" value="{{ search }}">
+
+                                <!-- Status Filter -->
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select name="status" class="form-select">
+                                        {% for option in filter_options.status_options %}
+                                        <option value="{{ option.value }}" {% if current_filters.status==option.value
+                                            %}selected{% endif %}>
+                                            {{ option.label }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- Company Filter (for Admins) -->
+                                {% if filter_options.companies %}
+                                <div class="mb-3">
+                                    <label class="form-label">Company</label>
+                                    <select name="company_id" class="form-select">
+                                        <option value="">All Companies</option>
+                                        {% for comp in filter_options.companies %}
+                                        <option value="{{ comp.id }}" {% if current_filters.company_id==comp.id|string
+                                            %}selected{% endif %}>
+                                            {{ comp.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                {% endif %}
+
+                                <!-- Department Filter -->
+                                <div class="mb-3">
+                                    <label class="form-label">Department</label>
+                                    <select name="department" class="form-select">
+                                        <option value="">All Departments</option>
+                                        {% for dept in filter_options.departments %}
+                                        <option value="{{ dept }}" {% if current_filters.department==dept %}selected{%
+                                            endif %}>
+                                            {{ dept }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- Designation Filter -->
+                                <div class="mb-3">
+                                    <label class="form-label">Designation</label>
+                                    <select name="designation_id" class="form-select">
+                                        <option value="">All Designations</option>
+                                        {% for desig in filter_options.designations %}
+                                        <option value="{{ desig.id }}" {% if current_filters.designation_id==desig.id
+                                            %}selected{% endif %}>
+                                            {{ desig.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- Employment Type Filter -->
+                                <div class="mb-3">
+                                    <label class="form-label">Employment Type</label>
+                                    <select name="employment_type" class="form-select">
+                                        <option value="">All Types</option>
+                                        {% for type in filter_options.employment_types %}
+                                        <option value="{{ type }}" {% if current_filters.employment_type==type
+                                            %}selected{% endif %}>
+                                            {{ type }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                            </div>
+                            <div class="modal-footer">
+                                <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary">Reset</a>
+                                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -139,7 +239,7 @@
                         <tr>
                             <th>
                                 <a
-                                    href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
                                     Employee ID
                                     {% if sort_by == 'employee_id' %}
                                     <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
@@ -150,7 +250,7 @@
                             </th>
                             <th>
                                 <a
-                                    href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
                                     Name
                                     {% if sort_by == 'first_name' %}
                                     <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
@@ -162,7 +262,7 @@
                             {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
                             <th>
                                 <a
-                                    href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
                                     Tenant Name
                                     {% if sort_by == 'tenant_name' %}
                                     <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
@@ -176,7 +276,7 @@
                             Admin', 'HR Manager'] %}
                             <th>
                                 <a
-                                    href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
                                     Company Name
                                     {% if sort_by == 'company_name' %}
                                     <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
@@ -188,7 +288,7 @@
                             {% endif %}
                             <th>
                                 <a
-                                    href="?sort_by=designation&sort_order={{ 'desc' if sort_by == 'designation' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    href="?sort_by=designation&sort_order={{ 'desc' if sort_by == 'designation' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
                                     Designation
                                     {% if sort_by == 'designation' %}
                                     <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
@@ -199,7 +299,7 @@
                             </th>
                             <th>
                                 <a
-                                    href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
                                     Department
                                     {% if sort_by == 'department' %}
                                     <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
@@ -210,7 +310,7 @@
                             </th>
                             <th>
                                 <a
-                                    href="?sort_by=email&sort_order={{ 'desc' if sort_by == 'email' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    href="?sort_by=email&sort_order={{ 'desc' if sort_by == 'email' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
                                     Email
                                     {% if sort_by == 'email' %}
                                     <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
@@ -221,7 +321,7 @@
                             </th>
                             <th>
                                 <a
-                                    href="?sort_by=employment_type&sort_order={{ 'desc' if sort_by == 'employment_type' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ department }}&per_page={{ per_page }}">
+                                    href="?sort_by=employment_type&sort_order={{ 'desc' if sort_by == 'employment_type' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
                                     Type
                                     {% if sort_by == 'employment_type' %}
                                     <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
@@ -324,7 +424,7 @@
                     {% if employees.has_prev %}
                     <li class="page-item">
                         <a class="page-link"
-                            href="{{ url_for('employee_list', page=employees.prev_num, search=search, department=department, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
+                            href="{{ url_for('employee_list', page=employees.prev_num, search=search, department=current_filters.department, status=current_filters.status, designation_id=current_filters.designation_id, employment_type=current_filters.employment_type, company_id=current_filters.company_id, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
                             <i class="fas fa-chevron-left"></i>
                         </a>
                     </li>
@@ -335,7 +435,7 @@
                     {% if page_num != employees.page %}
                     <li class="page-item">
                         <a class="page-link"
-                            href="{{ url_for('employee_list', page=page_num, search=search, department=department, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
+                            href="{{ url_for('employee_list', page=page_num, search=search, department=current_filters.department, status=current_filters.status, designation_id=current_filters.designation_id, employment_type=current_filters.employment_type, company_id=current_filters.company_id, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
                             {{ page_num }}
                         </a>
                     </li>
@@ -354,7 +454,7 @@
                     {% if employees.has_next %}
                     <li class="page-item">
                         <a class="page-link"
-                            href="{{ url_for('employee_list', page=employees.next_num, search=search, department=department, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
+                            href="{{ url_for('employee_list', page=employees.next_num, search=search, department=current_filters.department, status=current_filters.status, designation_id=current_filters.designation_id, employment_type=current_filters.employment_type, company_id=current_filters.company_id, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">
                             <i class="fas fa-chevron-right"></i>
                         </a>
                     </li>
@@ -366,8 +466,7 @@
         <!-- Right: Records-per-page selector -->
         <div class="records-per-page">
             <label for="per_page_select">Per page:</label>
-            <select id="per_page_select" class="form-select"
-                onchange="changeRecordsPerPage(this.value)">
+            <select id="per_page_select" class="form-select" onchange="changeRecordsPerPage(this.value)">
                 <option value="15" {% if per_page==15 %}selected{% endif %}>15</option>
                 <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
                 <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>

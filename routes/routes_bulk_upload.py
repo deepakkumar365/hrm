@@ -259,7 +259,7 @@ def upload_employee_excel():
                 postal_code = row[10] if len(row) > 10 else None
                 company_code = row[11] if len(row) > 11 else None
                 user_role_name = row[12] if len(row) > 12 else 'User'
-                department = row[13] if len(row) > 13 else None
+                department = str(row[13]).strip() if len(row) > 13 and row[13] else None
                 manager_employee_id = row[14] if len(row) > 14 else None
                 hire_date = row[15] if len(row) > 15 else None
                 employment_type = row[16] if len(row) > 16 else None

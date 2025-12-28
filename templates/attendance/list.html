@@ -151,48 +151,143 @@
 <div class="container-fluid attendance-page-container p-0">
     <div class="attendance-wrapper mx-auto">
 
-        <!-- Toolbar -->
-        <div class="attendance-toolbar d-flex justify-content-between align-items-center mb-3">
-            <h4 class="mb-0 fw-bold header-title">Attendance</h4>
-            <div class="d-flex gap-2">
-                <button type="button" class="filter-toggle-btn" onclick="toggleFilters()" id="filterToggleBtn">
-                    <i class="fas fa-filter"></i> Filters
-                </button>
+        <!-- Toolbar: Search and Filter Button -->
+        <div class="row align-items-center mb-3">
+            <div class="col-md-6">
+                <h4 class="mb-0 fw-bold header-title">Attendance History</h4>
+            </div>
+            <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-1"></i>Filter
+                        {% if current_filters.status or current_filters.department or current_filters.designation_id or
+                        current_filters.employment_type or current_filters.company_id or current_filters.date_range !=
+                        'month' or current_filters.employee %}
+                        <span class="badge bg-primary ms-1">!</span>
+                        {% endif %}
+                    </button>
 
-                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary btn-sm rounded-pill px-3">
-                    <i class="fas fa-plus me-2"></i>Mark
-                </a>
+                    <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Mark Attendance
+                    </a>
+                </div>
             </div>
         </div>
 
-        <!-- Filter Section (Collapsible) -->
-        <div class="filter-section-wrapper" id="filterSection">
-            <form method="GET" class="row g-2 align-items-end">
-                <div class="col-6 col-md-3">
-                    <label class="form-label small fw-bold mb-1">Date Range</label>
-                    <select name="date_range" class="form-select form-select-sm">
-                        <option value="today" {% if date_filter=='today' %}selected{% endif %}>Today</option>
-                        <option value="week" {% if date_filter=='week' %}selected{% endif %}>This Week</option>
-                        <option value="month" {% if not date_filter or date_filter=='month' %}selected{% endif %}>This
-                            Month</option>
-                    </select>
+        <!-- Filter Modal -->
+        <div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="GET" action="{{ url_for('attendance_list_view') }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-filter me-2"></i>Filter Attendance</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Date Range Filter -->
+                            <div class="mb-3">
+                                <label class="form-label">Date Range</label>
+                                <select name="date_range" class="form-select">
+                                    <option value="today" {% if current_filters.date_range=='today' %}selected{% endif
+                                        %}>Today</option>
+                                    <option value="week" {% if current_filters.date_range=='week' %}selected{% endif %}>
+                                        This Week</option>
+                                    <option value="month" {% if current_filters.date_range=='month' %}selected{% endif
+                                        %}>This Month</option>
+                                </select>
+                            </div>
+
+                            <!-- Employee Search (Role based check handled in template if needed, or just show if not empty) -->
+                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin',
+                            'Manager', 'HR Manager'] %}
+                            <div class="mb-3">
+                                <label class="form-label">Employee Name / ID</label>
+                                <input type="text" name="employee" class="form-control" placeholder="Search..."
+                                    value="{{ current_filters.employee }}">
+                            </div>
+                            {% endif %}
+
+                            <!-- Status Filter -->
+                            <div class="mb-3">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    {% for option in filter_options.status_options %}
+                                    <option value="{{ option.value }}" {% if current_filters.status==option.value
+                                        %}selected{% endif %}>
+                                        {{ option.label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Company Filter (for Admins) -->
+                            {% if filter_options.companies %}
+                            <div class="mb-3">
+                                <label class="form-label">Company</label>
+                                <select name="company_id" class="form-select">
+                                    <option value="">All Companies</option>
+                                    {% for comp in filter_options.companies %}
+                                    <option value="{{ comp.id }}" {% if current_filters.company_id==comp.id|string
+                                        %}selected{% endif %}>
+                                        {{ comp.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% endif %}
+
+                            <!-- Department Filter -->
+                            <div class="mb-3">
+                                <label class="form-label">Department</label>
+                                <select name="department" class="form-select">
+                                    <option value="">All Departments</option>
+                                    {% for dept in filter_options.departments %}
+                                    <option value="{{ dept }}" {% if current_filters.department==dept %}selected{% endif
+                                        %}>
+                                        {{ dept }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Designation Filter -->
+                            <div class="mb-3">
+                                <label class="form-label">Designation</label>
+                                <select name="designation_id" class="form-select">
+                                    <option value="">All Designations</option>
+                                    {% for desig in filter_options.designations %}
+                                    <option value="{{ desig.id }}" {% if current_filters.designation_id==desig.id
+                                        %}selected{% endif %}>
+                                        {{ desig.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Employment Type Filter -->
+                            <div class="mb-3">
+                                <label class="form-label">Employment Type</label>
+                                <select name="employment_type" class="form-select">
+                                    <option value="">All Types</option>
+                                    {% for type in filter_options.employment_types %}
+                                    <option value="{{ type }}" {% if current_filters.employment_type==type %}selected{%
+                                        endif %}>
+                                        {{ type }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                        </div>
+                        <div class="modal-footer">
+                            <a href="{{ url_for('attendance_list_view') }}" class="btn btn-outline-secondary">Reset</a>
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        </div>
+                    </form>
                 </div>
-                {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'Manager', 'HR
-                Manager'] %}
-                <div class="col-6 col-md-4">
-                    <label class="form-label small fw-bold mb-1">Employee</label>
-                    <input type="text" name="employee" class="form-control form-control-sm" placeholder="Search..."
-                        value="{{ employee_filter or '' }}">
-                </div>
-                {% endif %}
-                <div class="col-12 col-md-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm w-100"
-                        onclick="resetFilters()">Reset</button>
-                </div>
-                <div class="col-12 col-md-2">
-                    <button type="submit" class="btn btn-dark btn-sm w-100">Apply</button>
-                </div>
-            </form>
+            </div>
         </div>
         <!-- Desktop View -->
         <div class="desktop-table table-responsive">
@@ -310,7 +405,8 @@
             {% for page_num in attendance_records.iter_pages() %}
             {% if page_num %}
             <li class="page-item {{ 'active' if page_num == attendance_records.page }}">
-                <a class="page-link shadow-none" href="{{ url_for('attendance_list_view', page=page_num) }}">{{
+                <a class="page-link shadow-none"
+                    href="{{ url_for('attendance_list_view', page=page_num, date_range=current_filters.date_range, employee=current_filters.employee, status=current_filters.status, department=current_filters.department, designation_id=current_filters.designation_id, employment_type=current_filters.employment_type, company_id=current_filters.company_id, per_page=per_page) }}">{{
                     page_num }}</a>
             </li>
             {% else %}
@@ -327,15 +423,6 @@
 
 {% block scripts %}
 <script>
-    function toggleFilters() {
-        const section = document.getElementById('filterSection');
-        const btn = document.getElementById('filterToggleBtn');
-        section.classList.toggle('open');
-        btn.classList.toggle('active');
-    }
-
-    function resetFilters() {
-        window.location.href = "{{ url_for('attendance_list_view') }}";
-    }
+    // Any future scripts can go here
 </script>
 {% endblock %}

@@ -576,17 +576,23 @@ def dashboard():
 @app.route('/employees')
 @require_login
 def employee_list():
-    
-    """List all employees with search and pagination"""
+    """List all employees with search, pagination, and comprehensive filtering"""
     page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
     search = request.args.get('search', '', type=str)
+    
+    # Filter Parameters
+    status = request.args.get('status', 'active', type=str).lower()
     department = request.args.get('department', '', type=str)
+    designation_id = request.args.get('designation_id', '', type=str)
+    employment_type = request.args.get('employment_type', '', type=str)
+    company_id = request.args.get('company_id', '', type=str)
+    
     sort_by = request.args.get('sort_by', 'first_name', type=str)
     sort_order = request.args.get('sort_order', 'asc', type=str)
 
     print("\n[DEBUG] === Employee List Request ===")
-    print(f"[DEBUG] Args: page={page}, search={search}, department={department}, sort_by={sort_by}, sort_order={sort_order}")
-    print(f"[DEBUG] User: {current_user.username}, Role: {current_user.role.name if current_user.role else 'None'}")
+    print(f"[DEBUG] Args: page={page}, search={search}, status={status}, dept={department}, desig={designation_id}, type={employment_type}")
 
     # Join with Company and Tenant to get tenant_name and company_name
     query = db.session.query(
@@ -597,8 +603,16 @@ def employee_list():
         Company, Employee.company_id == Company.id
     ).outerjoin(
         Tenant, Company.tenant_id == Tenant.id
-    ).filter(Employee.is_active == True)
+    )
 
+    # 1. Status Filter (Default: Active)
+    if status == 'active':
+        query = query.filter(Employee.is_active == True)
+    elif status == 'inactive':
+        query = query.filter(Employee.is_active == False)
+    # If status is 'all', apply no is_active filter
+
+    # 2. Search Filter
     if search:
         query = query.filter(
             db.or_(Employee.first_name.ilike(f'%{search}%'),
@@ -608,21 +622,36 @@ def employee_list():
                    Company.name.ilike(f'%{search}%'),
                    Tenant.name.ilike(f'%{search}%')))
 
+    # 3. specific Field Filters
     if department:
         query = query.filter(Employee.department == department)
+    
+    if designation_id and designation_id.isdigit():
+        query = query.filter(Employee.designation_id == int(designation_id))
 
-    # Role-based filtering
-    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user,
-                                                  'employee_profile'):
-        query = query.filter(
-            Employee.manager_id == current_user.employee_profile.id)
+    if employment_type:
+        query = query.filter(Employee.employment_type == employment_type)
+
+    if company_id:
+        try:
+            query = query.filter(Employee.company_id == company_id)
+        except Exception:
+            pass # Invalid UUID
+
+    # 4. Role-based Access Control
+    if (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile'):
+        query = query.filter(Employee.manager_id == current_user.employee_profile.id)
 
     user_role = current_user.role.name if current_user.role else None
+    accessible_companies = []
     
     if user_role in ['HR Manager', 'Tenant Admin']:
         accessible_companies = current_user.get_accessible_companies()
         company_ids = [c.id for c in accessible_companies]
         query = query.filter(Employee.company_id.in_(company_ids))
+    elif user_role in ['Super Admin', 'Admin']:
+         # Admins can see all companies, but we fetch them for the filter dropdown
+        accessible_companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
 
     # Sorting
     if sort_by == 'tenant_name':
@@ -635,16 +664,21 @@ def employee_list():
         sort_column = Employee.designation_id
     elif sort_by == 'department':
         sort_column = Employee.department
+    elif sort_by == 'employment_type':
+         sort_column = Employee.employment_type
+    elif sort_by == 'email':
+         sort_column = Employee.email
     else:
         sort_column = Employee.first_name
 
     if sort_order == 'desc':
         sort_column = sort_column.desc()
-
-    query = query.order_by(sort_column)
+    
+    # Apply default secondary sort needed for consistent pagination
+    query = query.order_by(sort_column, Employee.id)
 
     # Paginate the results
-    pagination = query.paginate(page=page, per_page=20, error_out=False)
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
     # Extract employee objects with company and tenant names
     employees_data = []
@@ -654,7 +688,7 @@ def employee_list():
         employee.tenant_name = item[2]
         employees_data.append(employee)
 
-    # Create a custom pagination object
+    # Custom Pagination Wrapper
     class CustomPagination:
         def __init__(self, items, pagination):
             self.items = items
@@ -665,35 +699,57 @@ def employee_list():
             self.has_next = pagination.has_next
             self.prev_num = pagination.prev_num
             self.next_num = pagination.next_num
-
-        def iter_pages(self, left_edge=2, left_current=2, right_current=3, right_edge=2):
-            last = 0
-            for num in range(1, self.pages + 1):
-                if num <= left_edge or \
-                   (num > self.page - left_current - 1 and num < self.page + right_current) or \
-                   num > self.pages - right_edge:
-                    if last + 1 != num:
-                        yield None
-                    yield num
-                    last = num
+            self.iter_pages = pagination.iter_pages
 
     employees = CustomPagination(employees_data, pagination)
 
-    # Get departments for filter
-    departments = db.session.query(Employee.department).distinct().filter(
-        Employee.department.isnot(None), Employee.is_active == True).all()
-    departments = [d[0] for d in departments]
+    # --- Load Master Data for Filters ---
     
-    print(f"[DEBUG] Found {pagination.total} employees. Returning page {page} of {pagination.pages}.")
-    print("[DEBUG] ===============================\n")
+    # 1. Departments (From Master + Distinct Existing)
+    # First get master departments
+    master_depts = [d.name for d in Department.query.filter_by(is_active=True).order_by(Department.name).all()]
+    # Then get any other departments currently in use (in case of legacy data)
+    existing_depts_query = db.session.query(Employee.department).distinct().filter(Employee.department.isnot(None))
+    if status == 'active':
+        existing_depts_query = existing_depts_query.filter(Employee.is_active==True)
+    existing_depts = [d[0] for d in existing_depts_query.all()]
+    # Combine and unique
+    all_departments = sorted(list(set(master_depts + existing_depts)))
+    
+    # 2. Designations
+    all_designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+    
+    # 3. Employment Types
+    emp_types_query = db.session.query(Employee.employment_type).distinct().filter(Employee.employment_type.isnot(None))
+    all_employment_types = [t[0] for t in emp_types_query.all()]
+    
+    # 4. Status Options
+    status_options = [
+        {'value': 'active', 'label': 'Active'},
+        {'value': 'inactive', 'label': 'Inactive'},
+        {'value': 'all', 'label': 'All Status'}
+    ]
+
     return render_template('employees/list.html',
                            employees=employees,
                            search=search,
-                           department=department,
-                           departments=departments,
+                           current_filters={
+                               'status': status,
+                               'department': department,
+                               'designation_id': int(designation_id) if designation_id and designation_id.isdigit() else '',
+                               'employment_type': employment_type,
+                               'company_id': company_id
+                           },
+                           filter_options={
+                               'departments': all_departments,
+                               'designations': all_designations,
+                               'companies': accessible_companies,
+                               'employment_types': all_employment_types,
+                               'status_options': status_options
+                           },
                            sort_by=sort_by,
                            sort_order=sort_order,
-                           per_page=20)
+                           per_page=per_page)
 
 
 @app.route('/employees/add', methods=['GET', 'POST'])
@@ -793,7 +849,16 @@ def employee_add():
             employee.nationality = request.form.get('nationality')
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            employee.department = request.form.get('department')
+            # Clean up department field
+            dept_val = request.form.get('department')
+            if dept_val:
+                dept_val = dept_val.strip()
+                # Validate it exists in master
+                valid_dept = Department.query.filter_by(name=dept_val, is_active=True).first()
+                if not valid_dept:
+                    print(f"Warning: New Employee trying to save invalid department '{dept_val}'")
+            
+            employee.department = dept_val if dept_val else None
             # Position field removed - use designation_id instead
             employee.hire_date = parse_date(request.form.get('hire_date'))
             termination_date = request.form.get('termination_date')
@@ -1150,6 +1215,10 @@ def employee_edit(employee_id):
     leave_groups = EmployeeGroup.query.filter_by(is_active=True).all()
     overtime_groups = get_overtime_groups(tenant_id)
 
+    # DEBUG: Log department status
+    print(f"[DEBUG] Employee Edit {employee_id}: Found {len(departments)} active departments")
+    print(f"[DEBUG] Employee Edit {employee_id}: Current Employee Dept: '{employee.department}'")
+
     if request.method == 'POST':
         try:
             # Update company_id from form
@@ -1207,7 +1276,16 @@ def employee_edit(employee_id):
             employee.nric = nric
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
-            employee.department = request.form.get('department')
+            # Clean up department field
+            dept_val = request.form.get('department')
+            if dept_val:
+                dept_val = dept_val.strip()
+                # Validate it exists in master
+                valid_dept = Department.query.filter_by(name=dept_val, is_active=True).first()
+                if not valid_dept:
+                    print(f"Warning: Employee {employee_id} trying to save invalid department '{dept_val}'")
+            
+            employee.department = dept_val if dept_val else None
             # Position field removed - use designation_id instead
             employee.employment_type = request.form.get('employment_type')
             employee.work_permit_type = request.form.get('work_permit_type')
@@ -2068,14 +2146,22 @@ def payroll_finalize(payroll_id):
 @app.route('/attendance', endpoint='attendance_list_view')
 @require_login
 def attendance_list():
-    """List attendance records"""
+    """List attendance records with comprehensive filtering"""
     page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    
+    # Filter Parameters
     date_range = request.args.get('date_range', 'month')
     employee_search = request.args.get('employee', '')
+    status = request.args.get('status', '', type=str)
+    department = request.args.get('department', '', type=str)
+    designation_id = request.args.get('designation_id', '', type=str)
+    employment_type = request.args.get('employment_type', '', type=str)
+    company_id = request.args.get('company_id', '', type=str)
 
     query = Attendance.query.join(Employee)
 
-    # Date Range Filtering
+    # 1. Date Range Filtering
     today = date.today()
     if date_range == 'today':
         query = query.filter(Attendance.date == today)
@@ -2089,7 +2175,7 @@ def attendance_list():
         end_month = today.replace(day=last_day)
         query = query.filter(Attendance.date.between(start_month, end_month))
 
-    # Employee Filtering
+    # 2. Employee Search
     if employee_search:
         if employee_search.isdigit():
             query = query.filter(Attendance.employee_id == int(employee_search))
@@ -2101,12 +2187,35 @@ def attendance_list():
                 )
             )
 
-    # Role-based filtering
-    if (current_user.role.name if current_user.role else None) in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+    # 3. New Filters
+    if status:
+        query = query.filter(Attendance.status == status)
+    
+    if department:
+        query = query.filter(Employee.department == department)
+
+    if designation_id and designation_id.isdigit():
+        query = query.filter(Employee.designation_id == int(designation_id))
+
+    if employment_type:
+        query = query.filter(Employee.employment_type == employment_type)
+
+    if company_id:
+        try:
+            query = query.filter(Employee.company_id == company_id)
+        except Exception:
+            pass
+
+    # 4. Role-based filtering
+    user_role = current_user.role.name if current_user.role else None
+    accessible_companies = []
+
+    if user_role in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Employee: Only their own attendance
         employee_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == employee_id)
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+
+    elif user_role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Manager: Their own attendance + their team's attendance
         manager_id = current_user.employee_profile.id
         query = query.filter(
@@ -2115,85 +2224,98 @@ def attendance_list():
                 Employee.manager_id == manager_id      # Team's attendance
             )
         )
-    elif (current_user.role.name if current_user.role else None) == 'Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+
+    elif user_role == 'Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
         # Admin: Only their own attendance (as per requirement)
         admin_id = current_user.employee_profile.id
         query = query.filter(Attendance.employee_id == admin_id)
-    elif (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+        # Admin can view all companies in dropdown
+        accessible_companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+
+    elif user_role in ['HR Manager', 'Tenant Admin']:
         # HR Manager / Tenant Admin: Scoped by accessible companies
         accessible_companies = current_user.get_accessible_companies()
         company_ids = [c.id for c in accessible_companies]
         query = query.filter(Employee.company_id.in_(company_ids))
-    elif (current_user.role.name if current_user.role else None) == 'Super Admin':
-        # Super Admin: Can see all attendance records
-        pass
 
+    elif user_role == 'Super Admin':
+        # Super Admin: Can see all attendance records
+        accessible_companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+
+    # Pagination
     attendance_records = query.order_by(Attendance.date.desc()).paginate(
-        page=page, per_page=20, error_out=False)
+        page=page, per_page=per_page, error_out=False)
 
     # Process records to add display times converting to employee's timezone
     for record in attendance_records.items:
-        # Use employee profile from the record if available
         if record.employee:
-            # Set clock_in_display (datetime object for template strftime)
             if record.clock_in:
                 record.clock_in_display = get_employee_local_time(
                     record.employee, record.clock_in, record.date)
             else:
                 record.clock_in_display = None
-                
-            # Set clock_out_display
+            
             if record.clock_out:
                 record.clock_out_display = get_employee_local_time(
                     record.employee, record.clock_out, record.date)
             else:
                 record.clock_out_display = None
         else:
-            # Fallback if no employee profile
             record.clock_in_display = None
             record.clock_out_display = None
 
-    # Get employees for filter dropdown based on role
-    employees = []
-    if (current_user.role.name if current_user.role else None) == 'Super Admin':
-        # Super Admin can filter by all employees
-        employees = Employee.query.filter_by(is_active=True).order_by(
-            Employee.first_name).all()
-    elif (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
-        # HR Manager / Tenant Admin: scoped employees
-        accessible_companies = current_user.get_accessible_companies()
-        company_ids = [c.id for c in accessible_companies]
-        employees = Employee.query.filter(Employee.company_id.in_(company_ids), Employee.is_active == True).order_by(Employee.first_name).all()
-    elif (current_user.role.name if current_user.role else None) == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        # Manager can filter by themselves and their team
-        manager_id = current_user.employee_profile.id
-        employees = Employee.query.filter(
-            db.or_(
-                Employee.id == manager_id,
-                Employee.manager_id == manager_id
-            )
-        ).filter_by(is_active=True).order_by(Employee.first_name).all()
-
-    # Fetch related OT Daily Summaries
+    # Fetch related OT Daily Summaries (Existing Logic)
     ot_summaries_map = {}
     if attendance_records.items:
-        # Create a list of (employee_id, date) tuples for filtering
         keys = [(r.employee_id, r.date) for r in attendance_records.items]
-        
-        # Query OT summaries matching these keys
         ot_summaries = OTDailySummary.query.filter(
             tuple_(OTDailySummary.employee_id, OTDailySummary.ot_date).in_(keys)
         ).all()
-        
-        # Map by (employee_id, date) for easy lookup
         for ot in ot_summaries:
             ot_summaries_map[(ot.employee_id, ot.ot_date)] = ot
 
+    # --- Load Master Data for Filters ---
+    
+    # Departments
+    master_depts = [d.name for d in Department.query.filter_by(is_active=True).order_by(Department.name).all()]
+    existing_depts = [d[0] for d in db.session.query(Employee.department).distinct().filter(Employee.department.isnot(None)).all()]
+    all_departments = sorted(list(set(master_depts + existing_depts)))
+    
+    # Designations
+    all_designations = Designation.query.filter_by(is_active=True).order_by(Designation.name).all()
+    
+    # Employment Types
+    all_employment_types = [t[0] for t in db.session.query(Employee.employment_type).distinct().filter(Employee.employment_type.isnot(None)).all()]
+    
+    # Status Options
+    status_options = [
+        {'value': 'Present', 'label': 'Present'},
+        {'value': 'Absent', 'label': 'Absent'},
+        {'value': 'Late', 'label': 'Late'},
+        {'value': 'Half Day', 'label': 'Half Day'},
+        {'value': 'On Leave', 'label': 'On Leave'},
+        {'value': 'Holiday', 'label': 'Holiday'},
+        {'value': 'Pending', 'label': 'Pending'}
+    ]
+
     return render_template('attendance/list.html',
                            attendance_records=attendance_records,
-                           employees=employees,
-                           date_filter=date_range,
-                           employee_filter=employee_search,
+                           current_filters={
+                               'date_range': date_range,
+                               'employee': employee_search,
+                               'status': status,
+                               'department': department,
+                               'designation_id': int(designation_id) if designation_id and designation_id.isdigit() else '',
+                               'employment_type': employment_type,
+                               'company_id': company_id
+                           },
+                           filter_options={
+                               'departments': all_departments,
+                               'designations': all_designations,
+                               'companies': accessible_companies,
+                               'employment_types': all_employment_types,
+                               'status_options': status_options
+                           },
                            ot_summaries_map=ot_summaries_map)
 
 
