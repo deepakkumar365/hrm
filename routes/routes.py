@@ -14,7 +14,7 @@ from core.auth import require_login, require_role, create_default_users
 from core.models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                      ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                      Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation,
-                     Organization, OTDailySummary, EmployeeGroup)
+                     Organization, OTDailySummary, EmployeeGroup, UserCompanyAccess)
 from sqlalchemy import tuple_
 from core.forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
@@ -1014,6 +1014,26 @@ def employee_add():
                 # Link employee to user account
                 employee.user_id = user.id
                 db.session.commit()
+                
+                # --- Auto-Sync Access Control ---
+                # Automatically grant access to the selected company
+                if company_id:
+                    # Check if access already exists (shouldn't for new user, but good practice)
+                    existing_access = UserCompanyAccess.query.filter_by(
+                        user_id=user.id,
+                        company_id=company_id
+                    ).first()
+                    
+                    if not existing_access:
+                        new_access = UserCompanyAccess(
+                            user_id=user.id,
+                            company_id=company_id,
+                            created_at=datetime.now(),
+                            modified_at=datetime.now()
+                        )
+                        db.session.add(new_access)
+                        db.session.commit()
+                        print(f"Auto-granted access to company {company_id} for user {username}")
 
                 flash(f'Employee added successfully. Login credentials created - Username: {username}, Password: {DEFAULT_USER_PASSWORD}', 'success')
 
@@ -1491,6 +1511,26 @@ def employee_edit(employee_id):
             if employee.user:
                 employee.user.first_name = employee.first_name
                 employee.user.last_name = employee.last_name
+                
+                # --- Auto-Sync Access Control ---
+                # Ensure user has access to the assigned company
+                if employee.company_id:
+                     existing_access = UserCompanyAccess.query.filter_by(
+                        user_id=employee.user.id,
+                        company_id=employee.company_id
+                    ).first()
+                    
+                     if not existing_access:
+                        new_access = UserCompanyAccess(
+                            user_id=employee.user.id,
+                            company_id=employee.company_id,
+                            created_at=datetime.now(),
+                            modified_at=datetime.now()
+                        )
+                        db.session.add(new_access)
+                        # We do NOT remove old access automatically to prevent blocking access to previous views if needed.
+                        # Revocation should be manual via Access Control.
+                        print(f"Auto-granted access to company {employee.company_id} for updated user {employee.user.username}")
 
             db.session.commit()
             flash('Employee updated successfully', 'success')
@@ -2371,10 +2411,22 @@ def attendance_mark():
                     )
                     db.session.add(attendance)
                     flash('Clocked in successfully', 'success')
+                elif not existing.clock_in:
+                    # Fix: Allow updating existing record (e.g. created by cron job)
+                    existing.clock_in = utc_action_time
+                    existing.status = 'Present'
+                    existing.location_lat = request.form.get('latitude')
+                    existing.location_lng = request.form.get('longitude')
+                    flash('Clocked in successfully', 'success')
                 else:
                     flash('Already clocked in for today', 'warning')
             elif existing:
                 if action == 'clock_out':
+                    # Fix: Prevent clock out if no clock in
+                    if not existing.clock_in:
+                         flash('Cannot clock out: Missing Clock In time. Please Clock In first.', 'error')
+                         return redirect(url_for('attendance_mark'))
+
                     existing.clock_out = utc_action_time
                     
                     # Calculate hours
@@ -2411,9 +2463,15 @@ def attendance_mark():
 
                     flash('Clocked out successfully', 'success')
                 elif action == 'break_start':
+                    if not existing.clock_in:
+                         flash('Cannot start break: Missing Clock In time.', 'error')
+                         return redirect(url_for('attendance_mark'))
                     existing.break_start = utc_action_time
                     flash('Break started', 'success')
                 elif action == 'break_end':
+                    if not existing.clock_in:
+                         flash('Cannot end break: Missing Clock In time.', 'error')
+                         return redirect(url_for('attendance_mark'))
                     existing.break_end = utc_action_time
                     flash('Break ended', 'success')
             else:
