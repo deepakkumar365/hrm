@@ -649,14 +649,49 @@ class Payroll(db.Model):
     employee = db.relationship('Employee', backref='payrolls')
     generated_by_user = db.relationship('User')
 
+class AttendanceRegularization(db.Model):
+    __tablename__ = 'hrm_attendance_regularization'
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    
+    original_clock_in = db.Column(db.DateTime)
+    original_clock_out = db.Column(db.DateTime)
+    
+    corrected_clock_in = db.Column(db.DateTime, nullable=False)
+    corrected_clock_out = db.Column(db.DateTime, nullable=False)
+    
+    reason = db.Column(db.Text)
+    proof_path = db.Column(db.String(255))
+    
+    status = db.Column(db.String(20), default='Pending')  # Pending, Approved, Rejected
+    
+    requested_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id'))
+    approved_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id'))
+    approved_at = db.Column(db.DateTime)
+    rejection_reason = db.Column(db.Text)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    employee = db.relationship('Employee', backref='regularizations')
+    requester = db.relationship('User', foreign_keys=[requested_by])
+    approver = db.relationship('User', foreign_keys=[approved_by])
+
 class Attendance(db.Model):
     __tablename__ = 'hrm_attendance'
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
 
+    # Legacy Time fields (maintained for backward compatibility if needed, but new logic should use DateTime)
     clock_in = db.Column(db.Time)
     clock_out = db.Column(db.Time)
+    
+    # New Timestamp fields for accurate duration/EOD
+    clock_in_time = db.Column(db.DateTime)
+    clock_out_time = db.Column(db.DateTime)
+    
     break_start = db.Column(db.Time)
     break_end = db.Column(db.Time)
 
@@ -669,7 +704,15 @@ class Attendance(db.Model):
     overtime_approved_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
     overtime_approved_at = db.Column(db.DateTime, nullable=True)
 
-    status = db.Column(db.String(20), default='Pending')
+    # Status Fields
+    # ENUM('Present','Incomplete','Absent','Leave')
+    status = db.Column(db.Enum('Present', 'Incomplete', 'Absent', 'Leave', name='attendance_status_enum'), default='Absent')
+    sub_status = db.Column(db.String(50)) # e.g., 'Pending Out', 'Regularization Pending'
+    
+    # Foreign Keys for Overrides/Corrections
+    leave_id = db.Column(db.Integer, db.ForeignKey('hrm_leave.id'), nullable=True)
+    regularization_id = db.Column(db.Integer, db.ForeignKey('hrm_attendance_regularization.id'), nullable=True)
+
     remarks = db.Column(db.Text)
     
     lop = db.Column(db.Boolean, default=False)  # Loss of Pay
@@ -684,6 +727,8 @@ class Attendance(db.Model):
 
     employee = db.relationship('Employee', backref='attendances')
     overtime_approver = db.relationship('User', foreign_keys=[overtime_approved_by])
+    leave = db.relationship('Leave', foreign_keys=[leave_id])
+    regularization = db.relationship('AttendanceRegularization', foreign_keys=[regularization_id])
 
     __table_args__ = (UniqueConstraint('employee_id', 'date'),)
 

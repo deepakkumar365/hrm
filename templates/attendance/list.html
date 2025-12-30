@@ -328,6 +328,9 @@
                             <span class="status-pill bg-{{ record.status.lower() if record.status else 'pending' }}">
                                 {{ record.status or 'Pending' }}
                             </span>
+                            {% if record.sub_status %}
+                            <div class="small text-muted mt-1">{{ record.sub_status }}</div>
+                            {% endif %}
                         </td>
                         <td>{{ record.clock_in_display.strftime('%H:%M') if record.clock_in_display else '-' }}</td>
                         <td>{{ record.clock_out_display.strftime('%H:%M') if record.clock_out_display else '-' }}

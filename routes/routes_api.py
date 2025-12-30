@@ -751,7 +751,8 @@ def mobile_api_mark_attendance():
             attendance = Attendance(
                 employee_id=employee_id,
                 date=today,
-                status='present',
+                status='Incomplete', # Default start
+                sub_status='Pending Out',
                 timezone=timezone_str
             )
             db.session.add(attendance)
@@ -761,9 +762,22 @@ def mobile_api_mark_attendance():
         
         if action == 'check_in':
             attendance.clock_in = current_time.time()
-            attendance.status = 'present'
+            attendance.clock_in_time = current_time
+            attendance.status = 'Incomplete'
+            attendance.sub_status = 'Pending Out'
+            
         elif action == 'check_out':
             attendance.clock_out = current_time.time()
+            attendance.clock_out_time = current_time
+            
+            # Determine status
+            has_in = attendance.clock_in is not None or attendance.clock_in_time is not None
+            if has_in:
+                attendance.status = 'Present'
+                attendance.sub_status = None
+            else:
+                attendance.status = 'Incomplete'
+                attendance.sub_status = 'Pending In'
         else:
             return api_response('error', 'Invalid action. Must be check_in or check_out', None, 400)
         
