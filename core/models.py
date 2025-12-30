@@ -122,16 +122,34 @@ class User(db.Model, UserMixin):
             return []
 
         elif self.role and self.role.name == 'HR Manager':
-            # HR Manager sees ONLY their own company
+            # HR Manager sees their own company AND any explicitly mapped companies
+            accessible = set()
+            
+            # 1. Primary Company from Employee Profile
             if self.employee_profile and self.employee_profile.company:
-                return [self.employee_profile.company]
-            return []
+                accessible.add(self.employee_profile.company)
+            
+            # 2. Explicitly Mapped Companies (UserCompanyAccess)
+            if self.company_access:
+                for access in self.company_access:
+                    if access.company:
+                        accessible.add(access.company)
+            
+            return list(accessible)
 
         elif self.company_access:
+            # For other roles (like Employee), check explicit access first
             # Get companies from explicit access grants
             companies = [access.company for access in self.company_access if access.company]
+            
+            # Valid for standard employees too if they are given multi-company access
+            if self.employee_profile and self.employee_profile.company:
+                if self.employee_profile.company not in companies:
+                    companies.append(self.employee_profile.company)
+            
             if companies:
                 return companies
+                
         elif self.employee_profile and self.employee_profile.company:
             # Fallback to employee's company
             return [self.employee_profile.company]
