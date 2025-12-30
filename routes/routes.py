@@ -2330,12 +2330,9 @@ def attendance_list():
     # Status Options
     status_options = [
         {'value': 'Present', 'label': 'Present'},
+        {'value': 'Incomplete', 'label': 'Incomplete'},
         {'value': 'Absent', 'label': 'Absent'},
-        {'value': 'Late', 'label': 'Late'},
-        {'value': 'Half Day', 'label': 'Half Day'},
-        {'value': 'On Leave', 'label': 'On Leave'},
-        {'value': 'Holiday', 'label': 'Holiday'},
-        {'value': 'Pending', 'label': 'Pending'}
+        {'value': 'Leave', 'label': 'Leave'}
     ]
 
     return render_template('attendance/list.html',
@@ -2644,10 +2641,16 @@ def auto_complete_incomplete_attendance():
         # Auto-complete with 6 PM clock out
         default_clock_out = time(18, 0)
         record.clock_out = default_clock_out
-
+        
         # Calculate hours
         clock_in_dt = datetime.combine(record.date, record.clock_in)
         clock_out_dt = datetime.combine(record.date, default_clock_out)
+        
+        # Update timestamp field
+        record.clock_out_time = clock_out_dt
+        record.status = 'Present'
+        record.sub_status = 'Auto Completed'
+        
         total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
 
         # Subtract break time if applicable
@@ -2754,6 +2757,9 @@ def attendance_mark_absent():
                         # Clear time fields for absent employees
                         attendance.clock_in = None
                         attendance.clock_out = None
+                        attendance.clock_in_time = None
+                        attendance.clock_out_time = None
+                        attendance.sub_status = None
                         attendance.break_start = None
                         attendance.break_end = None
                         attendance.regular_hours = 0

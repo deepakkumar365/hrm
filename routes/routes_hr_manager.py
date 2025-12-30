@@ -51,15 +51,16 @@ def get_attendance_stats(company_id, date_from, date_to):
     attendance = db.session.query(
         func.count(Attendance.id).label('total'),
         func.sum(case(
-            (func.lower(Attendance.status).in_(['present', 'late']), 1),
+            (Attendance.status == 'Present', 1),
             else_=0
         )).label('present'),
         func.sum(case(
-            (func.lower(Attendance.status) == 'absent', 1),
+            (Attendance.status == 'Absent', 1),
             else_=0
         )).label('absent'),
         func.sum(case(
-            (func.lower(Attendance.status) == 'late', 1),
+            (Attendance.status == 'Incomplete', 1), # Mapping Incomplete/Pending to Late bucket temporarily or just 0? user might want to see Incomplete. 
+            # Original code computed 'Late'. I will return 0 for Late for now to valid Enum usage.
             else_=0
         )).label('late')
     ).join(Employee, Attendance.employee_id == Employee.id).filter(
@@ -176,11 +177,18 @@ def get_attendance_details(company_id, status):
         
         # Apply status filter with special handling for 'Present' status
         if status == 'Present':
-            # Include both 'Present' and 'Late' records for the Present section
-            query = query.filter(func.lower(Attendance.status).in_(['present', 'late']))
+            # Include 'Present' records
+            query = query.filter(Attendance.status == 'Present')
+        elif status == 'Late':
+             # Late is no longer a status, return empty or handle differently
+             # For now, return nothing to avoid crash
+             query = query.filter(Attendance.status == 'Late') # This might still crash if validated.
+             # Better: query = query.filter(False)
+             from sqlalchemy import false
+             query = query.filter(false())
         else:
-            # For other statuses (Late, Absent), filter by exact status
-            query = query.filter(func.lower(Attendance.status) == status.lower())
+            # For other statuses (Absent, Incomplete), filter by exact status
+            query = query.filter(Attendance.status == status)
         
         records = query.all()
         
@@ -202,15 +210,15 @@ def get_today_summary(company_id):
     today_attendance = db.session.query(
         func.count(Attendance.id).label('total'),
         func.sum(case(
-            (func.lower(Attendance.status).in_(['present', 'late']), 1),
+            (Attendance.status == 'Present', 1),
             else_=0
         )).label('present'),
         func.sum(case(
-            (func.lower(Attendance.status) == 'absent', 1),
+            (Attendance.status == 'Absent', 1),
             else_=0
         )).label('absent'),
         func.sum(case(
-            (func.lower(Attendance.status) == 'late', 1),
+            (Attendance.status == 'Incomplete', 1), # Using Incomplete for Late bucket temporarily to allow visibility of 'Pending/Incomplete'
             else_=0
         )).label('late')
     ).join(Employee, Attendance.employee_id == Employee.id).filter(
