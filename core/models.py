@@ -1308,11 +1308,11 @@ class OTType(db.Model):
     __tablename__ = 'hrm_ot_type'
     __table_args__ = (
         Index('idx_ot_type_company_id', 'company_id'),
-        UniqueConstraint('company_id', 'code', name='uq_ot_type_company_code'),
+        UniqueConstraint('code', name='uq_ot_type_code'),
     )
 
     id = db.Column(db.Integer, primary_key=True)
-    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
     name = db.Column(db.String(100), nullable=False)
     code = db.Column(db.String(20), nullable=False)
     description = db.Column(db.Text, nullable=True)

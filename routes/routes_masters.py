@@ -618,22 +618,11 @@ def ot_type_list():
     from flask_login import current_user
     from sqlalchemy import and_
     
+    # List all OT types globally (no tenant filtering)
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
     
-    # Get tenant_id from current user's company
-    tenant_id = None
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-        company = Company.query.get(current_user.employee_profile.company_id)
-        if company:
-            tenant_id = company.tenant_id
-    
     query = OTType.query
-    
-    if tenant_id:
-        # Filter OT Types by all companies in the same tenant (tenant-level)
-        company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
-        query = query.filter(OTType.company_id.in_(company_ids))
     
     if search:
         query = query.filter(
@@ -678,34 +667,15 @@ def ot_type_add():
             flash('OT Type name and code are required', 'error')
             return redirect(url_for('ot_type_add'))
         
-        # Get company_id and tenant_id from employee profile
-        if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-            company_id = current_user.employee_profile.company_id
-            company = Company.query.get(company_id)
-            tenant_id = company.tenant_id if company else None
-        else:
-            flash('Error: User must be associated with a company through an employee profile', 'error')
-            return redirect(url_for('ot_type_add'))
-        
-        if not tenant_id:
-            flash('Error: User must be associated with a tenant', 'error')
-            return redirect(url_for('ot_type_add'))
-        
-        # Check if OT type with same code already exists for this tenant
-        # Get all company IDs for this tenant
-        company_ids = [c.id for c in Company.query.filter_by(tenant_id=tenant_id).all()]
-        
-        existing_ot = OTType.query.filter(
-            OTType.company_id.in_(company_ids),
-            OTType.code == code
-        ).first()
+        # Check if OT type with same code already exists globally
+        existing_ot = OTType.query.filter_by(code=code).first()
         if existing_ot:
-            flash(f'OT Type with code "{code}" already exists for your tenant', 'error')
+            flash(f'OT Type with code "{code}" already exists', 'error')
             return redirect(url_for('ot_type_add'))
         
         try:
             ot_type = OTType(
-                company_id=company_id,
+                company_id=None, # Global
                 name=name,
                 code=code,
                 description=description if description else None,
@@ -740,20 +710,7 @@ def ot_type_edit(ot_type_id):
     
     ot_type = OTType.query.get_or_404(ot_type_id)
     
-    # Check access - only allow if user is from same tenant or is Super Admin
-    user_tenant_id = None
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-        company = Company.query.get(current_user.employee_profile.company_id)
-        if company:
-            user_tenant_id = company.tenant_id
-    
-    # Get the OT Type's tenant (via its company)
-    ot_company = Company.query.get(ot_type.company_id)
-    ot_tenant_id = ot_company.tenant_id if ot_company else None
-    
-    if user_tenant_id and ot_tenant_id and ot_tenant_id != user_tenant_id:
-        flash('Access Denied', 'error')
-        return redirect(url_for('ot_type_list'))
+    # Global access - no tenant check
     
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -769,15 +726,13 @@ def ot_type_edit(ot_type_id):
             flash('OT Type name and code are required', 'error')
             return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
         
-        # Check if another OT type with same code exists for this tenant (since OT Types are tenant-level)
-        company_ids = db.session.query(Company.id).filter_by(tenant_id=ot_tenant_id).subquery()
+        # Check if another OT type with same code exists globally
         existing_ot = OTType.query.filter(
-            OTType.company_id.in_(company_ids),
             OTType.code == code,
             OTType.id != ot_type_id
         ).first()
         if existing_ot:
-            flash(f'Another OT Type with code "{code}" already exists for your tenant', 'error')
+            flash(f'Another OT Type with code "{code}" already exists', 'error')
             return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
         
         try:
