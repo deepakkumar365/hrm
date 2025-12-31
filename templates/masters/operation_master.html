@@ -1,0 +1,924 @@
+{% extends "base.html" %}
+
+{% block title %}Operation Master - Nexar{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modern-dashboard.css') }}">
+<style>
+    .op-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
+    }
+
+    .op-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .table-preview {
+        font-size: 0.85rem;
+        margin-bottom: 0;
+    }
+
+    .table-preview th {
+        font-weight: 600;
+        color: #6c757d;
+        border-top: none;
+    }
+
+    .table-preview td {
+        vertical-align: middle;
+    }
+
+    .empty-state-small {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #adb5bd;
+    }
+
+    .card-actions {
+        margin-left: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-muted">Masters</a></li>
+                    <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-muted">Payment Config</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">Operation Master</li>
+                </ol>
+            </nav>
+            <h2 class="h4 fw-bold mb-0 text-dark">Operation Master</h2>
+        </div>
+        <div>
+            <!-- Optional global actions could go here -->
+        </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="row g-4">
+
+        <!-- Roles -->
+        <div class="col-md-6 col-lg-4">
+            <div id="panel-roles" class="dash-card op-card d-flex flex-column">
+                <div class="dash-card-header bg-transparent border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-tag me-2 text-primary"></i>
+                        <span class="fw-bold">Roles</span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="btn btn-sm btn-light text-primary" title="Add Role"
+                            data-bs-toggle="modal" data-bs-target="#addRoleModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-grow-1">
+                    {% if roles %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-preview">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in roles %}
+                                <tr>
+                                    <td class="fw-medium">{{ role.name }}</td>
+                                    <td class="text-muted text-truncate" style="max-width: 150px;">
+                                        {{ role.description or '-' }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-user-tag fa-2x mb-2"></i>
+                        <p class="mb-0 small">No roles defined</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom text-center">
+                    <a href="{{ url_for('role_list') }}" class="text-decoration-none text-primary fw-medium small">
+                        View All Roles <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Departments -->
+        <div class="col-md-6 col-lg-4">
+            <div id="panel-departments" class="dash-card op-card d-flex flex-column">
+                <div class="dash-card-header bg-transparent border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-building me-2 text-info"></i>
+                        <span class="fw-bold">Departments</span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="btn btn-sm btn-light text-info" title="Add Department"
+                            data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-grow-1">
+                    {% if departments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-preview">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th class="text-end">Manager</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dept in departments %}
+                                <tr>
+                                    <td class="fw-medium">{{ dept.name }}</td>
+                                    <td class="text-end text-muted small">
+                                        {% if dept.manager %}
+                                        {{ dept.manager.first_name }} {{ dept.manager.last_name }}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-building fa-2x mb-2"></i>
+                        <p class="mb-0 small">No departments defined</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom text-center">
+                    <a href="{{ url_for('department_list') }}" class="text-decoration-none text-info fw-medium small">
+                        View All Departments <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Designations -->
+        <div class="col-md-6 col-lg-4">
+            <div id="panel-designations" class="dash-card op-card d-flex flex-column">
+                <div class="dash-card-header bg-transparent border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-id-card-alt me-2 text-success"></i>
+                        <span class="fw-bold">Designations</span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="btn btn-sm btn-light text-success" title="Add Designation"
+                            data-bs-toggle="modal" data-bs-target="#addDesignationModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-grow-1">
+                    {% if designations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-preview">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for desig in designations %}
+                                <tr>
+                                    <td class="fw-medium">{{ desig.name }}</td>
+                                    <td>
+                                        {% if desig.is_active %}
+                                        <span class="badge bg-soft-success text-success rounded-pill"
+                                            style="font-size: 0.7rem;">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-soft-secondary text-secondary rounded-pill"
+                                            style="font-size: 0.7rem;">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-id-card-alt fa-2x mb-2"></i>
+                        <p class="mb-0 small">No designations defined</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom text-center">
+                    <a href="{{ url_for('designation_list') }}"
+                        class="text-decoration-none text-success fw-medium small">
+                        View All Designations <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Working Hours -->
+        <div class="col-md-6 col-lg-4">
+            <div id="panel-working-hours" class="dash-card op-card d-flex flex-column">
+                <div class="dash-card-header bg-transparent border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-clock me-2 text-warning"></i>
+                        <span class="fw-bold">Working Hours</span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="btn btn-sm btn-light text-warning" title="Add Working Hours"
+                            data-bs-toggle="modal" data-bs-target="#addWorkingHoursModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-grow-1">
+                    {% if working_hours %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-preview">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th class="text-end">Times</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for wh in working_hours %}
+                                <tr>
+                                    <td class="fw-medium">{{ wh.name }}</td>
+                                    <td class="text-end small text-muted">
+                                        {{ wh.start_time.strftime('%H:%M') }} - {{ wh.end_time.strftime('%H:%M') }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <p class="mb-0 small">No working hours defined</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom text-center">
+                    <a href="{{ url_for('working_hours_list') }}"
+                        class="text-decoration-none text-warning fw-medium small">
+                        View All Working Hours <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Work Schedules -->
+        <div class="col-md-6 col-lg-4">
+            <div id="panel-work-schedules" class="dash-card op-card d-flex flex-column">
+                <div class="dash-card-header bg-transparent border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                        <span class="fw-bold">Work Schedules</span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="btn btn-sm btn-light text-primary" title="Add Schedule"
+                            data-bs-toggle="modal" data-bs-target="#addWorkScheduleModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-grow-1">
+                    {% if work_schedules %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-preview">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Days</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ws in work_schedules %}
+                                <tr>
+                                    <td class="fw-medium">{{ ws.name }}</td>
+                                    <td>
+                                        <div class="d-flex gap-1" style="font-size: 0.6rem;">
+                                            {% if ws.monday %}<span class="badge bg-secondary">M</span>{% endif %}
+                                            {% if ws.tuesday %}<span class="badge bg-secondary">T</span>{% endif %}
+                                            {% if ws.wednesday %}<span class="badge bg-secondary">W</span>{% endif %}
+                                            {% if ws.thursday %}<span class="badge bg-secondary">T</span>{% endif %}
+                                            {% if ws.friday %}<span class="badge bg-secondary">F</span>{% endif %}
+                                            {% if ws.saturday %}<span class="badge bg-secondary">S</span>{% endif %}
+                                            {% if ws.sunday %}<span class="badge bg-secondary">S</span>{% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                        <p class="mb-0 small">No schedules defined</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom text-center">
+                    <a href="{{ url_for('work_schedule_list') }}"
+                        class="text-decoration-none text-primary fw-medium small">
+                        View All Schedules <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- OT Types -->
+        <div class="col-md-6 col-lg-4">
+            <div id="panel-ot-types" class="dash-card op-card d-flex flex-column">
+                <div class="dash-card-header bg-transparent border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-stopwatch me-2 text-danger"></i>
+                        <span class="fw-bold">OT Types</span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="btn btn-sm btn-light text-danger" title="Add OT Type"
+                            data-bs-toggle="modal" data-bs-target="#addOTTypeModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-grow-1">
+                    {% if ot_types %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-preview">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Code</th>
+                                    <th class="text-end">Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ot in ot_types %}
+                                <tr>
+                                    <td class="fw-medium">{{ ot.name }}</td>
+                                    <td class="small text-muted">{{ ot.code }}</td>
+                                    <td class="text-end fw-bold">{{ ot.rate_multiplier }}x</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-stopwatch fa-2x mb-2"></i>
+                        <p class="mb-0 small">No OT types defined</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom text-center">
+                    <a href="{{ url_for('ot_type_list') }}" class="text-decoration-none text-danger fw-medium small">
+                        View All OT Types <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Leave Types -->
+        <div class="col-md-6 col-lg-4">
+            <div id="panel-leave-types" class="dash-card op-card d-flex flex-column">
+                <div class="dash-card-header bg-transparent border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-umbrella-beach me-2 text-primary"></i>
+                        <span class="fw-bold">Leave Types</span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="btn btn-sm btn-light text-primary" title="Add Leave Type"
+                            data-bs-toggle="modal" data-bs-target="#addLeaveTypeModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-grow-1">
+                    {% if leave_types %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-preview">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Code</th>
+                                    <th class="text-end">Days</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lt in leave_types %}
+                                <tr>
+                                    <td class="fw-medium">{{ lt.name }}</td>
+                                    <td class="small text-muted">{{ lt.code }}</td>
+                                    <td class="text-end fw-bold">{{ lt.annual_allocation }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-umbrella-beach fa-2x mb-2"></i>
+                        <p class="mb-0 small">No leave types defined</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom text-center">
+                    <a href="{{ url_for('leave_configuration') }}"
+                        class="text-decoration-none text-primary fw-medium small">
+                        View All Leave Types <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Groups -->
+        <div class="col-md-6 col-lg-4">
+            <div id="panel-leave-groups" class="dash-card op-card d-flex flex-column">
+                <div class="dash-card-header bg-transparent border-bottom-0 pb-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-users me-2 text-info"></i>
+                        <span class="fw-bold">Leave Groups</span>
+                    </div>
+                    <div class="card-actions">
+                        <button type="button" class="btn btn-sm btn-light text-info" title="Add Leave Group"
+                            data-bs-toggle="modal" data-bs-target="#addLeaveGroupModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-3 flex-grow-1">
+                    {% if leave_groups %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-preview">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lg in leave_groups %}
+                                <tr>
+                                    <td class="fw-medium">{{ lg.name }}</td>
+                                    <td class="text-muted text-truncate" style="max-width: 150px;">
+                                        {{ lg.description or '-' }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state-small">
+                        <i class="fas fa-users fa-2x mb-2"></i>
+                        <p class="mb-0 small">No leave groups defined</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom text-center">
+                    <a href="{{ url_for('leave_configuration') }}"
+                        class="text-decoration-none text-info fw-medium small">
+                        View All Leave Groups <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- Add Role Modal -->
+<div class="modal fade" id="addRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addRoleForm" action="{{ url_for('role_add') }}" method="POST"
+                    onsubmit="submitMasterForm('addRoleForm', 'panel-roles', event)">
+                    <div class="mb-3">
+                        <label class="form-label">Role Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save Role</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Department Modal -->
+<div class="modal fade" id="addDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Department</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDeptForm" action="{{ url_for('department_add') }}" method="POST"
+                    onsubmit="submitMasterForm('addDeptForm', 'panel-departments', event)">
+                    <div class="mb-3">
+                        <label class="form-label">Department Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Manager</label>
+                        <select name="manager_id" class="form-select">
+                            <option value="">Select Manager</option>
+                            {% for manager in managers %}
+                            <option value="{{ manager.id }}">{{ manager.first_name }} {{ manager.last_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save Department</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Designation Modal -->
+<div class="modal fade" id="addDesignationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Designation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDesigForm" action="{{ url_for('designation_add') }}" method="POST"
+                    onsubmit="submitMasterForm('addDesigForm', 'panel-designations', event)">
+                    <div class="mb-3">
+                        <label class="form-label">Designation Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save Designation</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Working Hours Modal -->
+<div class="modal fade" id="addWorkingHoursModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Working Hours</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addWHForm" action="{{ url_for('working_hours_add') }}" method="POST"
+                    onsubmit="submitMasterForm('addWHForm', 'panel-working-hours', event)">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Start Time</label>
+                            <input type="time" name="start_time" class="form-control" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">End Time</label>
+                            <input type="time" name="end_time" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Hours/Day</label>
+                            <input type="number" step="0.1" name="hours_per_day" class="form-control" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Hours/Week</label>
+                            <input type="number" step="0.1" name="hours_per_week" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save Config</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Work Schedule Modal -->
+<div class="modal fade" id="addWorkScheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Work Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addWSForm" action="{{ url_for('work_schedule_add') }}" method="POST"
+                    onsubmit="submitMasterForm('addWSForm', 'panel-work-schedules', event)">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Working Hours Config</label>
+                        <select name="working_hours_id" class="form-select" required>
+                            <option value="">Select Working Hours</option>
+                            {% for wh in all_working_hours %}
+                            <option value="{{ wh.id }}">{{ wh.name }} ({{ wh.start_time.strftime('%H:%M') }}-{{
+                                wh.end_time.strftime('%H:%M') }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">Working Days</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="monday" id="ws_mon" checked>
+                                <label class="form-check-label" for="ws_mon">Mon</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="tuesday" id="ws_tue" checked>
+                                <label class="form-check-label" for="ws_tue">Tue</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="wednesday" id="ws_wed" checked>
+                                <label class="form-check-label" for="ws_wed">Wed</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="thursday" id="ws_thu" checked>
+                                <label class="form-check-label" for="ws_thu">Thu</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="friday" id="ws_fri" checked>
+                                <label class="form-check-label" for="ws_fri">Fri</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="saturday" id="ws_sat">
+                                <label class="form-check-label" for="ws_sat">Sat</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="sunday" id="ws_sun">
+                                <label class="form-check-label" for="ws_sun">Sun</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save Schedule</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add OT Type Modal -->
+<div class="modal fade" id="addOTTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add OT Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addOTTypeForm" action="{{ url_for('ot_type_add') }}" method="POST"
+                    onsubmit="submitMasterForm('addOTTypeForm', 'panel-ot-types', event)">
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Code</label>
+                            <input type="text" name="code" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Rate Multiplier</label>
+                            <input type="number" step="0.1" name="rate_multiplier" class="form-control" value="1.5"
+                                required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Color Code</label>
+                            <input type="color" name="color_code" class="form-control form-control-color w-100"
+                                value="#3498db" title="Choose color">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" id="ot_active" checked>
+                            <label class="form-check-label" for="ot_active">Active</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save OT Type</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Add Leave Type Modal -->
+<div class="modal fade" id="addLeaveTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Leave Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addLeaveTypeForm" action="{{ url_for('leave_type_add') }}" method="POST"
+                    onsubmit="submitMasterForm('addLeaveTypeForm', 'panel-leave-types', event)">
+
+                    {% if all_companies and all_companies|length > 1 %}
+                    <div class="mb-3">
+                        <label class="form-label">Company</label>
+                        <select name="company_id" class="form-select" required>
+                            <option value="">Select Company</option>
+                            {% for c in all_companies %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="name" class="form-control" placeholder="e.g. Sick Leave" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Code</label>
+                            <input type="text" name="code" class="form-control" placeholder="e.g. SL" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Annual Allocation (Days)</label>
+                        <input type="number" name="annual_allocation" class="form-control" value="0" min="0" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save Leave Type</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Leave Group Modal -->
+<div class="modal fade" id="addLeaveGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Leave Group</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addLeaveGroupForm" action="{{ url_for('leave_group_add') }}" method="POST"
+                    onsubmit="submitMasterForm('addLeaveGroupForm', 'panel-leave-groups', event)">
+
+                    {% if all_companies and all_companies|length > 1 %}
+                    <div class="mb-3">
+                        <label class="form-label">Company</label>
+                        <select name="company_id" class="form-select" required>
+                            <option value="">Select Company</option>
+                            {% for c in all_companies %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Group Name</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save Group</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function submitMasterForm(formId, panelId, event) {
+        event.preventDefault();
+        const form = document.getElementById(formId);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        submitBtn.disabled = true;
+
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Determine which modal to close by traversing up the DOM
+                    const modalEl = form.closest('.modal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+
+                    // Show temporary success indicator on the panel
+                    const panel = document.getElementById(panelId);
+                    if (panel) {
+                        // Add simple loading effect
+                        panel.style.opacity = '0.5';
+
+                        // Fetch updated page content with cache busting
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('_t', Date.now());
+
+                        fetch(url.toString())
+                            .then(resp => resp.text())
+                            .then(html => {
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(html, 'text/html');
+                                const newPanel = doc.getElementById(panelId);
+
+                                if (newPanel && panel) {
+                                    panel.innerHTML = newPanel.innerHTML;
+                                    panel.className = newPanel.className; // Update classes if any changed
+                                    panel.style.opacity = '1';
+
+                                    // Reset form
+                                    form.reset();
+                                } else {
+                                    console.error('New panel content not found');
+                                    panel.style.opacity = '1';
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Reload error:', err);
+                                panel.style.opacity = '1';
+                            })
+                            .finally(() => {
+                                // Reset button state
+                                submitBtn.innerHTML = originalText;
+                                submitBtn.disabled = false;
+                            });
+                    } else {
+                        console.error('Panel not found');
+                    }
+
+                } else {
+                    alert('Error: ' + data.message);
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+    }
+</script>
+{% endblock %}

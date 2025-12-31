@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import current_user
 from app import app, db
 from core.auth import require_role
@@ -17,19 +17,25 @@ def designation_add():
     """Add a new designation"""
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
         if not name:
+            if is_ajax: return jsonify({'success': False, 'message': 'Designation name is required.'})
             flash('Designation name is required.', 'error')
         elif Designation.query.filter(Designation.name.ilike(name)).first():
+            if is_ajax: return jsonify({'success': False, 'message': 'Designation with this name already exists.'})
             flash('Designation with this name already exists.', 'error')
         else:
             try:
                 new_designation = Designation(name=name, created_by=current_user.username)
                 db.session.add(new_designation)
                 db.session.commit()
+                if is_ajax: return jsonify({'success': True, 'message': 'Designation added successfully.'})
                 flash('Designation added successfully.', 'success')
                 return redirect(url_for('designation_list'))
             except Exception as e:
                 db.session.rollback()
+                if is_ajax: return jsonify({'success': False, 'message': f'Error adding designation: {str(e)}'})
                 flash(f'Error adding designation: {str(e)}', 'error')
 
     return render_template('designations/form.html', action='Add')
