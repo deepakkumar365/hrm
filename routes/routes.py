@@ -2397,6 +2397,69 @@ def attendance_mark():
             utc_action_time = datetime.utcnow().time()
 
             if action == 'clock_in':
+                # ---------------------------------------------------------
+                # AUTO-CLOSE LOGIC: Handle forgotten clock-outs from previous days
+                # ---------------------------------------------------------
+                past_incomplete_records = Attendance.query.filter(
+                    Attendance.employee_id == employee_id,
+                    Attendance.clock_out.is_(None),
+                    Attendance.date < today
+                ).all()
+
+                for past_record in past_incomplete_records:
+                    # Determine cutoff time (WorkingHours end_time or default 18:00)
+                    auto_cutoff_time = time(18, 0)
+                    if employee_profile.working_hours and employee_profile.working_hours.end_time:
+                        auto_cutoff_time = employee_profile.working_hours.end_time
+                    
+                    past_record.clock_out = auto_cutoff_time
+                    
+                    # Calculate hours for the passed record
+                    if past_record.clock_in:
+                        clock_in_dt = datetime.combine(past_record.date, past_record.clock_in)
+                        clock_out_dt = datetime.combine(past_record.date, auto_cutoff_time)
+                        
+                        # Only calculate if valid duration
+                        if clock_out_dt > clock_in_dt:
+                            total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
+
+                            # Subtract break time if applicable
+                            if past_record.break_start and past_record.break_end:
+                                break_start_dt = datetime.combine(past_record.date, past_record.break_start)
+                                break_end_dt = datetime.combine(past_record.date, past_record.break_end)
+                                if break_end_dt > break_start_dt:
+                                    break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                                    total_seconds -= break_seconds
+
+                            total_hours = total_seconds / 3600
+                            
+                            # Standard working hours
+                            standard_hours = 8.0
+                            if employee_profile.working_hours and employee_profile.working_hours.hours_per_day:
+                                standard_hours = float(employee_profile.working_hours.hours_per_day)
+
+                            if total_hours > standard_hours:
+                                past_record.regular_hours = standard_hours
+                                past_record.overtime_hours = total_hours - standard_hours
+                                past_record.has_overtime = True
+                                past_record.overtime_approved = False
+                            else:
+                                past_record.regular_hours = total_hours
+                                past_record.overtime_hours = 0
+                                past_record.has_overtime = False
+                                
+                            past_record.total_hours = total_hours
+
+                    past_record.status = 'Present'
+                    note_msg = f"Auto-closed by system (forgot to clock out). Closed at {auto_cutoff_time.strftime('%H:%M')}."
+                    if past_record.notes:
+                        past_record.notes += f"\n{note_msg}"
+                    else:
+                        past_record.notes = note_msg
+                    
+                    flash(f'Note: Your attendance for {past_record.date.strftime("%d %b")} was auto-closed at {auto_cutoff_time.strftime("%H:%M")}.', 'info')
+
+                # Proceed with current Day Clock In
                 if not existing:
                     attendance = Attendance(
                         employee_id=employee_id,
