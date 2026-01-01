@@ -2,7 +2,32 @@
 
 {% block title %}OT Approvals & Allowances - Nexar{% endblock %}
 
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+    /* Modern Dashboard Styling */
+    :root {
+        --primary-color: #0d9488;
+        --primary-light: #ccfbf1;
+        --primary-hover: #0f766e;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --radius-md: 0.375rem;
+    }
+
+    /* Header Typography */
+    .page-title {
+        font-weight: 800;
+        color: var(--text-main);
+        font-size: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -12,16 +37,16 @@
         <p><strong>DEBUG:</strong> pending_approvals.items length = {{ pending_approvals.items|length }}</p>
         <p><strong>DEBUG:</strong> pending_approvals.total = {{ pending_approvals.total }}</p>
     </div>
-    
+
     <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-1">OT Approvals & Allowances</h1>
-            <p class="text-muted small mb-0">Review, approve and set allowances for pending overtime requests</p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 page-header">
+        <div class="mb-3 mb-md-0">
+            <h4 class="page-title mb-1">OT Approvals & Allowances</h4>
+            <p class="page-subtitle mb-0">Review, approve and set allowances for pending overtime requests</p>
         </div>
         {% if pending_approvals.total > 0 %}
         <div>
-            <span class="badge bg-warning text-dark">
+            <span class="badge bg-warning text-dark shadow-sm">
                 {{ pending_approvals.total }} Pending Request{{ 's' if pending_approvals.total != 1 else '' }}
             </span>
         </div>
@@ -48,7 +73,7 @@
 
     <!-- Pending Approvals -->
     {% if pending_approvals.items %}
-        <div>
+    <div>
         {% for approval in pending_approvals.items %}
         <div class="approval-card" id="card_{{ approval.id }}">
             <!-- Compact Header Row -->
@@ -56,13 +81,15 @@
                 <!-- Avatar -->
                 <div>
                     <div class="avatar-placeholder">
-                        {{ approval.ot_request.employee.first_name[0] if approval.ot_request.employee.first_name else 'E' }}
+                        {{ approval.ot_request.employee.first_name[0] if approval.ot_request.employee.first_name else
+                        'E' }}
                     </div>
                 </div>
 
                 <!-- Employee Name & ID -->
                 <div class="employee-details">
-                    <p class="employee-name">{{ approval.ot_request.employee.first_name }} {{ approval.ot_request.employee.last_name }}</p>
+                    <p class="employee-name">{{ approval.ot_request.employee.first_name }} {{
+                        approval.ot_request.employee.last_name }}</p>
                     <p class="employee-meta">{{ approval.ot_request.employee.employee_id or 'N/A' }}</p>
                 </div>
 
@@ -83,7 +110,8 @@
 
                 <!-- Department -->
                 <div class="quick-info">
-                    {{ approval.ot_request.employee.department[0:8] if approval.ot_request.employee.department else 'N/A' }}
+                    {{ approval.ot_request.employee.department[0:8] if approval.ot_request.employee.department else
+                    'N/A' }}
                 </div>
 
                 <!-- Status Badge -->
@@ -99,7 +127,7 @@
 
             <!-- Expanded Details (Hidden by Default) -->
             <div class="expanded-content" id="expanded_{{ approval.id }}">
-                
+
                 <!-- Approval Details -->
                 <div class="approval-content">
                     <div class="info-item">
@@ -108,11 +136,13 @@
                     </div>
                     <div class="info-item">
                         <span class="info-label">OT Type</span>
-                        <span class="info-value">{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else 'General' }}</span>
+                        <span class="info-value">{{ approval.ot_request.ot_type.name if approval.ot_request.ot_type else
+                            'General' }}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Requested Date</span>
-                        <span class="info-value">{{ approval.ot_request.ot_date.strftime('%d %b %Y') if approval.ot_request.ot_date else '-' }}</span>
+                        <span class="info-value">{{ approval.ot_request.ot_date.strftime('%d %b %Y') if
+                            approval.ot_request.ot_date else '-' }}</span>
                     </div>
                 </div>
 
@@ -131,84 +161,112 @@
                 {% endif %}
 
                 <!-- Allowance Fields -->
-            <div class="allowance-section">
-                <h6>
-                    <i class="fas fa-money-bill-wave"></i> OT Allowances
-                </h6>
-                <div>
-                    <div class="allowance-field">
-                        <label for="kd_and_claim_{{ approval.id }}">KD & Claim</label>
-                        <input type="number" class="form-control form-control-sm" id="kd_and_claim_{{ approval.id }}" name="kd_and_claim" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.kd_and_claim if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="trips_{{ approval.id }}">Trips</label>
-                        <input type="number" class="form-control form-control-sm" id="trips_{{ approval.id }}" name="trips" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.trips if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="sinpost_{{ approval.id }}">Sinpost</label>
-                        <input type="number" class="form-control form-control-sm" id="sinpost_{{ approval.id }}" name="sinpost" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sinpost if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="sandstone_{{ approval.id }}">Sandstone</label>
-                        <input type="number" class="form-control form-control-sm" id="sandstone_{{ approval.id }}" name="sandstone" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sandstone if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="spx_{{ approval.id }}">SPX</label>
-                        <input type="number" class="form-control form-control-sm" id="spx_{{ approval.id }}" name="spx" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.spx if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="psle_{{ approval.id }}">PSLE</label>
-                        <input type="number" class="form-control form-control-sm" id="psle_{{ approval.id }}" name="psle" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.psle if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="manpower_{{ approval.id }}">Manpower</label>
-                        <input type="number" class="form-control form-control-sm" id="manpower_{{ approval.id }}" name="manpower" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.manpower if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="stacking_{{ approval.id }}">Stacking</label>
-                        <input type="number" class="form-control form-control-sm" id="stacking_{{ approval.id }}" name="stacking" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.stacking if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="dispose_{{ approval.id }}">Dispose</label>
-                        <input type="number" class="form-control form-control-sm" id="dispose_{{ approval.id }}" name="dispose" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.dispose if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="night_{{ approval.id }}">Night</label>
-                        <input type="number" class="form-control form-control-sm" id="night_{{ approval.id }}" name="night" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.night if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="ph_{{ approval.id }}">PH</label>
-                        <input type="number" class="form-control form-control-sm" id="ph_{{ approval.id }}" name="ph" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.ph if approval.ot_request.ot_daily_summary else 0 }}">
-                    </div>
-                    <div class="allowance-field">
-                        <label for="sun_{{ approval.id }}">Sun</label>
-                        <input type="number" class="form-control form-control-sm" id="sun_{{ approval.id }}" name="sun" step="0.01" min="0" placeholder="0.00" value="{{ approval.ot_request.ot_daily_summary.sun if approval.ot_request.ot_daily_summary else 0 }}">
+                <div class="allowance-section">
+                    <h6>
+                        <i class="fas fa-money-bill-wave"></i> OT Allowances
+                    </h6>
+                    <div>
+                        <div class="allowance-field">
+                            <label for="kd_and_claim_{{ approval.id }}">KD & Claim</label>
+                            <input type="number" class="form-control form-control-sm"
+                                id="kd_and_claim_{{ approval.id }}" name="kd_and_claim" step="0.01" min="0"
+                                placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.kd_and_claim if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="trips_{{ approval.id }}">Trips</label>
+                            <input type="number" class="form-control form-control-sm" id="trips_{{ approval.id }}"
+                                name="trips" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.trips if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="sinpost_{{ approval.id }}">Sinpost</label>
+                            <input type="number" class="form-control form-control-sm" id="sinpost_{{ approval.id }}"
+                                name="sinpost" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.sinpost if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="sandstone_{{ approval.id }}">Sandstone</label>
+                            <input type="number" class="form-control form-control-sm" id="sandstone_{{ approval.id }}"
+                                name="sandstone" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.sandstone if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="spx_{{ approval.id }}">SPX</label>
+                            <input type="number" class="form-control form-control-sm" id="spx_{{ approval.id }}"
+                                name="spx" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.spx if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="psle_{{ approval.id }}">PSLE</label>
+                            <input type="number" class="form-control form-control-sm" id="psle_{{ approval.id }}"
+                                name="psle" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.psle if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="manpower_{{ approval.id }}">Manpower</label>
+                            <input type="number" class="form-control form-control-sm" id="manpower_{{ approval.id }}"
+                                name="manpower" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.manpower if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="stacking_{{ approval.id }}">Stacking</label>
+                            <input type="number" class="form-control form-control-sm" id="stacking_{{ approval.id }}"
+                                name="stacking" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.stacking if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="dispose_{{ approval.id }}">Dispose</label>
+                            <input type="number" class="form-control form-control-sm" id="dispose_{{ approval.id }}"
+                                name="dispose" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.dispose if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="night_{{ approval.id }}">Night</label>
+                            <input type="number" class="form-control form-control-sm" id="night_{{ approval.id }}"
+                                name="night" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.night if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="ph_{{ approval.id }}">PH</label>
+                            <input type="number" class="form-control form-control-sm" id="ph_{{ approval.id }}"
+                                name="ph" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.ph if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
+                        <div class="allowance-field">
+                            <label for="sun_{{ approval.id }}">Sun</label>
+                            <input type="number" class="form-control form-control-sm" id="sun_{{ approval.id }}"
+                                name="sun" step="0.01" min="0" placeholder="0.00"
+                                value="{{ approval.ot_request.ot_daily_summary.sun if approval.ot_request.ot_daily_summary else 0 }}">
+                        </div>
                     </div>
                 </div>
-            </div>
 
                 <!-- Approval Form (Shown Only When Expanded) -->
                 <form method="POST" action="{{ url_for('ot_approval') }}" class="action-form">
                     <input type="hidden" name="ot_request_id" value="{{ approval.ot_request.id }}">
                     <input type="hidden" name="action" id="action_{{ approval.id }}" value="">
-                    
+
                     <div>
                         <div>
                             <label for="comments_{{ approval.id }}">Comments</label>
-                            <textarea class="form-control" id="comments_{{ approval.id }}" name="comments" rows="2" placeholder="Add comments..."></textarea>
+                            <textarea class="form-control" id="comments_{{ approval.id }}" name="comments" rows="2"
+                                placeholder="Add comments..."></textarea>
                         </div>
                         <div>
                             <label for="modified_hours_{{ approval.id }}">Modified Hours (Optional)</label>
-                            <input type="number" class="form-control" id="modified_hours_{{ approval.id }}" name="modified_hours"
-                                   step="0.5" min="0" placeholder="Leave empty to keep original">
+                            <input type="number" class="form-control" id="modified_hours_{{ approval.id }}"
+                                name="modified_hours" step="0.5" min="0" placeholder="Leave empty to keep original">
                         </div>
                     </div>
 
                     <div class="action-buttons">
-                        <button type="submit" class="btn btn-sm" onclick="submitAction(event, 'approve', '{{ approval.id }}')">
+                        <button type="submit" class="btn btn-sm"
+                            onclick="submitAction(event, 'approve', '{{ approval.id }}')">
                             <i class="fas fa-check"></i> Approve
                         </button>
-                        <button type="submit" class="btn btn-sm" onclick="submitAction(event, 'reject', '{{ approval.id }}')">
+                        <button type="submit" class="btn btn-sm"
+                            onclick="submitAction(event, 'reject', '{{ approval.id }}')">
                             <i class="fas fa-times"></i> Reject
                         </button>
                         {% if approval.ot_request.requested_hours %}
@@ -218,47 +276,47 @@
                         {% endif %}
                     </div>
                 </form>
-            </div>  <!-- Close expanded-content -->
-        </div>  <!-- Close approval-card -->
+            </div> <!-- Close expanded-content -->
+        </div> <!-- Close approval-card -->
         {% endfor %}
-        </div>
+    </div>
 
-        <!-- Pagination -->
-        {% if pending_approvals.pages > 1 %}
-        <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if pending_approvals.has_prev %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('ot_approval', page=1) }}">First</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.prev_num) }}">Previous</a>
-                </li>
-                {% endif %}
+    <!-- Pagination -->
+    {% if pending_approvals.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pending_approvals.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('ot_approval', page=1) }}">First</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.prev_num) }}">Previous</a>
+            </li>
+            {% endif %}
 
-                {% for page_num in pending_approvals.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num == pending_approvals.page %}
-                        <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
-                        {% else %}
-                        <li class="page-item">
-                            <a class="page-link" href="{{ url_for('ot_approval', page=page_num) }}">{{ page_num }}</a>
-                        </li>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
+            {% for page_num in pending_approvals.iter_pages() %}
+            {% if page_num %}
+            {% if page_num == pending_approvals.page %}
+            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+            {% else %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('ot_approval', page=page_num) }}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
 
-                {% if pending_approvals.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.next_num) }}">Next</a>
-                </li>
-                <li class="page-item">
-                    <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.pages) }}">Last</a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
+            {% if pending_approvals.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.next_num) }}">Next</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.pages) }}">Last</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 
     {% else %}
     <!-- No Pending Approvals -->
@@ -275,88 +333,88 @@
 </div>
 
 <script>
-// Hide loader on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const loader = document.getElementById('global-loader');
-    if (loader) {
-        loader.classList.remove('show');
-    }
-});
+    // Hide loader on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        const loader = document.getElementById('global-loader');
+        if (loader) {
+            loader.classList.remove('show');
+        }
+    });
 
-// Submit action - sets the hidden field and shows loader
-function submitAction(event, action, approvalId) {
-    event.preventDefault();
-    
-    // Set the hidden action field
-    const actionField = document.getElementById('action_' + approvalId);
-    if (actionField) {
-        actionField.value = action;
-    }
-    
-    // Show loader
-    const loader = document.getElementById('global-loader');
-    if (loader) {
-        loader.classList.add('show');
-    }
-    
-    // Submit the form
-    event.target.closest('form').submit();
-}
+    // Submit action - sets the hidden field and shows loader
+    function submitAction(event, action, approvalId) {
+        event.preventDefault();
 
-function toggleModify(approvalId) {
-    const field = document.getElementById('modified_hours_' + approvalId);
-    if (field.disabled) {
-        field.disabled = false;
-        field.focus();
-    } else {
-        field.disabled = true;
-    }
-}
+        // Set the hidden action field
+        const actionField = document.getElementById('action_' + approvalId);
+        if (actionField) {
+            actionField.value = action;
+        }
 
-// Toggle expand/collapse for OT approval cards
-function toggleExpand(event, approvalId) {
-    event.preventDefault();
-    const expandedContent = document.getElementById('expanded_' + approvalId);
-    const expandBtn = event.target.closest('.expand-btn');
-    const card = document.getElementById('card_' + approvalId);
-    
-    if (expandedContent.style.display === 'none' || expandedContent.style.display === '') {
-        // Expand
-        expandedContent.style.display = 'block';
-        expandBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Collapse';
-        card.style.boxShadow = '0 8px 20px rgba(0,128,128,0.25)';
-        
-        // Also show all child elements that should be visible when expanded
-        const approvalContent = expandedContent.querySelector('.approval-content');
-        if (approvalContent) approvalContent.classList.add('expanded');
-        
-        const allowanceSection = expandedContent.querySelector('.allowance-section');
-        if (allowanceSection) allowanceSection.classList.add('expanded');
-        
-        const actionForm = expandedContent.querySelector('.action-form');
-        if (actionForm) actionForm.classList.add('expanded');
-        
-        const actionButtons = expandedContent.querySelector('.action-buttons');
-        if (actionButtons) actionButtons.classList.add('expanded');
-    } else {
-        // Collapse
-        expandedContent.style.display = 'none';
-        expandBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Expand';
-        card.style.boxShadow = '0 2px 6px rgba(0,128,128,0.12)';
-        
-        // Remove expanded classes
-        const approvalContent = expandedContent.querySelector('.approval-content');
-        if (approvalContent) approvalContent.classList.remove('expanded');
-        
-        const allowanceSection = expandedContent.querySelector('.allowance-section');
-        if (allowanceSection) allowanceSection.classList.remove('expanded');
-        
-        const actionForm = expandedContent.querySelector('.action-form');
-        if (actionForm) actionForm.classList.remove('expanded');
-        
-        const actionButtons = expandedContent.querySelector('.action-buttons');
-        if (actionButtons) actionButtons.classList.remove('expanded');
+        // Show loader
+        const loader = document.getElementById('global-loader');
+        if (loader) {
+            loader.classList.add('show');
+        }
+
+        // Submit the form
+        event.target.closest('form').submit();
     }
-}
+
+    function toggleModify(approvalId) {
+        const field = document.getElementById('modified_hours_' + approvalId);
+        if (field.disabled) {
+            field.disabled = false;
+            field.focus();
+        } else {
+            field.disabled = true;
+        }
+    }
+
+    // Toggle expand/collapse for OT approval cards
+    function toggleExpand(event, approvalId) {
+        event.preventDefault();
+        const expandedContent = document.getElementById('expanded_' + approvalId);
+        const expandBtn = event.target.closest('.expand-btn');
+        const card = document.getElementById('card_' + approvalId);
+
+        if (expandedContent.style.display === 'none' || expandedContent.style.display === '') {
+            // Expand
+            expandedContent.style.display = 'block';
+            expandBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Collapse';
+            card.style.boxShadow = '0 8px 20px rgba(0,128,128,0.25)';
+
+            // Also show all child elements that should be visible when expanded
+            const approvalContent = expandedContent.querySelector('.approval-content');
+            if (approvalContent) approvalContent.classList.add('expanded');
+
+            const allowanceSection = expandedContent.querySelector('.allowance-section');
+            if (allowanceSection) allowanceSection.classList.add('expanded');
+
+            const actionForm = expandedContent.querySelector('.action-form');
+            if (actionForm) actionForm.classList.add('expanded');
+
+            const actionButtons = expandedContent.querySelector('.action-buttons');
+            if (actionButtons) actionButtons.classList.add('expanded');
+        } else {
+            // Collapse
+            expandedContent.style.display = 'none';
+            expandBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Expand';
+            card.style.boxShadow = '0 2px 6px rgba(0,128,128,0.12)';
+
+            // Remove expanded classes
+            const approvalContent = expandedContent.querySelector('.approval-content');
+            if (approvalContent) approvalContent.classList.remove('expanded');
+
+            const allowanceSection = expandedContent.querySelector('.allowance-section');
+            if (allowanceSection) allowanceSection.classList.remove('expanded');
+
+            const actionForm = expandedContent.querySelector('.action-form');
+            if (actionForm) actionForm.classList.remove('expanded');
+
+            const actionButtons = expandedContent.querySelector('.action-buttons');
+            if (actionButtons) actionButtons.classList.remove('expanded');
+        }
+    }
 </script>
 {% endblock %}

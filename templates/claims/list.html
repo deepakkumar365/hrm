@@ -2,34 +2,72 @@
 
 {% block title %}Claims Management - Nexar{% endblock %}
 
+{% block head %}
+<style>
+    /* Modern Dashboard Styling */
+    :root {
+        --primary-color: #0d9488;
+        --primary-light: #ccfbf1;
+        --primary-hover: #0f766e;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --radius-md: 0.375rem;
+    }
+
+    /* Header Typography */
+    .page-title {
+        font-weight: 800;
+        color: var(--text-main);
+        font-size: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    /* Modern Buttons */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+
+    /* Ensure shadow utilities work if not in base */
+    .shadow-sm {
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid employee-list-container">
     <!-- Header with search and actions -->
     <div class="row mb-1">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <!-- Breadcrumb navigation -->
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Claims</li>
-                        </ol>
-                    </nav>
+            <!-- Modern Header Section -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 page-header">
+                <div class="mb-3 mb-md-0">
+                    <h4 class="page-title mb-1">Claims Management</h4>
+                    <p class="page-subtitle mb-0">Track and manage employee expense claims</p>
                 </div>
-                <div class="btn-group">
-                    <a href="{{ url_for('claim_add') }}" class="btn btn-primary">
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('claim_add') }}" class="btn btn-primary shadow-sm">
                         <i class="fas fa-plus me-1"></i>Submit Claim
                     </a>
                     {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
-                    <a href="#" class="btn btn-outline-secondary">
+                    <a href="#" class="btn btn-light border text-secondary shadow-sm">
                         <i class="fas fa-download me-1"></i>Export
                     </a>
                     {% endif %}
                 </div>
             </div>
-
-            <hr class="mt-0 mb-1">
 
             <!-- Filters -->
             <form method="GET" class="filter-card">
@@ -41,17 +79,21 @@
                         <div class="col-md-3">
                             <select name="status" class="form-select">
                                 <option value="">All Status</option>
-                                <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
-                                <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved</option>
-                                <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+                                <option value="Pending" {% if status_filter=='Pending' %}selected{% endif %}>Pending
+                                </option>
+                                <option value="Approved" {% if status_filter=='Approved' %}selected{% endif %}>Approved
+                                </option>
+                                <option value="Rejected" {% if status_filter=='Rejected' %}selected{% endif %}>Rejected
+                                </option>
                             </select>
                         </div>
-                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and employees %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and
+                        employees %}
                         <div class="col-md-4">
                             <select name="employee" class="form-select">
                                 <option value="">All Employees</option>
                                 {% for emp in employees %}
-                                <option value="{{ emp.id }}" {% if emp.id == employee_filter %}selected{% endif %}>
+                                <option value="{{ emp.id }}" {% if emp.id==employee_filter %}selected{% endif %}>
                                     {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
                                 </option>
                                 {% endfor %}
@@ -126,28 +168,31 @@
                     </div>
                     <div class="text-end">
                         <h6 class="text-success mb-1">{{ claim.amount | currency }}</h6>
-                        <span class="badge bg-{{ 'success' if claim.status == 'Approved' or claim.status == 'Paid' else 'danger' if claim.status == 'Rejected' else 'warning' }}">
+                        <span
+                            class="badge bg-{{ 'success' if claim.status == 'Approved' or claim.status == 'Paid' else 'danger' if claim.status == 'Rejected' else 'warning' }}">
                             {{ claim.status }}
                         </span>
                     </div>
                 </div>
-                
+
                 <div class="mb-2">
                     <small class="text-muted d-block">Date: {{ claim.claim_date | date }}</small>
                     {% if claim.receipt_number %}
                     <small class="text-muted d-block">Receipt: {{ claim.receipt_number }}</small>
                     {% endif %}
                 </div>
-                
+
                 {% if claim.description %}
                 <div class="border-top pt-2">
                     <small class="text-muted">
-                        <i class="fas fa-comment me-1"></i>{{ claim.description[:100] }}{{ '...' if claim.description|length > 100 else '' }}
+                        <i class="fas fa-comment me-1"></i>{{ claim.description[:100] }}{{ '...' if
+                        claim.description|length > 100 else '' }}
                     </small>
                 </div>
                 {% endif %}
-                
-                {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and claim.status == 'Pending' %}
+
+                {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] and claim.status
+                == 'Pending' %}
                 <div class="mt-3 pt-2 border-top">
                     <div class="btn-group w-100">
                         <button class="btn btn-sm btn-success" onclick="approveClaim({{ claim.id }}, 'approve')">
@@ -219,7 +264,8 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-{{ 'success' if claim.status == 'Approved' or claim.status == 'Paid' else 'danger' if claim.status == 'Rejected' else 'warning' }}">
+                                <span
+                                    class="badge bg-{{ 'success' if claim.status == 'Approved' or claim.status == 'Paid' else 'danger' if claim.status == 'Rejected' else 'warning' }}">
                                     {{ claim.status }}
                                 </span>
                                 {% if claim.approved_by_user and claim.status != 'Pending' %}
@@ -231,7 +277,8 @@
                             <td>
                                 {% if claim.status == 'Pending' %}
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-success" onclick="approveClaim({{ claim.id }}, 'approve')">
+                                    <button class="btn btn-outline-success"
+                                        onclick="approveClaim({{ claim.id }}, 'approve')">
                                         <i class="fas fa-check"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" onclick="showRejectModal({{ claim.id }})">
@@ -281,27 +328,27 @@
                 </a>
             </li>
             {% endif %}
-            
+
             {% for page_num in claims.iter_pages() %}
-                {% if page_num %}
-                    {% if page_num != claims.page %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('claims_list', page=page_num, status=status_filter) }}">
-                            {{ page_num }}
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ page_num }}</span>
-                    </li>
-                    {% endif %}
-                {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
-                {% endif %}
+            {% if page_num %}
+            {% if page_num != claims.page %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('claims_list', page=page_num, status=status_filter) }}">
+                    {{ page_num }}
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_num }}</span>
+            </li>
+            {% endif %}
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">...</span>
+            </li>
+            {% endif %}
             {% endfor %}
-            
+
             {% if claims.has_next %}
             <li class="page-item">
                 <a class="page-link" href="{{ url_for('claims_list', page=claims.next_num, status=status_filter) }}">
@@ -327,8 +374,8 @@
             <form id="rejectForm" method="POST">
                 <div class="modal-body">
                     <p>Please provide a reason for rejecting this claim:</p>
-                    <textarea class="form-control" name="rejection_reason" rows="3" 
-                              placeholder="Enter rejection reason..." required></textarea>
+                    <textarea class="form-control" name="rejection_reason" rows="3"
+                        placeholder="Enter rejection reason..." required></textarea>
                     <input type="hidden" name="action" value="reject">
                 </div>
                 <div class="modal-footer">
@@ -343,50 +390,50 @@
 </div>
 
 <script>
-// Load summary statistics for employee view
-function loadSummaryStats() {
-    // Mock data - in real app, fetch from API
-    {% if (current_user.role.name if current_user.role else None) == 'Employee' %}
-    document.getElementById('pendingCount').textContent = '{{ claims.items | selectattr("status", "equalto", "Pending") | list | length }}';
-    document.getElementById('approvedCount').textContent = '{{ claims.items | selectattr("status", "equalto", "Approved") | list | length }}';
-    document.getElementById('totalAmount').textContent = 'S$ {{ "{:,.2f}".format(claims.items | sum(attribute="amount") | float) }}';
-    document.getElementById('thisYear').textContent = '{{ claims.total }}';
-    {% endif %}
-}
-
-function approveClaim(claimId, action) {
-    if (confirm('Are you sure you want to ' + action + ' this claim?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/claims/${claimId}/approve`;
-        
-        const actionInput = document.createElement('input');
-        actionInput.type = 'hidden';
-        actionInput.name = 'action';
-        actionInput.value = action;
-        
-        form.appendChild(actionInput);
-        document.body.appendChild(form);
-        form.submit();
+    // Load summary statistics for employee view
+    function loadSummaryStats() {
+        // Mock data - in real app, fetch from API
+        {% if (current_user.role.name if current_user.role else None) == 'Employee' %}
+        document.getElementById('pendingCount').textContent = '{{ claims.items | selectattr("status", "equalto", "Pending") | list | length }}';
+        document.getElementById('approvedCount').textContent = '{{ claims.items | selectattr("status", "equalto", "Approved") | list | length }}';
+        document.getElementById('totalAmount').textContent = 'S$ {{ "{:,.2f}".format(claims.items | sum(attribute="amount") | float) }}';
+        document.getElementById('thisYear').textContent = '{{ claims.total }}';
+        {% endif %}
     }
-}
 
-function showRejectModal(claimId) {
-    const form = document.getElementById('rejectForm');
-    form.action = `/claims/${claimId}/approve`;
-    
-    const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
-    modal.show();
-}
+    function approveClaim(claimId, action) {
+        if (confirm('Are you sure you want to ' + action + ' this claim?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/claims/${claimId}/approve`;
 
-function exportClaims(format) {
-    const params = new URLSearchParams(window.location.search);
-    params.append('export', format);
-    window.open('?' + params.toString(), '_blank');
-}
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = action;
 
-document.addEventListener('DOMContentLoaded', function() {
-    loadSummaryStats();
-});
+            form.appendChild(actionInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function showRejectModal(claimId) {
+        const form = document.getElementById('rejectForm');
+        form.action = `/claims/${claimId}/approve`;
+
+        const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+        modal.show();
+    }
+
+    function exportClaims(format) {
+        const params = new URLSearchParams(window.location.search);
+        params.append('export', format);
+        window.open('?' + params.toString(), '_blank');
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadSummaryStats();
+    });
 </script>
 {% endblock %}

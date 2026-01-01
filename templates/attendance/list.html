@@ -5,6 +5,41 @@
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/attendance.css') }}">
 <style>
+    /* Modern Dashboard Styling (Global) */
+    :root {
+        --primary-color: #0d9488;
+        --primary-light: #ccfbf1;
+        --primary-hover: #0f766e;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --radius-md: 0.375rem;
+    }
+
+    /* Header Typography */
+    .page-title {
+        font-weight: 800;
+        color: var(--text-main);
+        font-size: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    /* Modern Buttons */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+
     /* Toolbar & Filter Styles (Local Override/Addition) */
     .attendance-toolbar {
         display: flex;
@@ -148,30 +183,30 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid attendance-page-container p-0">
+<div class="container-fluid attendance-page-container py-4">
     <div class="attendance-wrapper mx-auto">
 
         <!-- Toolbar: Search and Filter Button -->
-        <div class="row align-items-center mb-3">
-            <div class="col-md-6">
-                <h4 class="mb-0 fw-bold header-title">Attendance History</h4>
+        <!-- Modern Header Section -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 page-header">
+            <div class="mb-3 mb-md-0">
+                <h4 class="page-title mb-1">Attendance History</h4>
+                <p class="page-subtitle mb-0">Monitor employee attendance, clock-ins, and overtime</p>
             </div>
-            <div class="col-md-6 text-md-end mt-2 mt-md-0">
-                <div class="d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                        data-bs-target="#filterModal">
-                        <i class="fas fa-filter me-1"></i>Filter
-                        {% if current_filters.status or current_filters.department or current_filters.designation_id or
-                        current_filters.employment_type or current_filters.company_id or current_filters.date_range !=
-                        'month' or current_filters.employee %}
-                        <span class="badge bg-primary ms-1">!</span>
-                        {% endif %}
-                    </button>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-light border text-secondary shadow-sm" data-bs-toggle="modal"
+                    data-bs-target="#filterModal">
+                    <i class="fas fa-filter me-1"></i>Filter
+                    {% if current_filters.status or current_filters.department or current_filters.designation_id or
+                    current_filters.employment_type or current_filters.company_id or current_filters.date_range !=
+                    'month' or current_filters.employee %}
+                    <span class="badge bg-primary ms-1">!</span>
+                    {% endif %}
+                </button>
 
-                    <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Mark Attendance
-                    </a>
-                </div>
+                <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary shadow-sm">
+                    <i class="fas fa-plus me-1"></i>Mark Attendance
+                </a>
             </div>
         </div>
 

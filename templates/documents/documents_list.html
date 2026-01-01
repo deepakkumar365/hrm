@@ -4,17 +4,60 @@
 
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/documents.css') }}">
+<style>
+    /* Modern Dashboard Styling */
+    :root {
+        --primary-color: #0d9488;
+        --primary-light: #ccfbf1;
+        --primary-hover: #0f766e;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --radius-md: 0.375rem;
+    }
+
+    /* Header Typography */
+    .page-title {
+        font-weight: 800;
+        color: var(--text-main);
+        font-size: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    /* Modern Buttons */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+
+    /* Ensure shadow utilities work if not in base */
+    .shadow-sm {
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="documents-page">
 
     <!-- Header -->
-    <div class="documents-header-row">
-        <div class="documents-title">
-            <h1>My Documents</h1>
-            <p>Access and manage your important employment records</p>
+    <!-- Modern Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 page-header">
+        <div class="mb-3 mb-md-0">
+            <h4 class="page-title mb-1">My Documents</h4>
+            <p class="page-subtitle mb-0">Access and manage your important employment records</p>
         </div>
+        <!-- No global actions for now, unless needed -->
     </div>
 
     {% set has_docs = offer_letters or appraisal_letters or salary_slips or other_documents %}
