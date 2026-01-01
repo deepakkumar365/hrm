@@ -2,281 +2,445 @@
 
 {% block title %}{{ employee.first_name }} {{ employee.last_name }} - Employee Details{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modern-dashboard.css') }}">
+<style>
+    /* Page specific overrides */
+    .profile-hero-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 12px;
+        background-color: rgba(6, 148, 148, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand-primary);
+        font-size: 2.5rem;
+        overflow: hidden;
+        border: 2px solid #fff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-hero-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .info-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    .info-value {
+        font-size: 1rem;
+        color: var(--text-main);
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="d-flex align-items-start gap-4">
-                    <div class="employee-profile-photo">
-                        {% if employee.profile_image_path %}
-                        <img src="{{ url_for('static', filename=employee.profile_image_path) }}" alt="Profile image" class="avatar-image">
+<div class="dashboard-container">
+    <!-- Top Navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('employee_list') }}" class="btn-action">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+        <div class="d-flex gap-2">
+            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin'] %}
+            <a href="{{ url_for('employee_edit', employee_id=employee.id) }}" class="btn-action">
+                <i class="fas fa-edit"></i> Edit Profile
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Header Profile Card -->
+    <div class="dash-card mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-4">
+                <div class="profile-hero-avatar">
+                    {% if employee.profile_image_path %}
+                    <img src="{{ url_for('static', filename=employee.profile_image_path) }}" alt="Profile image">
+                    {% else %}
+                    {{ employee.first_name[0] if employee.first_name else 'E' }}
+                    {% endif %}
+                </div>
+                <div>
+                    <h2 class="mb-1 fw-bold text-dark">{{ employee.first_name }} {{ employee.last_name }}</h2>
+                    <div class="d-flex flex-wrap gap-2 align-items-center text-muted">
+                        <span><i class="fas fa-briefcase me-1 text-primary"></i> {{ employee.designation.name if
+                            employee.designation else 'No Designation' }}</span>
+                        <span class="mx-1">•</span>
+                        <span><i class="fas fa-id-badge me-1 text-primary"></i> {{ employee.employee_id }}</span>
+                        <span class="mx-1">•</span>
+                        {% if employee.is_active %}
+                        <span
+                            class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2">Active</span>
                         {% else %}
-                        <div class="avatar-placeholder">
-                            {{ employee.first_name[0] if employee.first_name else 'E' }}
-                        </div>
+                        <span
+                            class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2">Inactive</span>
                         {% endif %}
                     </div>
-                    <div>
-                        <h3>
-                            <i class="fas fa-user me-2"></i>
-                            {{ employee.first_name }} {{ employee.last_name }}
-                        </h3>
-                        <p class="text-muted mb-0">{{ employee.designation.name if employee.designation else '-' }} • {{ employee.employee_id }}</p>
-                    </div>
                 </div>
-                <div class="btn-group">
-                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin'] %}
-                    <a href="{{ url_for('employee_edit', employee_id=employee.id) }}" class="btn btn-primary">
-                        <i class="fas fa-edit me-1"></i>Edit
-                    </a>
-                    {% endif %}
-                    <a href="{{ url_for('employee_list') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back
-                    </a>
+            </div>
+
+            <div class="d-flex gap-4 border-start ps-4">
+                <div class="text-center">
+                    <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Date Joined</div>
+                    <div class="fw-bold fs-5">{{ employee.hire_date | date }}</div>
+                </div>
+                <div class="text-center">
+                    <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Tenure</div>
+                    <div class="fw-bold fs-5">{{ (today - employee.hire_date).days }} Days</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Employee Details -->
+    <div class="row g-4">
+        <!-- Main Content Column -->
         <div class="col-lg-8">
             <!-- Personal Information -->
-            <div class="card mb-4">
-                <div class="card-header card-header-green">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle me-2"></i>Personal Information
-                    </h5>
+            <div class="dash-card mb-4">
+                <div class="dash-card-header">
+                    <span>Personal Information</span>
+                    <i class="fas fa-user-circle"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Full Name</label>
-                            <p class="fw-semibold">{{ employee.first_name }} {{ employee.last_name }}</p>
+                <div class="row g-2">
+                    <div class="col-md-5">
+                        <label class="info-label">Email Address</label>
+                        <div class="info-value">
+                            <a href="mailto:{{ employee.email }}" class="text-decoration-none">
+                                {{ employee.email }}
+                            </a>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Employee ID</label>
-                            <p class="fw-semibold"><code>{{ employee.employee_id }}</code></p>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="info-label">Phone Number</label>
+                        <div class="info-value">
+                            {% if employee.phone %}
+                            <a href="tel:{{ employee.phone }}" class="text-decoration-none">{{ employee.phone }}</a>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Email</label>
-                            <p class="fw-semibold">
-                                <a href="mailto:{{ employee.email }}" class="text-decoration-none">
-                                    {{ employee.email }}
-                                </a>
-                            </p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">NRIC/Passport</label>
+                        <div class="info-value">{{ employee.nric }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="info-label">Date of Birth</label>
+                        <div class="info-value">{{ employee.date_of_birth | date if employee.date_of_birth else '-' }}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Phone</label>
-                            <p class="fw-semibold">
-                                {% if employee.phone %}
-                                <a href="tel:{{ employee.phone }}" class="text-decoration-none">
-                                    {{ employee.phone }}
-                                </a>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Father's Name</label>
+                        <div class="info-value">{{ employee.father_name or '-' }}</div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="info-label">Gender</label>
+                        <div class="info-value">{{ employee.gender or '-' }}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="info-label">Nationality</label>
+                        <div class="info-value">{{ employee.nationality or '-' }}</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="info-label">Address</label>
+                        <div class="info-value">
+                            {{ employee.address or '-' }}
+                            {% if employee.postal_code %}
+                            <span class="text-muted small ms-2">{{ employee.postal_code }}</span>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">NRIC/Passport</label>
-                            <p class="fw-semibold">{{ employee.nric }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Date of Birth</label>
-                            <p class="fw-semibold">
-                                {{ employee.date_of_birth | date if employee.date_of_birth else '-' }}
-                            </p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Gender</label>
-                            <p class="fw-semibold">{{ employee.gender or '-' }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Nationality</label>
-                            <p class="fw-semibold">{{ employee.nationality or '-' }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Father's Name</label>
-                            <p class="fw-semibold">{{ employee.father_name or '-' }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Location</label>
-                            <p class="fw-semibold">{{ employee.location or '-' }}</p>
-                        </div>
-                        {% if employee.address %}
-                        <div class="col-12">
-                            <label class="form-label text-muted">Address</label>
-                            <p class="fw-semibold">
-                                {{ employee.address }}
-                                {% if employee.postal_code %}
-                                <br><span class="text-muted">{{ employee.postal_code }}</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Employment Details -->
-            <div class="card mb-4">
-                <div class="card-header card-header-green">
-                    <h5 class="mb-0">
-                        <i class="fas fa-briefcase me-2"></i>Employment Details
-                    </h5>
+            <div class="dash-card mb-4">
+                <div class="dash-card-header">
+                    <span>Employment Details</span>
+                    <i class="fas fa-building"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Designation</label>
-                            <p class="fw-semibold">{{ employee.designation.name if employee.designation else '-' }}</p>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="info-label">Department</label>
+                        <div class="info-value">
+                            {% if employee.department %}
+                            <span class="badge bg-light text-dark border">{{ employee.department }}</span>
+                            {% else %}
+                            -
+                            {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Department</label>
-                            <p class="fw-semibold">
-                                {% if employee.department %}
-                                <span class="badge bg-secondary">{{ employee.department }}</span>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Employment Type</label>
+                        <div class="info-value">{{ employee.employment_type or '-' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Role Status</label>
+                        <div class="info-value">
+                            {% if employee.is_manager %}
+                            <span
+                                class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">Manager</span>
+                            {% else %}
+                            <span class="text-muted">Standard</span>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Hire Date</label>
-                            <p class="fw-semibold">{{ employee.hire_date | date }}</p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="info-label">Work Permit Type</label>
+                        <div class="info-value">{{ employee.work_permit_type or '-' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Work Permit No.</label>
+                        <div class="info-value font-monospace">{{ employee.work_permit_number or '-' }}</div>
+                    </div>
+
+                    {% if employee.work_permit_expiry %}
+                    <div class="col-md-4">
+                        <label class="info-label">Permit Expiry</label>
+                        <div class="info-value">
+                            {{ employee.work_permit_expiry | date }}
+                            {% if employee.work_permit_expiry < today %} <span class="badge bg-danger ms-1">
+                                Expired</span>
+                                {% elif (employee.work_permit_expiry - today).days < 90 %} <span
+                                    class="badge bg-warning text-dark ms-1">Soon</span>
+                                    {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Employment Type</label>
-                            <p class="fw-semibold">
-                                <span class="badge bg-info">{{ employee.employment_type }}</span>
-                            </p>
+                    </div>
+                    {% endif %}
+
+                    <div class="col-md-4">
+                        <label class="info-label">Working Hours</label>
+                        <div class="info-value">
+                            {{ employee.working_hours.name if employee.working_hours else '-' }}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Work Permit Type</label>
-                            <p class="fw-semibold">
-                                <span class="badge bg-primary">{{ employee.work_permit_type }}</span>
-                            </p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Work Schedule</label>
+                        <div class="info-value">
+                            {{ employee.work_schedule.name if employee.work_schedule else '-' }}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Timezone</label>
-                            <p class="fw-semibold">{{ employee.timezone or 'UTC' }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Overtime Group</label>
+                        <div class="info-value">{{ employee.overtime_group_id or '-' }}</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="info-label">Manager</label>
+                        <div class="info-value">
+                            {% if employee.manager %}
+                            <a href="{{ url_for('employee_view', employee_id=employee.manager.id) }}"
+                                class="text-decoration-none">
+                                {{ employee.manager.first_name }} {{ employee.manager.last_name }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Overtime Group</label>
-                            <p class="fw-semibold">{{ employee.overtime_group_id or '-' }}</p>
-                        </div>
-                        {% if employee.work_permit_expiry %}
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Work Permit Expiry</label>
-                            <p class="fw-semibold">
-                                {{ employee.work_permit_expiry | date }}
-                                {% if employee.work_permit_expiry < today %}
-                                <span class="badge bg-danger ms-1">Expired</span>
-                                {% elif (employee.work_permit_expiry - today).days < 90 %}
-                                <span class="badge bg-warning ms-1">Expiring Soon</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                        {% endif %}
-                        {% if employee.manager %}
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Manager</label>
-                            <p class="fw-semibold">
-                                <a href="{{ url_for('employee_view', employee_id=employee.manager.id) }}" 
-                                   class="text-decoration-none">
-                                    {{ employee.manager.first_name }} {{ employee.manager.last_name }}
-                                </a>
-                            </p>
-                        </div>
-                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Location</label>
+                        <div class="info-value">{{ employee.location or '-' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Timezone</label>
+                        <div class="info-value">{{ employee.timezone or 'UTC' }}</div>
                     </div>
                 </div>
             </div>
 
+            <!-- Certifications & Passes -->
+            {% if employee.hazmat_expiry or employee.airport_pass_expiry or employee.psa_pass_number or
+            employee.psa_pass_expiry %}
+            <div class="dash-card mb-4">
+                <div class="dash-card-header">
+                    <span>Certifications & Passes</span>
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <div class="row g-2">
+                    {% if employee.hazmat_expiry %}
+                    <div class="col-md-3">
+                        <label class="info-label">Hazmat Exp.</label>
+                        <div class="info-value">{{ employee.hazmat_expiry | date }}</div>
+                    </div>
+                    {% endif %}
+                    {% if employee.airport_pass_expiry %}
+                    <div class="col-md-3">
+                        <label class="info-label">Airport Pass Exp.</label>
+                        <div class="info-value">{{ employee.airport_pass_expiry | date }}</div>
+                    </div>
+                    {% endif %}
+                    {% if employee.psa_pass_number %}
+                    <div class="col-md-3">
+                        <label class="info-label">PSA Pass No.</label>
+                        <div class="info-value font-monospace">{{ employee.psa_pass_number }}</div>
+                    </div>
+                    {% endif %}
+                    {% if employee.psa_pass_expiry %}
+                    <div class="col-md-3">
+                        <label class="info-label">PSA Pass Exp.</label>
+                        <div class="info-value">{{ employee.psa_pass_expiry | date }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Financial Information (Protected View) -->
+            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager',
+            'Tenant Admin'] %}
+            <div class="dash-card mb-4">
+                <div class="dash-card-header">
+                    <span>Financial Information</span>
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="info-label">Basic Salary</label>
+                        <div class="info-value">{{ employee.basic_salary | currency }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Allowances</label>
+                        <div class="info-value">{{ employee.allowances | currency }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Hourly Rate</label>
+                        <div class="info-value">{{ employee.hourly_rate | currency }} / hr</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">CPF Account</label>
+                        <div class="info-value font-monospace">{{ employee.cpf_account or '-' }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Employee CPF</label>
+                        <div class="info-value">{{ employee.employee_cpf_rate }}%</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="info-label">Employer CPF</label>
+                        <div class="info-value">{{ employee.employer_cpf_rate }}%</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Banking Details -->
             {% if employee.bank_name or employee.bank_account %}
-            <div class="card mb-4">
-                <div class="card-header card-header-green">
-                    <h5 class="mb-0">
-                        <i class="fas fa-university me-2"></i>Banking Details
-                    </h5>
+            <div class="dash-card mb-4">
+                <div class="dash-card-header">
+                    <span>Banking Details</span>
+                    <i class="fas fa-university"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        {% if employee.bank_name %}
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Bank Name</label>
-                            <p class="fw-semibold">{{ employee.bank_name }}</p>
-                        </div>
-                        {% endif %}
-                        {% if employee.bank_account %}
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Account Number</label>
-                            <p class="fw-semibold">{{ employee.bank_account }}</p>
-                        </div>
-                        {% endif %}
+                <div class="row g-2">
+                    {% if employee.account_holder_name %}
+                    <div class="col-md-4">
+                        <label class="info-label">Account Holder</label>
+                        <div class="info-value">{{ employee.account_holder_name }}</div>
                     </div>
+                    {% endif %}
+                    {% if employee.bank_name %}
+                    <div class="col-md-4">
+                        <label class="info-label">Bank Name</label>
+                        <div class="info-value">{{ employee.bank_name }}</div>
+                    </div>
+                    {% endif %}
+                    {% if employee.bank_account %}
+                    <div class="col-md-4">
+                        <label class="info-label">Account Number</label>
+                        <div class="info-value font-monospace">{{ employee.bank_account }}</div>
+                    </div>
+                    {% endif %}
+                    {% if employee.swift_code %}
+                    <div class="col-md-6">
+                        <label class="info-label">SWIFT Code</label>
+                        <div class="info-value font-monospace">{{ employee.swift_code }}</div>
+                    </div>
+                    {% endif %}
+                    {% if employee.ifsc_code %}
+                    <div class="col-md-6">
+                        <label class="info-label">IFSC Code</label>
+                        <div class="info-value font-monospace">{{ employee.ifsc_code }}</div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
         </div>
 
-        <!-- Sidebar with quick stats and actions -->
+        <!-- Sidebar Column -->
         <div class="col-lg-4">
             <!-- Quick Actions -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-bolt me-2"></i>Quick Actions
-                    </h5>
+            <div class="dash-card mb-4">
+                <div class="dash-card-header">
+                    <span>Quick Actions</span>
+                    <i class="fas fa-bolt"></i>
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
-                        <a href="{{ url_for('payroll_list', employee=employee.id) }}" class="btn btn-outline-primary">
-                            <i class="fas fa-dollar-sign me-1"></i>View Payroll
-                        </a>
-                        <a href="{{ url_for('leave_list', employee=employee.id) }}" class="btn btn-outline-warning">
-                            <i class="fas fa-plane-departure me-1"></i>Leave History
-                        </a>
-                        <a href="{{ url_for('attendance_list_view', employee=employee.id) }}" class="btn btn-outline-info">
-                            <i class="fas fa-calendar-check me-1"></i>Attendance
-                        </a>
-                        {% endif %}
-                        {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
-                        <hr>
-                        <a href="{{ url_for('appraisal_create') }}?employee_id={{ employee.id }}" class="btn btn-outline-success">
-                            <i class="fas fa-star me-1"></i>Create Appraisal
-                        </a>
-                        {% endif %}
-                    </div>
+                <div class="d-flex flex-column gap-2">
+                    {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'HR Manager',
+                    'Super Admin'] %}
+                    <a href="{{ url_for('payroll_list', employee_id=employee.id) }}"
+                        class="btn-action w-100 justify-content-start">
+                        <i class="fas fa-file-invoice-dollar fa-fw"></i> View Payroll History
+                    </a>
+                    <a href="{{ url_for('leave_list') }}?employee_id={{ employee.id }}"
+                        class="btn-action w-100 justify-content-start">
+                        <i class="fas fa-calendar-minus fa-fw"></i> View Leave History
+                    </a>
+                    <a href="{{ url_for('attendance_list_view', employee=employee.id) }}"
+                        class="btn-action w-100 justify-content-start">
+                        <i class="fas fa-clock fa-fw"></i> View Attendance
+                    </a>
+                    <a href="{{ url_for('admin_documents_list') }}?user_id={{ employee.id }}"
+                        class="btn-action w-100 justify-content-start">
+                        <i class="fas fa-folder-open fa-fw"></i> View Documents
+                    </a>
+                    {% endif %}
+
+                    {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
+                    <hr class="my-2">
+                    <a href="{{ url_for('appraisal_create') }}?employee_id={{ employee.id }}"
+                        class="btn-action w-100 justify-content-start">
+                        <i class="fas fa-star fa-fw"></i> Create Appraisal
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
             <!-- Recent Payslips -->
             {% if recent_payslips %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-file-invoice-dollar me-2"></i>Recent Payslips
-                    </h6>
+            <div class="dash-card mb-4">
+                <div class="dash-card-header">
+                    <span>Recent Payslips</span>
+                    <i class="fas fa-receipt"></i>
                 </div>
-                <div class="card-body">
+                <div class="d-flex flex-column gap-0">
                     {% for payslip in recent_payslips %}
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <p class="mb-0 small">{{ payslip.pay_period_end | date }}</p>
-                            <p class="mb-0 fw-semibold">{{ payslip.net_pay | currency }}</p>
+                    <div class="stat-row">
+                        <div class="d-flex flex-column">
+                            <span class="stat-label text-dark">{{ payslip.pay_period_end | date }}</span>
+                            <span class="small text-muted">Net Pay</span>
                         </div>
-                        <a href="{{ url_for('payroll_payslip', payroll_id=payslip.id) }}" 
-                           class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-eye"></i>
-                        </a>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="stat-value">{{ payslip.net_pay | currency }}</span>
+                            <a href="{{ url_for('payroll_payslip', payroll_id=payslip.id) }}" class="text-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
                     </div>
-                    {% if not loop.last %}<hr class="my-2">{% endif %}
                     {% endfor %}
                 </div>
             </div>
@@ -284,74 +448,57 @@
 
             <!-- Recent Attendance -->
             {% if recent_attendance %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-clock me-2"></i>Recent Attendance
-                    </h6>
+            <div class="dash-card mb-4">
+                <div class="dash-card-header">
+                    <span>Recent Attendance</span>
+                    <i class="fas fa-history"></i>
                 </div>
-                <div class="card-body">
+                <div class="d-flex flex-column gap-2">
                     {% for attendance in recent_attendance %}
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <p class="mb-0 small">{{ attendance.date | date }}</p>
-                            <div class="d-flex gap-2">
-                                {% if attendance.status == 'Present' %}
-                                <span class="badge bg-success">{{ attendance.status }}</span>
-                                {% elif attendance.status == 'Absent' %}
-                                <span class="badge bg-danger">{{ attendance.status }}</span>
-                                {% elif attendance.status == 'Late' %}
-                                <span class="badge bg-warning">{{ attendance.status }}</span>
-                                {% else %}
-                                <span class="badge bg-secondary">{{ attendance.status }}</span>
-                                {% endif %}
-                                {% if attendance.overtime_hours > 0 %}
-                                <span class="badge bg-info">{{ attendance.overtime_hours }}h OT</span>
-                                {% endif %}
-                            </div>
+                    <div class="p-2 border rounded bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold small">{{ attendance.date | date }}</span>
+                            {% if attendance.status == 'Present' %}
+                            <span class="badge bg-success small">Present</span>
+                            {% elif attendance.status == 'Absent' %}
+                            <span class="badge bg-danger small">Absent</span>
+                            {% elif attendance.status == 'Late' %}
+                            <span class="badge bg-warning text-dark small">Late</span>
+                            {% else %}
+                            <span class="badge bg-secondary small">{{ attendance.status }}</span>
+                            {% endif %}
                         </div>
-                        <div class="text-end small text-muted">
-                            {% if attendance.clock_in and attendance.clock_out %}
-                            {{ attendance.clock_in.strftime('%H:%M') }} - {{ attendance.clock_out.strftime('%H:%M') }}
-                            {% elif attendance.clock_in %}
-                            {{ attendance.clock_in.strftime('%H:%M') }} - ...
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>
+                                {% if attendance.clock_in %}
+                                {{ attendance.clock_in.strftime('%H:%M') }}
+                                {% if attendance.clock_out %}
+                                - {{ attendance.clock_out.strftime('%H:%M') }}
+                                {% else %}
+                                - ...
+                                {% endif %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </span>
+                            {% if attendance.overtime_hours > 0 %}
+                            <span class="text-info fw-bold">{{ attendance.overtime_hours }}h OT</span>
                             {% endif %}
                         </div>
                     </div>
-                    {% if not loop.last %}<hr class="my-2">{% endif %}
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
 
-            <!-- Status -->
-            <div class="card">
-                <div class="card-body text-center">
-                    {% if employee.is_active %}
-                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
-                    <h6 class="text-success">Active Employee</h6>
-                    <p class="small text-muted mb-0">
-                        Joined {{ (today - employee.hire_date).days }} days ago
-                    </p>
-                    {% else %}
-                    <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
-                    <h6 class="text-danger">Inactive Employee</h6>
-                    {% if employee.termination_date %}
-                    <p class="small text-muted mb-0">
-                        Terminated on {{ employee.termination_date | date }}
-                    </p>
-                    {% endif %}
-                    {% endif %}
-                </div>
-            </div>
         </div>
     </div>
 </div>
 
 <script>
-// Set today for template
-document.addEventListener('DOMContentLoaded', function() {
-    window.today = new Date();
-});
+    // Set today for template calculations if needed
+    document.addEventListener('DOMContentLoaded', function () {
+        window.today = new Date();
+    });
 </script>
 {% endblock %}

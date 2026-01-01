@@ -537,6 +537,7 @@
 </div>
 
 <!-- Add Department Modal -->
+<!-- Add Department Modal -->
 <div class="modal fade" id="addDepartmentModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -557,11 +558,9 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Manager</label>
-                        <select name="manager_id" class="form-select">
+                        <select name="manager_id" id="deptManagerSelect" class="form-select">
                             <option value="">Select Manager</option>
-                            {% for manager in managers %}
-                            <option value="{{ manager.id }}">{{ manager.first_name }} {{ manager.last_name }}</option>
-                            {% endfor %}
+                            <!-- Populated via AJAX -->
                         </select>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Save Department</button>
@@ -570,6 +569,32 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addDeptModal = document.getElementById('addDepartmentModal');
+        if (addDeptModal) {
+            addDeptModal.addEventListener('show.bs.modal', function () {
+                const selectElement = document.getElementById('deptManagerSelect');
+                if (selectElement.children.length <= 1) { // Only load if empty
+                    fetch('/api/masters/managers')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                data.managers.forEach(manager => {
+                                    const option = document.createElement('option');
+                                    option.value = manager.id;
+                                    option.textContent = manager.name;
+                                    selectElement.appendChild(option);
+                                });
+                            }
+                        })
+                        .catch(error => console.error('Error fetching managers:', error));
+                }
+            });
+        }
+    });
+</script>
 
 <!-- Add Designation Modal -->
 <div class="modal fade" id="addDesignationModal" tabindex="-1">

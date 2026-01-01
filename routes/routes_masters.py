@@ -9,7 +9,7 @@ from datetime import datetime
 
 from app import app, db
 from core.auth import require_login, require_role
-from core.models import Role, Department, WorkingHours, WorkSchedule, Employee, OTType, Company, User, Organization, Designation, LeaveType, EmployeeGroup
+from core.models import Role, Department, WorkingHours, WorkSchedule, Employee, OTType, Company, User, Organization, Designation, LeaveType, EmployeeGroup, Tenant
 from flask_login import current_user
 
 
@@ -36,7 +36,7 @@ def operation_master_dashboard():
     leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.created_at.desc()).limit(limit).all()
     
     # Data for Modals (Dropdowns)
-    managers = Employee.query.filter_by(is_active=True, is_manager=True).order_by(Employee.first_name, Employee.last_name).all()
+    # managers = Employee.query.filter_by(is_active=True, is_manager=True).order_by(Employee.first_name, Employee.last_name).all() # Optimized: Loaded via AJAX
     all_working_hours = WorkingHours.query.order_by(WorkingHours.name).all()
     all_companies = Company.query.filter_by(is_active=True).all()
     
@@ -49,9 +49,47 @@ def operation_master_dashboard():
                          ot_types=ot_types,
                          leave_types=leave_types,
                          leave_groups=leave_groups,
-                         managers=managers,
+                         # managers=managers, # Optimized: Loaded via AJAX
                          all_working_hours=all_working_hours,
                          all_companies=all_companies)
+
+
+@app.route('/masters/organization-master')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def organization_master_dashboard():
+    """Consolidated dashboard for Organization Masters (Tenant, Company, Payment Config)"""
+    
+    # Fetch all active tenants for the dropdown
+    # If user is Tenant Admin or HR Manager, we might want to restrict this, 
+    # but the requirement implies "selecting the tenant", which suggests a Super Admin view 
+    # or a view where one can switch context. 
+    # However, standard practice: Super Admin sees all. Tenant Admin sees their own.
+    
+    tenants = []
+    if current_user.role.name == 'Super Admin':
+        tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+    elif current_user.organization and current_user.organization.tenant:
+         tenants = [current_user.organization.tenant]
+    
+    return render_template('masters/organization_master.html', tenants=tenants)
+
+
+@app.route('/api/masters/managers')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_managers_json():
+    """Get active managers in JSON format for dropdowns"""
+    try:
+        managers = Employee.query.filter_by(is_active=True, is_manager=True)\
+            .order_by(Employee.first_name, Employee.last_name).all()
+        
+        manager_list = [{
+            'id': m.id,
+            'name': f"{m.first_name} {m.last_name}"
+        } for m in managers]
+        
+        return jsonify({'success': True, 'managers': manager_list})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 
 # ============================================================================

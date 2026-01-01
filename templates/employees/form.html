@@ -293,10 +293,12 @@
                                 <label for="email" class="form-label">Email</label>
                                 <input type="text" class="form-control" id="email" name="email"
                                     value="{{ form_data.get('email') if form_data else (employee.email or '' if employee else '') }}"
-                                    {% if (current_user.role.name if current_user.role else None) !='HR Manager'
-                                    %}readonly{% endif %}>
-                                {% if (current_user.role.name if current_user.role else None) != 'HR Manager' %}
-                                <small class="text-muted d-block mt-1">Only HR Manager can edit this field</small>
+                                    {% if (current_user.role.name if current_user.role else None) not in ['HR
+                                    Manager', 'Super Admin' , 'Tenant Admin' ] %}readonly{% endif %}>
+                                {% if (current_user.role.name if current_user.role else None) not in ['HR Manager',
+                                'Super Admin', 'Tenant Admin'] %}
+                                <small class="text-muted d-block mt-1">Contact HR Manager or Admin to edit this
+                                    field</small>
                                 {% endif %}
                             </div>
                             <div class="form-grid-item">

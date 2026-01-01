@@ -189,13 +189,18 @@
 
                         <!-- Tenant & Company (Admin Only) -->
                         <!-- Tenant & Company (Admin Only) -->
+                        <!-- Tenant & Company (Admin Only) - HIDDEN as consolidated in Organization Master -->
+                        <!-- 
                         {% if user_role in ['Super Admin', 'Tenant Admin'] %}
                         <a class="nav-link" href="{{ url_for('tenant_list') }}">Tenants</a>
                         <a class="nav-link" href="{{ url_for('company_list') }}">Companies</a>
                         <a class="nav-link" href="{{ url_for('tenant_payment_config_list') }}">Payment Config</a>
                         {% endif %}
+                        -->
 
                         <!-- Configuration Masters (HR Manager & Admin) -->
+                        <a class="nav-link" href="{{ url_for('organization_master_dashboard') }}">Organization
+                            Master</a>
                         <a class="nav-link" href="{{ url_for('operation_master_dashboard') }}">Operation Master</a>
                     </div>
                 </div>

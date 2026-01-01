@@ -983,6 +983,14 @@ def employee_add():
                 user.email = employee.email
                 user.first_name = employee.first_name
                 user.last_name = employee.last_name
+                
+                # Handle email - required by DB but might be missing for employee
+                if employee.email:
+                    user.email = employee.email
+                else:
+                    # Auto-generate placeholder email to satisfy DB constraint
+                    user.email = f"{username}@noemail.system"
+                
                 user.organization_id = current_user.organization_id
 
                 # Get role from form selection
@@ -1491,6 +1499,14 @@ def employee_edit(employee_id):
                             user.email = employee.email
                             user.first_name = employee.first_name
                             user.last_name = employee.last_name
+                            
+                            # Handle email - required by DB
+                            if employee.email:
+                                user.email = employee.email
+                            else:
+                                # Auto-generate placeholder email satisfy DB constraint
+                                user.email = f"{user.username}@noemail.system"
+
                             user.organization_id = current_user.organization_id
                             user.role_id = new_role.id
                             user.set_password(DEFAULT_USER_PASSWORD)
