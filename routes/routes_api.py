@@ -656,15 +656,17 @@ def mobile_api_get_attendance():
                 pass
         
         paginated = query.order_by(Attendance.date.desc()).paginate(page=page, per_page=per_page)
-        
+        #Print the query
+        print(query)
+
         attendance_records = []
         for att in paginated.items:
             attendance_records.append({
                 'id': att.id,
                 'employee_id': att.employee_id,
                 'date': att.date.isoformat() if att.date else None,
-                'check_in': att.check_in.isoformat() if att.check_in else None,
-                'check_out': att.check_out.isoformat() if att.check_out else None,
+                'clock_in': att.clock_in.isoformat() if att.clock_in else None,
+                'clock_out': att.clock_out.isoformat() if att.clock_out else None,
                 'status': att.status,
                 'duration_hours': att.duration_hours if hasattr(att, 'duration_hours') else None
             })
