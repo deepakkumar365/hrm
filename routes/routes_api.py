@@ -660,15 +660,23 @@ def mobile_api_get_attendance():
         print(query)
 
         attendance_records = []
+        from core.utils import get_employee_local_time
         for att in paginated.items:
+            # Standardize display using clock_in_time/clock_out_time (UTC) if available
+            c_in_src = att.clock_in_time if att.clock_in_time else att.clock_in
+            c_out_src = att.clock_out_time if att.clock_out_time else att.clock_out
+            
+            c_in_local = get_employee_local_time(att.employee, c_in_src, att.date) if c_in_src else None
+            c_out_local = get_employee_local_time(att.employee, c_out_src, att.date) if c_out_src else None
+            
             attendance_records.append({
                 'id': att.id,
                 'employee_id': att.employee_id,
                 'date': att.date.isoformat() if att.date else None,
-                'clock_in': att.clock_in.isoformat() if att.clock_in else None,
-                'clock_out': att.clock_out.isoformat() if att.clock_out else None,
+                'clock_in': c_in_local.isoformat() if c_in_local else None,
+                'clock_out': c_out_local.isoformat() if c_out_local else None,
                 'status': att.status,
-                'duration_hours': att.duration_hours if hasattr(att, 'duration_hours') else None
+                'duration_hours': float(att.total_hours) if hasattr(att, 'total_hours') and att.total_hours else 0
             })
         
         return api_response('success', 'Attendance records retrieved', {

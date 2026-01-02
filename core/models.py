@@ -29,8 +29,8 @@ class User(db.Model, UserMixin):
     role_id = db.Column(db.Integer, db.ForeignKey('hrm_roles.id'), nullable=False)
     reporting_manager_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     organization = db.relationship('Organization', back_populates='users')
     role = db.relationship('Role', back_populates='users')
@@ -176,9 +176,9 @@ class Tenant(db.Model):
     currency_code = db.Column(db.String(10), nullable=True)
 
     created_by = db.Column(db.String(100), nullable=False, default='system')
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     modified_by = db.Column(db.String(100))
-    modified_at = db.Column(db.DateTime)
+    modified_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     companies = db.relationship('Company', back_populates='tenant', cascade='all, delete-orphan')
     organizations = db.relationship('Organization', back_populates='tenant')
@@ -240,9 +240,9 @@ class Company(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     created_by = db.Column(db.String(100), nullable=False, default='system')
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     modified_by = db.Column(db.String(100))
-    modified_at = db.Column(db.DateTime)
+    modified_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     tenant = db.relationship('Tenant', back_populates='companies')
     employees = db.relationship('Employee', back_populates='company')
@@ -290,8 +290,8 @@ class UserCompanyAccess(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='CASCADE'), nullable=False)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=False)
     
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    modified_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships - Note: back_populates removed to avoid circular dependency at mapper initialization
     # The bidirectional relationship is established via User.company_access above
@@ -316,9 +316,9 @@ class CompanyEmployeeIdConfig(db.Model):
     id_prefix = db.Column(db.String(10), nullable=False)  # e.g., 'ACME'
     
     created_by = db.Column(db.String(100), nullable=False, default='system')
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     modified_by = db.Column(db.String(100))
-    modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    modified_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     company = db.relationship('Company', backref=db.backref('employee_id_config', uselist=False, cascade='all, delete-orphan'))
 
@@ -352,9 +352,9 @@ class TenantPaymentConfig(db.Model):
     frequency = db.Column(db.String(20), nullable=False, default='Monthly')
 
     created_by = db.Column(db.String(100), nullable=False, default='system')
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     modified_by = db.Column(db.String(100))
-    modified_at = db.Column(db.DateTime)
+    modified_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 
     tenant = db.relationship('Tenant', back_populates='payment_configs')
 
@@ -392,7 +392,7 @@ class TenantDocument(db.Model):
     file_size = db.Column(db.Integer, nullable=True)
 
     uploaded_by = db.Column(db.String(100), nullable=False)
-    upload_date = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    upload_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     tenant = db.relationship('Tenant', back_populates='documents')
 
@@ -479,8 +479,8 @@ class Employee(db.Model):
     # Employee Group for Leave Configuration
     employee_group_id = db.Column(db.Integer, db.ForeignKey('hrm_employee_group.id'), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    modified_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    modified_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_by = db.Column(db.String(100), default='system')
     modified_by = db.Column(db.String(100))
 
@@ -534,8 +534,8 @@ class EmployeeDocument(db.Model):
     description = db.Column(db.Text, nullable=True)
 
     uploaded_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id', ondelete='SET NULL'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     employee = db.relationship('Employee', back_populates='documents')
     uploader = db.relationship('User', foreign_keys=[uploaded_by])
@@ -558,8 +558,8 @@ class EmployeeBankInfo(db.Model):
     bank_code = db.Column(db.String(20), nullable=True)
     paynow_no = db.Column(db.String(20), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     employee = db.relationship('Employee', backref=db.backref('bank_info', uselist=False))
 
@@ -599,8 +599,8 @@ class PayrollConfiguration(db.Model):
     net_salary = db.Column(db.Numeric(10, 2), default=0)
     remarks = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
 
     employee = db.relationship('Employee', backref=db.backref('payroll_config', uselist=False))
@@ -644,7 +644,7 @@ class Payroll(db.Model):
 
     status = db.Column(db.String(20), default='Draft')
     generated_by = db.Column(db.Integer, db.ForeignKey(User.id))
-    generated_at = db.Column(db.DateTime, default=datetime.now)
+    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     employee = db.relationship('Employee', backref='payrolls')
     generated_by_user = db.relationship('User')
@@ -671,8 +671,8 @@ class AttendanceRegularization(db.Model):
     approved_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.Text)
     
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     employee = db.relationship('Employee', backref='regularizations')
     requester = db.relationship('User', foreign_keys=[requested_by])
@@ -728,8 +728,8 @@ class Attendance(db.Model):
     
     timezone = db.Column(db.String(50), default='UTC')
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     employee = db.relationship('Employee', backref='attendances')
     overtime_approver = db.relationship('User', foreign_keys=[overtime_approved_by])
@@ -756,7 +756,7 @@ class AttendanceSegment(db.Model):
     
     remarks = db.Column(db.Text)
     
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     attendance = db.relationship('Attendance', backref=db.backref('segments', cascade='all, delete-orphan'))
 
@@ -777,8 +777,8 @@ class Leave(db.Model):
     approved_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.Text)
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     employee = db.relationship('Employee', back_populates='leaves')
     requested_by_user = db.relationship('User', foreign_keys=[requested_by])

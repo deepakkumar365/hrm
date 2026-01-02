@@ -575,7 +575,7 @@ def submit_ot_attendance(attendance_id):
             
             # Update OT Attendance status
             ot_attendance.status = 'Submitted'
-            ot_attendance.modified_at = datetime.now()
+            ot_attendance.modified_at = datetime.utcnow()
             
             db.session.commit()
             
@@ -711,7 +711,7 @@ def submit_ot_for_manager_approval(attendance_id):
             
             # Update OT Attendance status
             ot_attendance.status = 'Submitted'
-            ot_attendance.modified_at = datetime.now()
+            ot_attendance.modified_at = datetime.utcnow()
             
             db.session.commit()
             

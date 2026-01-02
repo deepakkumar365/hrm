@@ -310,9 +310,7 @@ def update_company_timezone_endpoint(company_id):
         
         # Update company timezone
         company.timezone = timezone_str
-        from sqlalchemy import func
-        from datetime import datetime
-        company.modified_at = datetime.now()
+        company.modified_at = datetime.utcnow()
         company.modified_by = current_user.email if current_user else 'system'
         
         from app import db

@@ -20,10 +20,10 @@ class AttendanceService:
             timezone_str = company.timezone if company else 'UTC'
             tz = timezone(timezone_str)
             
-            # Current time in company local
+            # Current time in company local for date logic
             now_utc = datetime.now(utc)
-            current_time = now_utc.astimezone(tz)
-            today = current_time.date()
+            local_now = now_utc.astimezone(tz)
+            today = local_now.date()
             
             attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
             
@@ -38,8 +38,8 @@ class AttendanceService:
                     status='Incomplete',
                     sub_status='Pending Out',
                     timezone=timezone_str,
-                    clock_in_time=current_time,
-                    clock_in=current_time.time(),
+                    clock_in_time=now_utc, # Store UTC
+                    clock_in=local_now.time(), # Local time for legacy display
                     location_lat=latitude,
                     location_lng=longitude,
                     remarks=remarks
@@ -47,8 +47,8 @@ class AttendanceService:
                 db.session.add(attendance)
                 db.session.flush()
                 
-                # Check for lateness
-                AttendanceService._check_late_early(attendance, employee, current_time)
+                # Check for lateness (logic uses local time)
+                AttendanceService._check_late_early(attendance, employee, local_now)
             else:
                 # Resuming or already clocked in
                 # Check if there's an open segment
@@ -68,7 +68,7 @@ class AttendanceService:
             new_segment = AttendanceSegment(
                 attendance_id=attendance.id,
                 segment_type='Work',
-                clock_in=current_time,
+                clock_in=now_utc, # Store UTC
                 location_lat=latitude,
                 location_lng=longitude,
                 remarks=remarks
@@ -90,7 +90,8 @@ class AttendanceService:
             if not employee: return False, "Employee not found"
             
             company_tz = timezone(employee.company.timezone if employee.company else 'UTC')
-            now_local = datetime.now(utc).astimezone(company_tz)
+            now_utc = datetime.now(utc)
+            now_local = now_utc.astimezone(company_tz)
             today = now_local.date()
             
             attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
@@ -99,15 +100,17 @@ class AttendanceService:
             # Ensure work segment is closed or handle overlapping
             open_work = AttendanceSegment.query.filter_by(attendance_id=attendance.id, clock_out=None, segment_type='Work').first()
             if open_work:
-                open_work.clock_out = now_local
-                duration = (now_local - open_work.clock_in).total_seconds() / 60
+                open_work.clock_out = now_utc # Store UTC
+                # Duration calculation remains correct with aware datetimes or consistent naive UTC
+                # but since seg.clock_in is now UTC (standardized), we use now_utc
+                duration = (now_utc - open_work.clock_in.replace(tzinfo=utc)).total_seconds() / 60
                 open_work.duration_minutes = int(max(0, duration))
             
             # Start break segment
             new_break = AttendanceSegment(
                 attendance_id=attendance.id,
                 segment_type='Break',
-                clock_in=now_local,
+                clock_in=now_utc, # Store UTC
                 remarks=remarks
             )
             # Update legacy break field if first break
@@ -129,7 +132,8 @@ class AttendanceService:
             if not employee: return False, "Employee not found"
             
             company_tz = timezone(employee.company.timezone if employee.company else 'UTC')
-            now_local = datetime.now(utc).astimezone(company_tz)
+            now_utc = datetime.now(utc)
+            now_local = now_utc.astimezone(company_tz)
             today = now_local.date()
             
             attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
@@ -139,8 +143,8 @@ class AttendanceService:
             if not open_break: return False, "No active break found"
             
             # Close break
-            open_break.clock_out = now_local
-            duration = (now_local - open_break.clock_in).total_seconds() / 60
+            open_break.clock_out = now_utc # Store UTC
+            duration = (now_utc - open_break.clock_in.replace(tzinfo=utc)).total_seconds() / 60
             open_break.duration_minutes = int(max(0, duration))
             
             # Update legacy break field
@@ -150,7 +154,7 @@ class AttendanceService:
             new_work = AttendanceSegment(
                 attendance_id=attendance.id,
                 segment_type='Work',
-                clock_in=now_local,
+                clock_in=now_utc, # Store UTC
                 remarks="Resumed after break"
             )
             
@@ -174,10 +178,10 @@ class AttendanceService:
             timezone_str = company.timezone if company else 'UTC'
             tz = timezone(timezone_str)
             
-            # Current time in company local
+            # Current time in company local for date logic
             now_utc = datetime.now(utc)
-            current_time = now_utc.astimezone(tz)
-            today = current_time.date()
+            local_now = now_utc.astimezone(tz)
+            today = local_now.date()
             
             attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
             
@@ -194,24 +198,24 @@ class AttendanceService:
                 return False, "Not currently clocked in"
             
             # Close segment
-            open_segment.clock_out = current_time
-            duration = (current_time - open_segment.clock_in).total_seconds() / 60
+            open_segment.clock_out = now_utc # Store UTC
+            duration = (now_utc - open_segment.clock_in.replace(tzinfo=utc)).total_seconds() / 60
             open_segment.duration_minutes = int(max(0, duration))
             if remarks:
                 open_segment.remarks = (open_segment.remarks or "") + f" | Out Note: {remarks}"
             
             # Update main attendance record
-            attendance.clock_out_time = current_time
-            attendance.clock_out = current_time.time()
+            attendance.clock_out_time = now_utc # Store UTC
+            attendance.clock_out = local_now.time() # Local time for legacy display
             attendance.status = 'Present'
             attendance.sub_status = None
-            attendance.updated_at = datetime.now()
+            attendance.updated_at = datetime.utcnow()
             
             # Recalculate total hours
             AttendanceService._calculate_hours(attendance, employee)
             
-            # Check for early departure
-            AttendanceService._check_late_early(attendance, employee, current_time, is_clock_out=True)
+            # Check for early departure (logic uses local time)
+            AttendanceService._check_late_early(attendance, employee, local_now, is_clock_out=True)
             
             db.session.commit()
             return True, "Clocked out successfully"
@@ -242,35 +246,47 @@ class AttendanceService:
             if employee.working_hours and employee.working_hours.end_time:
                 auto_cutoff_time = employee.working_hours.end_time
             
-            cutoff_dt = datetime.combine(past_record.date, auto_cutoff_time)
+            cutoff_local = datetime.combine(past_record.date, auto_cutoff_time)
             # Localize cutoff_dt
             tz = timezone(past_record.timezone or 'UTC')
-            cutoff_dt = tz.localize(cutoff_dt)
+            cutoff_local = tz.localize(cutoff_local)
+            cutoff_utc = cutoff_local.astimezone(utc).replace(tzinfo=None) # Store as naive UTC
             
             for seg in open_segments:
-                seg.clock_out = cutoff_dt
-                duration = (cutoff_dt - seg.clock_in).total_seconds() / 60
+                seg.clock_out = cutoff_utc
+                # seg.clock_in is stored in UTC, so we can subtract directly if both naive or both aware
+                seg_clock_in = seg.clock_in.replace(tzinfo=utc) if seg.clock_in.tzinfo is None else seg.clock_in
+                duration = (cutoff_local.astimezone(utc) - seg_clock_in).total_seconds() / 60
                 seg.duration_minutes = int(max(0, duration))
                 seg.remarks = (seg.remarks or "") + " [Auto-closed]"
 
             # 2. Update main record
             past_record.clock_out = auto_cutoff_time
-            past_record.clock_out_time = cutoff_dt
+            past_record.clock_out_time = cutoff_utc
             past_record.status = 'Present'
             past_record.sub_status = 'Auto-closed'
             
             # 3. Calculate hours
             AttendanceService._calculate_hours(past_record, employee)
             
-            # 4. Check early departure for the auto-closed record (likely False if closed at EOD)
-            AttendanceService._check_late_early(past_record, employee, cutoff_dt, is_clock_out=True)
+            # 4. Check early departure (logic uses local time)
+            AttendanceService._check_late_early(past_record, employee, cutoff_local, is_clock_out=True)
 
     @staticmethod
     def _calculate_hours(attendance, employee):
         """Calculate total, regular, and overtime hours from all segments."""
         segments = AttendanceSegment.query.filter_by(attendance_id=attendance.id).all()
         
-        total_minutes = sum(s.duration_minutes for s in segments if s.duration_minutes)
+        total_minutes = 0
+        for s in segments:
+            if s.clock_in and s.clock_out:
+                # Ensure we have aware datetimes for calculation if they were stored naive
+                c_in = s.clock_in.replace(tzinfo=utc) if s.clock_in.tzinfo is None else s.clock_in
+                c_out = s.clock_out.replace(tzinfo=utc) if s.clock_out.tzinfo is None else s.clock_out
+                duration = (c_out - c_in).total_seconds() / 60
+                s.duration_minutes = int(max(0, duration))
+                total_minutes += s.duration_minutes
+        
         total_hours = total_minutes / 60.0
         
         # Get standard hours

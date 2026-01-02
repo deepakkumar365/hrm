@@ -2325,15 +2325,19 @@ def attendance_list():
     # Process records to add display times converting to employee's timezone
     for record in attendance_records.items:
         if record.employee:
-            if record.clock_in:
+            # Prefer clock_in_time (DateTime) as it's our standardized UTC source
+            clock_in_src = record.clock_in_time if record.clock_in_time else record.clock_in
+            if clock_in_src:
                 record.clock_in_display = get_employee_local_time(
-                    record.employee, record.clock_in, record.date)
+                    record.employee, clock_in_src, record.date)
             else:
                 record.clock_in_display = None
             
-            if record.clock_out:
+            # Prefer clock_out_time (DateTime)
+            clock_out_src = record.clock_out_time if record.clock_out_time else record.clock_out
+            if clock_out_src:
                 record.clock_out_display = get_employee_local_time(
-                    record.employee, record.clock_out, record.date)
+                    record.employee, clock_out_src, record.date)
             else:
                 record.clock_out_display = None
         else:
@@ -2562,22 +2566,29 @@ def attendance_correct(attendance_id):
             # Update attendance record
             clock_out_str = request.form.get('clock_out')
             if clock_out_str:
-                attendance.clock_out = datetime.strptime(
-                    clock_out_str, '%H:%M').time()
-
-                # Recalculate hours
-                if attendance.clock_in:
-                    clock_in_dt = datetime.combine(attendance.date,
-                                                   attendance.clock_in)
-                    clock_out_dt = datetime.combine(attendance.date, attendance.clock_out)
-                    total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
+                from pytz import timezone, utc
+                company_tz = timezone(attendance.employee.company.timezone if attendance.employee.company else 'UTC')
+                
+                # Parse local time from form
+                local_time = datetime.strptime(clock_out_str, '%H:%M').time()
+                attendance.clock_out = local_time # Local time for legacy
+                
+                # Create localized datetime and convert to UTC for storage
+                local_dt = company_tz.localize(datetime.combine(attendance.date, local_time))
+                utc_dt = local_dt.astimezone(utc).replace(tzinfo=None)
+                attendance.clock_out_time = utc_dt
+                
+                # Recalculate hours (logic should be robust)
+                if attendance.clock_in_time:
+                    # Use standardized UTC timestamps for calculation
+                    clock_in_utc = attendance.clock_in_time.replace(tzinfo=utc) if attendance.clock_in_time.tzinfo is None else attendance.clock_in_time
+                    total_seconds = (local_dt.astimezone(utc) - clock_in_utc).total_seconds()
 
                     # Subtract break time if applicable
                     if attendance.break_start and attendance.break_end:
-                        break_start_dt = datetime.combine(
-                            attendance.date, attendance.break_start)
-                        break_end_dt = datetime.combine(
-                            attendance.date, attendance.break_end)
+                        # Break times are currently stored as local time objects
+                        break_start_dt = company_tz.localize(datetime.combine(attendance.date, attendance.break_start))
+                        break_end_dt = company_tz.localize(datetime.combine(attendance.date, attendance.break_end))
                         break_seconds = (break_end_dt - break_start_dt).total_seconds()
                         total_seconds -= break_seconds
 
@@ -2592,6 +2603,7 @@ def attendance_correct(attendance_id):
                         attendance.overtime_hours = 0
 
                     attendance.total_hours = total_hours
+                attendance.updated_at = datetime.utcnow()
 
             # Add correction note
             correction_note = request.form.get('notes', '')
@@ -2621,39 +2633,50 @@ def auto_complete_incomplete_attendance():
         Attendance.date == yesterday, Attendance.clock_out.is_(None)).all()
 
     for record in incomplete_records:
-        # Auto-complete with 6 PM clock out
+        from pytz import timezone, utc
+        employee = record.employee
+        company = employee.company
+        tz_str = company.timezone if company else 'UTC'
+        tz = timezone(tz_str)
+        
+        # Auto-complete with 6 PM clock out or shift end
         default_clock_out = time(18, 0)
+        if employee.working_hours and employee.working_hours.end_time:
+             default_clock_out = employee.working_hours.end_time
+             
+        # Localize and convert to UTC
+        clock_out_local = tz.localize(datetime.combine(record.date, default_clock_out))
+        clock_out_utc = clock_out_local.astimezone(utc).replace(tzinfo=None)
+        
         record.clock_out = default_clock_out
-        
-        # Calculate hours
-        clock_in_dt = datetime.combine(record.date, record.clock_in)
-        clock_out_dt = datetime.combine(record.date, default_clock_out)
-        
-        # Update timestamp field
-        record.clock_out_time = clock_out_dt
+        record.clock_out_time = clock_out_utc
         record.status = 'Present'
         record.sub_status = 'Auto Completed'
+        record.updated_at = datetime.utcnow()
         
-        total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
+        # Calculate hours using UTC timestamps if possible
+        if record.clock_in_time:
+            clock_in_utc = record.clock_in_time.replace(tzinfo=utc) if record.clock_in_time.tzinfo is None else record.clock_in_time
+            total_seconds = (clock_out_local.astimezone(utc) - clock_in_utc).total_seconds()
+            
+            # Subtract break time if applicable
+            if record.break_start and record.break_end:
+                break_start_dt = tz.localize(datetime.combine(record.date, record.break_start))
+                break_end_dt = tz.localize(datetime.combine(record.date, record.break_end))
+                break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                total_seconds -= break_seconds
 
-        # Subtract break time if applicable
-        if record.break_start and record.break_end:
-            break_start_dt = datetime.combine(record.date, record.break_start)
-            break_end_dt = datetime.combine(record.date, record.break_end)
-            break_seconds = (break_end_dt - break_start_dt).total_seconds()
-            total_seconds -= break_seconds
+            total_hours = total_seconds / 3600
 
-        total_hours = total_seconds / 3600
+            # Standard work day is 8 hours
+            if total_hours > 8:
+                record.regular_hours = 8
+                record.overtime_hours = total_hours - 8
+            else:
+                record.regular_hours = total_hours
+                record.overtime_hours = 0
 
-        # Standard work day is 8 hours
-        if total_hours > 8:
-            record.regular_hours = 8
-            record.overtime_hours = total_hours - 8
-        else:
-            record.regular_hours = total_hours
-            record.overtime_hours = 0
-
-        record.total_hours = total_hours
+            record.total_hours = total_hours
         record.notes = f"Auto-completed by system: Forgot to clock out on {record.date.strftime('%Y-%m-%d')}"
 
     if incomplete_records:

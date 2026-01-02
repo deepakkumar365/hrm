@@ -1,7 +1,7 @@
 import csv
 from io import StringIO
 from flask import make_response
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, time, timedelta
 import logging
 from pytz import timezone, utc
 import re
@@ -225,22 +225,29 @@ class MobileDetector:
 
 def get_employee_local_time(employee, time_obj, event_date):
     """
-    Returns the time object for display. 
-    The system currently stores localized times in the 'clock_in' and 'clock_out' columns.
+    Returns the time object for display, converted to company local time if it's a UTC datetime.
     
     Args:
         employee (Employee): The employee object.
-        time_obj (datetime.time): The time object.
+        time_obj (datetime.time or datetime.datetime): The time or datetime object.
         event_date (datetime.date): The date of the event.
 
     Returns:
-        datetime.time: The time object.
+        datetime.time: The localized time object.
     """
     if not time_obj:
         return None
     
-    # The AttendanceService already stores local times into the database columns.
-    # Therefore, we just return the time_obj as is for display to avoid double-shifting.
+    # If it's already a time object, assume it's legacy local time storage
+    if isinstance(time_obj, time):
+        return time_obj
+        
+    # If it's a datetime, it's our new standardized UTC storage
+    if isinstance(time_obj, datetime):
+        from core.timezone_utils import convert_utc_to_company_timezone
+        localized_dt = convert_utc_to_company_timezone(time_obj, employee.company)
+        return localized_dt.time()
+        
     return time_obj
 
 # =====================================================================

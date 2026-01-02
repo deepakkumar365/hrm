@@ -151,7 +151,7 @@ def leave_approve(leave_id):
         
         leave.status = 'Approved'
         leave.approved_by = current_user.id
-        leave.approved_at = datetime.now()
+        leave.approved_at = datetime.utcnow()
         
         db.session.commit()
         
@@ -183,7 +183,7 @@ def leave_reject(leave_id):
         
         leave.status = 'Rejected'
         leave.approved_by = current_user.id
-        leave.approved_at = datetime.now()
+        leave.approved_at = datetime.utcnow()
         leave.rejection_reason = rejection_reason
         
         db.session.commit()
@@ -433,7 +433,7 @@ def leave_configuration_form():
                     leave_type.color = color
                     leave_type.is_active = is_active
                     leave_type.modified_by = current_user.username if hasattr(current_user, 'username') else 'system'
-                    leave_type.modified_at = datetime.now()
+                    leave_type.modified_at = datetime.utcnow()
                     
                     db.session.commit()
                     flash("Leave type updated successfully", "success")
@@ -580,7 +580,7 @@ def leave_group_form(group_id=None):
                 group.description = description
                 group.is_active = is_active
                 group.modified_by = current_user.username
-                group.modified_at = datetime.now()
+                group.modified_at = datetime.utcnow()
                 db.session.commit()
                 flash("Leave group updated successfully", "success")
             else:
