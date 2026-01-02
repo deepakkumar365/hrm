@@ -717,6 +717,12 @@ class Attendance(db.Model):
     
     lop = db.Column(db.Boolean, default=False)  # Loss of Pay
 
+    # New late/early tracking
+    is_late = db.Column(db.Boolean, default=False)
+    is_early_departure = db.Column(db.Boolean, default=False)
+    late_minutes = db.Column(db.Integer, default=0)
+    early_departure_minutes = db.Column(db.Integer, default=0)
+
     location_lat = db.Column(db.String(20))
     location_lng = db.Column(db.String(20))
     
@@ -731,6 +737,28 @@ class Attendance(db.Model):
     regularization = db.relationship('AttendanceRegularization', foreign_keys=[regularization_id])
 
     __table_args__ = (UniqueConstraint('employee_id', 'date'),)
+
+class AttendanceSegment(db.Model):
+    """Detailed segments for a single attendance day (multiple clock-ins/outs)"""
+    __tablename__ = 'hrm_attendance_segments'
+    id = db.Column(db.Integer, primary_key=True)
+    attendance_id = db.Column(db.Integer, db.ForeignKey('hrm_attendance.id', ondelete='CASCADE'), nullable=False)
+    
+    segment_type = db.Column(db.String(20), default='Work') # Work, Break
+    
+    clock_in = db.Column(db.DateTime, nullable=False)
+    clock_out = db.Column(db.DateTime)
+    
+    duration_minutes = db.Column(db.Integer, default=0)
+    
+    location_lat = db.Column(db.String(20))
+    location_lng = db.Column(db.String(20))
+    
+    remarks = db.Column(db.Text)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    attendance = db.relationship('Attendance', backref=db.backref('segments', cascade='all, delete-orphan'))
 
 class Leave(db.Model):
     __tablename__ = 'hrm_leave'
@@ -897,6 +925,7 @@ class WorkingHours(db.Model):
     end_time = db.Column(db.Time, nullable=True)
     hours_per_day = db.Column(db.Numeric(4, 2), nullable=False)
     hours_per_week = db.Column(db.Numeric(4, 2), nullable=False)
+    grace_period = db.Column(db.Integer, default=15)  # Grace period in minutes for late arrival
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)

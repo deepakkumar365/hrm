@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '0c7c0f7037e1'
-down_revision = ('add_ot_daily_summary_001', 'add_user_company_access', 'TEMPLATE_DROP_USER_NAMES', 'merge_migration_heads')
+down_revision = ('add_ot_daily_summary_001', 'add_user_company_access', 'merge_migration_heads')
 branch_labels = None
 depends_on = None
 

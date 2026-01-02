@@ -225,41 +225,23 @@ class MobileDetector:
 
 def get_employee_local_time(employee, time_obj, event_date):
     """
-    Convert a UTC time object to the employee's company's local timezone.
-
+    Returns the time object for display. 
+    The system currently stores localized times in the 'clock_in' and 'clock_out' columns.
+    
     Args:
-        employee (Employee): The employee object with a company relationship.
-        time_obj (datetime.time): The time object stored in UTC.
+        employee (Employee): The employee object.
+        time_obj (datetime.time): The time object.
         event_date (datetime.date): The date of the event.
 
     Returns:
-        datetime.time: The time object in the company's local timezone, or None.
+        datetime.time: The time object.
     """
-    if not time_obj or not event_date:
+    if not time_obj:
         return None
-
-    try:
-        # Combine date and time to create a UTC datetime object
-        utc_dt = datetime.combine(event_date, time_obj, tzinfo=utc)
-
-        # Get company's timezone, default to UTC
-        company_tz_str = 'UTC'
-        if employee.company and employee.company.timezone:
-            company_tz_str = employee.company.timezone
-
-        company_tz = timezone(company_tz_str)
-
-        # Convert UTC datetime to company's local timezone
-        local_dt = utc_dt.astimezone(company_tz)
-
-        # Return the time part of the localized datetime
-        return local_dt.time()
-
-    except Exception as e:
-        # Log the error for debugging purposes
-        logging.error(f"Error converting time for employee {employee.id}: {e}")
-        # Fallback to UTC time if conversion fails
-        return time_obj
+    
+    # The AttendanceService already stores local times into the database columns.
+    # Therefore, we just return the time_obj as is for display to avoid double-shifting.
+    return time_obj
 
 # =====================================================================
 # UTILITY: Check Role Access to Module/Menu

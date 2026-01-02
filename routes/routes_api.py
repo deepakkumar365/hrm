@@ -20,8 +20,8 @@ from core.models import (
     Department, Company, Designation, EmployeeGroup, OTRequest,
     OTType, OTAttendance, OTApproval
 )
-from sqlalchemy.orm import joinedload
 from core.auth import login_manager
+from services.attendance_service import AttendanceService
 
 logger = logging.getLogger(__name__)
 
@@ -725,75 +725,45 @@ def mobile_api_mark_attendance():
         data = request.get_json()
         employee_id = data.get('employee_id')
         action = data.get('action')  # 'check_in' or 'check_out'
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        remarks = data.get('remarks')
         
         if not employee_id or not action:
             return api_response('error', 'employee_id and action are required', None, 400)
         
-        employee = Employee.query.get(employee_id)
-        if not employee:
-            return api_response('error', 'Employee not found', None, 404)
-        
-        # Get company timezone for consistent date calculation
-        from pytz import timezone, utc
-        company = employee.company
-        timezone_str = company.timezone if company else 'UTC'
-        company_tz = timezone(timezone_str)
-        
-        # Get today's date in company timezone
-        now_utc = datetime.now(utc)
-        today = now_utc.astimezone(company_tz).date()
-        current_time = now_utc.astimezone(company_tz)
-        
-        attendance = Attendance.query.filter_by(
-            employee_id=employee_id,
-            date=today
-        ).first()
-        
-        if not attendance:
-            attendance = Attendance(
-                employee_id=employee_id,
-                date=today,
-                status='Incomplete', # Default start
-                sub_status='Pending Out',
-                timezone=timezone_str
-            )
-            db.session.add(attendance)
-        else:
-            # Update timezone on existing records
-            attendance.timezone = timezone_str
-        
         if action == 'check_in':
-            attendance.clock_in = current_time.time()
-            attendance.clock_in_time = current_time
-            attendance.status = 'Incomplete'
-            attendance.sub_status = 'Pending Out'
-            
+            success, message = AttendanceService.clock_in(
+                employee_id, latitude=latitude, longitude=longitude, remarks=remarks
+            )
         elif action == 'check_out':
-            attendance.clock_out = current_time.time()
-            attendance.clock_out_time = current_time
-            
-            # Determine status
-            has_in = attendance.clock_in is not None or attendance.clock_in_time is not None
-            if has_in:
-                attendance.status = 'Present'
-                attendance.sub_status = None
-            else:
-                attendance.status = 'Incomplete'
-                attendance.sub_status = 'Pending In'
+            success, message = AttendanceService.clock_out(
+                employee_id, latitude=latitude, longitude=longitude, remarks=remarks
+            )
         else:
-            return api_response('error', 'Invalid action. Must be check_in or check_out', None, 400)
+            return api_response('error', f'Invalid action: {action}. Use check_in or check_out.', None, 400)
         
-        db.session.commit()
+        if not success:
+            return api_response('error', message, None, 400)
         
-        return api_response('success', f'Attendance {action} recorded', {
+        # Get updated record for response
+        employee = Employee.query.get(employee_id)
+        from pytz import timezone, utc
+        company_tz = timezone(employee.company.timezone if employee.company else 'UTC')
+        today = datetime.now(utc).astimezone(company_tz).date()
+        
+        attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
+        
+        return api_response('success', message, {
             'employee_id': attendance.employee_id,
             'date': attendance.date.isoformat(),
             'clock_in': attendance.clock_in.isoformat() if attendance.clock_in else None,
-            'clock_out': attendance.clock_out.isoformat() if attendance.clock_out else None
+            'clock_out': attendance.clock_out.isoformat() if attendance.clock_out else None,
+            'status': attendance.status,
+            'total_hours': float(attendance.total_hours)
         }, 200)
     
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Mark attendance error: {e}")
         return api_response('error', f'Failed to mark attendance: {str(e)}', None, 500)
 

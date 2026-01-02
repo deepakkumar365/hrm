@@ -39,6 +39,26 @@
     .card-actions {
         margin-left: auto;
     }
+
+    /* Loading Skeleton Animation */
+    @keyframes shimmer {
+        0% {
+            background-position: -1000px 0;
+        }
+
+        100% {
+            background-position: 1000px 0;
+        }
+    }
+
+    .skeleton-line {
+        height: 12px;
+        margin-bottom: 10px;
+        background: linear-gradient(to right, #f6f7f8 4%, #edeef1 25%, #f6f7f8 36%);
+        background-size: 1000px 100%;
+        animation: shimmer 2s infinite linear;
+        border-radius: 4px;
+    }
 </style>
 {% endblock %}
 
@@ -81,7 +101,6 @@
                     </div>
                 </div>
                 <div class="p-3 flex-grow-1">
-                    {% if roles %}
                     <div class="table-responsive">
                         <table class="table table-hover table-preview">
                             <thead>
@@ -90,24 +109,17 @@
                                     <th>Description</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for role in roles %}
+                            <tbody id="roles-tbody">
+                                <!-- Loaded via AJAX -->
                                 <tr>
-                                    <td class="fw-medium">{{ role.name }}</td>
-                                    <td class="text-muted text-truncate" style="max-width: 150px;">
-                                        {{ role.description or '-' }}
+                                    <td colspan="2">
+                                        <div class="skeleton-line"></div>
+                                        <div class="skeleton-line w-75"></div>
                                     </td>
                                 </tr>
-                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-user-tag fa-2x mb-2"></i>
-                        <p class="mb-0 small">No roles defined</p>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="p-3 border-top bg-light rounded-bottom text-center">
                     <a href="{{ url_for('role_list') }}" class="text-decoration-none text-primary fw-medium small">
@@ -133,7 +145,6 @@
                     </div>
                 </div>
                 <div class="p-3 flex-grow-1">
-                    {% if departments %}
                     <div class="table-responsive">
                         <table class="table table-hover table-preview">
                             <thead>
@@ -142,28 +153,17 @@
                                     <th class="text-end">Manager</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for dept in departments %}
+                            <tbody id="departments-tbody">
+                                <!-- Loaded via AJAX -->
                                 <tr>
-                                    <td class="fw-medium">{{ dept.name }}</td>
-                                    <td class="text-end text-muted small">
-                                        {% if dept.manager %}
-                                        {{ dept.manager.first_name }} {{ dept.manager.last_name }}
-                                        {% else %}
-                                        <span class="text-muted">-</span>
-                                        {% endif %}
+                                    <td colspan="2">
+                                        <div class="skeleton-line"></div>
+                                        <div class="skeleton-line w-75"></div>
                                     </td>
                                 </tr>
-                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-building fa-2x mb-2"></i>
-                        <p class="mb-0 small">No departments defined</p>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="p-3 border-top bg-light rounded-bottom text-center">
                     <a href="{{ url_for('department_list') }}" class="text-decoration-none text-info fw-medium small">
@@ -189,7 +189,6 @@
                     </div>
                 </div>
                 <div class="p-3 flex-grow-1">
-                    {% if designations %}
                     <div class="table-responsive">
                         <table class="table table-hover table-preview">
                             <thead>
@@ -198,30 +197,17 @@
                                     <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for desig in designations %}
+                            <tbody id="designations-tbody">
+                                <!-- Loaded via AJAX -->
                                 <tr>
-                                    <td class="fw-medium">{{ desig.name }}</td>
-                                    <td>
-                                        {% if desig.is_active %}
-                                        <span class="badge bg-soft-success text-success rounded-pill"
-                                            style="font-size: 0.7rem;">Active</span>
-                                        {% else %}
-                                        <span class="badge bg-soft-secondary text-secondary rounded-pill"
-                                            style="font-size: 0.7rem;">Inactive</span>
-                                        {% endif %}
+                                    <td colspan="2">
+                                        <div class="skeleton-line"></div>
+                                        <div class="skeleton-line w-75"></div>
                                     </td>
                                 </tr>
-                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-id-card-alt fa-2x mb-2"></i>
-                        <p class="mb-0 small">No designations defined</p>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="p-3 border-top bg-light rounded-bottom text-center">
                     <a href="{{ url_for('designation_list') }}"
@@ -248,7 +234,6 @@
                     </div>
                 </div>
                 <div class="p-3 flex-grow-1">
-                    {% if working_hours %}
                     <div class="table-responsive">
                         <table class="table table-hover table-preview">
                             <thead>
@@ -257,24 +242,17 @@
                                     <th class="text-end">Times</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for wh in working_hours %}
+                            <tbody id="working-hours-tbody">
+                                <!-- Loaded via AJAX -->
                                 <tr>
-                                    <td class="fw-medium">{{ wh.name }}</td>
-                                    <td class="text-end small text-muted">
-                                        {{ wh.start_time.strftime('%H:%M') }} - {{ wh.end_time.strftime('%H:%M') }}
+                                    <td colspan="2">
+                                        <div class="skeleton-line"></div>
+                                        <div class="skeleton-line w-75"></div>
                                     </td>
                                 </tr>
-                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-clock fa-2x mb-2"></i>
-                        <p class="mb-0 small">No working hours defined</p>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="p-3 border-top bg-light rounded-bottom text-center">
                     <a href="{{ url_for('working_hours_list') }}"
@@ -301,7 +279,6 @@
                     </div>
                 </div>
                 <div class="p-3 flex-grow-1">
-                    {% if work_schedules %}
                     <div class="table-responsive">
                         <table class="table table-hover table-preview">
                             <thead>
@@ -310,32 +287,17 @@
                                     <th>Days</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for ws in work_schedules %}
+                            <tbody id="work-schedules-tbody">
+                                <!-- Loaded via AJAX -->
                                 <tr>
-                                    <td class="fw-medium">{{ ws.name }}</td>
-                                    <td>
-                                        <div class="d-flex gap-1" style="font-size: 0.6rem;">
-                                            {% if ws.monday %}<span class="badge bg-secondary">M</span>{% endif %}
-                                            {% if ws.tuesday %}<span class="badge bg-secondary">T</span>{% endif %}
-                                            {% if ws.wednesday %}<span class="badge bg-secondary">W</span>{% endif %}
-                                            {% if ws.thursday %}<span class="badge bg-secondary">T</span>{% endif %}
-                                            {% if ws.friday %}<span class="badge bg-secondary">F</span>{% endif %}
-                                            {% if ws.saturday %}<span class="badge bg-secondary">S</span>{% endif %}
-                                            {% if ws.sunday %}<span class="badge bg-secondary">S</span>{% endif %}
-                                        </div>
+                                    <td colspan="2">
+                                        <div class="skeleton-line"></div>
+                                        <div class="skeleton-line w-75"></div>
                                     </td>
                                 </tr>
-                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-calendar-alt fa-2x mb-2"></i>
-                        <p class="mb-0 small">No schedules defined</p>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="p-3 border-top bg-light rounded-bottom text-center">
                     <a href="{{ url_for('work_schedule_list') }}"
@@ -362,7 +324,6 @@
                     </div>
                 </div>
                 <div class="p-3 flex-grow-1">
-                    {% if ot_types %}
                     <div class="table-responsive">
                         <table class="table table-hover table-preview">
                             <thead>
@@ -372,23 +333,17 @@
                                     <th class="text-end">Rate</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for ot in ot_types %}
+                            <tbody id="ot-types-tbody">
+                                <!-- Loaded via AJAX -->
                                 <tr>
-                                    <td class="fw-medium">{{ ot.name }}</td>
-                                    <td class="small text-muted">{{ ot.code }}</td>
-                                    <td class="text-end fw-bold">{{ ot.rate_multiplier }}x</td>
+                                    <td colspan="3">
+                                        <div class="skeleton-line"></div>
+                                        <div class="skeleton-line w-75"></div>
+                                    </td>
                                 </tr>
-                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-stopwatch fa-2x mb-2"></i>
-                        <p class="mb-0 small">No OT types defined</p>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="p-3 border-top bg-light rounded-bottom text-center">
                     <a href="{{ url_for('ot_type_list') }}" class="text-decoration-none text-danger fw-medium small">
@@ -415,7 +370,6 @@
                     </div>
                 </div>
                 <div class="p-3 flex-grow-1">
-                    {% if leave_types %}
                     <div class="table-responsive">
                         <table class="table table-hover table-preview">
                             <thead>
@@ -425,23 +379,17 @@
                                     <th class="text-end">Days</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for lt in leave_types %}
+                            <tbody id="leave-types-tbody">
+                                <!-- Loaded via AJAX -->
                                 <tr>
-                                    <td class="fw-medium">{{ lt.name }}</td>
-                                    <td class="small text-muted">{{ lt.code }}</td>
-                                    <td class="text-end fw-bold">{{ lt.annual_allocation }}</td>
+                                    <td colspan="3">
+                                        <div class="skeleton-line"></div>
+                                        <div class="skeleton-line w-75"></div>
+                                    </td>
                                 </tr>
-                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-umbrella-beach fa-2x mb-2"></i>
-                        <p class="mb-0 small">No leave types defined</p>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="p-3 border-top bg-light rounded-bottom text-center">
                     <a href="{{ url_for('leave_configuration') }}"
@@ -468,7 +416,6 @@
                     </div>
                 </div>
                 <div class="p-3 flex-grow-1">
-                    {% if leave_groups %}
                     <div class="table-responsive">
                         <table class="table table-hover table-preview">
                             <thead>
@@ -477,24 +424,17 @@
                                     <th>Description</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for lg in leave_groups %}
+                            <tbody id="leave-groups-tbody">
+                                <!-- Loaded via AJAX -->
                                 <tr>
-                                    <td class="fw-medium">{{ lg.name }}</td>
-                                    <td class="text-muted text-truncate" style="max-width: 150px;">
-                                        {{ lg.description or '-' }}
+                                    <td colspan="2">
+                                        <div class="skeleton-line"></div>
+                                        <div class="skeleton-line w-75"></div>
                                     </td>
                                 </tr>
-                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="empty-state-small">
-                        <i class="fas fa-users fa-2x mb-2"></i>
-                        <p class="mb-0 small">No leave groups defined</p>
-                    </div>
-                    {% endif %}
                 </div>
                 <div class="p-3 border-top bg-light rounded-bottom text-center">
                     <a href="{{ url_for('leave_configuration') }}"
@@ -520,7 +460,7 @@
             </div>
             <div class="modal-body">
                 <form id="addRoleForm" action="{{ url_for('role_add') }}" method="POST"
-                    onsubmit="submitMasterForm('addRoleForm', 'panel-roles', event)">
+                    onsubmit="submitMasterForm('addRoleForm', 'roles-tbody', '/api/masters/roles', event)">
                     <div class="mb-3">
                         <label class="form-label">Role Name</label>
                         <input type="text" name="name" class="form-control" required>
@@ -547,7 +487,7 @@
             </div>
             <div class="modal-body">
                 <form id="addDeptForm" action="{{ url_for('department_add') }}" method="POST"
-                    onsubmit="submitMasterForm('addDeptForm', 'panel-departments', event)">
+                    onsubmit="submitMasterForm('addDeptForm', 'departments-tbody', '/api/masters/departments', event)">
                     <div class="mb-3">
                         <label class="form-label">Department Name</label>
                         <input type="text" name="name" class="form-control" required>
@@ -572,6 +512,22 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Parallel Data Fetching
+        const endpoints = [
+            { id: 'roles-tbody', url: '/api/masters/roles' },
+            { id: 'departments-tbody', url: '/api/masters/departments' },
+            { id: 'designations-tbody', url: '/api/masters/designations' },
+            { id: 'working-hours-tbody', url: '/api/masters/working-hours' },
+            { id: 'work-schedules-tbody', url: '/api/masters/work-schedules' },
+            { id: 'ot-types-tbody', url: '/api/masters/ot-types' },
+            { id: 'leave-types-tbody', url: '/api/masters/leave-types' },
+            { id: 'leave-groups-tbody', url: '/api/masters/leave-groups' }
+        ];
+
+        endpoints.forEach(ep => {
+            fetchData(ep.id, ep.url);
+        });
+
         const addDeptModal = document.getElementById('addDepartmentModal');
         if (addDeptModal) {
             addDeptModal.addEventListener('show.bs.modal', function () {
@@ -606,7 +562,7 @@
             </div>
             <div class="modal-body">
                 <form id="addDesigForm" action="{{ url_for('designation_add') }}" method="POST"
-                    onsubmit="submitMasterForm('addDesigForm', 'panel-designations', event)">
+                    onsubmit="submitMasterForm('addDesigForm', 'designations-tbody', '/api/masters/designations', event)">
                     <div class="mb-3">
                         <label class="form-label">Designation Name</label>
                         <input type="text" name="name" class="form-control" required>
@@ -628,7 +584,7 @@
             </div>
             <div class="modal-body">
                 <form id="addWHForm" action="{{ url_for('working_hours_add') }}" method="POST"
-                    onsubmit="submitMasterForm('addWHForm', 'panel-working-hours', event)">
+                    onsubmit="submitMasterForm('addWHForm', 'working-hours-tbody', '/api/masters/working-hours', event)">
                     <div class="mb-3">
                         <label class="form-label">Name</label>
                         <input type="text" name="name" class="form-control" required>
@@ -674,7 +630,7 @@
             </div>
             <div class="modal-body">
                 <form id="addWSForm" action="{{ url_for('work_schedule_add') }}" method="POST"
-                    onsubmit="submitMasterForm('addWSForm', 'panel-work-schedules', event)">
+                    onsubmit="submitMasterForm('addWSForm', 'work-schedules-tbody', '/api/masters/work-schedules', event)">
                     <div class="mb-3">
                         <label class="form-label">Name</label>
                         <input type="text" name="name" class="form-control" required>
@@ -739,7 +695,7 @@
             </div>
             <div class="modal-body">
                 <form id="addOTTypeForm" action="{{ url_for('ot_type_add') }}" method="POST"
-                    onsubmit="submitMasterForm('addOTTypeForm', 'panel-ot-types', event)">
+                    onsubmit="submitMasterForm('addOTTypeForm', 'ot-types-tbody', '/api/masters/ot-types', event)">
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label">Name</label>
@@ -786,7 +742,7 @@
             </div>
             <div class="modal-body">
                 <form id="addLeaveTypeForm" action="{{ url_for('leave_type_add') }}" method="POST"
-                    onsubmit="submitMasterForm('addLeaveTypeForm', 'panel-leave-types', event)">
+                    onsubmit="submitMasterForm('addLeaveTypeForm', 'leave-types-tbody', '/api/masters/leave-types', event)">
 
                     {% if all_companies and all_companies|length > 1 %}
                     <div class="mb-3">
@@ -831,7 +787,7 @@
             </div>
             <div class="modal-body">
                 <form id="addLeaveGroupForm" action="{{ url_for('leave_group_add') }}" method="POST"
-                    onsubmit="submitMasterForm('addLeaveGroupForm', 'panel-leave-groups', event)">
+                    onsubmit="submitMasterForm('addLeaveGroupForm', 'leave-groups-tbody', '/api/masters/leave-groups', event)">
 
                     {% if all_companies and all_companies|length > 1 %}
                     <div class="mb-3">
@@ -864,7 +820,117 @@
 
 {% block scripts %}
 <script>
-    function submitMasterForm(formId, panelId, event) {
+    function fetchData(elementId, url) {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById(elementId);
+                if (!tbody) return;
+
+                if (data.success && data.data && data.data.length > 0) {
+                    tbody.innerHTML = ''; // Clear skeleton
+
+                    data.data.forEach(item => {
+                        let rowHtml = '';
+
+                        // Custom rendering logic based on panel type
+                        if (elementId === 'roles-tbody') {
+                            rowHtml = `
+                                <tr>
+                                    <td class="fw-medium">${item.name}</td>
+                                    <td class="text-muted text-truncate" style="max-width: 150px;">${item.description || '-'}</td>
+                                </tr>`;
+                        } else if (elementId === 'departments-tbody') {
+                            rowHtml = `
+                                <tr>
+                                    <td class="fw-medium">${item.name}</td>
+                                    <td class="text-end text-muted small">${item.manager_name}</td>
+                                </tr>`;
+                        } else if (elementId === 'designations-tbody') {
+                            const badge = item.is_active
+                                ? '<span class="badge bg-soft-success text-success rounded-pill" style="font-size: 0.7rem;">Active</span>'
+                                : '<span class="badge bg-soft-secondary text-secondary rounded-pill" style="font-size: 0.7rem;">Inactive</span>';
+                            rowHtml = `
+                                <tr>
+                                    <td class="fw-medium">${item.name}</td>
+                                    <td>${badge}</td>
+                                </tr>`;
+                        } else if (elementId === 'working-hours-tbody') {
+                            rowHtml = `
+                                <tr>
+                                    <td class="fw-medium">${item.name}</td>
+                                    <td class="text-end small text-muted">${item.start_time} - ${item.end_time}</td>
+                                </tr>`;
+                        } else if (elementId === 'work-schedules-tbody') {
+                            let daysHtml = '<div class="d-flex gap-1" style="font-size: 0.6rem;">';
+                            ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                                if (item.days[day]) daysHtml += `<span class="badge bg-secondary">${day.charAt(0).toUpperCase()}</span>`;
+                            });
+                            daysHtml += '</div>';
+                            rowHtml = `
+                                <tr>
+                                    <td class="fw-medium">${item.name}</td>
+                                    <td>${daysHtml}</td>
+                                </tr>`;
+                        } else if (elementId === 'ot-types-tbody') {
+                            rowHtml = `
+                                <tr>
+                                    <td class="fw-medium">${item.name}</td>
+                                    <td class="small text-muted">${item.code}</td>
+                                    <td class="text-end fw-bold">${item.rate_multiplier}x</td>
+                                </tr>`;
+                        } else if (elementId === 'leave-types-tbody') {
+                            rowHtml = `
+                                <tr>
+                                    <td class="fw-medium">${item.name}</td>
+                                    <td class="small text-muted">${item.code}</td>
+                                    <td class="text-end fw-bold">${item.annual_allocation}</td>
+                                </tr>`;
+                        } else if (elementId === 'leave-groups-tbody') {
+                            rowHtml = `
+                                <tr>
+                                    <td class="fw-medium">${item.name}</td>
+                                    <td class="text-muted text-truncate" style="max-width: 150px;">${item.description || '-'}</td>
+                                </tr>`;
+                        }
+
+                        tbody.insertAdjacentHTML('beforeend', rowHtml);
+                    });
+                } else {
+                    // Empty state
+                    let icon = 'fa-folder';
+                    let msg = 'No data available';
+
+                    if (elementId === 'roles-tbody') { icon = 'fa-user-tag'; msg = 'No roles defined'; }
+                    if (elementId === 'departments-tbody') { icon = 'fa-building'; msg = 'No departments defined'; }
+                    if (elementId === 'designations-tbody') { icon = 'fa-id-card-alt'; msg = 'No designations defined'; }
+                    if (elementId === 'working-hours-tbody') { icon = 'fa-clock'; msg = 'No working hours defined'; }
+                    if (elementId === 'work-schedules-tbody') { icon = 'fa-calendar-alt'; msg = 'No schedules defined'; }
+                    if (elementId === 'ot-types-tbody') { icon = 'fa-stopwatch'; msg = 'No OT types defined'; }
+                    if (elementId === 'leave-types-tbody') { icon = 'fa-umbrella-beach'; msg = 'No leave types defined'; }
+                    if (elementId === 'leave-groups-tbody') { icon = 'fa-users'; msg = 'No leave groups defined'; }
+
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3">
+                                <div class="empty-state-small">
+                                    <i class="fas ${icon} fa-2x mb-2"></i>
+                                    <p class="mb-0 small">${msg}</p>
+                                </div>
+                            </td>
+                        </tr>`;
+                }
+            })
+            .catch(error => {
+                console.error(`Error loading ${elementId}:`, error);
+                const tbody = document.getElementById(elementId);
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger small">Error loading data</td></tr>`;
+                }
+            });
+    }
+
+    function submitMasterForm(formId, targetTbodyId, apiUrl, event) {
         event.preventDefault();
         const form = document.getElementById(formId);
         const submitBtn = form.querySelector('button[type="submit"]');
@@ -891,58 +957,38 @@
                     modal.hide();
 
                     // Show temporary success indicator on the panel
-                    const panel = document.getElementById(panelId);
-                    if (panel) {
-                        // Add simple loading effect
-                        panel.style.opacity = '0.5';
+                    const tbody = document.getElementById(targetTbodyId);
+                    if (tbody) {
+                        tbody.style.opacity = '0.5';
 
-                        // Fetch updated page content with cache busting
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('_t', Date.now());
+                        // Re-fetch data using the API
+                        fetchData(targetTbodyId, apiUrl);
 
-                        fetch(url.toString())
-                            .then(resp => resp.text())
-                            .then(html => {
-                                const parser = new DOMParser();
-                                const doc = parser.parseFromString(html, 'text/html');
-                                const newPanel = doc.getElementById(panelId);
+                        tbody.style.opacity = '1';
 
-                                if (newPanel && panel) {
-                                    panel.innerHTML = newPanel.innerHTML;
-                                    panel.className = newPanel.className; // Update classes if any changed
-                                    panel.style.opacity = '1';
-
-                                    // Reset form
-                                    form.reset();
-                                } else {
-                                    console.error('New panel content not found');
-                                    panel.style.opacity = '1';
-                                }
-                            })
-                            .catch(err => {
-                                console.error('Reload error:', err);
-                                panel.style.opacity = '1';
-                            })
-                            .finally(() => {
-                                // Reset button state
-                                submitBtn.innerHTML = originalText;
-                                submitBtn.disabled = false;
-                            });
+                        // Reset form
+                        form.reset();
                     } else {
-                        console.error('Panel not found');
+                        console.error('Target tbody not found:', targetTbodyId);
                     }
 
                 } else {
                     alert('Error: ' + data.message);
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 alert('An error occurred. Please try again.');
+            })
+            .finally(() => {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
+
+                // Hide global loader if triggered by base.html
+                const globalLoader = document.getElementById('global-loader');
+                if (globalLoader) {
+                    globalLoader.classList.remove('show');
+                }
             });
     }
 </script>

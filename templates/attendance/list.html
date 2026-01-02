@@ -230,7 +230,28 @@
                                         This Week</option>
                                     <option value="month" {% if current_filters.date_range=='month' %}selected{% endif
                                         %}>This Month</option>
+                                    <option value="last_month" {% if current_filters.date_range=='last_month'
+                                        %}selected{% endif %}>Last Month</option>
+                                    <option value="custom" {% if current_filters.date_range=='custom' %}selected{% endif
+                                        %}>Custom Range</option>
                                 </select>
+                            </div>
+
+                            <!-- Custom Date Range Inputs (Conditional) -->
+                            <div id="customDateRange"
+                                class="mb-3 {% if current_filters.date_range != 'custom' %}d-none{% endif %}">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label small">Start Date</label>
+                                        <input type="date" name="start_date" class="form-control form-control-sm"
+                                            value="{{ current_filters.start_date }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small">End Date</label>
+                                        <input type="date" name="end_date" class="form-control form-control-sm"
+                                            value="{{ current_filters.end_date }}">
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Employee Search (Role based check handled in template if needed, or just show if not empty) -->
@@ -444,7 +465,7 @@
             {% if page_num %}
             <li class="page-item {{ 'active' if page_num == attendance_records.page }}">
                 <a class="page-link shadow-none"
-                    href="{{ url_for('attendance_list_view', page=page_num, date_range=current_filters.date_range, employee=current_filters.employee, status=current_filters.status, department=current_filters.department, designation_id=current_filters.designation_id, employment_type=current_filters.employment_type, company_id=current_filters.company_id, per_page=per_page) }}">{{
+                    href="{{ url_for('attendance_list_view', page=page_num, date_range=current_filters.date_range, start_date=current_filters.start_date, end_date=current_filters.end_date, employee=current_filters.employee, status=current_filters.status, department=current_filters.department, designation_id=current_filters.designation_id, employment_type=current_filters.employment_type, company_id=current_filters.company_id, per_page=per_page) }}">{{
                     page_num }}</a>
             </li>
             {% else %}
@@ -461,6 +482,19 @@
 
 {% block scripts %}
 <script>
-    // Any future scripts can go here
+    document.addEventListener('DOMContentLoaded', function () {
+        const dateRangeSelect = document.querySelector('select[name="date_range"]');
+        const customDateRange = document.getElementById('customDateRange');
+
+        if (dateRangeSelect && customDateRange) {
+            dateRangeSelect.addEventListener('change', function () {
+                if (this.value === 'custom') {
+                    customDateRange.classList.remove('d-none');
+                } else {
+                    customDateRange.classList.add('d-none');
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

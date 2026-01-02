@@ -21,49 +21,20 @@ from flask_login import current_user
 @require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def operation_master_dashboard():
     """Consolidated dashboard for Operation Masters"""
+    # Optimized: Only fetch dropdown data needed for modals
+    # Panel data is loaded via AJAX in parallel
     
-    # limits for preview
-    limit = 5
-    
-    # Fetch Data
-    roles = Role.query.order_by(Role.created_at.desc()).limit(limit).all()
-    departments = Department.query.order_by(Department.created_at.desc()).limit(limit).all()
-    working_hours = WorkingHours.query.order_by(WorkingHours.created_at.desc()).limit(limit).all()
-    work_schedules = WorkSchedule.query.order_by(WorkSchedule.created_at.desc()).limit(limit).all()
-    designations = Designation.query.filter_by(is_active=True).order_by(Designation.created_at.desc()).limit(limit).all()
-    ot_types = OTType.query.order_by(OTType.display_order).limit(limit).all()
-    leave_types = LeaveType.query.filter_by(is_active=True).order_by(LeaveType.created_at.desc()).limit(limit).all()
-    leave_groups = EmployeeGroup.query.filter_by(is_active=True).order_by(EmployeeGroup.created_at.desc()).limit(limit).all()
-    
-    # Data for Modals (Dropdowns)
-    # managers = Employee.query.filter_by(is_active=True, is_manager=True).order_by(Employee.first_name, Employee.last_name).all() # Optimized: Loaded via AJAX
     all_working_hours = WorkingHours.query.order_by(WorkingHours.name).all()
     all_companies = Company.query.filter_by(is_active=True).all()
     
     return render_template('masters/operation_master.html',
-                         roles=roles,
-                         departments=departments,
-                         working_hours=working_hours,
-                         work_schedules=work_schedules,
-                         designations=designations,
-                         ot_types=ot_types,
-                         leave_types=leave_types,
-                         leave_groups=leave_groups,
-                         # managers=managers, # Optimized: Loaded via AJAX
                          all_working_hours=all_working_hours,
                          all_companies=all_companies)
-
 
 @app.route('/masters/organization-master')
 @require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def organization_master_dashboard():
     """Consolidated dashboard for Organization Masters (Tenant, Company, Payment Config)"""
-    
-    # Fetch all active tenants for the dropdown
-    # If user is Tenant Admin or HR Manager, we might want to restrict this, 
-    # but the requirement implies "selecting the tenant", which suggests a Super Admin view 
-    # or a view where one can switch context. 
-    # However, standard practice: Super Admin sees all. Tenant Admin sees their own.
     
     tenants = []
     if current_user.role.name == 'Super Admin':
@@ -73,6 +44,171 @@ def organization_master_dashboard():
     
     return render_template('masters/organization_master.html', tenants=tenants)
 
+
+# ============================================================================
+# API ENDPOINTS FOR DASHBOARD (PARALLEL LOADING)
+# ============================================================================
+
+@app.route('/api/masters/roles')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_roles_json():
+    try:
+        limit = 5
+        roles = Role.query.order_by(Role.created_at.desc()).limit(limit).all()
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': r.name,
+                'description': r.description
+            } for r in roles],
+            'count': len(roles) # Optionally return total count if needed
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/departments')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_departments_json():
+    try:
+        from sqlalchemy.orm import joinedload
+        limit = 5
+        # Eager load manager to prevent N+1 queries
+        departments = Department.query.options(joinedload(Department.manager))\
+            .order_by(Department.created_at.desc()).limit(limit).all()
+            
+        data = []
+        for d in departments:
+            manager_name = "-"
+            if d.manager:
+                manager_name = f"{d.manager.first_name} {d.manager.last_name}"
+            
+            data.append({
+                'name': d.name,
+                'manager_name': manager_name
+            })
+            
+        return jsonify({
+            'success': True,
+            'data': data
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/designations')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_designations_json():
+    try:
+        limit = 5
+        designations = Designation.query.filter_by(is_active=True)\
+            .order_by(Designation.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': d.name,
+                'is_active': d.is_active
+            } for d in designations]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/working-hours')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_working_hours_json():
+    try:
+        limit = 5
+        working_hours = WorkingHours.query.order_by(WorkingHours.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': w.name,
+                'start_time': w.start_time.strftime('%H:%M'),
+                'end_time': w.end_time.strftime('%H:%M')
+            } for w in working_hours]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/work-schedules')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_work_schedules_json():
+    try:
+        limit = 5
+        schedules = WorkSchedule.query.order_by(WorkSchedule.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': s.name,
+                'days': {
+                    'monday': s.monday,
+                    'tuesday': s.tuesday,
+                    'wednesday': s.wednesday,
+                    'thursday': s.thursday,
+                    'friday': s.friday,
+                    'saturday': s.saturday,
+                    'sunday': s.sunday
+                }
+            } for s in schedules]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/ot-types')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_ot_types_json():
+    try:
+        limit = 5
+        ot_types = OTType.query.order_by(OTType.display_order).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': o.name,
+                'code': o.code,
+                'rate_multiplier': o.rate_multiplier
+            } for o in ot_types]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/leave-types')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_leave_types_json():
+    try:
+        limit = 5
+        leave_types = LeaveType.query.filter_by(is_active=True)\
+            .order_by(LeaveType.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': l.name,
+                'code': l.code,
+                'annual_allocation': l.annual_allocation
+            } for l in leave_types]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/leave-groups')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_leave_groups_json():
+    try:
+        limit = 5
+        groups = EmployeeGroup.query.filter_by(is_active=True)\
+            .order_by(EmployeeGroup.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': g.name,
+                'description': g.description
+            } for g in groups]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/masters/managers')
 @require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])

@@ -23,6 +23,7 @@ from core.utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, check_permission,
                    mobile_optimized_pagination, get_current_month_dates, get_employee_local_time)
 from core.constants import DEFAULT_USER_PASSWORD
+from services.attendance_service import AttendanceService
 
 # Helper to validate image extension
 def _allowed_image(filename: str) -> bool:
@@ -2219,12 +2220,31 @@ def attendance_list():
 
     # 1. Date Range Filtering
     today = date.today()
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+
     if date_range == 'today':
         query = query.filter(Attendance.date == today)
     elif date_range == 'week':
         start_week = today - timedelta(days=today.weekday())
         end_week = start_week + timedelta(days=6)
         query = query.filter(Attendance.date.between(start_week, end_week))
+    elif date_range == 'last_month':
+        first_of_this_month = today.replace(day=1)
+        last_day_of_last_month = first_of_this_month - timedelta(days=1)
+        first_day_of_last_month = last_day_of_last_month.replace(day=1)
+        query = query.filter(Attendance.date.between(first_day_of_last_month, last_day_of_last_month))
+    elif date_range == 'custom' and start_date and end_date:
+        try:
+            s_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            e_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            query = query.filter(Attendance.date.between(s_date, e_date))
+        except (ValueError, TypeError):
+            # Fallback to current month if dates are invalid
+            start_month = today.replace(day=1)
+            _, last_day = calendar.monthrange(today.year, today.month)
+            end_month = today.replace(day=last_day)
+            query = query.filter(Attendance.date.between(start_month, end_month))
     else:  # Default to month
         start_month = today.replace(day=1)
         _, last_day = calendar.monthrange(today.year, today.month)
@@ -2355,6 +2375,8 @@ def attendance_list():
                            attendance_records=attendance_records,
                            current_filters={
                                'date_range': date_range,
+                               'start_date': start_date,
+                               'end_date': end_date,
                                'employee': employee_search,
                                'status': status,
                                'department': department,
@@ -2406,155 +2428,37 @@ def attendance_mark():
                 flash('Employee profile required for attendance marking', 'error')
                 return redirect(url_for('dashboard'))
 
-            today = company_local_date
             employee_id = employee_profile.id
-            existing = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
             action = request.form.get('action')
-            utc_action_time = datetime.utcnow().time()
+            latitude = request.form.get('latitude')
+            longitude = request.form.get('longitude')
+            remarks = request.form.get('remarks')
 
             if action == 'clock_in':
-                # ---------------------------------------------------------
-                # AUTO-CLOSE LOGIC: Handle forgotten clock-outs from previous days
-                # ---------------------------------------------------------
-                past_incomplete_records = Attendance.query.filter(
-                    Attendance.employee_id == employee_id,
-                    Attendance.clock_out.is_(None),
-                    Attendance.date < today
-                ).all()
-
-                for past_record in past_incomplete_records:
-                    # Determine cutoff time (WorkingHours end_time or default 18:00)
-                    auto_cutoff_time = time(18, 0)
-                    if employee_profile.working_hours and employee_profile.working_hours.end_time:
-                        auto_cutoff_time = employee_profile.working_hours.end_time
-                    
-                    past_record.clock_out = auto_cutoff_time
-                    
-                    # Calculate hours for the passed record
-                    if past_record.clock_in:
-                        clock_in_dt = datetime.combine(past_record.date, past_record.clock_in)
-                        clock_out_dt = datetime.combine(past_record.date, auto_cutoff_time)
-                        
-                        # Only calculate if valid duration
-                        if clock_out_dt > clock_in_dt:
-                            total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
-
-                            # Subtract break time if applicable
-                            if past_record.break_start and past_record.break_end:
-                                break_start_dt = datetime.combine(past_record.date, past_record.break_start)
-                                break_end_dt = datetime.combine(past_record.date, past_record.break_end)
-                                if break_end_dt > break_start_dt:
-                                    break_seconds = (break_end_dt - break_start_dt).total_seconds()
-                                    total_seconds -= break_seconds
-
-                            total_hours = total_seconds / 3600
-                            
-                            # Standard working hours
-                            standard_hours = 8.0
-                            if employee_profile.working_hours and employee_profile.working_hours.hours_per_day:
-                                standard_hours = float(employee_profile.working_hours.hours_per_day)
-
-                            if total_hours > standard_hours:
-                                past_record.regular_hours = standard_hours
-                                past_record.overtime_hours = total_hours - standard_hours
-                                past_record.has_overtime = True
-                                past_record.overtime_approved = False
-                            else:
-                                past_record.regular_hours = total_hours
-                                past_record.overtime_hours = 0
-                                past_record.has_overtime = False
-                                
-                            past_record.total_hours = total_hours
-
-                    past_record.status = 'Present'
-                    note_msg = f"Auto-closed by system (forgot to clock out). Closed at {auto_cutoff_time.strftime('%H:%M')}."
-                    if past_record.notes:
-                        past_record.notes += f"\n{note_msg}"
-                    else:
-                        past_record.notes = note_msg
-                    
-                    flash(f'Note: Your attendance for {past_record.date.strftime("%d %b")} was auto-closed at {auto_cutoff_time.strftime("%H:%M")}.', 'info')
-
-                # Proceed with current Day Clock In
-                if not existing:
-                    attendance = Attendance(
-                        employee_id=employee_id,
-                        date=today,
-                        clock_in=utc_action_time,
-                        status='Present',
-                        location_lat=request.form.get('latitude'),
-                        location_lng=request.form.get('longitude')
-                    )
-                    db.session.add(attendance)
-                    flash('Clocked in successfully', 'success')
-                elif not existing.clock_in:
-                    # Fix: Allow updating existing record (e.g. created by cron job)
-                    existing.clock_in = utc_action_time
-                    existing.status = 'Present'
-                    existing.location_lat = request.form.get('latitude')
-                    existing.location_lng = request.form.get('longitude')
-                    flash('Clocked in successfully', 'success')
-                else:
-                    flash('Already clocked in for today', 'warning')
-            elif existing:
-                if action == 'clock_out':
-                    # Fix: Prevent clock out if no clock in
-                    if not existing.clock_in:
-                         flash('Cannot clock out: Missing Clock In time. Please Clock In first.', 'error')
-                         return redirect(url_for('attendance_mark'))
-
-                    existing.clock_out = utc_action_time
-                    
-                    # Calculate hours
-                    if existing.clock_in:
-                        clock_in_dt = datetime.combine(existing.date, existing.clock_in)
-                        clock_out_dt = datetime.combine(existing.date, utc_action_time)
-                        total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
-
-                        # Subtract break time if applicable
-                        if existing.break_start and existing.break_end:
-                            break_start_dt = datetime.combine(existing.date, existing.break_start)
-                            break_end_dt = datetime.combine(existing.date, existing.break_end)
-                            break_seconds = (break_end_dt - break_start_dt).total_seconds()
-                            total_seconds -= break_seconds
-
-                        total_hours = total_seconds / 3600
-                        
-                        # Get standard working hours from employee profile or default to 8
-                        standard_hours = 8.0
-                        if employee_profile.working_hours and employee_profile.working_hours.hours_per_day:
-                            standard_hours = float(employee_profile.working_hours.hours_per_day)
-
-                        if total_hours > standard_hours:
-                            existing.regular_hours = standard_hours
-                            existing.overtime_hours = total_hours - standard_hours
-                            existing.has_overtime = True
-                            existing.overtime_approved = False
-                        else:
-                            existing.regular_hours = total_hours
-                            existing.overtime_hours = 0
-                            existing.has_overtime = False
-                            
-                        existing.total_hours = total_hours
-
-                    flash('Clocked out successfully', 'success')
-                elif action == 'break_start':
-                    if not existing.clock_in:
-                         flash('Cannot start break: Missing Clock In time.', 'error')
-                         return redirect(url_for('attendance_mark'))
-                    existing.break_start = utc_action_time
-                    flash('Break started', 'success')
-                elif action == 'break_end':
-                    if not existing.clock_in:
-                         flash('Cannot end break: Missing Clock In time.', 'error')
-                         return redirect(url_for('attendance_mark'))
-                    existing.break_end = utc_action_time
-                    flash('Break ended', 'success')
+                success, message = AttendanceService.clock_in(
+                    employee_id, latitude=latitude, longitude=longitude, remarks=remarks
+                )
+            elif action == 'clock_out':
+                success, message = AttendanceService.clock_out(
+                    employee_id, latitude=latitude, longitude=longitude, remarks=remarks
+                )
+            elif action == 'break_start':
+                success, message = AttendanceService.start_break(
+                    employee_id, remarks=remarks
+                )
+            elif action == 'break_end':
+                success, message = AttendanceService.end_break(
+                    employee_id, remarks=remarks
+                )
             else:
-                flash('Please clock in first', 'warning')
+                flash(f'Unknown action: {action}', 'error')
                 return redirect(url_for('attendance_mark'))
 
-            db.session.commit()
+            if success:
+                flash(message, 'success')
+            else:
+                flash(message, 'error')
+
             return redirect(url_for('attendance_mark'))
 
         except Exception as e:
@@ -3470,41 +3374,28 @@ def attendance_bulk_manage():
     # Get employees for selected company or all accessible companies
     if selected_company:
         try:
-            selected_company_id = int(selected_company) # or UUID handling if using UUID
-            from uuid import UUID
-            try:
-                # Handle UUID or Integer ID comparison safely
-                # Assuming company_id is UUID based on models.py (Company.id is UUID? No, Employee.company_id is UUID)
-                # Wait, models.py says Company.id is Integer? 
-                # Let's check models.py Company definition.
-                # Lines 166: class Company...
-                pass 
-            except:
-                pass
-
-            # Just filter by ID - database will handle type if passed correctly, but we should valid against access
-            # Assume selected_company is string representation of ID
-            
             # Check if selected company is accessible
-            # We need to robustly check ID match (str vs uuid vs int)
-            is_accessible = False
-            for c_id in accessible_company_ids:
-                if str(c_id) == str(selected_company):
-                    is_accessible = True
-                    break
+            # We robustly check ID match using string comparison to handle UUIDs
+            is_accessible = any(str(c.id) == str(selected_company) for c in available_companies)
             
             if is_accessible:
-                 employees = Employee.query.filter_by(company_id=selected_company, is_active=True).order_by(Employee.first_name).all()
+                 from sqlalchemy.orm import joinedload
+                 employees = Employee.query.options(joinedload(Employee.company)).filter_by(
+                     company_id=selected_company, 
+                     is_active=True
+                 ).order_by(Employee.first_name).all()
             else:
                  employees = [] # Not accessible
                  flash('Access Denied to selected company', 'danger')
 
-        except (ValueError, TypeError):
+        except Exception as e:
             employees = []
+            flash(f'Error filtering by company: {str(e)}', 'error')
     else:
         # Load employees from ALL accessible companies
         if accessible_company_ids:
-            employees = Employee.query.filter(
+            from sqlalchemy.orm import joinedload
+            employees = Employee.query.options(joinedload(Employee.company)).filter(
                 Employee.company_id.in_(accessible_company_ids),
                 Employee.is_active == True
             ).order_by(Employee.first_name).all()
@@ -3519,47 +3410,188 @@ def attendance_bulk_manage():
     
     # Handle form submission for bulk updates
     if request.method == 'POST':
+        action = request.form.get('action')
         try:
-            # Process each employee's attendance data
-            for emp in employees:
-                emp_id = emp.id
-                clock_in = request.form.get(f'clock_in_{emp_id}')
-                clock_out = request.form.get(f'clock_out_{emp_id}')
-                status = request.form.get(f'status_{emp_id}')
+            if action == 'bulk_log':
+                # Bulk log for all employees in the selected view
+                bulk_status = request.form.get('bulk_status', 'Present')
                 
-                # Skip if no changes
-                if not clock_in and not clock_out and not status:
-                    continue
+                # Validate bulk_status enum value
+                valid_statuses = ['Present', 'Incomplete', 'Absent', 'Leave']
+                if bulk_status not in valid_statuses:
+                    if bulk_status == 'Half Day':
+                        bulk_status = 'Present'
+                    else:
+                        bulk_status = 'Absent'
+                bulk_clock_in = request.form.get('bulk_clock_in')
+                bulk_clock_out = request.form.get('bulk_clock_out')
                 
-                # Get or create attendance record
-                att = Attendance.query.filter_by(employee_id=emp_id, date=filter_date).first()
-                if not att:
-                    att = Attendance(employee_id=emp_id, date=filter_date)
+                from datetime import time as dt_time
+                from core.models import AttendanceSegment
                 
-                # Update fields if provided
-                if clock_in:
-                    try:
-                        att.clock_in = datetime.combine(filter_date, datetime.fromisoformat(clock_in).time())
-                    except (ValueError, TypeError):
-                        pass
-                
-                if clock_out:
-                    try:
-                        att.clock_out = datetime.combine(filter_date, datetime.fromisoformat(clock_out).time())
-                    except (ValueError, TypeError):
-                        pass
-                
-                if status:
+                count = 0
+                for emp in employees:
+                    att = Attendance.query.filter_by(employee_id=emp.id, date=filter_date).first()
+                    if not att:
+                        att = Attendance(employee_id=emp.id, date=filter_date)
+                    
+                    att.status = bulk_status
+                    
+                    # Parse times safely
+                    in_time = None
+                    out_time = None
+                    if bulk_clock_in:
+                        try:
+                            in_time = dt_time.fromisoformat(bulk_clock_in)
+                            att.clock_in = in_time
+                            att.clock_in_time = datetime.combine(filter_date, in_time)
+                        except (ValueError, TypeError): pass
+                        
+                    if bulk_clock_out:
+                        try:
+                            out_time = dt_time.fromisoformat(bulk_clock_out)
+                            att.clock_out = out_time
+                            att.clock_out_time = datetime.combine(filter_date, out_time)
+                        except (ValueError, TypeError): pass
+                    
+                    # Calculate hours
+                    if att.clock_in_time and att.clock_out_time:
+                        duration = (att.clock_out_time - att.clock_in_time).total_seconds() / 3600
+                        att.regular_hours = round(max(0, duration), 2)
+                        att.total_hours = att.regular_hours
+                    
+                    db.session.add(att)
+                    db.session.flush() # Get ID for segments
+                    
+                    # Create/Update Segment for consistency with AttendanceService
+                    if att.clock_in_time:
+                        seg = AttendanceSegment.query.filter_by(attendance_id=att.id).first()
+                        if not seg:
+                            seg = AttendanceSegment(attendance_id=att.id, segment_type='Work')
+                        
+                        seg.clock_in = att.clock_in_time
+                        seg.clock_out = att.clock_out_time
+                        if att.total_hours:
+                            seg.duration_minutes = int(att.total_hours * 60)
+                        db.session.add(seg)
+                    
+                    count += 1
+                    
+                db.session.commit()
+                flash(f'Bulk attendance logged for {count} employees', 'success')
+
+            elif action == 'bulk_delete':
+                # Delete all attendance records for the selected view
+                count = 0
+                for emp in employees:
+                    att = Attendance.query.filter_by(employee_id=emp.id, date=filter_date).first()
+                    if att:
+                        # Deleting segments first
+                        from core.models import AttendanceSegment
+                        AttendanceSegment.query.filter_by(attendance_id=att.id).delete()
+                        db.session.delete(att)
+                        count += 1
+                db.session.commit()
+                flash(f'Deleted {count} attendance records for {filter_date}', 'success')
+
+            elif action == 'bulk_ot_approve':
+                # Approve all OT for the selected view
+                count = 0
+                for emp in employees:
+                    att = Attendance.query.filter_by(employee_id=emp.id, date=filter_date).first()
+                    if att and att.status == 'Present' and att.overtime_hours > 0:
+                        att.overtime_approved = True
+                        att.overtime_approved_by = current_user.id
+                        att.overtime_approved_at = datetime.now()
+                        db.session.add(att)
+                        count += 1
+                db.session.commit()
+                flash(f'Approved Overtime for {count} employees', 'success')
+
+            elif action == 'bulk_mark_lop':
+                # Mark all Absent as LOP for the selected view
+                count = 0
+                for emp in employees:
+                    att = Attendance.query.filter_by(employee_id=emp.id, date=filter_date).first()
+                    if att and att.status == 'Absent':
+                        att.lop = True
+                        db.session.add(att)
+                        count += 1
+                db.session.commit()
+                flash(f'Marked {count} absent records as LOP', 'success')
+
+            else:
+                # Individual employee updates or unauthorized bulk action
+                # Get bulk times for common application
+                bulk_clock_in_str = request.form.get('bulk_clock_in')
+                bulk_clock_out_str = request.form.get('bulk_clock_out')
+                from datetime import time as dt_time
+                from core.models import AttendanceSegment
+
+                count = 0
+                for emp in employees:
+                    emp_id = emp.id
+                    status = request.form.get(f'status_{emp_id}')
+                    if not status: continue
+                    
+                    # Validate status enum value
+                    valid_statuses = ['Present', 'Incomplete', 'Absent', 'Leave']
+                    if status not in valid_statuses:
+                        if status == 'Half Day': status = 'Present'
+                        else: status = 'Absent'
+                    
+                    att = Attendance.query.filter_by(employee_id=emp_id, date=filter_date).first()
+                    if not att:
+                        att = Attendance(employee_id=emp_id, date=filter_date)
+                    
                     att.status = status
-                
-                db.session.add(att)
-            
-            db.session.commit()
-            flash(f'Attendance records updated successfully for {filter_date}', 'success')
+                    att.lop = request.form.get(f'lop_{emp_id}') == 'on'
+
+                    # Apply common bulk times if status is 'Present'
+                    if status == 'Present' and (bulk_clock_in_str or bulk_clock_out_str):
+                        if bulk_clock_in_str:
+                            try:
+                                in_time = dt_time.fromisoformat(bulk_clock_in_str)
+                                att.clock_in = in_time
+                                att.clock_in_time = datetime.combine(filter_date, in_time)
+                            except (ValueError, TypeError): pass
+                        
+                        if bulk_clock_out_str:
+                            try:
+                                out_time = dt_time.fromisoformat(bulk_clock_out_str)
+                                att.clock_out = out_time
+                                att.clock_out_time = datetime.combine(filter_date, out_time)
+                            except (ValueError, TypeError): pass
+
+                        # Calculate hours if we have both times
+                        if att.clock_in_time and att.clock_out_time:
+                            duration = (att.clock_out_time - att.clock_in_time).total_seconds() / 3600
+                            att.regular_hours = round(max(0, duration), 2)
+                            att.total_hours = att.regular_hours
+                        elif not att.total_hours:
+                            att.total_hours = 8.0 # Fallback
+                        
+                        db.session.add(att)
+                        db.session.flush()
+
+                        # Synchronize Segment
+                        if att.clock_in_time:
+                            seg = AttendanceSegment.query.filter_by(attendance_id=att.id).first()
+                            if not seg:
+                                seg = AttendanceSegment(attendance_id=att.id, segment_type='Work')
+                            seg.clock_in = att.clock_in_time
+                            seg.clock_out = att.clock_out_time
+                            seg.duration_minutes = int(att.total_hours * 60)
+                            db.session.add(seg)
+                    
+                    db.session.add(att)
+                    count += 1
+                db.session.commit()
+                flash(f'Attendance records updated successfully for {filter_date}', 'success')
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error updating attendance: {str(e)}', 'error')
+            flash(f'Error processing attendance: {str(e)}', 'error')
         
         return redirect(url_for('attendance_bulk_manage', date=filter_date.isoformat(), company=selected_company))
     
