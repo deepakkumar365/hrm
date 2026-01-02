@@ -763,21 +763,22 @@ a:hover {
     margin-bottom: 0;
 }
 
-.table th,
 .table td {
-    padding: 0.5rem 0.75rem;
-    text-align: left;
+    padding: 0.75rem 0.75rem;
+    vertical-align: middle;
     border-bottom: 1px solid var(--border-color);
-    height: 2.5rem;
+    color: var(--text-primary);
 }
 
 .table th {
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-primary);
-    background: var(--grey-50);
-    font-size: 0.75rem;
-    height: auto;
-    padding: 0.625rem 0.75rem;
+    padding: 0.75rem 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-top: none;
+    border-bottom: 1px solid var(--border-color);
+    background-color: transparent;
 }
 
 .table tbody tr:hover {

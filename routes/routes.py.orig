@@ -2439,6 +2439,7 @@ def attendance_mark():
             remarks = request.form.get('remarks')
 
             if action == 'clock_in':
+<<<<<<< HEAD
                 # ---------------------------------------------------------
                 # AUTO-CLOSE LOGIC: Handle forgotten clock-outs from previous days
                 # ---------------------------------------------------------
@@ -2502,6 +2503,87 @@ def attendance_mark():
                     flash(f'Note: Your attendance for {past_record.date.strftime("%d %b")} was auto-closed at {auto_cutoff_time.strftime("%H:%M")}.', 'info')
 
                 # Proceed with current Day Clock In
+                if not existing:
+                    attendance = Attendance(
+                        employee_id=employee_id,
+                        date=today,
+                        clock_in=utc_action_time,
+                        status='Present',
+                        location_lat=request.form.get('latitude'),
+                        location_lng=request.form.get('longitude')
+                    )
+                    db.session.add(attendance)
+                    flash('Clocked in successfully', 'success')
+                elif not existing.clock_in:
+                    # Fix: Allow updating existing record (e.g. created by cron job)
+                    existing.clock_in = utc_action_time
+                    existing.status = 'Present'
+                    existing.location_lat = request.form.get('latitude')
+                    existing.location_lng = request.form.get('longitude')
+                    flash('Clocked in successfully', 'success')
+                else:
+                    flash('Already clocked in for today', 'warning')
+            elif existing:
+                if action == 'clock_out':
+                    # Fix: Prevent clock out if no clock in
+                    if not existing.clock_in:
+                         flash('Cannot clock out: Missing Clock In time. Please Clock In first.', 'error')
+                         return redirect(url_for('attendance_mark'))
+
+                    existing.clock_out = utc_action_time
+                    
+                    # Calculate hours
+                    if existing.clock_in:
+                        clock_in_dt = datetime.combine(existing.date, existing.clock_in)
+                        clock_out_dt = datetime.combine(existing.date, utc_action_time)
+                        total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
+
+                        # Subtract break time if applicable
+                        if existing.break_start and existing.break_end:
+                            break_start_dt = datetime.combine(existing.date, existing.break_start)
+                            break_end_dt = datetime.combine(existing.date, existing.break_end)
+                            break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                            total_seconds -= break_seconds
+
+                        total_hours = total_seconds / 3600
+                        
+                        # Get standard working hours from employee profile or default to 8
+                        standard_hours = 8.0
+                        if employee_profile.working_hours and employee_profile.working_hours.hours_per_day:
+                            standard_hours = float(employee_profile.working_hours.hours_per_day)
+
+                        if total_hours > standard_hours:
+                            existing.regular_hours = standard_hours
+                            existing.overtime_hours = total_hours - standard_hours
+                            existing.has_overtime = True
+                            existing.overtime_approved = False
+                        else:
+                            existing.regular_hours = total_hours
+                            existing.overtime_hours = 0
+                            existing.has_overtime = False
+                            
+                        existing.total_hours = total_hours
+
+                    flash('Clocked out successfully', 'success')
+                elif action == 'break_start':
+                    if not existing.clock_in:
+                         flash('Cannot start break: Missing Clock In time.', 'error')
+                         return redirect(url_for('attendance_mark'))
+                    existing.break_start = utc_action_time
+                    flash('Break started', 'success')
+                elif action == 'break_end':
+                    if not existing.clock_in:
+                         flash('Cannot end break: Missing Clock In time.', 'error')
+                         return redirect(url_for('attendance_mark'))
+                    existing.break_end = utc_action_time
+                    flash('Break ended', 'success')
+=======
+                success, message = AttendanceService.clock_in(
+                    employee_id, latitude=latitude, longitude=longitude, remarks=remarks
+                )
+            elif action == 'clock_out':
+                success, message = AttendanceService.clock_out(
+                    employee_id, latitude=latitude, longitude=longitude, remarks=remarks
                 )
             elif action == 'break_start':
                 success, message = AttendanceService.start_break(
@@ -2511,6 +2593,7 @@ def attendance_mark():
                 success, message = AttendanceService.end_break(
                     employee_id, remarks=remarks
                 )
+>>>>>>> New_Development
             else:
                 flash(f'Unknown action: {action}', 'error')
                 return redirect(url_for('attendance_mark'))

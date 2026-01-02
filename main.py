@@ -35,6 +35,7 @@ from routes import routes_access_control  # noqa: F401
 from routes import routes_tenant_config  # noqa: F401
 from routes import routes_leave  # noqa: F401
 from routes import routes_employee_group  # noqa: F401
+from routes import designation_routes  # noqa: F401
 from routes import routes_leave_allocation  # noqa: F401
 from routes import routes_ot  # noqa: F401
 from routes import routes_hr_manager  # noqa: F401

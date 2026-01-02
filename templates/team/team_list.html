@@ -2,24 +2,50 @@
 
 {% block title %}My Team - Nexar{% endblock %}
 
+{% block head %}
+<style>
+    /* Modern Dashboard Styling */
+    :root {
+        --primary-color: #0d9488;
+        --primary-light: #ccfbf1;
+        --primary-hover: #0f766e;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --radius-md: 0.375rem;
+    }
+
+    /* Header Typography */
+    .page-title {
+        font-weight: 800;
+        color: var(--text-main);
+        font-size: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="dashboard-wrapper">
     <!-- Header -->
-    <div class="dashboard-header">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
-            <div>
-                <h1 class="dashboard-title">My Team</h1>
-                {% if is_manager_view %}
-                <p class="dashboard-subtitle">Your direct reports and team members</p>
-                {% else %}
-                <p class="dashboard-subtitle">Connect and collaborate with your team members</p>
-                {% endif %}
-            </div>
-            <div class="team-stats-mini">
-                <div class="team-stat-badge">
-                    <i class="fas fa-users"></i>
-                    <span>{{ team_members|length if team_members else 0 }} {% if is_manager_view %}Direct Reports{% else %}Members{% endif %}</span>
-                </div>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 page-header">
+        <div class="mb-3 mb-md-0">
+            <h4 class="page-title mb-1">My Team</h4>
+            {% if is_manager_view %}
+            <p class="page-subtitle mb-0">Your direct reports and team members</p>
+            {% else %}
+            <p class="page-subtitle mb-0">Connect and collaborate with your team members</p>
+            {% endif %}
+        </div>
+        <div class="team-stats-mini">
+            <div class="badge bg-light text-secondary border p-2">
+                <i class="fas fa-users me-1"></i>
+                <span class="fw-bold">{{ team_members|length if team_members else 0 }}</span> {% if is_manager_view
+                %}Direct Reports{% else %}Members{% endif %}
             </div>
         </div>
     </div>
@@ -33,9 +59,8 @@
                 <!-- Profile Photo -->
                 <div class="team-member-avatar">
                     {% if member.photo %}
-                    <img src="{{ url_for('static', filename='uploads/photos/' + member.photo) }}" 
-                         alt="{{ member.first_name }}" 
-                         class="avatar-image">
+                    <img src="{{ url_for('static', filename='uploads/photos/' + member.photo) }}"
+                        alt="{{ member.first_name }}" class="avatar-image">
                     {% else %}
                     <div class="avatar-placeholder">
                         {{ member.first_name[0] }}{{ member.last_name[0] if member.last_name else '' }}
@@ -50,10 +75,10 @@
                 <div class="team-member-id">
                     <code>{{ member.employee_id }}</code>
                 </div>
-                
+
                 <!-- Name -->
                 <h3 class="team-member-name">{{ member.first_name }} {{ member.last_name }}</h3>
-                
+
                 <!-- Designation -->
                 <div class="team-member-role">
                     <i class="fas fa-briefcase"></i>
@@ -92,7 +117,8 @@
                     </a>
                     {% endif %}
 
-                    <button class="team-contact-btn" title="View Profile" onclick="showMemberDetails('{{ member.id }}')">
+                    <button class="team-contact-btn" title="View Profile"
+                        onclick="showMemberDetails('{{ member.id }}')">
                         <i class="fas fa-user"></i>
                     </button>
                 </div>
@@ -108,7 +134,8 @@
         </div>
         <h3 class="empty-state-title">No Team Members Found</h3>
         {% if is_manager_view %}
-        <p class="empty-state-text">You don't have any direct reports assigned yet. Contact HR to assign team members.</p>
+        <p class="empty-state-text">You don't have any direct reports assigned yet. Contact HR to assign team members.
+        </p>
         {% else %}
         <p class="empty-state-text">You don't have any colleagues reporting to the same manager yet.</p>
         {% endif %}
@@ -146,63 +173,64 @@
                 <a id="memberPhoneBtn" href="#" class="btn btn-outline-primary btn-sm" title="Call">
                     <i class="fas fa-phone me-2"></i>Call
                 </a>
-                <button type="button" class="btn btn-outline-secondary btn-sm close-modal-btn" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm close-modal-btn"
+                    data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// Store modal instance globally to ensure proper cleanup
-let memberModalInstance = null;
+    // Store modal instance globally to ensure proper cleanup
+    let memberModalInstance = null;
 
-function showMemberDetails(memberId) {
-    // Close any existing modal instance first
-    if (memberModalInstance) {
-        memberModalInstance.hide();
-        memberModalInstance = null;
-    }
-    
-    const memberModalElement = document.getElementById('memberModal');
-    const modalBody = document.getElementById('memberModalBody');
-    
-    // Show loading state
-    modalBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    
-    // Create new modal instance
-    memberModalInstance = new bootstrap.Modal(memberModalElement, {
-        backdrop: 'static',
-        keyboard: true,
-        focus: true
-    });
-    
-    // Fetch member profile data
-    fetch(`/team/member/${memberId}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to load profile');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Update modal header
-            document.getElementById('memberModalLabel').textContent = `${data.first_name} ${data.last_name}`;
-            document.getElementById('memberDesignation').textContent = data.designation;
-            
-            // Update photo
-            const photoUrl = data.photo_url ? `{{ url_for('static', filename='') }}${data.photo_url}` : '';
-            const photoImg = document.getElementById('memberPhoto');
-            if (photoUrl && data.photo_url) {
-                photoImg.src = photoUrl;
-                photoImg.style.display = 'block';
-            } else {
-                const firstLetter = data.first_name ? data.first_name[0].toUpperCase() : 'E';
-                photoImg.innerHTML = `<div class="avatar-placeholder">${firstLetter}</div>`;
-                photoImg.style.display = 'block';
-            }
-            
-            // Build profile HTML
-            let profileHTML = `
+    function showMemberDetails(memberId) {
+        // Close any existing modal instance first
+        if (memberModalInstance) {
+            memberModalInstance.hide();
+            memberModalInstance = null;
+        }
+
+        const memberModalElement = document.getElementById('memberModal');
+        const modalBody = document.getElementById('memberModalBody');
+
+        // Show loading state
+        modalBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        // Create new modal instance
+        memberModalInstance = new bootstrap.Modal(memberModalElement, {
+            backdrop: 'static',
+            keyboard: true,
+            focus: true
+        });
+
+        // Fetch member profile data
+        fetch(`/team/member/${memberId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load profile');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update modal header
+                document.getElementById('memberModalLabel').textContent = `${data.first_name} ${data.last_name}`;
+                document.getElementById('memberDesignation').textContent = data.designation;
+
+                // Update photo
+                const photoUrl = data.photo_url ? `{{ url_for('static', filename='') }}${data.photo_url}` : '';
+                const photoImg = document.getElementById('memberPhoto');
+                if (photoUrl && data.photo_url) {
+                    photoImg.src = photoUrl;
+                    photoImg.style.display = 'block';
+                } else {
+                    const firstLetter = data.first_name ? data.first_name[0].toUpperCase() : 'E';
+                    photoImg.innerHTML = `<div class="avatar-placeholder">${firstLetter}</div>`;
+                    photoImg.style.display = 'block';
+                }
+
+                // Build profile HTML
+                let profileHTML = `
                 <div class="member-profile-content">
                     <!-- Quick Info Section -->
                     <div class="profile-section mb-4">
@@ -284,33 +312,33 @@ function showMemberDetails(memberId) {
                     </div>
                 </div>
             `;
-            
-            modalBody.innerHTML = profileHTML;
-            
-            // Update contact buttons
-            document.getElementById('memberEmailBtn').href = data.email ? `mailto:${data.email}` : '#';
-            document.getElementById('memberEmailBtn').style.display = data.email ? 'inline-block' : 'none';
-            
-            document.getElementById('memberPhoneBtn').href = data.phone ? `tel:${data.phone}` : '#';
-            document.getElementById('memberPhoneBtn').style.display = data.phone ? 'inline-block' : 'none';
-            
-            // Show modal
-            memberModalInstance.show();
-        })
-        .catch(error => {
-            console.error('Error loading member profile:', error);
-            modalBody.innerHTML = `<div class="alert alert-danger" role="alert"><i class="fas fa-exclamation-circle me-2"></i>Error loading profile. Please try again.</div>`;
-            memberModalInstance.show();
-        });
-}
 
-// Clean up modal instance when it's hidden
-document.addEventListener('DOMContentLoaded', function() {
-    const memberModalElement = document.getElementById('memberModal');
-    memberModalElement.addEventListener('hidden.bs.modal', function() {
-        memberModalInstance = null;
-        // Enable scrolling on body
-        document.body.style.overflow = '';
+                modalBody.innerHTML = profileHTML;
+
+                // Update contact buttons
+                document.getElementById('memberEmailBtn').href = data.email ? `mailto:${data.email}` : '#';
+                document.getElementById('memberEmailBtn').style.display = data.email ? 'inline-block' : 'none';
+
+                document.getElementById('memberPhoneBtn').href = data.phone ? `tel:${data.phone}` : '#';
+                document.getElementById('memberPhoneBtn').style.display = data.phone ? 'inline-block' : 'none';
+
+                // Show modal
+                memberModalInstance.show();
+            })
+            .catch(error => {
+                console.error('Error loading member profile:', error);
+                modalBody.innerHTML = `<div class="alert alert-danger" role="alert"><i class="fas fa-exclamation-circle me-2"></i>Error loading profile. Please try again.</div>`;
+                memberModalInstance.show();
+            });
+    }
+
+    // Clean up modal instance when it's hidden
+    document.addEventListener('DOMContentLoaded', function () {
+        const memberModalElement = document.getElementById('memberModal');
+        memberModalElement.addEventListener('hidden.bs.modal', function () {
+            memberModalInstance = null;
+            // Enable scrolling on body
+            document.body.style.overflow = '';
+        });
     });
-});
 </script>{% endblock %}

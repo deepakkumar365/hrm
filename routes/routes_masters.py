@@ -3,14 +3,229 @@ Master Data Management Routes
 Handles CRUD operations for Roles, Departments, Working Hours, Work Schedules, and OT Types
 """
 
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import or_
 from datetime import datetime
 
 from app import app, db
 from core.auth import require_login, require_role
-from core.models import Role, Department, WorkingHours, WorkSchedule, Employee, OTType, Company, User, Organization
+from core.models import Role, Department, WorkingHours, WorkSchedule, Employee, OTType, Company, User, Organization, Designation, LeaveType, EmployeeGroup, Tenant
 from flask_login import current_user
+
+
+# ============================================================================
+# OPERATION MASTER DASHBOARD
+# ============================================================================
+
+@app.route('/masters/operation-master')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def operation_master_dashboard():
+    """Consolidated dashboard for Operation Masters"""
+    # Optimized: Only fetch dropdown data needed for modals
+    # Panel data is loaded via AJAX in parallel
+    
+    all_working_hours = WorkingHours.query.order_by(WorkingHours.name).all()
+    all_companies = Company.query.filter_by(is_active=True).all()
+    
+    return render_template('masters/operation_master.html',
+                         all_working_hours=all_working_hours,
+                         all_companies=all_companies)
+
+@app.route('/masters/organization-master')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def organization_master_dashboard():
+    """Consolidated dashboard for Organization Masters (Tenant, Company, Payment Config)"""
+    
+    tenants = []
+    if current_user.role.name == 'Super Admin':
+        tenants = Tenant.query.filter_by(is_active=True).order_by(Tenant.name).all()
+    elif current_user.organization and current_user.organization.tenant:
+         tenants = [current_user.organization.tenant]
+    
+    return render_template('masters/organization_master.html', tenants=tenants)
+
+
+# ============================================================================
+# API ENDPOINTS FOR DASHBOARD (PARALLEL LOADING)
+# ============================================================================
+
+@app.route('/api/masters/roles')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_roles_json():
+    try:
+        limit = 5
+        roles = Role.query.order_by(Role.created_at.desc()).limit(limit).all()
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': r.name,
+                'description': r.description
+            } for r in roles],
+            'count': len(roles) # Optionally return total count if needed
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/departments')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_departments_json():
+    try:
+        from sqlalchemy.orm import joinedload
+        limit = 5
+        # Eager load manager to prevent N+1 queries
+        departments = Department.query.options(joinedload(Department.manager))\
+            .order_by(Department.created_at.desc()).limit(limit).all()
+            
+        data = []
+        for d in departments:
+            manager_name = "-"
+            if d.manager:
+                manager_name = f"{d.manager.first_name} {d.manager.last_name}"
+            
+            data.append({
+                'name': d.name,
+                'manager_name': manager_name
+            })
+            
+        return jsonify({
+            'success': True,
+            'data': data
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/designations')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_designations_json():
+    try:
+        limit = 5
+        designations = Designation.query.filter_by(is_active=True)\
+            .order_by(Designation.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': d.name,
+                'is_active': d.is_active
+            } for d in designations]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/working-hours')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_working_hours_json():
+    try:
+        limit = 5
+        working_hours = WorkingHours.query.order_by(WorkingHours.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': w.name,
+                'start_time': w.start_time.strftime('%H:%M'),
+                'end_time': w.end_time.strftime('%H:%M')
+            } for w in working_hours]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/work-schedules')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_work_schedules_json():
+    try:
+        limit = 5
+        schedules = WorkSchedule.query.order_by(WorkSchedule.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': s.name,
+                'days': {
+                    'monday': s.monday,
+                    'tuesday': s.tuesday,
+                    'wednesday': s.wednesday,
+                    'thursday': s.thursday,
+                    'friday': s.friday,
+                    'saturday': s.saturday,
+                    'sunday': s.sunday
+                }
+            } for s in schedules]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/ot-types')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_ot_types_json():
+    try:
+        limit = 5
+        ot_types = OTType.query.order_by(OTType.display_order).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': o.name,
+                'code': o.code,
+                'rate_multiplier': o.rate_multiplier
+            } for o in ot_types]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/leave-types')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_leave_types_json():
+    try:
+        limit = 5
+        leave_types = LeaveType.query.filter_by(is_active=True)\
+            .order_by(LeaveType.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': l.name,
+                'code': l.code,
+                'annual_allocation': l.annual_allocation
+            } for l in leave_types]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/leave-groups')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_leave_groups_json():
+    try:
+        limit = 5
+        groups = EmployeeGroup.query.filter_by(is_active=True)\
+            .order_by(EmployeeGroup.created_at.desc()).limit(limit).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'name': g.name,
+                'description': g.description
+            } for g in groups]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/masters/managers')
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def get_managers_json():
+    """Get active managers in JSON format for dropdowns"""
+    try:
+        managers = Employee.query.filter_by(is_active=True, is_manager=True)\
+            .order_by(Employee.first_name, Employee.last_name).all()
+        
+        manager_list = [{
+            'id': m.id,
+            'name': f"{m.first_name} {m.last_name}"
+        } for m in managers]
+        
+        return jsonify({'success': True, 'managers': manager_list})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 
 # ============================================================================
@@ -50,14 +265,17 @@ def role_add():
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         if not name:
+            if is_ajax: return jsonify({'success': False, 'message': 'Role name is required'})
             flash('Role name is required', 'error')
             return redirect(url_for('role_add'))
         
         # Check if role already exists
         existing_role = Role.query.filter_by(name=name).first()
         if existing_role:
+            if is_ajax: return jsonify({'success': False, 'message': f'Role "{name}" already exists'})
             flash(f'Role "{name}" already exists', 'error')
             return redirect(url_for('role_add'))
         
@@ -68,10 +286,12 @@ def role_add():
             )
             db.session.add(role)
             db.session.commit()
+            if is_ajax: return jsonify({'success': True, 'message': f'Role "{name}" added successfully'})
             flash(f'Role "{name}" added successfully', 'success')
             return redirect(url_for('role_list'))
         except Exception as e:
             db.session.rollback()
+            if is_ajax: return jsonify({'success': False, 'message': f'Error adding role: {str(e)}'})
             flash(f'Error adding role: {str(e)}', 'error')
             return redirect(url_for('role_add'))
     
@@ -177,14 +397,17 @@ def department_add():
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         manager_id = request.form.get('manager_id')
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         if not name:
+            if is_ajax: return jsonify({'success': False, 'message': 'Department name is required'})
             flash('Department name is required', 'error')
             return redirect(url_for('department_add'))
         
         # Check if department already exists
         existing_dept = Department.query.filter_by(name=name).first()
         if existing_dept:
+            if is_ajax: return jsonify({'success': False, 'message': f'Department "{name}" already exists'})
             flash(f'Department "{name}" already exists', 'error')
             return redirect(url_for('department_add'))
         
@@ -196,10 +419,12 @@ def department_add():
             )
             db.session.add(department)
             db.session.commit()
+            if is_ajax: return jsonify({'success': True, 'message': f'Department "{name}" added successfully'})
             flash(f'Department "{name}" added successfully', 'success')
             return redirect(url_for('department_list'))
         except Exception as e:
             db.session.rollback()
+            if is_ajax: return jsonify({'success': False, 'message': f'Error adding department: {str(e)}'})
             flash(f'Error adding department: {str(e)}', 'error')
             return redirect(url_for('department_add'))
     
@@ -324,14 +549,17 @@ def working_hours_add():
         end_time = request.form.get('end_time')
         hours_per_day = request.form.get('hours_per_day', type=float)
         hours_per_week = request.form.get('hours_per_week', type=float)
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         if not name or not start_time or not end_time or not hours_per_day or not hours_per_week:
+            if is_ajax: return jsonify({'success': False, 'message': 'All required fields must be filled'})
             flash('All required fields must be filled', 'error')
             return redirect(url_for('working_hours_add'))
         
         # Check if working hours config already exists
         existing_wh = WorkingHours.query.filter_by(name=name).first()
         if existing_wh:
+            if is_ajax: return jsonify({'success': False, 'message': f'Working hours configuration "{name}" already exists'})
             flash(f'Working hours configuration "{name}" already exists', 'error')
             return redirect(url_for('working_hours_add'))
         
@@ -351,13 +579,16 @@ def working_hours_add():
             )
             db.session.add(working_hours)
             db.session.commit()
+            if is_ajax: return jsonify({'success': True, 'message': f'Working hours configuration "{name}" added successfully'})
             flash(f'Working hours configuration "{name}" added successfully', 'success')
             return redirect(url_for('working_hours_list'))
         except ValueError:
+            if is_ajax: return jsonify({'success': False, 'message': 'Invalid time format. Please use HH:MM format.'})
             flash('Invalid time format. Please use HH:MM format.', 'error')
             return redirect(url_for('working_hours_add'))
         except Exception as e:
             db.session.rollback()
+            if is_ajax: return jsonify({'success': False, 'message': f'Error adding working hours: {str(e)}'})
             flash(f'Error adding working hours: {str(e)}', 'error')
             return redirect(url_for('working_hours_add'))
     
@@ -479,6 +710,7 @@ def work_schedule_add():
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         working_hours_id = request.form.get('working_hours_id')
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         # Get working days
         working_days = []
@@ -487,12 +719,14 @@ def work_schedule_add():
                 working_days.append(day)
         
         if not name or not working_hours_id or not working_days:
+            if is_ajax: return jsonify({'success': False, 'message': 'Name, working hours, and at least one working day are required'})
             flash('Name, working hours, and at least one working day are required', 'error')
             return redirect(url_for('work_schedule_add'))
         
         # Check if work schedule already exists
         existing_ws = WorkSchedule.query.filter_by(name=name).first()
         if existing_ws:
+            if is_ajax: return jsonify({'success': False, 'message': f'Work schedule "{name}" already exists'})
             flash(f'Work schedule "{name}" already exists', 'error')
             return redirect(url_for('work_schedule_add'))
         
@@ -511,10 +745,12 @@ def work_schedule_add():
             )
             db.session.add(work_schedule)
             db.session.commit()
+            if is_ajax: return jsonify({'success': True, 'message': f'Work schedule "{name}" added successfully'})
             flash(f'Work schedule "{name}" added successfully', 'success')
             return redirect(url_for('work_schedule_list'))
         except Exception as e:
             db.session.rollback()
+            if is_ajax: return jsonify({'success': False, 'message': f'Error adding work schedule: {str(e)}'})
             flash(f'Error adding work schedule: {str(e)}', 'error')
             return redirect(url_for('work_schedule_add'))
     
@@ -618,22 +854,11 @@ def ot_type_list():
     from flask_login import current_user
     from sqlalchemy import and_
     
+    # List all OT types globally (no tenant filtering)
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
     
-    # Get tenant_id from current user's company
-    tenant_id = None
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-        company = Company.query.get(current_user.employee_profile.company_id)
-        if company:
-            tenant_id = company.tenant_id
-    
     query = OTType.query
-    
-    if tenant_id:
-        # Filter OT Types by all companies in the same tenant (tenant-level)
-        company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id).subquery()
-        query = query.filter(OTType.company_id.in_(company_ids))
     
     if search:
         query = query.filter(
@@ -667,6 +892,7 @@ def ot_type_add():
         color_code = request.form.get('color_code', '#3498db')
         display_order = request.form.get('display_order', '0')
         is_active = request.form.get('is_active') == 'on'
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         # Get day flags
         days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
@@ -675,37 +901,20 @@ def ot_type_add():
             day_flags[day] = request.form.get(day) == 'on'
         
         if not name or not code:
+            if is_ajax: return jsonify({'success': False, 'message': 'OT Type name and code are required'})
             flash('OT Type name and code are required', 'error')
             return redirect(url_for('ot_type_add'))
         
-        # Get company_id and tenant_id from employee profile
-        if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-            company_id = current_user.employee_profile.company_id
-            company = Company.query.get(company_id)
-            tenant_id = company.tenant_id if company else None
-        else:
-            flash('Error: User must be associated with a company through an employee profile', 'error')
-            return redirect(url_for('ot_type_add'))
-        
-        if not tenant_id:
-            flash('Error: User must be associated with a tenant', 'error')
-            return redirect(url_for('ot_type_add'))
-        
-        # Check if OT type with same code already exists for this tenant
-        # Get all company IDs for this tenant
-        company_ids = [c.id for c in Company.query.filter_by(tenant_id=tenant_id).all()]
-        
-        existing_ot = OTType.query.filter(
-            OTType.company_id.in_(company_ids),
-            OTType.code == code
-        ).first()
+        # Check if OT type with same code already exists globally
+        existing_ot = OTType.query.filter_by(code=code).first()
         if existing_ot:
-            flash(f'OT Type with code "{code}" already exists for your tenant', 'error')
+            if is_ajax: return jsonify({'success': False, 'message': f'OT Type with code "{code}" already exists'})
+            flash(f'OT Type with code "{code}" already exists', 'error')
             return redirect(url_for('ot_type_add'))
         
         try:
             ot_type = OTType(
-                company_id=company_id,
+                company_id=None, # Global
                 name=name,
                 code=code,
                 description=description if description else None,
@@ -719,13 +928,16 @@ def ot_type_add():
             )
             db.session.add(ot_type)
             db.session.commit()
+            if is_ajax: return jsonify({'success': True, 'message': f'OT Type "{name}" added successfully'})
             flash(f'OT Type "{name}" added successfully', 'success')
             return redirect(url_for('ot_type_list'))
         except ValueError as e:
+            if is_ajax: return jsonify({'success': False, 'message': f'Invalid input format: {str(e)}'})
             flash(f'Invalid input format: {str(e)}', 'error')
             return redirect(url_for('ot_type_add'))
         except Exception as e:
             db.session.rollback()
+            if is_ajax: return jsonify({'success': False, 'message': f'Error adding OT Type: {str(e)}'})
             flash(f'Error adding OT Type: {str(e)}', 'error')
             return redirect(url_for('ot_type_add'))
     
@@ -740,20 +952,7 @@ def ot_type_edit(ot_type_id):
     
     ot_type = OTType.query.get_or_404(ot_type_id)
     
-    # Check access - only allow if user is from same tenant or is Super Admin
-    user_tenant_id = None
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-        company = Company.query.get(current_user.employee_profile.company_id)
-        if company:
-            user_tenant_id = company.tenant_id
-    
-    # Get the OT Type's tenant (via its company)
-    ot_company = Company.query.get(ot_type.company_id)
-    ot_tenant_id = ot_company.tenant_id if ot_company else None
-    
-    if user_tenant_id and ot_tenant_id and ot_tenant_id != user_tenant_id:
-        flash('Access Denied', 'error')
-        return redirect(url_for('ot_type_list'))
+    # Global access - no tenant check
     
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -769,15 +968,13 @@ def ot_type_edit(ot_type_id):
             flash('OT Type name and code are required', 'error')
             return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
         
-        # Check if another OT type with same code exists for this tenant (since OT Types are tenant-level)
-        company_ids = db.session.query(Company.id).filter_by(tenant_id=ot_tenant_id).subquery()
+        # Check if another OT type with same code exists globally
         existing_ot = OTType.query.filter(
-            OTType.company_id.in_(company_ids),
             OTType.code == code,
             OTType.id != ot_type_id
         ).first()
         if existing_ot:
-            flash(f'Another OT Type with code "{code}" already exists for your tenant', 'error')
+            flash(f'Another OT Type with code "{code}" already exists', 'error')
             return redirect(url_for('ot_type_edit', ot_type_id=ot_type_id))
         
         try:
@@ -884,3 +1081,120 @@ def user_status_toggle():
     except Exception as e:
         flash(f'Error loading user status: {str(e)}', 'danger')
         return redirect(url_for('dashboard'))
+
+# ============================================================================
+# LEAVE MASTER ROUTES
+# ============================================================================
+
+@app.route('/masters/leave-types/add', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def leave_type_add():
+    """Add a new Leave Type"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        code = request.form.get('code', '').strip().upper()
+        annual_allocation = request.form.get('annual_allocation', 0, type=int)
+        company_id = request.form.get('company_id')
+        
+        # Determine company context
+        if not company_id:
+            # If no company provided, try to use user's company (for HR Manager)
+            if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+                company_id = current_user.employee_profile.company_id
+            # If Tenant Admin/Super Admin, we might need a default or error if not provided
+            # For simplicity, if not provided, try first active company (or handle error)
+            
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        if not name or not code:
+            msg = 'Name and Code are required'
+            if is_ajax: return jsonify({'success': False, 'message': msg})
+            flash(msg, 'error')
+            return redirect(url_for('operation_master_dashboard'))
+
+        try:
+            # Need a company_id
+            if not company_id:
+                 company = Company.query.filter_by(is_active=True).first()
+                 company_id = company.id if company else None
+            
+            # Check for duplication
+            existing = LeaveType.query.filter_by(name=name, company_id=company_id).first()
+            if existing:
+                 msg = f'Leave Type "{name}" already exists'
+                 if is_ajax: return jsonify({'success': False, 'message': msg})
+                 flash(msg, 'error')
+                 return redirect(url_for('operation_master_dashboard'))
+            
+            lt = LeaveType(
+                name=name,
+                code=code,
+                annual_allocation=annual_allocation,
+                company_id=company_id,
+                created_by=getattr(current_user, 'username', 'system'),
+                is_active=True
+            )
+            db.session.add(lt)
+            db.session.commit()
+            
+            if is_ajax: return jsonify({'success': True, 'message': f'Leave Type "{name}" added successfully'})
+            flash(f'Leave Type "{name}" added successfully', 'success')
+            return redirect(url_for('operation_master_dashboard'))
+            
+        except Exception as e:
+            db.session.rollback()
+            if is_ajax: return jsonify({'success': False, 'message': f'Error adding leave type: {str(e)}'})
+            flash(f'Error adding leave type: {str(e)}', 'error')
+            return redirect(url_for('operation_master_dashboard'))
+
+    return redirect(url_for('operation_master_dashboard'))
+
+
+@app.route('/masters/leave-groups/add', methods=['GET', 'POST'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def leave_group_add():
+    """Add a new Leave Group"""
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        company_id = request.form.get('company_id')
+
+        # Context logic similar to leave_type_add
+        if not company_id and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+             company_id = current_user.employee_profile.company_id
+        
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        if not name:
+             msg = 'Group Name is required'
+             if is_ajax: return jsonify({'success': False, 'message': msg})
+             flash(msg, 'error')
+             return redirect(url_for('operation_master_dashboard'))
+             
+        try:
+            if not company_id:
+                 company = Company.query.filter_by(is_active=True).first()
+                 company_id = company.id if company else None
+
+            lg = EmployeeGroup(
+                name=name, 
+                description=description,
+                company_id=company_id,
+                category='Leave',
+                created_by=getattr(current_user, 'username', 'system'),
+                is_active=True
+            )
+            db.session.add(lg)
+            db.session.commit()
+            
+            if is_ajax: return jsonify({'success': True, 'message': f'Leave Group "{name}" added successfully'})
+            flash(f'Leave Group "{name}" added successfully', 'success')
+            return redirect(url_for('operation_master_dashboard'))
+            
+        except Exception as e:
+            db.session.rollback()
+            if is_ajax: return jsonify({'success': False, 'message': f'Error adding leave group: {str(e)}'})
+            flash(f'Error adding leave group: {str(e)}', 'error')
+            return redirect(url_for('operation_master_dashboard'))
+
+    return redirect(url_for('operation_master_dashboard'))

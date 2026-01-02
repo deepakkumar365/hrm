@@ -78,12 +78,12 @@ def create_attendance_direct():
                         ).first()
                         
                         if not existing_attendance:
-                            # Create new attendance record with default "Pending" status
+                            # Create new attendance record with default "Absent" status
                             attendance = Attendance(
                                 employee_id=employee.id,
                                 date=target_date,
-                                status='Pending',
-                                regular_hours=0,  # No hours assigned for pending status
+                                status='Absent',
+                                regular_hours=0,
                                 total_hours=0,
                                 overtime_hours=0,
                                 created_at=datetime.utcnow(),

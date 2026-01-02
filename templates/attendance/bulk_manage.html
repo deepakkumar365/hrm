@@ -12,7 +12,8 @@
                     <!-- Breadcrumb navigation -->
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ url_for('attendance_list_view') }}">Attendance</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('attendance_list_view') }}">Attendance</a>
+                            </li>
                             <li class="breadcrumb-item active" aria-current="page">Bulk Attendance</li>
                         </ol>
                     </nav>
@@ -28,469 +29,591 @@
 
             <!-- Date Selection and Actions -->
             <div class="card filter-card mb-4">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-calendar-alt me-2"></i>Date Selection & Filters
-                </h6>
-            </div>
-            <div class="card-body">
-                <form method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-2">
-                        <label for="date" class="form-label">Select Date</label>
-                        <input type="date" id="date" name="date" class="form-control"
-                               value="{{ selected_date }}" max="{{ date.today() }}" required>
-                    </div>
-                    {% if available_companies %}
-                    <div class="col-md-2">
-                        <label for="company" class="form-label">Company</label>
-                        <select id="company" name="company" class="form-select">
-                            <option value="">-- All Companies --</option>
-                            {% for company in available_companies %}
-                            <option value="{{ company.id }}" {% if selected_company and selected_company|int == company.id %}selected{% endif %}>
-                                {{ company.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    {% endif %}
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-1"></i>Load Date
-                        </button>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="d-flex align-items-center date-info">
-                            <div class="me-3">
-                                <i class="fas fa-calendar-day text-primary fa-lg"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0">{{ filter_date.strftime('%B %d, %Y') }}</h6>
-                                <small class="text-muted">{{ employees|length }} employee{{ 's' if employees|length != 1 else '' }} • {{ filter_date.strftime('%A') }}</small>
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Date Selection & Filters
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-2">
+                            <label for="date" class="form-label">Select Date</label>
+                            <input type="date" id="date" name="date" class="form-control" value="{{ selected_date }}"
+                                max="{{ date.today() }}" required>
+                        </div>
+                        {% if available_companies %}
+                        <div class="col-md-2">
+                            <label for="company" class="form-label">Company</label>
+                            <select id="company" name="company" class="form-select">
+                                <option value="">-- All Companies --</option>
+                                {% for company in available_companies %}
+                                <option value="{{ company.id }}" {% if selected_company and
+                                    selected_company|string==company.id|string %}selected{% endif %}>
+                                    {{ company.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search me-1"></i>Load Date
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center date-info">
+                                <div class="me-3">
+                                    <i class="fas fa-calendar-day text-primary fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">{{ filter_date.strftime('%B %d, %Y') }}</h6>
+                                    <small class="text-muted">{{ employees|length }} employee{{ 's' if employees|length
+                                        != 1 else '' }} • {{ filter_date.strftime('%A') }}</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="d-flex gap-2 justify-content-end">
-                            <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAll(false)"
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAll(false)"
                                     title="Mark all employees as present">
-                                <i class="fas fa-check-circle me-1"></i>All Present
-                            </button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="selectAll(true)"
+                                    <i class="fas fa-check-circle me-1"></i>All Present
+                                </button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="selectAll(true)"
                                     title="Mark all employees as absent">
-                                <i class="fas fa-times-circle me-1"></i>All Absent
-                            </button>
+                                    <i class="fas fa-times-circle me-1"></i>All Absent
+                                </button>
+                            </div>
                         </div>
+                    </form>
+
+                </div>
+            </div>
+
+            {% if current_user.role.name in ['Super Admin', 'Tenant Admin', 'HR Manager'] %}
+            <!-- Quick Actions & Common Times (Authorized Admins Only) -->
+            <div class="card mb-4 border-primary shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions & Common Times
+                    </h6>
+                    <span class="badge bg-white text-primary">Authorized Admin</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-9 border-end">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-xl-4 col-md-3">
+                                    <label class="form-label small fw-bold">Bulk Status</label>
+                                    <select name="bulk_status" class="form-select form-select-sm"
+                                        form="mainAttendanceForm">
+                                        <option value="Present">Present</option>
+                                        <option value="Absent">Absent</option>
+                                        <option value="Leave">Leave</option>
+                                    </select>
+                                </div>
+                                <div class="col-xl-3 col-md-3">
+                                    <label class="form-label small fw-bold">Clock In</label>
+                                    <input type="time" name="bulk_clock_in" class="form-control form-control-sm"
+                                        value="09:00" form="mainAttendanceForm">
+                                </div>
+                                <div class="col-xl-3 col-md-3">
+                                    <label class="form-label small fw-bold">Clock Out</label>
+                                    <input type="time" name="bulk_clock_out" class="form-control form-control-sm"
+                                        value="18:00" form="mainAttendanceForm">
+                                </div>
+                                <div class="col-xl-2 col-md-3">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100"
+                                        onclick="document.getElementById('mainActionInput').value='bulk_log'"
+                                        form="mainAttendanceForm">
+                                        <i class="fas fa-magic me-1"></i>Log All
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <form method="POST"
+                                onsubmit="return confirm('WARNING: This will permanently DELETE ALL attendance records for {{ employees|length }} employees in this company for {{ filter_date.strftime('%B %d, %Y') }}. This action cannot be undone. Are you sure?');"
+                                class="ps-md-2">
+                                <input type="hidden" name="action" value="bulk_delete">
+                                <input type="hidden" name="date" value="{{ selected_date }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                    <i class="fas fa-trash-alt me-1"></i>Delete All for Date
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="row g-3 align-items-end border-top pt-3 mt-1">
+                        <div class="col-md-6">
+                            <form method="POST"
+                                onsubmit="return confirm('Are you sure you want to APPROVE ALL overtime for employees who are present on this date?');">
+                                <input type="hidden" name="action" value="bulk_ot_approve">
+                                <input type="hidden" name="date" value="{{ selected_date }}">
+                                <button type="submit" class="btn btn-outline-success btn-sm w-100">
+                                    <i class="fas fa-check-double me-1"></i>Approve All Overtime
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <form method="POST"
+                                onsubmit="return confirm('Are you sure you want to mark ALL ABSENT employees as Loss of Pay (LOP) for this date?');">
+                                <input type="hidden" name="action" value="bulk_mark_lop">
+                                <input type="hidden" name="date" value="{{ selected_date }}">
+                                <button type="submit" class="btn btn-outline-warning btn-sm w-100">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Mark Absent as LOP
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        These actions will apply to <strong>all {{ employees|length }} active employees</strong>
+                        currently listed below.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Bulk Attendance Management Form -->
+            <div class="card mb-4">
+                <form method="POST" id="mainAttendanceForm">
+                    <input type="hidden" name="date" value="{{ selected_date }}">
+                    <input type="hidden" name="action" id="mainActionInput" value="individual_update">
+
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0">
+                                <i class="fas fa-users me-2"></i>Employee Attendance - {{ filter_date.strftime('%B %d,
+                                %Y') }}
+                            </h5>
+                        </div>
+
+                        <!-- Quick Action Buttons -->
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-success btn-sm" onclick="markSelectedAs('present')"
+                                title="Mark selected employees as present">
+                                <i class="fas fa-check me-1"></i>Mark Selected Present
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="markSelectedAs('absent')"
+                                title="Mark selected employees as absent">
+                                <i class="fas fa-times me-1"></i>Mark Selected Absent
+                            </button>
+                            <div class="ms-auto">
+                                <button type="submit" class="btn btn-primary btn-sm"
+                                    title="Save all attendance changes">
+                                    <i class="fas fa-save me-1"></i>Save Attendance
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        {% if employees %}
+                        <!-- Desktop Table -->
+                        <div class="d-none d-md-block">
+                            <div class="table-responsive-custom">
+                                <table class="table table-hover table-striped bulk-attendance-table mb-0">
+                                    <thead class="table-header-bg">
+                                        <tr>
+                                            <th class="text-center">
+                                                <div class="form-check form-check-inline m-0">
+                                                    <input class="form-check-input select-all-checkbox" type="checkbox"
+                                                        id="selectAllCheckbox" onchange="toggleSelectAll()"
+                                                        title="Select all employees">
+                                                </div>
+                                            </th>
+                                            <th>Employee ID</th>
+                                            <th>Employee Name</th>
+                                            <th>Company</th>
+                                            <th>Department</th>
+                                            <th>Designation</th>
+                                            <th>Status</th>
+                                            <th class="text-center">LOP</th>
+                                            <th class="text-center">In/Out</th>
+                                            <th class="text-center">Hours</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for employee in employees %}
+                                        {% set attendance = attendance_records[employee.id] %}
+                                        <tr class="attendance-row" data-employee-id="{{ employee.id }}">
+                                            <td class="text-center">
+                                                <div class="form-check form-check-inline m-0">
+                                                    <input class="form-check-input employee-checkbox" type="checkbox"
+                                                        name="absent_employees" value="{{ employee.id }}"
+                                                        id="emp_{{ employee.id }}"
+                                                        onchange="updateSelectionCount(); updateSelectAllCheckbox();">
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {{ employee.employee_id }}
+                                            </td>
+                                            <td>
+                                                {{ employee.first_name }} {{ employee.last_name }}
+                                            </td>
+                                            <td><small>{{ employee.company.name if employee.company else '-' }}</small>
+                                            </td>
+                                            <td><small>{{ employee.department or '-' }}</small></td>
+                                            <td><small>{{ employee.designation.name if employee.designation else '-'
+                                                    }}</small></td>
+                                            <td>
+                                                <select class="form-select form-select-sm status-select"
+                                                    name="status_{{ employee.id }}"
+                                                    onchange="updateLOPDisplay(this, {{ employee.id }})">
+                                                    <option value="Present" {% if attendance and
+                                                        attendance.status=='Present' %}selected{% endif %}>Present
+                                                    </option>
+                                                    <option value="Absent" {% if not attendance or
+                                                        attendance.status=='Absent' %}selected{% endif %}>Absent
+                                                    </option>
+                                                    <option value="Leave" {% if attendance and
+                                                        attendance.status=='Leave' %}selected{% endif %}>Leave</option>
+                                                </select>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="form-check form-check-inline m-0">
+                                                    <input type="checkbox" class="form-check-input lop-checkbox"
+                                                        name="lop_{{ employee.id }}" id="lop_{{ employee.id }}" {% if
+                                                        attendance and attendance.lop %}checked{% endif %} {% if not
+                                                        attendance or attendance.status !='Absent' %}disabled{% endif
+                                                        %}>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if attendance and (attendance.status == 'Present' or
+                                                attendance.status == 'Half Day') %}
+                                                <div class="small fw-bold text-primary">{{
+                                                    attendance.clock_in.strftime('%H:%M') if attendance and
+                                                    attendance.clock_in else
+                                                    '—' }}</div>
+                                                <div class="small text-muted">{{ attendance.clock_out.strftime('%H:%M')
+                                                    if attendance and attendance.clock_out else '—' }}</div>
+                                                {% else %}
+                                                <span class="text-muted">—</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if attendance %}
+                                                {% if attendance.status == 'Present' %}
+                                                <span class="text-success"><strong>{{ attendance.total_hours or 8
+                                                        }}h</strong></span>
+                                                {% elif attendance.status == 'Half Day' %}
+                                                <span class="text-info"><strong>{{ attendance.total_hours or 4
+                                                        }}h</strong></span>
+                                                {% else %}
+                                                <span class="text-muted">—</span>
+                                                {% endif %}
+                                                {% else %}
+                                                <span class="text-muted">—</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Cards -->
+                        <div class="d-md-none">
+                            {% for employee in employees %}
+                            {% set attendance = attendance_records[employee.id] %}
+                            <div class="card mb-2 attendance-card" data-employee-id="{{ employee.id }}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ employee.first_name }} {{ employee.last_name }}</h6>
+                                            <p class="text-muted small mb-1">{{ employee.employee_id }}</p>
+                                            <p class="mb-1"><small><strong>{{ employee.company.name if employee.company
+                                                        else '-' }}</strong></small></p>
+                                            <p class="mb-1"><small>{{ employee.department or '-' }}</small></p>
+                                            <p class="mb-1"><small>{{ employee.designation.name if employee.designation
+                                                    else '-' }}</small></p>
+                                            {% if attendance and attendance.status == 'Present' %}
+                                            <div class="mt-1 d-flex gap-2">
+                                                <span class="badge bg-light text-dark border"><i
+                                                        class="fas fa-sign-in-alt me-1"></i>{{
+                                                    attendance.clock_in.strftime('%H:%M') if attendance and
+                                                    attendance.clock_in else
+                                                    '—' }}</span>
+                                                <span class="badge bg-light text-dark border"><i
+                                                        class="fas fa-sign-out-alt me-1"></i>{{
+                                                    attendance.clock_out.strftime('%H:%M') if attendance and
+                                                    attendance.clock_out else
+                                                    '—' }}</span>
+                                            </div>
+                                            {% endif %}
+                                            <div class="mt-2">
+                                                <select class="form-select form-select-sm status-select"
+                                                    name="status_{{ employee.id }}"
+                                                    onchange="updateLOPDisplay(this, {{ employee.id }})">
+                                                    <option value="Present" {% if attendance and
+                                                        attendance.status=='Present' %}selected{% endif %}>Present
+                                                    </option>
+                                                    <option value="Absent" {% if not attendance or
+                                                        attendance.status=='Absent' %}selected{% endif %}>Absent
+                                                    </option>
+                                                    <option value="Leave" {% if attendance and
+                                                        attendance.status=='Leave' %}selected{% endif %}>Leave</option>
+                                                </select>
+                                                <div class="mt-2">
+                                                    <label class="form-check-label">
+                                                        <input type="checkbox" class="form-check-input lop-checkbox"
+                                                            name="lop_{{ employee.id }}"
+                                                            id="lop_mobile_{{ employee.id }}" {% if attendance and
+                                                            attendance.lop %}checked{% endif %} {% if not attendance or
+                                                            attendance.status !='Absent' %}disabled{% endif %}>
+                                                        Mark as LOP
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="form-check m-0">
+                                                <input class="form-check-input employee-checkbox" type="checkbox"
+                                                    name="absent_employees" value="{{ employee.id }}"
+                                                    id="emp_mobile_{{ employee.id }}"
+                                                    onchange="updateSelectionCount(); updateSelectAllCheckbox();">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No employees found</h5>
+                                <p class="text-muted">No active employees available for attendance management</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        {% if employees %}
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted">
+                                    <small>
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Changes will be saved for {{ filter_date.strftime('%B %d, %Y') }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </form>
-
             </div>
-        </div>
-
-        <!-- Bulk Attendance Management Form -->
-        <div class="card mb-4">
-            <form method="POST">
-                <input type="hidden" name="date" value="{{ selected_date }}">
-
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h5 class="mb-0">
-                            <i class="fas fa-users me-2"></i>Employee Attendance - {{ filter_date.strftime('%B %d, %Y') }}
-                        </h5>
-                    </div>
-
-                    <!-- Quick Action Buttons -->
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn btn-success btn-sm" onclick="markSelectedAs('present')"
-                                title="Mark selected employees as present">
-                            <i class="fas fa-check me-1"></i>Mark Selected Present
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="markSelectedAs('absent')"
-                                title="Mark selected employees as absent">
-                            <i class="fas fa-times me-1"></i>Mark Selected Absent
-                        </button>
-                        <div class="ms-auto">
-                            <button type="submit" class="btn btn-primary btn-sm"
-                                    title="Save all attendance changes">
-                                <i class="fas fa-save me-1"></i>Save Attendance
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card-body p-0">
-                    {% if employees %}
-                    <!-- Desktop Table -->
-                    <div class="d-none d-md-block">
-                        <div class="table-responsive-custom">
-                            <table class="table table-hover table-striped bulk-attendance-table mb-0">
-                                <thead class="table-header-bg">
-                                    <tr>
-                                        <th class="text-center">
-                                            <div class="form-check form-check-inline m-0">
-                                                <input class="form-check-input select-all-checkbox" type="checkbox" id="selectAllCheckbox"
-                                                       onchange="toggleSelectAll()" title="Select all employees">
-                                            </div>
-                                        </th>
-                                        <th>Employee ID</th>
-                                        <th>Employee Name</th>
-                                        <th>Company</th>
-                                        <th>Department</th>
-                                        <th>Designation</th>
-                                        <th>Status</th>
-                                        <th class="text-center">LOP</th>
-                                        <th class="text-center">Hours</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for employee in employees %}
-                                    {% set attendance = attendance_records[employee.id] %}
-                                    <tr class="attendance-row" data-employee-id="{{ employee.id }}">
-                                        <td class="text-center">
-                                            <div class="form-check form-check-inline m-0">
-                                                <input class="form-check-input employee-checkbox"
-                                                       type="checkbox"
-                                                       name="absent_employees"
-                                                       value="{{ employee.id }}"
-                                                       id="emp_{{ employee.id }}"
-                                                       onchange="updateSelectionCount(); updateSelectAllCheckbox();">
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {{ employee.employee_id }}
-                                        </td>
-                                        <td>
-                                            {{ employee.first_name }} {{ employee.last_name }}
-                                        </td>
-                                        <td><small>{{ employee.company_name or '-' }}</small></td>
-                                        <td><small>{{ employee.department or '-' }}</small></td>
-                                        <td><small>{{ employee.designation.name if employee.designation else '-' }}</small></td>
-                                        <td>
-                                            <select class="form-select form-select-sm status-select"
-                                                    name="status_{{ employee.id }}"
-                                                    onchange="updateLOPDisplay(this, {{ employee.id }})">
-                                                <option value="Pending" {% if not attendance or attendance.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                                <option value="Present" {% if attendance and attendance.status == 'Present' %}selected{% endif %}>Present</option>
-                                                <option value="Absent" {% if attendance and attendance.status == 'Absent' %}selected{% endif %}>Absent</option>
-                                                <option value="Leave" {% if attendance and attendance.status == 'Leave' %}selected{% endif %}>Leave</option>
-                                                <option value="Half Day" {% if attendance and attendance.status == 'Half Day' %}selected{% endif %}>Half Day</option>
-                                            </select>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="form-check form-check-inline m-0">
-                                                <input type="checkbox" class="form-check-input lop-checkbox"
-                                                       name="lop_{{ employee.id }}"
-                                                       id="lop_{{ employee.id }}"
-                                                       {% if attendance and attendance.lop %}checked{% endif %}
-                                                       {% if not attendance or attendance.status != 'Absent' %}disabled{% endif %}>
-                                            </div>
-                                        </td>
-                                        <td class="text-center">
-                                            {% if attendance %}
-                                                {% if attendance.status == 'Present' %}
-                                                    <span class="text-success"><strong>{{ attendance.total_hours or 8 }}h</strong></span>
-                                                {% elif attendance.status == 'Half Day' %}
-                                                    <span class="text-info"><strong>{{ attendance.total_hours or 4 }}h</strong></span>
-                                                {% else %}
-                                                    <span class="text-muted">—</span>
-                                                {% endif %}
-                                            {% else %}
-                                                <span class="text-muted">—</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Mobile Cards -->
-                    <div class="d-md-none">
-                        {% for employee in employees %}
-                        {% set attendance = attendance_records[employee.id] %}
-                        <div class="card mb-2 attendance-card" data-employee-id="{{ employee.id }}">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-1">{{ employee.first_name }} {{ employee.last_name }}</h6>
-                                        <p class="text-muted small mb-1">{{ employee.employee_id }}</p>
-                                        <p class="mb-1"><small><strong>{{ employee.company_name or '-' }}</strong></small></p>
-                                        <p class="mb-1"><small>{{ employee.department or '-' }}</small></p>
-                                        <p class="mb-1"><small>{{ employee.designation.name if employee.designation else '-' }}</small></p>
-                                        <div class="mt-2">
-                                            <select class="form-select form-select-sm status-select"
-                                                    name="status_{{ employee.id }}"
-                                                    onchange="updateLOPDisplay(this, {{ employee.id }})">
-                                                <option value="Pending" {% if not attendance or attendance.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                                <option value="Present" {% if attendance and attendance.status == 'Present' %}selected{% endif %}>Present</option>
-                                                <option value="Absent" {% if attendance and attendance.status == 'Absent' %}selected{% endif %}>Absent</option>
-                                                <option value="Leave" {% if attendance and attendance.status == 'Leave' %}selected{% endif %}>Leave</option>
-                                                <option value="Half Day" {% if attendance and attendance.status == 'Half Day' %}selected{% endif %}>Half Day</option>
-                                            </select>
-                                            <div class="mt-2">
-                                                <label class="form-check-label">
-                                                    <input type="checkbox" class="form-check-input lop-checkbox"
-                                                           name="lop_{{ employee.id }}"
-                                                           id="lop_mobile_{{ employee.id }}"
-                                                           {% if attendance and attendance.lop %}checked{% endif %}
-                                                           {% if not attendance or attendance.status != 'Absent' %}disabled{% endif %}>
-                                                    Mark as LOP
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="form-check m-0">
-                                            <input class="form-check-input employee-checkbox"
-                                                   type="checkbox"
-                                                   name="absent_employees"
-                                                   value="{{ employee.id }}"
-                                                   id="emp_mobile_{{ employee.id }}"
-                                                   onchange="updateSelectionCount(); updateSelectAllCheckbox();">
-                                        </div>
-                                    </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">No employees found</h5>
-                        <p class="text-muted">No active employees available for attendance management</p>
-                    </div>
-                    {% endif %}
-                </div>
-
-                {% if employees %}
-                <div class="card-footer">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="text-muted">
-                            <small>
-                                <i class="fas fa-info-circle me-1"></i>
-                                Changes will be saved for {{ filter_date.strftime('%B %d, %Y') }}
-                            </small>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="fas fa-save me-1"></i>Update Attendance
-                        </button>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            </form>
-        </div>
         </div>
     </div>
 </div>
 
 <script>
-// JavaScript for bulk selection functionality
-function selectAll(absent) {
-    // Get all checkboxes from both desktop and mobile views
-    const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
-    const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
+    // JavaScript for bulk selection functionality
+    function selectAll(absent) {
+        // Get all checkboxes from both desktop and mobile views
+        const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
+        const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
 
-    // Update desktop checkboxes
-    desktopCheckboxes.forEach(checkbox => {
-        checkbox.checked = absent;
-    });
-
-    // Update mobile checkboxes with same state
-    mobileCheckboxes.forEach(checkbox => {
-        checkbox.checked = absent;
-    });
-
-    // Update the select all checkbox state
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.checked = absent;
-    }
-
-    updateSelectionCount();
-}
-
-function toggleSelectAll() {
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    if (!selectAllCheckbox) return;
-
-    // Get all desktop checkboxes
-    const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
-    const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
-
-    const shouldCheck = selectAllCheckbox.checked;
-
-    // Update all desktop checkboxes
-    desktopCheckboxes.forEach(checkbox => {
-        checkbox.checked = shouldCheck;
-    });
-
-    // Update all mobile checkboxes
-    mobileCheckboxes.forEach(checkbox => {
-        checkbox.checked = shouldCheck;
-    });
-
-    updateSelectionCount();
-}
-
-function updateSelectAllCheckbox() {
-    const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-
-    if (selectAllCheckbox && desktopCheckboxes.length > 0) {
-        const checkedCount = Array.from(desktopCheckboxes).filter(cb => cb.checked).length;
-        selectAllCheckbox.checked = checkedCount === desktopCheckboxes.length && checkedCount > 0;
-        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < desktopCheckboxes.length;
-    }
-}
-
-// Initialize event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Get all checkboxes
-    const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
-    const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
-    const allCheckboxes = document.querySelectorAll('.employee-checkbox');
-
-    // Add change event listeners to all employee checkboxes
-    allCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            // Keep desktop and mobile checkboxes in sync
-            const employeeId = this.value;
-            const otherCheckbox = Array.from(allCheckboxes).find(cb => cb !== this && cb.value === employeeId);
-            if (otherCheckbox) {
-                otherCheckbox.checked = this.checked;
-            }
-
-            updateSelectAllCheckbox();
-            updateSelectionCount();
+        // Update desktop checkboxes
+        desktopCheckboxes.forEach(checkbox => {
+            checkbox.checked = absent;
         });
-    });
 
-    // Initialize the select all checkbox state
-    updateSelectAllCheckbox();
-    updateSelectionCount();
-});
+        // Update mobile checkboxes with same state
+        mobileCheckboxes.forEach(checkbox => {
+            checkbox.checked = absent;
+        });
 
-// Update LOP display based on status dropdown
-function updateLOPDisplay(selectElement, employeeId) {
-    const status = selectElement.value;
-    const lopCheckbox = document.getElementById(`lop_${employeeId}`);
-    const lopCheckboxMobile = document.getElementById(`lop_mobile_${employeeId}`);
+        // Update the select all checkbox state
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = absent;
+        }
 
-    if (lopCheckbox) {
-        // Enable LOP only for Absent status
-        if (status === 'Absent') {
-            lopCheckbox.disabled = false;
-        } else {
-            lopCheckbox.disabled = true;
-            lopCheckbox.checked = false;
+        updateSelectionCount();
+    }
+
+    function toggleSelectAll() {
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        if (!selectAllCheckbox) return;
+
+        // Get all desktop checkboxes
+        const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
+        const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
+
+        const shouldCheck = selectAllCheckbox.checked;
+
+        // Update all desktop checkboxes
+        desktopCheckboxes.forEach(checkbox => {
+            checkbox.checked = shouldCheck;
+        });
+
+        // Update all mobile checkboxes
+        mobileCheckboxes.forEach(checkbox => {
+            checkbox.checked = shouldCheck;
+        });
+
+        updateSelectionCount();
+    }
+
+    function updateSelectAllCheckbox() {
+        const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+
+        if (selectAllCheckbox && desktopCheckboxes.length > 0) {
+            const checkedCount = Array.from(desktopCheckboxes).filter(cb => cb.checked).length;
+            selectAllCheckbox.checked = checkedCount === desktopCheckboxes.length && checkedCount > 0;
+            selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < desktopCheckboxes.length;
         }
     }
-    
-    if (lopCheckboxMobile) {
-        // Enable LOP only for Absent status (mobile)
-        if (status === 'Absent') {
-            lopCheckboxMobile.disabled = false;
-        } else {
-            lopCheckboxMobile.disabled = true;
-            lopCheckboxMobile.checked = false;
-        }
-    }
-}
 
-// Update selection count display
-function updateSelectionCount() {
-    // Only count checkboxes from the visible table (desktop or mobile)
-    // Get the visible container
-    const desktopTable = document.querySelector('.d-none.d-md-block');
-    const mobileContainer = document.querySelector('.d-md-none');
-    
-    let visibleCheckboxes = [];
-    if (desktopTable && desktopTable.offsetParent !== null) {
-        // Desktop is visible
-        visibleCheckboxes = Array.from(desktopTable.querySelectorAll('.employee-checkbox:checked'));
-    } else if (mobileContainer && mobileContainer.offsetParent !== null) {
-        // Mobile is visible
-        visibleCheckboxes = Array.from(mobileContainer.querySelectorAll('.employee-checkbox:checked'));
-    }
-    
-    const count = visibleCheckboxes.length;
+    // Initialize event listeners
+    document.addEventListener('DOMContentLoaded', function () {
+        // Get all checkboxes
+        const desktopCheckboxes = document.querySelectorAll('.d-none.d-md-block .employee-checkbox');
+        const mobileCheckboxes = document.querySelectorAll('.d-md-none .employee-checkbox');
+        const allCheckboxes = document.querySelectorAll('.employee-checkbox');
 
-    // Update button text if it exists
-    const markPresentBtn = document.querySelector('button[onclick*="markSelectedAs(\'present\')"]');
-    const markAbsentBtn = document.querySelector('button[onclick*="markSelectedAs(\'absent\')"]');
+        // Add change event listeners to all employee checkboxes
+        allCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                // Keep desktop and mobile checkboxes in sync
+                const employeeId = this.value;
+                const otherCheckbox = Array.from(allCheckboxes).find(cb => cb !== this && cb.value === employeeId);
+                if (otherCheckbox) {
+                    otherCheckbox.checked = this.checked;
+                }
 
-    if (markPresentBtn) {
-        markPresentBtn.textContent = count > 0 ? `Mark ${count} Selected as Present` : 'Mark Selected Present';
-    }
-    if (markAbsentBtn) {
-        markAbsentBtn.textContent = count > 0 ? `Mark ${count} Selected as Absent` : 'Mark Selected Absent';
-    }
-}
-
-// New function for bulk marking selected employees
-function markSelectedAs(status) {
-    // Only get checkboxes from the visible container
-    const desktopTable = document.querySelector('.d-none.d-md-block');
-    const mobileContainer = document.querySelector('.d-md-none');
-    
-    let selectedEmployees = [];
-    if (desktopTable && desktopTable.offsetParent !== null) {
-        // Desktop is visible
-        selectedEmployees = Array.from(desktopTable.querySelectorAll('.employee-checkbox:checked'));
-    } else if (mobileContainer && mobileContainer.offsetParent !== null) {
-        // Mobile is visible
-        selectedEmployees = Array.from(mobileContainer.querySelectorAll('.employee-checkbox:checked'));
-    }
-
-    // If no selection, show alert
-    if (selectedEmployees.length === 0) {
-        alert('Please select at least one employee first.\n\nTip: Check the checkbox next to employee names to select them.');
-        return;
-    }
-
-    const statusText = status === 'present' ? 'Present' : 'Absent';
-    const confirmMessage = `Are you sure you want to mark ${selectedEmployees.length} employee(s) as ${statusText}?`;
-
-    if (confirm(confirmMessage)) {
-        selectedEmployees.forEach(checkbox => {
-            const employeeId = checkbox.value;
-            const selectElement = document.querySelector(`select[name="status_${employeeId}"]`);
-
-            if (status === 'present') {
-                checkbox.checked = false; // Uncheck means Present
-                if (selectElement) selectElement.value = 'Present';
-            } else {
-                checkbox.checked = true; // Check means Absent (keep checked)
-                if (selectElement) selectElement.value = 'Absent';
-            }
-            updateRowStatus(checkbox);
+                updateSelectAllCheckbox();
+                updateSelectionCount();
+            });
         });
+
+        // Initialize the select all checkbox state
         updateSelectAllCheckbox();
+        updateSelectionCount();
+    });
 
-        // Show success message
-        showSuccessMessage(`Successfully marked ${selectedEmployees.length} employee(s) as ${statusText}`);
+    // Update LOP display based on status dropdown
+    function updateLOPDisplay(selectElement, employeeId) {
+        const status = selectElement.value;
+        const lopCheckbox = document.getElementById(`lop_${employeeId}`);
+        const lopCheckboxMobile = document.getElementById(`lop_mobile_${employeeId}`);
+
+        if (lopCheckbox) {
+            // Enable LOP only for Absent status
+            if (status === 'Absent') {
+                lopCheckbox.disabled = false;
+            } else {
+                lopCheckbox.disabled = true;
+                lopCheckbox.checked = false;
+            }
+        }
+
+        if (lopCheckboxMobile) {
+            // Enable LOP only for Absent status (mobile)
+            if (status === 'Absent') {
+                lopCheckboxMobile.disabled = false;
+            } else {
+                lopCheckboxMobile.disabled = true;
+                lopCheckboxMobile.checked = false;
+            }
+        }
     }
-}
 
-// Function to show success message
-function showSuccessMessage(message) {
-    // Create alert element
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
-    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-    alertDiv.innerHTML = `
+    // Update selection count display
+    function updateSelectionCount() {
+        // Only count checkboxes from the visible table (desktop or mobile)
+        // Get the visible container
+        const desktopTable = document.querySelector('.d-none.d-md-block');
+        const mobileContainer = document.querySelector('.d-md-none');
+
+        let visibleCheckboxes = [];
+        if (desktopTable && desktopTable.offsetParent !== null) {
+            // Desktop is visible
+            visibleCheckboxes = Array.from(desktopTable.querySelectorAll('.employee-checkbox:checked'));
+        } else if (mobileContainer && mobileContainer.offsetParent !== null) {
+            // Mobile is visible
+            visibleCheckboxes = Array.from(mobileContainer.querySelectorAll('.employee-checkbox:checked'));
+        }
+
+        const count = visibleCheckboxes.length;
+
+        // Update button text if it exists
+        const markPresentBtn = document.querySelector('button[onclick*="markSelectedAs(\'present\')"]');
+        const markAbsentBtn = document.querySelector('button[onclick*="markSelectedAs(\'absent\')"]');
+
+        if (markPresentBtn) {
+            markPresentBtn.textContent = count > 0 ? `Mark ${count} Selected as Present` : 'Mark Selected Present';
+        }
+        if (markAbsentBtn) {
+            markAbsentBtn.textContent = count > 0 ? `Mark ${count} Selected as Absent` : 'Mark Selected Absent';
+        }
+    }
+
+    // New function for bulk marking selected employees
+    function markSelectedAs(status) {
+        // Only get checkboxes from the visible container
+        const desktopTable = document.querySelector('.d-none.d-md-block');
+        const mobileContainer = document.querySelector('.d-md-none');
+
+        let selectedEmployees = [];
+        if (desktopTable && desktopTable.offsetParent !== null) {
+            // Desktop is visible
+            selectedEmployees = Array.from(desktopTable.querySelectorAll('.employee-checkbox:checked'));
+        } else if (mobileContainer && mobileContainer.offsetParent !== null) {
+            // Mobile is visible
+            selectedEmployees = Array.from(mobileContainer.querySelectorAll('.employee-checkbox:checked'));
+        }
+
+        // If no selection, show alert
+        if (selectedEmployees.length === 0) {
+            alert('Please select at least one employee first.\n\nTip: Check the checkbox next to employee names to select them.');
+            return;
+        }
+
+        const statusText = status === 'present' ? 'Present' : 'Absent';
+        const confirmMessage = `Are you sure you want to mark ${selectedEmployees.length} employee(s) as ${statusText}?`;
+
+        if (confirm(confirmMessage)) {
+            selectedEmployees.forEach(checkbox => {
+                const employeeId = checkbox.value;
+                const selectElement = document.querySelector(`select[name="status_${employeeId}"]`);
+
+                if (status === 'present') {
+                    checkbox.checked = false; // Uncheck means Present
+                    if (selectElement) selectElement.value = 'Present';
+                } else {
+                    checkbox.checked = true; // Check means Absent (keep checked)
+                    if (selectElement) selectElement.value = 'Absent';
+                }
+                updateRowStatus(checkbox);
+            });
+            updateSelectAllCheckbox();
+
+            // Show success message
+            showSuccessMessage(`Successfully marked ${selectedEmployees.length} employee(s) as ${statusText}`);
+        }
+    }
+
+    // Function to show success message
+    function showSuccessMessage(message) {
+        // Create alert element
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
         <i class="fas fa-check-circle me-2"></i>${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
 
-    // Add to body
-    document.body.appendChild(alertDiv);
+        // Add to body
+        document.body.appendChild(alertDiv);
 
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-        alertDiv.classList.remove('show');
-        setTimeout(() => alertDiv.remove(), 150);
-    }, 3000);
-}
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }, 3000);
+    }
 </script>{% endblock %}

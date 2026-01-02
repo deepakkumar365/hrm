@@ -189,18 +189,19 @@
 
                         <!-- Tenant & Company (Admin Only) -->
                         <!-- Tenant & Company (Admin Only) -->
+                        <!-- Tenant & Company (Admin Only) - HIDDEN as consolidated in Organization Master -->
+                        <!-- 
                         {% if user_role in ['Super Admin', 'Tenant Admin'] %}
                         <a class="nav-link" href="{{ url_for('tenant_list') }}">Tenants</a>
                         <a class="nav-link" href="{{ url_for('company_list') }}">Companies</a>
                         <a class="nav-link" href="{{ url_for('tenant_payment_config_list') }}">Payment Config</a>
                         {% endif %}
+                        -->
 
                         <!-- Configuration Masters (HR Manager & Admin) -->
-                        <a class="nav-link" href="{{ url_for('role_list') }}">Roles</a>
-                        <a class="nav-link" href="{{ url_for('department_list') }}">Departments</a>
-                        <a class="nav-link" href="{{ url_for('working_hours_list') }}">Working Hours</a>
-                        <a class="nav-link" href="{{ url_for('work_schedule_list') }}">Work Schedules</a>
-                        <a class="nav-link" href="{{ url_for('ot_type_list') }}">OT Types</a>
+                        <a class="nav-link" href="{{ url_for('organization_master_dashboard') }}">Organization
+                            Master</a>
+                        <a class="nav-link" href="{{ url_for('operation_master_dashboard') }}">Operation Master</a>
                     </div>
                 </div>
                 {% endif %}
@@ -283,18 +284,10 @@
                 </div>
                 {% endif %}
 
-                <!-- Leave Management (Admin) -->
+                <!-- Leave Management (Adding line numbers to read specific lines Master -->
                 {% if check_ui_access(user_role, 'Attendance', 'Leave Management', 'Leave Approval') != 'Hidden' and
                 user_role != 'Employee' %}
-                <div class="nav-group">
-                    <a class="sidebar-link" href="#" role="button">
-                        <i class="fas fa-tasks"></i>
-                        <span>Leave Mgmt</span>
-                    </a>
-                    <div class="sidebar-submenu">
-                        <a class="nav-link" href="{{ url_for('leave_configuration') }}">Configure Leave Types</a>
-                    </div>
-                </div>
+                <!-- Removed standalone Leave Mgmt link -->
                 {% endif %}
 
                 <!-- OT Management -->

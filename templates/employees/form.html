@@ -2,32 +2,262 @@
 
 {% block title %}{{ "Edit Employee" if employee else "Add Employee" }} - Nexar{% endblock %}
 
+{% block head %}
+<style>
+    /* Modern Dashboard Theme for Forms - Compact Version */
+
+    :root {
+        --primary-color: #0d9488;
+        /* Teal 600 */
+        --primary-light: #ccfbf1;
+        /* Teal 100 */
+        --primary-hover: #0f766e;
+        /* Teal 700 */
+        --bg-color: #f8fafc;
+        /* Slate 50 */
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        /* Slate 900 */
+        --text-secondary: #64748b;
+        /* Slate 500 */
+        --border-color: #e2e8f0;
+        /* Slate 200 */
+        --input-bg: #f8fafc;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --radius-lg: 0.75rem;
+        /* Reduced radius */
+        --radius-md: 0.375rem;
+    }
+
+    /* Page Layout */
+    .page-container {
+        background-color: var(--bg-color);
+    }
+
+    /* Modern Card */
+    .modern-card {
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        margin-bottom: 1rem;
+        /* Reduced from 2rem */
+        transition: box-shadow 0.2s ease;
+        overflow: hidden;
+    }
+
+    .modern-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .modern-card-header {
+        background: #fff;
+        padding: 0.75rem 1rem;
+        /* Reduced from 1.5rem */
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        position: relative;
+        height: 3rem;
+        /* Fixed compact height */
+    }
+
+    /* Accent border on left */
+    .modern-card-header::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--primary-color);
+    }
+
+    .modern-card-header.warning::before {
+        background: #f59e0b;
+        /* Amber 500 */
+    }
+
+    .modern-card-header h5 {
+        font-weight: 600;
+        /* Slightly less bold */
+        color: var(--text-main);
+        font-size: 1rem;
+        /* Reduced size */
+        margin: 0;
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+    }
+
+    .modern-card-header h5 i {
+        color: var(--primary-color);
+        background: var(--primary-light);
+        padding: 6px;
+        /* Reduced padding */
+        border-radius: 6px;
+        margin-right: 10px !important;
+        font-size: 0.9rem;
+    }
+
+    .modern-card-header.warning h5 i {
+        color: #d97706;
+        background: #fef3c7;
+    }
+
+    .card-body {
+        padding: 1rem;
+        /* Reduced from 2rem */
+    }
+
+    /* Modern Form Grid */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        /* Slightly smaller min-width */
+        gap: 1rem;
+        /* Reduced from 1.5rem */
+    }
+
+    .form-grid-item {
+        margin-bottom: 0;
+        /* Let grid handle gap */
+    }
+
+    .form-grid-item.half-width {
+        grid-column: span 1;
+    }
+
+    .form-grid-item.full-width {
+        grid-column: 1 / -1;
+    }
+
+    /* Typography */
+    .form-label {
+        color: var(--text-main);
+        font-weight: 500;
+        /* Reduced weight */
+        font-size: 0.8125rem;
+        /* Smaller text */
+        margin-bottom: 0.25rem;
+        /* Reduced margin */
+    }
+
+    /* Inputs */
+    .form-control,
+    .form-select {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 0.4rem 0.6rem;
+        /* Compact padding */
+        font-size: 0.875rem;
+        /* Smaller font */
+        color: var(--text-main);
+        transition: all 0.2s;
+        height: auto;
+        /* Allow auto height */
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        background-color: #fff;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px var(--primary-light);
+        /* Smaller shadow ring */
+    }
+
+    .form-control[readonly] {
+        background-color: #f1f5f9;
+        color: var(--text-secondary);
+        opacity: 0.8;
+    }
+
+    /* Header Section */
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-weight: 800;
+        color: var(--text-main);
+        font-size: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    /* Buttons */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-md);
+        box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    /* Section Separators */
+    h6.text-primary {
+        color: var(--primary-color) !important;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    h6.text-primary::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+        margin-left: 1rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-lg-12">
             <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-0">
+            <div class="d-flex justify-content-between align-items-center mb-4 page-header">
                 <div>
-                    <h4>
-                        <i class="fas fa-user-{{ 'edit' if employee else 'plus' }} me-2"></i>
+                    <h4 class="page-title">
                         {{ "Edit Employee" if employee else "Add Employee" }}
                     </h4>
-                    {% if employee %}
-                    <p class="text-muted mb-0">Employee ID: {{ employee.employee_id }}</p>
-                    {% endif %}
+                    <p class="page-subtitle">
+                        {% if employee %}
+                        Managing details for <span class="fw-semibold text-dark">{{ employee.first_name }} {{
+                            employee.last_name }}</span> (ID: {{ employee.employee_id }})
+                        {% else %}
+                        Create a new employee profile in the system
+                        {% endif %}
+                    </p>
                 </div>
-                <a href="{{ url_for('employee_list') }}" class="btn btn-primary">
+                <a href="{{ url_for('employee_list') }}" class="btn btn-light border text-secondary shadow-sm">
                     <i class="fas fa-arrow-left me-1"></i>Back to List
                 </a>
             </div>
 
-            <!-- Form -->
             <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
-                <div class="card">
-                    <div class="card-header card-header-green">
+                <div class="modern-card">
+                    <div class="modern-card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-info-circle me-2"></i>Personal Information
+                            <i class="fas fa-user-circle"></i>Personal Information
                         </h5>
                     </div>
                     <div class="card-body">
@@ -63,10 +293,12 @@
                                 <label for="email" class="form-label">Email</label>
                                 <input type="text" class="form-control" id="email" name="email"
                                     value="{{ form_data.get('email') if form_data else (employee.email or '' if employee else '') }}"
-                                    {% if (current_user.role.name if current_user.role else None) !='HR Manager'
-                                    %}readonly{% endif %}>
-                                {% if (current_user.role.name if current_user.role else None) != 'HR Manager' %}
-                                <small class="text-muted d-block mt-1">Only HR Manager can edit this field</small>
+                                    {% if (current_user.role.name if current_user.role else None) not in ['HR
+                                    Manager', 'Super Admin' , 'Tenant Admin' ] %}readonly{% endif %}>
+                                {% if (current_user.role.name if current_user.role else None) not in ['HR Manager',
+                                'Super Admin', 'Tenant Admin'] %}
+                                <small class="text-muted d-block mt-1">Contact HR Manager or Admin to edit this
+                                    field</small>
                                 {% endif %}
                             </div>
                             <div class="form-grid-item">
@@ -153,10 +385,10 @@
                     </div>
                 </div>
 
-                <div class="card mt-3">
-                    <div class="card-header card-header-green">
+                <div class="modern-card mt-4">
+                    <div class="modern-card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-briefcase me-2"></i>Employment Details
+                            <i class="fas fa-briefcase"></i>Employment Details
                         </h5>
                     </div>
                     <div class="card-body">
@@ -379,10 +611,10 @@
                     </div>
                 </div>
 
-                <div class="card mt-3">
-                    <div class="card-header card-header-green">
+                <div class="modern-card mt-4">
+                    <div class="modern-card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-dollar-sign me-2"></i>Payroll Configuration
+                            <i class="fas fa-wallet"></i>Payroll Configuration
                         </h5>
                     </div>
                     <div class="card-body">
@@ -480,10 +712,10 @@
                     </div>
                 </div>
 
-                <div class="card mt-3">
-                    <div class="card-header card-header-warning">
+                <div class="modern-card mt-4">
+                    <div class="modern-card-header warning">
                         <h5 class="mb-0">
-                            <i class="fas fa-calendar-check me-2"></i>Certifications & Pass Renewals
+                            <i class="fas fa-calendar-check"></i>Certifications & Pass Renewals
                         </h5>
                     </div>
                     <div class="card-body">
@@ -519,15 +751,15 @@
                 </div>
 
                 <!-- Submit buttons -->
-                <div class="row mt-4">
+                <div class="row mt-5 mb-5">
                     <div class="col-12">
-                        <div class="d-flex gap-2 justify-content-end">
-                            <a href="{{ url_for('employee_list') }}" class="btn btn-primary">
-                                <i class="fas fa-times me-1"></i>Cancel
+                        <div class="d-flex gap-3 justify-content-end">
+                            <a href="{{ url_for('employee_list') }}" class="btn btn-light border text-secondary px-4">
+                                Cancel
                             </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>
-                                {{ "Update Employee" if employee else "Add Employee" }}
+                            <button type="submit" class="btn btn-primary px-5">
+                                <i class="fas fa-save me-2"></i>
+                                {{ "Update Employee" if employee else "Create Employee" }}
                             </button>
                         </div>
                     </div>

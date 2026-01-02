@@ -673,8 +673,13 @@ def mobile_api_get_attendance():
                 'id': att.id,
                 'employee_id': att.employee_id,
                 'date': att.date.isoformat() if att.date else None,
+<<<<<<< HEAD
                 'clock_in': att.clock_in.isoformat() if att.clock_in else None,
                 'clock_out': att.clock_out.isoformat() if att.clock_out else None,
+=======
+                'clock_in': c_in_local.isoformat() if c_in_local else None,
+                'clock_out': c_out_local.isoformat() if c_out_local else None,
+>>>>>>> New_Development
                 'status': att.status,
                 'duration_hours': float(att.total_hours) if hasattr(att, 'total_hours') and att.total_hours else 0
             })

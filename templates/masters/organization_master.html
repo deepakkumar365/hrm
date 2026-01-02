@@ -1,0 +1,1142 @@
+{% extends "base.html" %}
+
+{% block title %}Organization Master - Nexar{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modern-dashboard.css') }}">
+<style>
+    /* Premium Styling Overrides */
+    .master-header-card {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .master-title {
+        font-weight: 700;
+        letter-spacing: -0.025em;
+    }
+
+    .org-card {
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.6);
+        border-radius: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .org-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .org-card-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .org-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .org-card-body {
+        padding: 1.5rem;
+    }
+
+    .info-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        font-size: 1rem;
+        color: #0f172a;
+        font-weight: 500;
+        margin-bottom: 1rem;
+    }
+
+    .badge-premium {
+        padding: 0.35em 0.8em;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        letter-spacing: 0.025em;
+    }
+
+    .badge-active {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .badge-inactive {
+        background-color: #f1f5f9;
+        color: #64748b;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #94a3b8;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #cbd5e1;
+    }
+
+    .grid-loading {
+        position: relative;
+    }
+
+    .grid-loading::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(2px);
+        z-index: 10;
+        display: none;
+    }
+
+    .grid-loading.is-loading::after {
+        display: block;
+    }
+
+    /* Tenant select premium */
+    .tenant-select-container {
+        position: relative;
+        max-width: 400px;
+    }
+
+    .form-select-lg {
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+        font-weight: 500;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .form-select-lg:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* --- Theme from Employee Form --- */
+    :root {
+        --primary-color: #0d9488;
+        /* Teal 600 */
+        --primary-light: #ccfbf1;
+        /* Teal 100 */
+        --primary-hover: #0f766e;
+        /* Teal 700 */
+        --bg-color: #f8fafc;
+        /* Slate 50 */
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        /* Slate 900 */
+        --text-secondary: #64748b;
+        /* Slate 500 */
+        --border-color: #e2e8f0;
+        /* Slate 200 */
+        --input-bg: #f8fafc;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --radius-lg: 0.75rem;
+        --radius-md: 0.375rem;
+    }
+
+    /* Modal Content overrides for Theme */
+    .modal-content {
+        border-radius: var(--radius-lg);
+        border: none;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        background: #fff;
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 1.5rem;
+    }
+
+    .modal-title {
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.01em;
+    }
+
+    .modal-body {
+        background-color: var(--bg-color);
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        background: #fff;
+        border-top: 1px solid var(--border-color);
+        padding: 1rem 1.5rem;
+    }
+
+    /* Modern Card inside Modal */
+    .modern-card {
+        background: var(--card-bg);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        margin-bottom: 0;
+        /* Fit in modal */
+    }
+
+    .modern-card-header {
+        background: #fff;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        position: relative;
+        height: 3rem;
+    }
+
+    .modern-card-header::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--primary-color);
+    }
+
+    .modern-card-header h5 {
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 1rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .modern-card-header h5 i {
+        color: var(--primary-color);
+        background: var(--primary-light);
+        padding: 6px;
+        border-radius: 6px;
+        margin-right: 10px !important;
+        font-size: 0.9rem;
+    }
+
+    .card-body-theme {
+        padding: 1.25rem;
+    }
+
+    /* Form Grid */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .form-grid-full {
+        grid-column: span 2;
+    }
+
+    /* Input Styling */
+    .form-label {
+        color: var(--text-main);
+        font-weight: 500;
+        font-size: 0.8125rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .form-control,
+    .form-select {
+        background-color: var(--input-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 0.4rem 0.6rem;
+        font-size: 0.875rem;
+        color: var(--text-main);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px var(--primary-light);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+
+    <!-- Top Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-muted">Masters</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Organization Master</li>
+                </ol>
+            </nav>
+            <h2 class="h3 fw-bold text-dark master-title">Organization Master</h2>
+        </div>
+    </div>
+
+    <!-- Master Header / Selector -->
+    <div class="card master-header-card mb-4">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-5">
+                    <h5 class="mb-1 text-white">Select Tenant</h5>
+                    <p class="mb-0 text-white-50 small">Manage companies and payment configurations for the selected
+                        tenant.</p>
+                </div>
+                <div class="col-md-7">
+                    <div class="d-flex justify-content-end gap-2 align-items-center">
+                        <div class="tenant-select-container flex-grow-1" style="max-width: 400px;">
+                            <select id="tenantSelect" class="form-select form-select-lg" onchange="loadTenantData()">
+                                <option value="">-- Select a Tenant --</option>
+                                {% for tenant in tenants %}
+                                <option value="{{ tenant.id }}">{{ tenant.name }} ({{ tenant.code }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="btn btn-light btn-lg" onclick="openAddTenantModal()"
+                            title="Add New Organization">
+                            <i class="fas fa-plus text-primary"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Area (Initially Empty) -->
+    <div id="contentArea" class="row g-4 d-none">
+
+        <!-- Tenant Info Column -->
+        <div class="col-lg-4">
+            <div class="org-card h-100">
+                <div class="org-card-header">
+                    <h5 class="org-card-title">
+                        <i class="fas fa-building text-primary"></i> Tenant Details
+                    </h5>
+                    <span id="tenantStatusBadge" class="badge-premium badge-active">Active</span>
+                </div>
+                <div class="org-card-body">
+                    <div id="tenantDetailsLoader" class="text-center py-4 d-none">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                    <div id="tenantDetailsContent">
+                        <div class="mb-3">
+                            <div class="info-label">Tenant Name</div>
+                            <div class="info-value" id="tenantName">-</div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="info-label">Tenant Code</div>
+                            <div class="info-value" id="tenantCode">-</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <div class="info-label">Country</div>
+                                <div class="info-value" id="tenantCountry">-</div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="info-label">Currency</div>
+                                <div class="info-value" id="tenantCurrency">-</div>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <div class="info-label">Description</div>
+                            <p class="text-muted small mb-0" id="tenantDesc">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 border-top bg-light mt-auto">
+                    <!-- Placeholder for Edit or other actions -->
+                    <button class="btn btn-outline-primary w-100 btn-sm" onclick="editTenant()">
+                        <i class="fas fa-edit me-2"></i>Edit Tenant Details
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Companies & Payment -->
+        <div class="col-lg-8">
+            <div class="row g-4">
+
+                <!-- Payment Config -->
+                <div class="col-12">
+                    <div class="org-card">
+                        <div class="org-card-header">
+                            <h5 class="org-card-title">
+                                <i class="fas fa-credit-card text-success"></i> Payment Configuration
+                            </h5>
+                            <button class="btn btn-sm btn-light text-primary" onclick="configurePayment()">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        <div class="org-card-body">
+                            <div id="paymentConfigLoader" class="text-center py-4 d-none">
+                                <div class="spinner-border text-success" role="status"></div>
+                            </div>
+                            <div id="paymentConfigContent" class="row">
+                                <!-- Populated via JS -->
+                            </div>
+                            <div id="paymentConfigEmpty" class="text-center py-3 d-none">
+                                <p class="text-muted mb-0"><i class="fas fa-info-circle me-1"></i> No payment
+                                    configuration found.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Companies List -->
+                <div class="col-12">
+                    <div class="org-card">
+                        <div class="org-card-header">
+                            <h5 class="org-card-title">
+                                <i class="fas fa-sitemap text-info"></i> Associated Companies
+                            </h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-soft-info text-info rounded-pill me-2" id="companyCount">0
+                                    Companies</span>
+                                <button class="btn btn-sm btn-light text-info" onclick="openAddCompanyModal()">
+                                    <i class="fas fa-plus"></i> Add Company
+                                </button>
+                            </div>
+                        </div>
+                        <div class="org-card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 align-middle">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="ps-4">Company Name</th>
+                                            <th>Code</th>
+                                            <th>UEN / Reg No.</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="companiesTableBody">
+                                        <!-- Populated via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="companiesLoader" class="text-center py-5 d-none">
+                                <div class="spinner-border text-info" role="status"></div>
+                            </div>
+                            <div id="companiesEmpty" class="text-center py-5 d-none">
+                                <img src="{{ url_for('static', filename='images/empty.svg') }}"
+                                    onerror="this.style.display='none'" alt="No data"
+                                    style="max-width: 120px; opacity: 0.5;">
+                                <p class="text-muted mt-3 mb-0">No companies found for this tenant.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Initial Empty State -->
+    <div id="initialState" class="empty-state">
+        <i class="fas fa-building empty-state-icon"></i>
+        <h4>Select an Organization</h4>
+        <p>Please select a tenant from the dropdown above to view details, or add a new one.</p>
+        <button class="btn btn-primary mt-3" onclick="openAddTenantModal()">
+            <i class="fas fa-plus me-2"></i>Add New Tenant
+        </button>
+    </div>
+
+</div>
+
+<!-- MODALS -->
+
+<!-- Add Tenant Modal -->
+<div class="modal fade" id="addTenantModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tenantModalTitle">Add New Tenant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTenantForm">
+                    <input type="hidden" id="editTenantId">
+                    <div class="modern-card">
+                        <div class="modern-card-header">
+                            <h5 class="mb-0"><i class="fas fa-building"></i>Tenant Details</h5>
+                        </div>
+                        <div class="card-body-theme">
+                            <div class="form-grid">
+                                <div class="form-grid-full">
+                                    <label for="newTenantName" class="form-label">Tenant Name *</label>
+                                    <input type="text" class="form-control" id="newTenantName" required>
+                                </div>
+                                <div class="form-grid-full">
+                                    <label for="newTenantCode" class="form-label">Tenant Code *</label>
+                                    <input type="text" class="form-control" id="newTenantCode" required>
+                                    <small class="text-muted">Unique identifier (e.g., NEXAR)</small>
+                                </div>
+                                <div class="form-grid-full">
+                                    <label for="tenantDescription" class="form-label">Description</label>
+                                    <textarea class="form-control" id="tenantDescription" rows="2"></textarea>
+                                </div>
+                                <div>
+                                    <label for="countryCode" class="form-label">Country *</label>
+                                    <select class="form-select" id="countryCode" required onchange="updateCurrency()">
+                                        <option value="">Select Country</option>
+                                        <option value="SG">Singapore</option>
+                                        <option value="MY">Malaysia</option>
+                                        <option value="IN">India</option>
+                                        <option value="US">United States</option>
+                                        <option value="GB">United Kingdom</option>
+                                        <option value="AU">Australia</option>
+                                        <option value="CA">Canada</option>
+                                        <option value="AE">United Arab Emirates</option>
+                                        <option value="JP">Japan</option>
+                                        <option value="CN">China</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="currencyCode" class="form-label">Currency</label>
+                                    <input type="text" class="form-control" id="currencyCode" readonly
+                                        placeholder="Auto-populated">
+                                </div>
+                                <div class="form-grid-full mt-2">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="tenantActive" checked>
+                                        <label class="form-check-label" for="tenantActive">Active Tenant</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTenant()">Save Tenant</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Company Modal -->
+<div class="modal fade" id="addCompanyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="companyModalTitle">Add New Company</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCompanyForm">
+                    <input type="hidden" id="companyTenantId">
+                    <input type="hidden" id="editCompanyId">
+
+                    <div class="modern-card">
+                        <div class="modern-card-header">
+                            <h5 class="mb-0"><i class="fas fa-sitemap"></i>Company Information</h5>
+                        </div>
+                        <div class="card-body-theme">
+                            <div class="form-grid">
+                                <div>
+                                    <label class="form-label">Tenant</label>
+                                    <input type="text" class="form-control" id="companyTenantNameDisplay" readonly>
+                                </div>
+                                <div>
+                                    <label for="companyCode" class="form-label">Company Code *</label>
+                                    <input type="text" class="form-control" id="companyCode" required>
+                                </div>
+                                <div class="form-grid-full">
+                                    <label for="companyName" class="form-label">Company Name *</label>
+                                    <input type="text" class="form-control" id="companyName" required>
+                                </div>
+                                <div class="form-grid-full">
+                                    <label for="companyDescription" class="form-label">Description</label>
+                                    <textarea class="form-control" id="companyDescription" rows="2"></textarea>
+                                </div>
+                                <div>
+                                    <label for="companyUEN" class="form-label">UEN (Singapore)</label>
+                                    <input type="text" class="form-control" id="companyUEN">
+                                </div>
+                                <div>
+                                    <label for="companyPhone" class="form-label">Phone</label>
+                                    <input type="text" class="form-control" id="companyPhone">
+                                </div>
+                                <div>
+                                    <label for="companyEmail" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="companyEmail">
+                                </div>
+                                <div>
+                                    <label for="companyWebsite" class="form-label">Website</label>
+                                    <input type="url" class="form-control" id="companyWebsite">
+                                </div>
+                                <div class="form-grid-full">
+                                    <label for="companyAddress" class="form-label">Address</label>
+                                    <textarea class="form-control" id="companyAddress" rows="2"></textarea>
+                                </div>
+                                <div>
+                                    <label for="companyCurrencyCode" class="form-label">Currency Code *</label>
+                                    <select class="form-select" id="companyCurrencyCode" required>
+                                        <option value="">Select Currency</option>
+                                        <option value="SGD" selected>SGD - Singapore Dollar</option>
+                                        <option value="USD">USD - US Dollar</option>
+                                        <option value="EUR">EUR - Euro</option>
+                                        <option value="GBP">GBP - British Pound</option>
+                                        <option value="INR">INR - Indian Rupee</option>
+                                        <option value="MYR">MYR - Malaysian Ringgit</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="companyTimezone" class="form-label">Timezone *</label>
+                                    <select class="form-select" id="companyTimezone" required>
+                                        <option value="Asia/Singapore" selected>Asia/Singapore</option>
+                                        <option value="Asia/Kolkata">Asia/Kolkata (India)</option>
+                                    </select>
+                                </div>
+                                <div class="form-grid-full mt-2">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="companyActive" checked>
+                                        <label class="form-check-label" for="companyActive">Active Company</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCompany()">Save Company</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Configuration Modal -->
+<div class="modal fade" id="paymentConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalTitle">Edit Payment Configuration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentConfigForm">
+                    <input type="hidden" id="configTenantId">
+
+                    <div class="alert alert-info py-2 mb-3 border-0 bg-soft-info text-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Tenant:</strong> <span id="configTenantNameDisplay"></span>
+                    </div>
+
+                    <div class="modern-card">
+                        <div class="modern-card-header">
+                            <h5 class="mb-0"><i class="fas fa-file-invoice-dollar"></i>Config Details</h5>
+                        </div>
+                        <div class="card-body-theme">
+                            <div class="form-grid">
+                                <div class="form-grid-full">
+                                    <label for="paymentType" class="form-label">Payment Type *</label>
+                                    <select class="form-select" id="paymentType" required
+                                        onchange="togglePaymentFields()">
+                                        <option value="">Select Payment Type</option>
+                                        <option value="Fixed">Fixed</option>
+                                        <option value="User-Based">User-Based</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="paymentFieldsContainer" class="form-grid mt-3">
+                                <div>
+                                    <label for="implementationCharges" class="form-label">Implement Charges</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="implementationCharges" step="0.01"
+                                            min="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="monthlyCharges" class="form-label">Monthly Charges</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="monthlyCharges" step="0.01"
+                                            min="0" placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="otherCharges" class="form-label">Other Charges</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="otherCharges" step="0.01" min="0"
+                                            placeholder="0.00">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="frequency" class="form-label">Frequency *</label>
+                                    <select class="form-select" id="frequency" required>
+                                        <option value="">Select Frequency</option>
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Quarterly">Quarterly</option>
+                                        <option value="Half-Yearly">Half-Yearly</option>
+                                        <option value="Yearly">Yearly</option>
+                                    </select>
+                                </div>
+                                <div class="form-grid-full">
+                                    <label for="remarks" class="form-label">Remarks</label>
+                                    <textarea class="form-control" id="remarks" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePaymentConfig()">
+                    <i class="fas fa-save me-1"></i>Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Logic -->
+<script>
+    let currentTenantId = null;
+    let currentTenantName = '';
+
+    // Country to Currency mapping
+    const countryCurrencyMap = {
+        'SG': 'SGD', 'MY': 'MYR', 'IN': 'INR', 'US': 'USD', 'GB': 'GBP',
+        'AU': 'AUD', 'CA': 'CAD', 'AE': 'AED', 'JP': 'JPY', 'CN': 'CNY'
+    };
+
+    function updateCurrency() {
+        const countryCode = document.getElementById('countryCode').value;
+        const currencyCode = countryCurrencyMap[countryCode] || '';
+        document.getElementById('currencyCode').value = currencyCode;
+    }
+
+    function togglePaymentFields() {
+        const paymentType = document.getElementById('paymentType').value;
+        const container = document.getElementById('paymentFieldsContainer');
+        container.style.display = paymentType ? 'block' : 'none';
+    }
+
+    function loadTenantData() {
+        const tenantSelect = document.getElementById('tenantSelect');
+        const selectedId = tenantSelect.value;
+        const contentArea = document.getElementById('contentArea');
+        const initialState = document.getElementById('initialState');
+
+        currentTenantName = tenantSelect.options[tenantSelect.selectedIndex]?.text.split(' (')[0] || '';
+
+        if (!selectedId) {
+            contentArea.classList.add('d-none');
+            initialState.classList.remove('d-none');
+            currentTenantId = null;
+            return;
+        }
+
+        currentTenantId = selectedId;
+        initialState.classList.add('d-none');
+        contentArea.classList.remove('d-none');
+
+        // Load all sections
+        fetchTenantDetails(selectedId);
+        fetchPaymentConfig(selectedId);
+        fetchCompanies(selectedId);
+    }
+
+    function fetchTenantDetails(id) {
+        // Show loader if needed, currently fast enough
+        fetch(`/api/tenants/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const t = data.data;
+                    document.getElementById('tenantName').textContent = t.name;
+                    document.getElementById('tenantCode').textContent = t.code;
+                    document.getElementById('tenantCountry').textContent = t.country_code || '-';
+                    document.getElementById('tenantCurrency').textContent = t.currency_code || '-';
+                    document.getElementById('tenantDesc').textContent = t.description || 'No description provided.';
+
+                    const badge = document.getElementById('tenantStatusBadge');
+                    if (t.is_active) {
+                        badge.className = 'badge-premium badge-active';
+                        badge.textContent = 'Active';
+                    } else {
+                        badge.className = 'badge-premium badge-inactive';
+                        badge.textContent = 'Inactive';
+                    }
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    function fetchPaymentConfig(id) {
+        const container = document.getElementById('paymentConfigContent');
+        const emptyState = document.getElementById('paymentConfigEmpty');
+        const loader = document.getElementById('paymentConfigLoader');
+
+        container.innerHTML = '';
+        container.classList.add('d-none');
+        emptyState.classList.add('d-none');
+        loader.classList.remove('d-none');
+
+        fetch(`/api/tenant-payment-config/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                loader.classList.add('d-none');
+                if (data.success && data.data) {
+                    const c = data.data;
+                    container.classList.remove('d-none');
+                    container.innerHTML = `
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <div class="info-label">Payment Type</div>
+                            <div class="fw-bold text-dark">${c.payment_type}</div>
+                        </div>
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <div class="info-label">Frequency</div>
+                            <div class="fw-bold text-dark">${c.frequency}</div>
+                        </div>
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <div class="info-label">Monthly</div>
+                            <div class="fw-bold text-dark">$${(c.monthly_charges || 0).toFixed(2)}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="info-label">Next Due</div>
+                            <div class="fw-bold text-success">Active</div>
+                        </div>
+                    `;
+                } else {
+                    emptyState.classList.remove('d-none');
+                }
+            })
+            .catch(err => {
+                loader.classList.add('d-none');
+                emptyState.classList.remove('d-none');
+                console.error(err);
+            });
+    }
+
+    function fetchCompanies(id) {
+        const tbody = document.getElementById('companiesTableBody');
+        const loader = document.getElementById('companiesLoader');
+        const emptyState = document.getElementById('companiesEmpty');
+        const countBadge = document.getElementById('companyCount');
+
+        tbody.innerHTML = '';
+        loader.classList.remove('d-none');
+        emptyState.classList.add('d-none');
+
+        fetch(`/api/companies?tenant_id=${id}`)
+            .then(res => res.json())
+            .then(data => {
+                loader.classList.add('d-none');
+                if (data.success && data.data.length > 0) {
+                    countBadge.textContent = `${data.data.length} Companies`;
+                    data.data.forEach(comp => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">${comp.name}</div>
+                                <div class="small text-muted">${comp.address || ''}</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">${comp.code}</span></td>
+                            <td class="text-muted small">${comp.uen || comp.registration_number || '-'}</td>
+                            <td>
+                                ${comp.is_active
+                                ? '<span class="badge bg-soft-success text-success rounded-pill">Active</span>'
+                                : '<span class="badge bg-soft-secondary text-secondary rounded-pill">Inactive</span>'}
+                            </td>
+                            <td class="text-end pe-4">
+                                <button class="btn btn-sm btn-light text-primary" onclick="editCompany('${comp.id}')">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    countBadge.textContent = '0 Companies';
+                    emptyState.classList.remove('d-none');
+                }
+            })
+            .catch(err => {
+                loader.classList.add('d-none');
+                emptyState.classList.remove('d-none');
+                console.error(err);
+            });
+    }
+
+    function editTenant() {
+        if (!currentTenantId) return;
+
+        // Fetch latest details to populate form
+        fetch(`/api/tenants/${currentTenantId}`)
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const t = result.data;
+                    document.getElementById('editTenantId').value = t.id;
+                    document.getElementById('newTenantName').value = t.name;
+                    document.getElementById('newTenantCode').value = t.code;
+                    document.getElementById('tenantDescription').value = t.description || '';
+                    document.getElementById('countryCode').value = t.country_code;
+                    document.getElementById('currencyCode').value = t.currency_code;
+                    document.getElementById('tenantActive').checked = t.is_active;
+
+                    document.getElementById('tenantModalTitle').textContent = 'Edit Tenant';
+                    const modal = new bootstrap.Modal(document.getElementById('addTenantModal'));
+                    modal.show();
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    // --- Modal Functions ---
+
+    function openAddTenantModal() {
+        document.getElementById('addTenantForm').reset();
+        document.getElementById('editTenantId').value = '';
+        document.getElementById('currencyCode').value = '';
+        document.getElementById('tenantModalTitle').textContent = 'Add New Tenant';
+        const modal = new bootstrap.Modal(document.getElementById('addTenantModal'));
+        modal.show();
+    }
+
+    function saveTenant() {
+        const countryCode = document.getElementById('countryCode').value;
+        if (!countryCode) { alert('Please select a country'); return; }
+
+        const tenantId = document.getElementById('editTenantId').value;
+        const data = {
+            name: document.getElementById('newTenantName').value,
+            code: document.getElementById('newTenantCode').value,
+            description: document.getElementById('tenantDescription').value,
+            country_code: countryCode,
+            currency_code: document.getElementById('currencyCode').value,
+            is_active: document.getElementById('tenantActive').checked
+        };
+
+        const method = tenantId ? 'PUT' : 'POST';
+        const url = tenantId ? `/api/tenants/${tenantId}` : '/api/tenants';
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(res => res.json()).then(result => {
+            if (result.success) {
+                // If update, just reload data; if create, reload page
+                if (tenantId) {
+                    alert('Tenant updated!');
+                    fetchTenantDetails(tenantId);
+                    const modalEl = document.getElementById('addTenantModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+                    // Update display name if it changed
+                    if (data.name) {
+                        const select = document.getElementById('tenantSelect');
+                        const option = select.querySelector(`option[value="${tenantId}"]`);
+                        if (option) option.text = `${data.name} (${data.code})`;
+                    }
+                } else {
+                    alert('Tenant created!');
+                    window.location.href = window.location.pathname + '?tenant_id=' + result.data.id;
+                }
+            } else {
+                alert('Error: ' + result.error);
+            }
+        }).catch(err => alert('Error: ' + err));
+    }
+
+    function openAddCompanyModal() {
+        if (!currentTenantId) return;
+        document.getElementById('addCompanyForm').reset();
+        document.getElementById('editCompanyId').value = '';
+        document.getElementById('companyTenantId').value = currentTenantId;
+        document.getElementById('companyTenantNameDisplay').value = currentTenantName;
+        // Defaults
+        document.getElementById('companyCurrencyCode').value = 'SGD';
+        document.getElementById('companyTimezone').value = 'Asia/Singapore';
+        document.getElementById('companyModalTitle').textContent = 'Add New Company';
+
+        const modal = new bootstrap.Modal(document.getElementById('addCompanyModal'));
+        modal.show();
+    }
+
+    function editCompany(id) {
+        fetch(`/api/companies/${id}`)
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const c = result.data;
+                    document.getElementById('editCompanyId').value = c.id;
+                    document.getElementById('companyTenantId').value = currentTenantId; // Should match
+                    document.getElementById('companyTenantNameDisplay').value = currentTenantName;
+
+                    document.getElementById('companyName').value = c.name;
+                    document.getElementById('companyCode').value = c.code;
+                    document.getElementById('companyDescription').value = c.description || '';
+                    document.getElementById('companyUEN').value = c.uen || '';
+                    document.getElementById('companyPhone').value = c.phone || '';
+                    document.getElementById('companyEmail').value = c.email || '';
+                    document.getElementById('companyWebsite').value = c.website || '';
+                    document.getElementById('companyAddress').value = c.address || '';
+                    document.getElementById('companyCurrencyCode').value = c.currency_code || 'SGD';
+                    document.getElementById('companyTimezone').value = c.timezone || 'Asia/Singapore';
+                    document.getElementById('companyActive').checked = c.is_active;
+
+                    document.getElementById('companyModalTitle').textContent = 'Edit Company';
+                    const modal = new bootstrap.Modal(document.getElementById('addCompanyModal'));
+                    modal.show();
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    function saveCompany() {
+        const companyId = document.getElementById('editCompanyId').value;
+        const data = {
+            tenant_id: document.getElementById('companyTenantId').value,
+            name: document.getElementById('companyName').value,
+            code: document.getElementById('companyCode').value,
+            description: document.getElementById('companyDescription').value,
+            uen: document.getElementById('companyUEN').value,
+            phone: document.getElementById('companyPhone').value,
+            email: document.getElementById('companyEmail').value,
+            website: document.getElementById('companyWebsite').value,
+            address: document.getElementById('companyAddress').value,
+            currency_code: document.getElementById('companyCurrencyCode').value,
+            timezone: document.getElementById('companyTimezone').value,
+            is_active: document.getElementById('companyActive').checked
+        };
+
+        const method = companyId ? 'PUT' : 'POST';
+        const url = companyId ? `/api/companies/${companyId}` : '/api/companies';
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(res => res.json()).then(result => {
+            if (result.success) {
+                const modalEl = document.getElementById('addCompanyModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                fetchCompanies(currentTenantId);
+                alert(companyId ? 'Company updated!' : 'Company created!');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        }).catch(err => alert('Error: ' + err));
+    }
+
+    function configurePayment() {
+        if (!currentTenantId) return;
+
+        document.getElementById('configTenantId').value = currentTenantId;
+        document.getElementById('configTenantNameDisplay').textContent = currentTenantName;
+
+        fetch(`/api/tenant-payment-config/${currentTenantId}`)
+            .then(res => res.json())
+            .then(result => {
+                if (result.success && result.data) {
+                    const c = result.data;
+                    document.getElementById('paymentType').value = c.payment_type || '';
+                    document.getElementById('implementationCharges').value = c.implementation_charges || '';
+                    document.getElementById('monthlyCharges').value = c.monthly_charges || '';
+                    document.getElementById('otherCharges').value = c.other_charges || '';
+                    document.getElementById('frequency').value = c.frequency || '';
+                    document.getElementById('remarks').value = c.remarks || '';
+                    document.getElementById('paymentModalTitle').textContent = 'Edit Payment Configuration';
+                } else {
+                    document.getElementById('paymentConfigForm').reset();
+                    document.getElementById('configTenantId').value = currentTenantId;
+                    document.getElementById('paymentModalTitle').textContent = 'Add Payment Configuration';
+                }
+                togglePaymentFields();
+            });
+
+        const modal = new bootstrap.Modal(document.getElementById('paymentConfigModal'));
+        modal.show();
+    }
+
+    function savePaymentConfig() {
+        const tenantId = document.getElementById('configTenantId').value;
+        const paymentType = document.getElementById('paymentType').value;
+        if (!paymentType) { alert('Select payment type'); return; }
+        const frequency = document.getElementById('frequency').value;
+        if (!frequency) { alert('Select frequency'); return; }
+
+        const data = {
+            tenant_id: tenantId,
+            payment_type: paymentType,
+            implementation_charges: parseFloat(document.getElementById('implementationCharges').value) || 0,
+            monthly_charges: parseFloat(document.getElementById('monthlyCharges').value) || 0,
+            other_charges: parseFloat(document.getElementById('otherCharges').value) || 0,
+            frequency: frequency,
+            remarks: document.getElementById('remarks').value
+        };
+
+        fetch('/api/tenant-payment-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(res => res.json()).then(result => {
+            if (result.success) {
+                const modalEl = document.getElementById('paymentConfigModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                modal.hide();
+                fetchPaymentConfig(tenantId);
+            } else {
+                alert('Error: ' + result.error);
+            }
+        }).catch(err => alert('Error: ' + err));
+    }
+
+    // Check URL for tenant_id on load
+    document.addEventListener('DOMContentLoaded', function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tenantId = urlParams.get('tenant_id');
+        if (tenantId) {
+            const select = document.getElementById('tenantSelect');
+            // Wait a small moment to ensure options are rendered if needed, 
+            // but here they are server-rendered so it should be fine.
+            if (select.querySelector(`option[value="${tenantId}"]`)) {
+                select.value = tenantId;
+                loadTenantData();
+            }
+        }
+    });
+
+</script>
+{% endblock %}

@@ -2,6 +2,50 @@
 
 {% block title %}Employee List - Nexar{% endblock %}
 
+{% block head %}
+<style>
+    /* Modern Dashboard Styling */
+    :root {
+        --primary-color: #0d9488;
+        --primary-light: #ccfbf1;
+        --primary-hover: #0f766e;
+        --text-main: #0f172a;
+        --text-secondary: #64748b;
+        --radius-md: 0.375rem;
+    }
+
+    /* Header Typography */
+    .page-title {
+        font-weight: 800;
+        color: var(--text-main);
+        font-size: 1.75rem;
+        letter-spacing: -0.02em;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    /* Modern Buttons */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+    }
+
+    /* Ensure shadow utilities work if not in base */
+    .shadow-sm {
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 
@@ -9,30 +53,24 @@
     <!-- Header with search and actions -->
     <div class="row mb-1">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <!-- Breadcrumb navigation -->
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item">Employees</li>
-                            <li class="breadcrumb-item active" aria-current="page">Employee List</li>
-                        </ol>
-                    </nav>
+            <!-- Modern Header Section -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 page-header">
+                <div class="mb-3 mb-md-0">
+                    <h4 class="page-title mb-1">Employees</h4>
+                    <p class="page-subtitle mb-0">View and manage company workforce and records</p>
                 </div>
                 {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'Super Admin',
                 'Admin', 'HR Manager', 'HR_MANAGER', 'ADMIN', 'SUPER_ADMIN'] %}
-                <div class="btn-group">
-                    <a href="{{ url_for('employee_add') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i>Add Employee
-                    </a>
-                    <a href="{{ url_for('export_employees') }}" class="btn btn-outline-secondary">
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('export_employees') }}" class="btn btn-light border text-secondary shadow-sm">
                         <i class="fas fa-download me-1"></i>Export
+                    </a>
+                    <a href="{{ url_for('employee_add') }}" class="btn btn-primary shadow-sm">
+                        <i class="fas fa-plus me-1"></i>Add Employee
                     </a>
                 </div>
                 {% endif %}
             </div>
-
-            <hr class="mt-0 mb-1">
 
             <!-- Toolbar: Search and Filter Button -->
             <div class="row align-items-center mb-3">
@@ -232,166 +270,164 @@
 
     <!-- Desktop table -->
     <div class="d-none d-md-block">
-        <div class="card compact-table-card">
-            <div class="table-responsive">
-                <table class="table table-compact table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>
-                                <a
-                                    href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
-                                    Employee ID
-                                    {% if sort_by == 'employee_id' %}
-                                    <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
-                                    {% else %}
-                                    <i class="fas fa-sort"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <a
-                                    href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
-                                    Name
-                                    {% if sort_by == 'first_name' %}
-                                    <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
-                                    {% else %}
-                                    <i class="fas fa-sort"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
-                            <th>
-                                <a
-                                    href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
-                                    Tenant Name
-                                    {% if sort_by == 'tenant_name' %}
-                                    <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
-                                    {% else %}
-                                    <i class="fas fa-sort"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            {% endif %}
-                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Tenant
-                            Admin', 'HR Manager'] %}
-                            <th>
-                                <a
-                                    href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
-                                    Company Name
-                                    {% if sort_by == 'company_name' %}
-                                    <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
-                                    {% else %}
-                                    <i class="fas fa-sort"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            {% endif %}
-                            <th>
-                                <a
-                                    href="?sort_by=designation&sort_order={{ 'desc' if sort_by == 'designation' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
-                                    Designation
-                                    {% if sort_by == 'designation' %}
-                                    <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
-                                    {% else %}
-                                    <i class="fas fa-sort"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <a
-                                    href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
-                                    Department
-                                    {% if sort_by == 'department' %}
-                                    <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
-                                    {% else %}
-                                    <i class="fas fa-sort"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <a
-                                    href="?sort_by=email&sort_order={{ 'desc' if sort_by == 'email' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
-                                    Email
-                                    {% if sort_by == 'email' %}
-                                    <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
-                                    {% else %}
-                                    <i class="fas fa-sort"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <a
-                                    href="?sort_by=employment_type&sort_order={{ 'desc' if sort_by == 'employment_type' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
-                                    Type
-                                    {% if sort_by == 'employment_type' %}
-                                    <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
-                                    {% else %}
-                                    <i class="fas fa-sort"></i>
-                                    {% endif %}
-                                </a>
-                            </th>
-                            <th>
-                                <span>
-                                    Actions
-                                    <i class="fas fa-sort"></i>
-                                </span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for employee in employees.items %}
-                        <tr>
-                            <td>{{ employee.employee_id }}</td>
-                            <td>
-                                <a href="{{ url_for('employee_view', employee_id=employee.id) }}"
-                                    class="text-decoration-none">
-                                    {{ employee.first_name }} {{ employee.last_name }}
-                                </a>
-                            </td>
-                            {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
-                            <td>{{ employee.tenant_name }}</td>
-                            {% endif %}
-                            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Tenant
-                            Admin', 'HR Manager'] %}
-                            <td>{{ employee.company_name }}</td>
-                            {% endif %}
-                            <td>{{ employee.designation.name if employee.designation else '-' }}</td>
-                            <td>
-                                {% if employee.department %}
-                                {{ employee.department }}
+        <div class="table-responsive">
+            <table class="table table-compact table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>
+                            <a
+                                href="?sort_by=employee_id&sort_order={{ 'desc' if sort_by == 'employee_id' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
+                                Employee ID
+                                {% if sort_by == 'employee_id' %}
+                                <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
                                 {% else %}
-                                <span class="text-muted">-</span>
+                                <i class="fas fa-sort"></i>
                                 {% endif %}
-                            </td>
-                            <td>{{ employee.email }}</td>
-                            <td>
-                                {{ employee.employment_type }}
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('employee_view', employee_id=employee.id) }}"
-                                        class="btn btn-outline-primary" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin',
-                                    'Super Admin', 'HR Manager', 'HR_MANAGER', 'ADMIN', 'SUPER_ADMIN'] %}
-                                    <a href="{{ url_for('employee_edit', employee_id=employee.id) }}"
-                                        class="btn btn-outline-secondary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button
-                                        onclick="resetPassword({{ employee.id }}, '{{ employee.first_name }} {{ employee.last_name }}')"
-                                        class="btn btn-outline-warning" title="Reset Password">
-                                        <i class="fas fa-key"></i>
-                                    </button>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            </a>
+                        </th>
+                        <th>
+                            <a
+                                href="?sort_by=first_name&sort_order={{ 'desc' if sort_by == 'first_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
+                                Name
+                                {% if sort_by == 'first_name' %}
+                                <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                {% else %}
+                                <i class="fas fa-sort"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
+                        <th>
+                            <a
+                                href="?sort_by=tenant_name&sort_order={{ 'desc' if sort_by == 'tenant_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
+                                Tenant Name
+                                {% if sort_by == 'tenant_name' %}
+                                <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                {% else %}
+                                <i class="fas fa-sort"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        {% endif %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Tenant
+                        Admin', 'HR Manager'] %}
+                        <th>
+                            <a
+                                href="?sort_by=company_name&sort_order={{ 'desc' if sort_by == 'company_name' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
+                                Company Name
+                                {% if sort_by == 'company_name' %}
+                                <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                {% else %}
+                                <i class="fas fa-sort"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        {% endif %}
+                        <th>
+                            <a
+                                href="?sort_by=designation&sort_order={{ 'desc' if sort_by == 'designation' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
+                                Designation
+                                {% if sort_by == 'designation' %}
+                                <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                {% else %}
+                                <i class="fas fa-sort"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a
+                                href="?sort_by=department&sort_order={{ 'desc' if sort_by == 'department' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
+                                Department
+                                {% if sort_by == 'department' %}
+                                <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                {% else %}
+                                <i class="fas fa-sort"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a
+                                href="?sort_by=email&sort_order={{ 'desc' if sort_by == 'email' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
+                                Email
+                                {% if sort_by == 'email' %}
+                                <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                {% else %}
+                                <i class="fas fa-sort"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <a
+                                href="?sort_by=employment_type&sort_order={{ 'desc' if sort_by == 'employment_type' and sort_order == 'asc' else 'asc' }}&search={{ search }}&department={{ current_filters.department }}&status={{ current_filters.status }}&designation_id={{ current_filters.designation_id }}&employment_type={{ current_filters.employment_type }}&company_id={{ current_filters.company_id }}&per_page={{ per_page }}">
+                                Type
+                                {% if sort_by == 'employment_type' %}
+                                <i class="fas fa-sort-{{ 'down' if sort_order == 'desc' else 'up' }}"></i>
+                                {% else %}
+                                <i class="fas fa-sort"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th>
+                            <span>
+                                Actions
+                                <i class="fas fa-sort"></i>
+                            </span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees.items %}
+                    <tr>
+                        <td>{{ employee.employee_id }}</td>
+                        <td>
+                            <a href="{{ url_for('employee_view', employee_id=employee.id) }}"
+                                class="text-decoration-none">
+                                {{ employee.first_name }} {{ employee.last_name }}
+                            </a>
+                        </td>
+                        {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
+                        <td>{{ employee.tenant_name }}</td>
+                        {% endif %}
+                        {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Tenant
+                        Admin', 'HR Manager'] %}
+                        <td>{{ employee.company_name }}</td>
+                        {% endif %}
+                        <td>{{ employee.designation.name if employee.designation else '-' }}</td>
+                        <td>
+                            {% if employee.department %}
+                            {{ employee.department }}
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ employee.email }}</td>
+                        <td>
+                            {{ employee.employment_type }}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('employee_view', employee_id=employee.id) }}"
+                                    class="btn btn-outline-primary" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin',
+                                'Super Admin', 'HR Manager', 'HR_MANAGER', 'ADMIN', 'SUPER_ADMIN'] %}
+                                <a href="{{ url_for('employee_edit', employee_id=employee.id) }}"
+                                    class="btn btn-outline-secondary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button
+                                    onclick="resetPassword({{ employee.id }}, '{{ employee.first_name }} {{ employee.last_name }}')"
+                                    class="btn btn-outline-warning" title="Reset Password">
+                                    <i class="fas fa-key"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
