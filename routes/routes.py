@@ -3472,6 +3472,7 @@ def attendance_bulk_manage():
                 
                 from datetime import time as dt_time
                 from core.models import AttendanceSegment
+                from core.timezone_utils import convert_company_timezone_to_utc
                 
                 count = 0
                 for emp in employees:
@@ -3488,14 +3489,18 @@ def attendance_bulk_manage():
                         try:
                             in_time = dt_time.fromisoformat(bulk_clock_in)
                             att.clock_in = in_time
-                            att.clock_in_time = datetime.combine(filter_date, in_time)
+                            # Convert local entered time to UTC for storage
+                            local_dt = datetime.combine(filter_date, in_time)
+                            att.clock_in_time = convert_company_timezone_to_utc(local_dt, emp.company)
                         except (ValueError, TypeError): pass
                         
                     if bulk_clock_out:
                         try:
                             out_time = dt_time.fromisoformat(bulk_clock_out)
                             att.clock_out = out_time
-                            att.clock_out_time = datetime.combine(filter_date, out_time)
+                            # Convert local entered time to UTC for storage
+                            local_dt = datetime.combine(filter_date, out_time)
+                            att.clock_out_time = convert_company_timezone_to_utc(local_dt, emp.company)
                         except (ValueError, TypeError): pass
                     
                     # Calculate hours
@@ -3546,7 +3551,7 @@ def attendance_bulk_manage():
                     if att and att.status == 'Present' and att.overtime_hours > 0:
                         att.overtime_approved = True
                         att.overtime_approved_by = current_user.id
-                        att.overtime_approved_at = datetime.now()
+                        att.overtime_approved_at = datetime.utcnow()
                         db.session.add(att)
                         count += 1
                 db.session.commit()
@@ -3597,14 +3602,18 @@ def attendance_bulk_manage():
                             try:
                                 in_time = dt_time.fromisoformat(bulk_clock_in_str)
                                 att.clock_in = in_time
-                                att.clock_in_time = datetime.combine(filter_date, in_time)
+                                # Convert local entered time to UTC for storage
+                                local_dt = datetime.combine(filter_date, in_time)
+                                att.clock_in_time = convert_company_timezone_to_utc(local_dt, emp.company)
                             except (ValueError, TypeError): pass
                         
                         if bulk_clock_out_str:
                             try:
                                 out_time = dt_time.fromisoformat(bulk_clock_out_str)
                                 att.clock_out = out_time
-                                att.clock_out_time = datetime.combine(filter_date, out_time)
+                                # Convert local entered time to UTC for storage
+                                local_dt = datetime.combine(filter_date, out_time)
+                                att.clock_out_time = convert_company_timezone_to_utc(local_dt, emp.company)
                             except (ValueError, TypeError): pass
 
                         # Calculate hours if we have both times
