@@ -3,6 +3,7 @@ from app import db
 from core.models import Attendance, AttendanceSegment, Employee, WorkingHours
 from pytz import timezone, utc
 import logging
+from core.timezone_utils import get_employee_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +16,8 @@ class AttendanceService:
             if not employee:
                 return False, "Employee not found"
             
-            # Get company timezone
-            company = employee.company
-            timezone_str = company.timezone if company else 'UTC'
+            # Get employee timezone (falls back to company)
+            timezone_str = get_employee_timezone(employee)
             tz = timezone(timezone_str)
             
             # Current time in company local for date logic
@@ -89,7 +89,8 @@ class AttendanceService:
             employee = Employee.query.get(employee_id)
             if not employee: return False, "Employee not found"
             
-            company_tz = timezone(employee.company.timezone if employee.company else 'UTC')
+            timezone_str = get_employee_timezone(employee)
+            company_tz = timezone(timezone_str)
             now_utc = datetime.now(utc)
             now_local = now_utc.astimezone(company_tz)
             today = now_local.date()
@@ -131,7 +132,8 @@ class AttendanceService:
             employee = Employee.query.get(employee_id)
             if not employee: return False, "Employee not found"
             
-            company_tz = timezone(employee.company.timezone if employee.company else 'UTC')
+            timezone_str = get_employee_timezone(employee)
+            company_tz = timezone(timezone_str)
             now_utc = datetime.now(utc)
             now_local = now_utc.astimezone(company_tz)
             today = now_local.date()
@@ -173,9 +175,8 @@ class AttendanceService:
             if not employee:
                 return False, "Employee not found"
             
-            # Get company timezone
-            company = employee.company
-            timezone_str = company.timezone if company else 'UTC'
+            # Get employee timezone
+            timezone_str = get_employee_timezone(employee)
             tz = timezone(timezone_str)
             
             # Current time in company local for date logic

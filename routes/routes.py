@@ -3448,8 +3448,23 @@ def attendance_bulk_manage():
     
     # Get attendance records for the selected date
     attendance_records = {}
+    from core.utils import get_employee_local_time
     for emp in employees:
         att = Attendance.query.filter_by(employee_id=emp.id, date=filter_date).first()
+        if att:
+            # Prepare localized display times
+            clock_in_src = att.clock_in_time if att.clock_in_time else att.clock_in
+            if clock_in_src:
+                att.clock_in_display = get_employee_local_time(emp, clock_in_src, att.date)
+            else:
+                att.clock_in_display = None
+
+            clock_out_src = att.clock_out_time if att.clock_out_time else att.clock_out
+            if clock_out_src:
+                att.clock_out_display = get_employee_local_time(emp, clock_out_src, att.date)
+            else:
+                att.clock_out_display = None
+        
         attendance_records[emp.id] = att
     
     # Handle form submission for bulk updates
@@ -3472,7 +3487,7 @@ def attendance_bulk_manage():
                 
                 from datetime import time as dt_time
                 from core.models import AttendanceSegment
-                from core.timezone_utils import convert_company_timezone_to_utc
+                from core.timezone_utils import convert_local_time_to_utc
                 
                 count = 0
                 for emp in employees:
@@ -3491,7 +3506,7 @@ def attendance_bulk_manage():
                             att.clock_in = in_time
                             # Convert local entered time to UTC for storage
                             local_dt = datetime.combine(filter_date, in_time)
-                            att.clock_in_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                            att.clock_in_time = convert_local_time_to_utc(local_dt, employee=emp)
                         except (ValueError, TypeError): pass
                         
                     if bulk_clock_out:
@@ -3500,7 +3515,7 @@ def attendance_bulk_manage():
                             att.clock_out = out_time
                             # Convert local entered time to UTC for storage
                             local_dt = datetime.combine(filter_date, out_time)
-                            att.clock_out_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                            att.clock_out_time = convert_local_time_to_utc(local_dt, employee=emp)
                         except (ValueError, TypeError): pass
                     
                     # Calculate hours
@@ -3604,7 +3619,7 @@ def attendance_bulk_manage():
                                 att.clock_in = in_time
                                 # Convert local entered time to UTC for storage
                                 local_dt = datetime.combine(filter_date, in_time)
-                                att.clock_in_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                                att.clock_in_time = convert_local_time_to_utc(local_dt, employee=emp)
                             except (ValueError, TypeError): pass
                         
                         if bulk_clock_out_str:
@@ -3613,7 +3628,7 @@ def attendance_bulk_manage():
                                 att.clock_out = out_time
                                 # Convert local entered time to UTC for storage
                                 local_dt = datetime.combine(filter_date, out_time)
-                                att.clock_out_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                                att.clock_out_time = convert_local_time_to_utc(local_dt, employee=emp)
                             except (ValueError, TypeError): pass
 
                         # Calculate hours if we have both times

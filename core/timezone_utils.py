@@ -56,8 +56,26 @@ def get_company_timezone(company):
     Returns:
         str: Timezone identifier (e.g., 'Asia/Singapore')
     """
-    if company and company.timezone:
+    if company and hasattr(company, 'timezone') and company.timezone:
         return company.timezone
+    return 'UTC'
+
+
+def get_employee_timezone(employee):
+    """
+    Get the timezone for an employee, falling back to company timezone
+    
+    Args:
+        employee: Employee model instance
+        
+    Returns:
+        str: Timezone identifier
+    """
+    if employee:
+        if hasattr(employee, 'timezone') and employee.timezone and employee.timezone != 'UTC':
+            return employee.timezone
+        if hasattr(employee, 'company') and employee.company:
+            return get_company_timezone(employee.company)
     return 'UTC'
 
 
@@ -105,29 +123,41 @@ def convert_utc_to_company_timezone(utc_datetime, company):
     return utc_datetime.astimezone(tz)
 
 
-def convert_company_timezone_to_utc(local_datetime, company):
+def convert_local_time_to_utc(local_datetime, employee=None, company=None):
     """
-    Convert a local datetime in company timezone to UTC
+    Convert a local datetime to UTC
     
     Args:
-        local_datetime: datetime object in company's local timezone (should be naive)
-        company: Company model instance
+        local_datetime: datetime object (should be naive)
+        employee: Employee model instance (optional)
+        company: Company model instance (optional)
         
     Returns:
-        datetime: UTC datetime, or None if input is None
+        datetime: UTC datetime (naive), or None if input is None
     """
     if local_datetime is None:
         return None
     
-    company_tz = get_company_timezone(company)
-    tz = get_timezone_object(company_tz)
+    if employee:
+        tz_str = get_employee_timezone(employee)
+    else:
+        tz_str = get_company_timezone(company)
+        
+    tz = get_timezone_object(tz_str)
     
-    # If datetime is naive, localize it to company timezone
+    # If datetime is naive, localize it to the target timezone
     if local_datetime.tzinfo is None:
         local_datetime = tz.localize(local_datetime)
     
     # Convert to UTC
     return local_datetime.astimezone(pytz.UTC).replace(tzinfo=None)
+
+
+def convert_company_timezone_to_utc(local_datetime, company):
+    """
+    Convert a local datetime in company timezone to UTC
+    """
+    return convert_local_time_to_utc(local_datetime, company=company)
 
 
 def get_current_time_in_company_timezone(company):
