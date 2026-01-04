@@ -2244,7 +2244,10 @@ def attendance_list():
     query = Attendance.query.join(Employee)
 
     # 1. Date Range Filtering
-    today = date.today()
+    from core.utils import get_current_user_timezone
+    import pytz
+    user_tz = pytz.timezone(get_current_user_timezone())
+    today = datetime.now(pytz.utc).astimezone(user_tz).date()
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
 
@@ -2431,6 +2434,7 @@ def attendance_mark():
     
     from core.utils import get_current_user_timezone
     user_tz_str = get_current_user_timezone()
+    company_timezone = user_tz_str
     
     try:
         tz = pytz.timezone(user_tz_str)
@@ -2460,19 +2464,19 @@ def attendance_mark():
             remarks = request.form.get('remarks')
 
             if action == 'clock_in':
-                success, message = AttendanceService.clock_in(
+                success, message, _ = AttendanceService.clock_in(
                     employee_id, latitude=latitude, longitude=longitude, remarks=remarks
                 )
             elif action == 'clock_out':
-                success, message = AttendanceService.clock_out(
+                success, message, _ = AttendanceService.clock_out(
                     employee_id, latitude=latitude, longitude=longitude, remarks=remarks
                 )
             elif action == 'break_start':
-                success, message = AttendanceService.start_break(
+                success, message, _ = AttendanceService.start_break(
                     employee_id, remarks=remarks
                 )
             elif action == 'break_end':
-                success, message = AttendanceService.end_break(
+                success, message, _ = AttendanceService.end_break(
                     employee_id, remarks=remarks
                 )
             else:
@@ -3363,31 +3367,47 @@ def api_attendance_check():
     if not hasattr(current_user, 'employee_profile'):
         return jsonify({'error': 'Employee profile not found'}), 400
 
-    today = date.today()
+    # Get localized today
+    import pytz
+    from core.utils import get_current_user_timezone, get_employee_local_time
+    user_tz = pytz.timezone(get_current_user_timezone())
+    today = datetime.now(pytz.utc).astimezone(user_tz).date()
+
+    # Priority 1: Check if there is an open session (Night shift support)
     attendance = Attendance.query.filter_by(
-        employee_id=current_user.employee_profile.id, date=today).first()
+        employee_id=current_user.employee_profile.id, 
+        status='Incomplete',
+        sub_status='Pending Out'
+    ).order_by(Attendance.date.desc()).first()
+
+    # Priority 2: Fallback to today's record
+    if not attendance:
+        attendance = Attendance.query.filter_by(
+            employee_id=current_user.employee_profile.id, date=today).first()
 
     if attendance:
+        # Standardize times for display
+        c_in_src = attendance.clock_in_time if attendance.clock_in_time else attendance.clock_in
+        c_out_src = attendance.clock_out_time if attendance.clock_out_time else attendance.clock_out
+        
+        c_in_local = get_employee_local_time(current_user.employee_profile, c_in_src, attendance.date) if c_in_src else None
+        c_out_local = get_employee_local_time(current_user.employee_profile, c_out_src, attendance.date) if c_out_src else None
+
         return jsonify({
-            'clocked_in':
-            attendance.clock_in is not None,
-            'clocked_out':
-            attendance.clock_out is not None,
-            'on_break':
-            attendance.break_start is not None
-            and attendance.break_end is None,
-            'clock_in_time':
-            attendance.clock_in.strftime('%H:%M')
-            if attendance.clock_in else None,
-            'clock_out_time':
-            attendance.clock_out.strftime('%H:%M')
-            if attendance.clock_out else None
+            'clocked_in': attendance.clock_in is not None or attendance.clock_in_time is not None,
+            'clocked_out': attendance.clock_out is not None and attendance.status == 'Present',
+            'on_break': attendance.break_start is not None and attendance.break_end is None,
+            'clock_in_time': c_in_local.strftime('%H:%M') if c_in_local else None,
+            'clock_out_time': c_out_local.strftime('%H:%M') if c_out_local else None,
+            'date': attendance.date.isoformat(),
+            'status': attendance.status
         })
     else:
         return jsonify({
             'clocked_in': False,
             'clocked_out': False,
-            'on_break': False
+            'on_break': False,
+            'date': today.isoformat()
         })
 
 
@@ -3397,14 +3417,20 @@ def attendance_bulk_manage():
     """Manage bulk attendance for multiple employees"""
     from datetime import datetime
     
+    # Get localized today for default
+    from core.utils import get_current_user_timezone
+    import pytz
+    user_tz = pytz.timezone(get_current_user_timezone())
+    today = datetime.now(pytz.utc).astimezone(user_tz).date()
+    
     # Get query parameters
-    selected_date_str = request.args.get('date', date.today().isoformat())
+    selected_date_str = request.args.get('date', today.isoformat())
     selected_company = request.args.get('company', '')
     
     try:
         filter_date = datetime.fromisoformat(selected_date_str).date()
     except (ValueError, TypeError):
-        filter_date = date.today()
+        filter_date = today
     
     selected_date_str = filter_date.isoformat()
     
@@ -3448,8 +3474,23 @@ def attendance_bulk_manage():
     
     # Get attendance records for the selected date
     attendance_records = {}
+    from core.utils import get_employee_local_time
     for emp in employees:
         att = Attendance.query.filter_by(employee_id=emp.id, date=filter_date).first()
+        if att:
+            # Prepare localized display times
+            clock_in_src = att.clock_in_time if att.clock_in_time else att.clock_in
+            if clock_in_src:
+                att.clock_in_display = get_employee_local_time(emp, clock_in_src, att.date)
+            else:
+                att.clock_in_display = None
+
+            clock_out_src = att.clock_out_time if att.clock_out_time else att.clock_out
+            if clock_out_src:
+                att.clock_out_display = get_employee_local_time(emp, clock_out_src, att.date)
+            else:
+                att.clock_out_display = None
+        
         attendance_records[emp.id] = att
     
     # Handle form submission for bulk updates
@@ -3472,7 +3513,7 @@ def attendance_bulk_manage():
                 
                 from datetime import time as dt_time
                 from core.models import AttendanceSegment
-                from core.timezone_utils import convert_company_timezone_to_utc
+                from core.timezone_utils import convert_local_time_to_utc
                 
                 count = 0
                 for emp in employees:
@@ -3491,7 +3532,7 @@ def attendance_bulk_manage():
                             att.clock_in = in_time
                             # Convert local entered time to UTC for storage
                             local_dt = datetime.combine(filter_date, in_time)
-                            att.clock_in_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                            att.clock_in_time = convert_local_time_to_utc(local_dt, employee=emp)
                         except (ValueError, TypeError): pass
                         
                     if bulk_clock_out:
@@ -3500,7 +3541,7 @@ def attendance_bulk_manage():
                             att.clock_out = out_time
                             # Convert local entered time to UTC for storage
                             local_dt = datetime.combine(filter_date, out_time)
-                            att.clock_out_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                            att.clock_out_time = convert_local_time_to_utc(local_dt, employee=emp)
                         except (ValueError, TypeError): pass
                     
                     # Calculate hours
@@ -3604,7 +3645,7 @@ def attendance_bulk_manage():
                                 att.clock_in = in_time
                                 # Convert local entered time to UTC for storage
                                 local_dt = datetime.combine(filter_date, in_time)
-                                att.clock_in_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                                att.clock_in_time = convert_local_time_to_utc(local_dt, employee=emp)
                             except (ValueError, TypeError): pass
                         
                         if bulk_clock_out_str:
@@ -3613,7 +3654,7 @@ def attendance_bulk_manage():
                                 att.clock_out = out_time
                                 # Convert local entered time to UTC for storage
                                 local_dt = datetime.combine(filter_date, out_time)
-                                att.clock_out_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                                att.clock_out_time = convert_local_time_to_utc(local_dt, employee=emp)
                             except (ValueError, TypeError): pass
 
                         # Calculate hours if we have both times

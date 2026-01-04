@@ -282,11 +282,12 @@
                                                 {% if attendance and (attendance.status == 'Present' or
                                                 attendance.status == 'Half Day') %}
                                                 <div class="small fw-bold text-primary">{{
-                                                    attendance.clock_in.strftime('%H:%M') if attendance and
-                                                    attendance.clock_in else
+                                                    attendance.clock_in_display.strftime('%H:%M') if attendance and
+                                                    attendance.clock_in_display else
                                                     '—' }}</div>
-                                                <div class="small text-muted">{{ attendance.clock_out.strftime('%H:%M')
-                                                    if attendance and attendance.clock_out else '—' }}</div>
+                                                <div class="small text-muted">{{
+                                                    attendance.clock_out_display.strftime('%H:%M')
+                                                    if attendance and attendance.clock_out_display else '—' }}</div>
                                                 {% else %}
                                                 <span class="text-muted">—</span>
                                                 {% endif %}

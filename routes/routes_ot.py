@@ -548,6 +548,29 @@ def submit_ot_attendance(attendance_id):
             # Use Quantity as primary if available, else OT hours
             requested_hours = float(ot_attendance.quantity) if ot_attendance.quantity else (float(ot_attendance.ot_hours) if ot_attendance.ot_hours else 0)
             
+            # Recalculate amount if 0 (Self-Correction for old records or missing rates)
+            current_amount = float(ot_attendance.amount) if ot_attendance.amount else 0
+            if current_amount == 0 and requested_hours > 0:
+                base_rate = 0
+                if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
+                     base_rate = float(employee.payroll_config.ot_rate_per_hour)
+                elif employee.hourly_rate:
+                     base_rate = float(employee.hourly_rate)
+                elif employee.basic_salary:
+                     # Standard 173.33 hours/month
+                     base_rate = float(employee.basic_salary) / 173.33
+                
+                multiplier = float(ot_attendance.ot_type.rate_multiplier) if ot_attendance.ot_type and ot_attendance.ot_type.rate_multiplier else 1.0
+                effective_rate = round(base_rate * multiplier, 2)
+                
+                calculated_amount = round(effective_rate * requested_hours, 2)
+                
+                if calculated_amount > 0:
+                    ot_attendance.amount = calculated_amount
+                    ot_attendance.rate = effective_rate
+                    current_amount = calculated_amount
+                    logger.info(f"Auto-calculated OT Amount for ID {attendance_id}: {calculated_amount} (Rate: {effective_rate})")
+
             # Create OT Request with pending_manager status
             # Note: We allow multiple requests per day now
             ot_request = OTRequest(
@@ -556,7 +579,7 @@ def submit_ot_attendance(attendance_id):
                 ot_date=ot_attendance.ot_date,
                 ot_type_id=ot_attendance.ot_type_id,
                 requested_hours=requested_hours,
-                amount=ot_attendance.amount or 0,
+                amount=current_amount,
                 reason=ot_attendance.notes or 'OT submitted for approval',
                 status='pending_manager',
                 created_by=current_user.username

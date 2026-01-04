@@ -261,10 +261,22 @@ def get_employee_local_time(employee, time_obj, event_date):
     if isinstance(time_obj, datetime):
         from core.timezone_utils import convert_utc_to_company_timezone, get_timezone_object
         
-        # Determine target timezone: User preference (if logged in) or Employee's own timezone
-        target_timezone = get_current_user_timezone()
+        # Determine target timezone: 
+        # 1. Employee's own timezone (if not UTC)
+        # 2. Company's timezone (if not UTC)
+        # 3. User preference (if logged in) 
+        # 4. Fallback to UTC
         
-        # If the target timezone is different from the company timezone used in generic utils
+        target_timezone = None
+        if employee:
+            if hasattr(employee, 'timezone') and employee.timezone and employee.timezone != 'UTC':
+                target_timezone = employee.timezone
+            elif hasattr(employee, 'company') and employee.company and getattr(employee.company, 'timezone', None):
+                target_timezone = employee.company.timezone
+        
+        if not target_timezone or target_timezone == 'UTC':
+            target_timezone = get_current_user_timezone()
+            
         tz = get_timezone_object(target_timezone)
         
         # If datetime is naive, assume it's UTC

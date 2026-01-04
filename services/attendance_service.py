@@ -3,6 +3,7 @@ from app import db
 from core.models import Attendance, AttendanceSegment, Employee, WorkingHours
 from pytz import timezone, utc
 import logging
+from core.timezone_utils import get_employee_timezone
 
 logger = logging.getLogger(__name__)
 
@@ -13,11 +14,10 @@ class AttendanceService:
         try:
             employee = Employee.query.get(employee_id)
             if not employee:
-                return False, "Employee not found"
+                return False, "Employee not found", None
             
-            # Get company timezone
-            company = employee.company
-            timezone_str = company.timezone if company else 'UTC'
+            # Get employee timezone (falls back to company)
+            timezone_str = get_employee_timezone(employee)
             tz = timezone(timezone_str)
             
             # Current time in company local for date logic
@@ -58,11 +58,11 @@ class AttendanceService:
                 ).first()
                 
                 if open_segment:
-                    return False, "Already clocked in"
+                    return False, "Already clocked in", attendance
                 
                 attendance.status = 'Incomplete'
                 attendance.sub_status = 'Pending Out'
-                attendance.updated_at = datetime.now()
+                attendance.updated_at = datetime.utcnow()
 
             # Create new segment
             new_segment = AttendanceSegment(
@@ -76,26 +76,27 @@ class AttendanceService:
             db.session.add(new_segment)
             db.session.commit()
             
-            return True, "Clocked in successfully"
+            return True, "Clocked in successfully", attendance
         except Exception as e:
             db.session.rollback()
             logger.error(f"Clock-in error for employee {employee_id}: {str(e)}")
-            return False, f"Server error: {str(e)}"
+            return False, f"Server error: {str(e)}", None
 
     @staticmethod
     def start_break(employee_id, remarks=None):
         """Start a break segment."""
         try:
             employee = Employee.query.get(employee_id)
-            if not employee: return False, "Employee not found"
+            if not employee: return False, "Employee not found", None
             
-            company_tz = timezone(employee.company.timezone if employee.company else 'UTC')
+            timezone_str = get_employee_timezone(employee)
+            company_tz = timezone(timezone_str)
             now_utc = datetime.now(utc)
             now_local = now_utc.astimezone(company_tz)
             today = now_local.date()
             
             attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
-            if not attendance: return False, "No active attendance for today. Clock in first."
+            if not attendance: return False, "No active attendance for today. Clock in first.", None
             
             # Ensure work segment is closed or handle overlapping
             open_work = AttendanceSegment.query.filter_by(attendance_id=attendance.id, clock_out=None, segment_type='Work').first()
@@ -119,28 +120,29 @@ class AttendanceService:
                 
             db.session.add(new_break)
             db.session.commit()
-            return True, "Break started"
+            return True, "Break started", attendance
         except Exception as e:
             db.session.rollback()
-            return False, str(e)
+            return False, str(e), None
 
     @staticmethod
     def end_break(employee_id, remarks=None):
         """End a break segment and resume work."""
         try:
             employee = Employee.query.get(employee_id)
-            if not employee: return False, "Employee not found"
+            if not employee: return False, "Employee not found", None
             
-            company_tz = timezone(employee.company.timezone if employee.company else 'UTC')
+            timezone_str = get_employee_timezone(employee)
+            company_tz = timezone(timezone_str)
             now_utc = datetime.now(utc)
             now_local = now_utc.astimezone(company_tz)
             today = now_local.date()
             
             attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
-            if not attendance: return False, "No attendance record"
+            if not attendance: return False, "No attendance record", None
             
             open_break = AttendanceSegment.query.filter_by(attendance_id=attendance.id, clock_out=None, segment_type='Break').first()
-            if not open_break: return False, "No active break found"
+            if not open_break: return False, "No active break found", attendance
             
             # Close break
             open_break.clock_out = now_utc # Store UTC
@@ -160,10 +162,10 @@ class AttendanceService:
             
             db.session.add(new_work)
             db.session.commit()
-            return True, "Break ended and work resumed"
+            return True, "Break ended and work resumed", attendance
         except Exception as e:
             db.session.rollback()
-            return False, str(e)
+            return False, str(e), None
 
     @staticmethod
     def clock_out(employee_id, latitude=None, longitude=None, remarks=None):
@@ -171,11 +173,10 @@ class AttendanceService:
         try:
             employee = Employee.query.get(employee_id)
             if not employee:
-                return False, "Employee not found"
+                return False, "Employee not found", None
             
-            # Get company timezone
-            company = employee.company
-            timezone_str = company.timezone if company else 'UTC'
+            # Get employee timezone
+            timezone_str = get_employee_timezone(employee)
             tz = timezone(timezone_str)
             
             # Current time in company local for date logic
@@ -183,10 +184,20 @@ class AttendanceService:
             local_now = now_utc.astimezone(tz)
             today = local_now.date()
             
-            attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
+            # Night Shift Support: Find the most recent incomplete attendance record
+            # instead of strictly filtering by today's date.
+            attendance = Attendance.query.filter_by(
+                employee_id=employee_id, 
+                status='Incomplete',
+                sub_status='Pending Out'
+            ).order_by(Attendance.date.desc()).first()
+            
+            # Fallback to today's record if no incomplete record found
+            if not attendance:
+                attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
             
             if not attendance:
-                return False, "No active attendance record for today. Please clock in first."
+                return False, "No active attendance record found. Please clock in first.", None
             
             # Find open segment
             open_segment = AttendanceSegment.query.filter_by(
@@ -195,7 +206,7 @@ class AttendanceService:
             ).first()
             
             if not open_segment:
-                return False, "Not currently clocked in"
+                return False, "Not currently clocked in", attendance
             
             # Close segment
             open_segment.clock_out = now_utc # Store UTC
@@ -218,11 +229,11 @@ class AttendanceService:
             AttendanceService._check_late_early(attendance, employee, local_now, is_clock_out=True)
             
             db.session.commit()
-            return True, "Clocked out successfully"
+            return True, "Clocked out successfully", attendance
         except Exception as e:
             db.session.rollback()
             logger.error(f"Clock-out error for employee {employee_id}: {str(e)}")
-            return False, f"Server error: {str(e)}"
+            return False, f"Server error: {str(e)}", None
 
     @staticmethod
     def auto_close_previous_days(employee_id, today_date):
