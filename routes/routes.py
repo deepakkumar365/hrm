@@ -2434,6 +2434,7 @@ def attendance_mark():
     
     from core.utils import get_current_user_timezone
     user_tz_str = get_current_user_timezone()
+    company_timezone = user_tz_str
     
     try:
         tz = pytz.timezone(user_tz_str)
