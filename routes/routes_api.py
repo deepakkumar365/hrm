@@ -22,6 +22,7 @@ from core.models import (
 )
 from core.auth import login_manager
 from services.attendance_service import AttendanceService
+from sqlalchemy.orm import joinedload
 
 logger = logging.getLogger(__name__)
 
