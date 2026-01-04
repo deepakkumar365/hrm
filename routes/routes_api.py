@@ -746,11 +746,11 @@ def mobile_api_mark_attendance():
             return api_response('error', 'employee_id and action are required', None, 400)
         
         if action == 'check_in':
-            success, message = AttendanceService.clock_in(
+            success, message, attendance = AttendanceService.clock_in(
                 employee_id, latitude=latitude, longitude=longitude, remarks=remarks
             )
         elif action == 'check_out':
-            success, message = AttendanceService.clock_out(
+            success, message, attendance = AttendanceService.clock_out(
                 employee_id, latitude=latitude, longitude=longitude, remarks=remarks
             )
         else:
@@ -761,11 +761,6 @@ def mobile_api_mark_attendance():
         
         # Get updated record for response
         employee = Employee.query.get(employee_id)
-        from pytz import timezone, utc
-        company_tz = timezone(employee.company.timezone if employee.company else 'UTC')
-        today = datetime.now(utc).astimezone(company_tz).date()
-        
-        attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
         
         from core.utils import get_employee_local_time
         c_in_local = get_employee_local_time(employee, attendance.clock_in_time if attendance.clock_in_time else attendance.clock_in, attendance.date) if attendance else None
