@@ -148,12 +148,13 @@ def mark_ot_attendance():
         if not ot_types:
             flash('⚠️  No OT types are configured for your tenant.', 'warning')
         
-        # Get today's date in company timezone
+        # Get today's date in user's localized timezone
+        from core.utils import get_current_user_timezone
         from pytz import timezone, utc
-        timezone_str = company.timezone if company else 'UTC'
-        company_tz = timezone(timezone_str)
+        user_tz_str = get_current_user_timezone()
+        user_tz = timezone(user_tz_str)
         now_utc = datetime.now(utc)
-        today = now_utc.astimezone(company_tz).date()
+        today = now_utc.astimezone(user_tz).date()
         
         # Get today's logs (Drafts and Submitted)
         today_logs = OTAttendance.query.filter_by(
@@ -1711,8 +1712,12 @@ def ot_daily_summary_calendar(employee_id):
         if user_company_id and employee.company_id != user_company_id:
             return jsonify({'error': 'Access Denied'}), 403
         
-        # Get current month OT records
-        current_date = datetime.now().date()
+        # Get current month OT records in user's localized timezone
+        from core.utils import get_current_user_timezone
+        from pytz import timezone, utc
+        user_tz_str = get_current_user_timezone()
+        user_tz = timezone(user_tz_str)
+        current_date = datetime.now(utc).astimezone(user_tz).date()
         month_start = current_date.replace(day=1)
         if current_date.month == 12:
             month_end = month_start.replace(year=month_start.year + 1, month=1, day=1)

@@ -1,6 +1,6 @@
 import csv
 from io import StringIO
-from flask import make_response
+from flask import make_response, session
 from datetime import datetime, date, time, timedelta
 import logging
 from pytz import timezone, utc
@@ -223,6 +223,21 @@ class MobileDetector:
 
         return any(agent in str(user_agent) for agent in mobile_agents)
 
+def get_current_user_timezone():
+    """
+    Get the timezone for the currently logged-in user.
+    Prioritizes session, then employee profile, then fallback to UTC.
+    """
+    if 'user_timezone' in session:
+        return session['user_timezone']
+    
+    from flask_login import current_user
+    if current_user and current_user.is_authenticated:
+        if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            return current_user.employee_profile.timezone or 'UTC'
+    
+    return 'UTC'
+
 def get_employee_local_time(employee, time_obj, event_date):
     """
     Returns the time object for display, converted to company local time if it's a UTC datetime.
@@ -244,8 +259,19 @@ def get_employee_local_time(employee, time_obj, event_date):
         
     # If it's a datetime, it's our new standardized UTC storage
     if isinstance(time_obj, datetime):
-        from core.timezone_utils import convert_utc_to_company_timezone
-        localized_dt = convert_utc_to_company_timezone(time_obj, employee.company)
+        from core.timezone_utils import convert_utc_to_company_timezone, get_timezone_object
+        
+        # Determine target timezone: User preference (if logged in) or Employee's own timezone
+        target_timezone = get_current_user_timezone()
+        
+        # If the target timezone is different from the company timezone used in generic utils
+        tz = get_timezone_object(target_timezone)
+        
+        # If datetime is naive, assume it's UTC
+        if time_obj.tzinfo is None:
+            time_obj = time_obj.replace(tzinfo=utc)
+            
+        localized_dt = time_obj.astimezone(tz)
         return localized_dt.time()
         
     return time_obj

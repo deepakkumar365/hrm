@@ -127,50 +127,35 @@ def create_default_master_data():
                 db.session.add(dept)
 
         # Create default working hours if none exist
-        from sqlalchemy import inspect
-        inspector = sa.inspect(db.engine)
-        wh_columns = [col['name'] for col in inspector.get_columns('hrm_working_hours')]
-        
-        # Check if we can safely query WorkingHours (need grace_period if models say so)
-        # In this specific case, we'll just check for grace_period as it's the known issue
-        if 'grace_period' in wh_columns:
-            if WorkingHours.query.count() == 0:
-                from datetime import time
-                working_hours = [
-                    WorkingHours(name='Full-time Standard', start_time=time(9, 0), end_time=time(18, 0),
-                               hours_per_day=8.0, hours_per_week=40.0,
-                               description='Standard full-time working hours'),
-                    WorkingHours(name='Part-time (Half Day)', start_time=time(9, 0), end_time=time(13, 0),
-                               hours_per_day=4.0, hours_per_week=20.0,
-                               description='Half day part-time schedule'),
-                    WorkingHours(name='Extended Hours', start_time=time(8, 0), end_time=time(18, 0),
-                               hours_per_day=9.0, hours_per_week=45.0,
-                               description='Extended working hours with overtime'),
-                    WorkingHours(name='Flexible Hours', start_time=time(9, 0), end_time=time(18, 0),
-                               hours_per_day=8.0, hours_per_week=40.0,
-                               description='Flexible working arrangement'),
-                ]
-                for wh in working_hours:
-                    db.session.add(wh)
-        else:
-            print("[WARNING] 'grace_period' column missing in 'hrm_working_hours'. Skipping WorkingHours initialization.")
+        if WorkingHours.query.count() == 0:
+            working_hours = [
+                WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0,
+                           description='Standard full-time working hours'),
+                WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0,
+                           description='Half day part-time schedule'),
+                WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0,
+                           description='Extended working hours with overtime'),
+                WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0,
+                           description='Flexible working arrangement'),
+            ]
+            for wh in working_hours:
+                db.session.add(wh)
 
         # Create default work schedules if none exist
-        if 'hrm_work_schedules' in tables:
-            if WorkSchedule.query.count() == 0:
-                from datetime import time
-                schedules = [
-                    WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0),
-                               break_duration=60, description='Standard 9-to-6 schedule'),
-                    WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0),
-                               break_duration=60, description='Early morning shift'),
-                    WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0),
-                               break_duration=60, description='Afternoon to evening shift'),
-                    WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0),
-                               break_duration=60, description='Flexible timing schedule'),
-                ]
-                for schedule in schedules:
-                    db.session.add(schedule)
+        if WorkSchedule.query.count() == 0:
+            from datetime import time
+            schedules = [
+                WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0),
+                           break_duration=60, description='Standard 9-to-6 schedule'),
+                WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0),
+                           break_duration=60, description='Early morning shift'),
+                WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0),
+                           break_duration=60, description='Afternoon to evening shift'),
+                WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0),
+                           break_duration=60, description='Flexible timing schedule'),
+            ]
+            for schedule in schedules:
+                db.session.add(schedule)
 
         db.session.commit()
         return True
@@ -205,10 +190,9 @@ def initialize_default_data():
         print("This is normal if the database is not yet set up or tables haven't been created.")
 
 # Initialize database and data on startup (only if not skipped)
-# NOTE: Moved to app.py or manual run to avoid import-time database queries
-# if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
-#     # Initialize default data
-#     initialize_default_data()
+if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
+    # Initialize default data
+    initialize_default_data()
 
 
 @app.before_request
@@ -243,13 +227,6 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data) and user.is_active:
             login_user(user)
-            
-            # Store user timezone in session for easy access
-            if user.employee_profile:
-                session['user_timezone'] = user.employee_profile.timezone or 'UTC'
-            else:
-                session['user_timezone'] = 'UTC'
-                
             next_page = request.args.get('next')
             
             # Redirect Employee/User to attendance page instead of dashboard
@@ -962,7 +939,6 @@ def employee_add():
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
             employee.is_active = bool(request.form.get('is_active'))
-            employee.timezone = request.form.get('timezone', 'UTC')
 
             # Handle profile image upload (optional)
             file = request.files.get('profile_image')
@@ -1497,7 +1473,6 @@ def employee_edit(employee_id):
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
             employee.is_active = bool(request.form.get('is_active'))
-            employee.timezone = request.form.get('timezone', 'UTC')
 
             # Update user role if changed
             user_role_id = request.form.get('user_role_id')
@@ -2427,22 +2402,26 @@ def attendance_list():
 @require_login
 def attendance_mark():
     """Mark attendance (for employees)"""
-    employee_profile = current_user.employee_profile if hasattr(current_user, 'employee_profile') else None
-    
-    from core.utils import get_current_user_timezone
-    user_tz_str = get_current_user_timezone()
-    
-    try:
-        tz = pytz.timezone(user_tz_str)
-        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
-        local_now = utc_now.astimezone(tz)
-        offset_seconds = local_now.utcoffset().total_seconds()
-        hours = int(offset_seconds // 3600)
-        minutes = int((offset_seconds % 3600) // 60)
-        timezone_offset = f"{'+' if hours >= 0 else '-'}{abs(hours):02d}:{abs(minutes):02d}"
-    except Exception as e:
-        print(f"Error with timezone '{user_tz_str}': {e}. Defaulting to UTC.")
-        local_now = datetime.utcnow()
+    company_timezone = 'UTC'
+    timezone_offset = '+00:00'
+    employee_profile = None
+    local_now = datetime.utcnow()
+
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        employee_profile = current_user.employee_profile
+        if employee_profile.company:
+            company_timezone = employee_profile.company.timezone or 'UTC'
+            try:
+                tz = pytz.timezone(company_timezone)
+                utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
+                local_now = utc_now.astimezone(tz)
+                offset_seconds = local_now.utcoffset().total_seconds()
+                hours = int(offset_seconds // 3600)
+                minutes = int((offset_seconds % 3600) // 60)
+                timezone_offset = f"{'+' if hours >= 0 else '-'}{abs(hours):02d}:{abs(minutes):02d}"
+            except Exception as e:
+                print(f"Error with timezone '{company_timezone}': {e}. Defaulting to UTC.")
+                local_now = datetime.utcnow()
 
     company_local_date = local_now.date()
     company_local_date_str = company_local_date.strftime("%A, %B %d, %Y")
@@ -2460,6 +2439,145 @@ def attendance_mark():
             remarks = request.form.get('remarks')
 
             if action == 'clock_in':
+<<<<<<< HEAD
+                # ---------------------------------------------------------
+                # AUTO-CLOSE LOGIC: Handle forgotten clock-outs from previous days
+                # ---------------------------------------------------------
+                past_incomplete_records = Attendance.query.filter(
+                    Attendance.employee_id == employee_id,
+                    Attendance.clock_out.is_(None),
+                    Attendance.date < today
+                ).all()
+
+                for past_record in past_incomplete_records:
+                    # Determine cutoff time (WorkingHours end_time or default 18:00)
+                    auto_cutoff_time = time(18, 0)
+                    if employee_profile.working_hours and employee_profile.working_hours.end_time:
+                        auto_cutoff_time = employee_profile.working_hours.end_time
+                    
+                    past_record.clock_out = auto_cutoff_time
+                    
+                    # Calculate hours for the passed record
+                    if past_record.clock_in:
+                        clock_in_dt = datetime.combine(past_record.date, past_record.clock_in)
+                        clock_out_dt = datetime.combine(past_record.date, auto_cutoff_time)
+                        
+                        # Only calculate if valid duration
+                        if clock_out_dt > clock_in_dt:
+                            total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
+
+                            # Subtract break time if applicable
+                            if past_record.break_start and past_record.break_end:
+                                break_start_dt = datetime.combine(past_record.date, past_record.break_start)
+                                break_end_dt = datetime.combine(past_record.date, past_record.break_end)
+                                if break_end_dt > break_start_dt:
+                                    break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                                    total_seconds -= break_seconds
+
+                            total_hours = total_seconds / 3600
+                            
+                            # Standard working hours
+                            standard_hours = 8.0
+                            if employee_profile.working_hours and employee_profile.working_hours.hours_per_day:
+                                standard_hours = float(employee_profile.working_hours.hours_per_day)
+
+                            if total_hours > standard_hours:
+                                past_record.regular_hours = standard_hours
+                                past_record.overtime_hours = total_hours - standard_hours
+                                past_record.has_overtime = True
+                                past_record.overtime_approved = False
+                            else:
+                                past_record.regular_hours = total_hours
+                                past_record.overtime_hours = 0
+                                past_record.has_overtime = False
+                                
+                            past_record.total_hours = total_hours
+
+                    past_record.status = 'Present'
+                    note_msg = f"Auto-closed by system (forgot to clock out). Closed at {auto_cutoff_time.strftime('%H:%M')}."
+                    if past_record.notes:
+                        past_record.notes += f"\n{note_msg}"
+                    else:
+                        past_record.notes = note_msg
+                    
+                    flash(f'Note: Your attendance for {past_record.date.strftime("%d %b")} was auto-closed at {auto_cutoff_time.strftime("%H:%M")}.', 'info')
+
+                # Proceed with current Day Clock In
+                if not existing:
+                    attendance = Attendance(
+                        employee_id=employee_id,
+                        date=today,
+                        clock_in=utc_action_time,
+                        status='Present',
+                        location_lat=request.form.get('latitude'),
+                        location_lng=request.form.get('longitude')
+                    )
+                    db.session.add(attendance)
+                    flash('Clocked in successfully', 'success')
+                elif not existing.clock_in:
+                    # Fix: Allow updating existing record (e.g. created by cron job)
+                    existing.clock_in = utc_action_time
+                    existing.status = 'Present'
+                    existing.location_lat = request.form.get('latitude')
+                    existing.location_lng = request.form.get('longitude')
+                    flash('Clocked in successfully', 'success')
+                else:
+                    flash('Already clocked in for today', 'warning')
+            elif existing:
+                if action == 'clock_out':
+                    # Fix: Prevent clock out if no clock in
+                    if not existing.clock_in:
+                         flash('Cannot clock out: Missing Clock In time. Please Clock In first.', 'error')
+                         return redirect(url_for('attendance_mark'))
+
+                    existing.clock_out = utc_action_time
+                    
+                    # Calculate hours
+                    if existing.clock_in:
+                        clock_in_dt = datetime.combine(existing.date, existing.clock_in)
+                        clock_out_dt = datetime.combine(existing.date, utc_action_time)
+                        total_seconds = (clock_out_dt - clock_in_dt).total_seconds()
+
+                        # Subtract break time if applicable
+                        if existing.break_start and existing.break_end:
+                            break_start_dt = datetime.combine(existing.date, existing.break_start)
+                            break_end_dt = datetime.combine(existing.date, existing.break_end)
+                            break_seconds = (break_end_dt - break_start_dt).total_seconds()
+                            total_seconds -= break_seconds
+
+                        total_hours = total_seconds / 3600
+                        
+                        # Get standard working hours from employee profile or default to 8
+                        standard_hours = 8.0
+                        if employee_profile.working_hours and employee_profile.working_hours.hours_per_day:
+                            standard_hours = float(employee_profile.working_hours.hours_per_day)
+
+                        if total_hours > standard_hours:
+                            existing.regular_hours = standard_hours
+                            existing.overtime_hours = total_hours - standard_hours
+                            existing.has_overtime = True
+                            existing.overtime_approved = False
+                        else:
+                            existing.regular_hours = total_hours
+                            existing.overtime_hours = 0
+                            existing.has_overtime = False
+                            
+                        existing.total_hours = total_hours
+
+                    flash('Clocked out successfully', 'success')
+                elif action == 'break_start':
+                    if not existing.clock_in:
+                         flash('Cannot start break: Missing Clock In time.', 'error')
+                         return redirect(url_for('attendance_mark'))
+                    existing.break_start = utc_action_time
+                    flash('Break started', 'success')
+                elif action == 'break_end':
+                    if not existing.clock_in:
+                         flash('Cannot end break: Missing Clock In time.', 'error')
+                         return redirect(url_for('attendance_mark'))
+                    existing.break_end = utc_action_time
+                    flash('Break ended', 'success')
+=======
                 success, message = AttendanceService.clock_in(
                     employee_id, latitude=latitude, longitude=longitude, remarks=remarks
                 )
@@ -2475,6 +2593,7 @@ def attendance_mark():
                 success, message = AttendanceService.end_break(
                     employee_id, remarks=remarks
                 )
+>>>>>>> New_Development
             else:
                 flash(f'Unknown action: {action}', 'error')
                 return redirect(url_for('attendance_mark'))
@@ -3472,7 +3591,6 @@ def attendance_bulk_manage():
                 
                 from datetime import time as dt_time
                 from core.models import AttendanceSegment
-                from core.timezone_utils import convert_company_timezone_to_utc
                 
                 count = 0
                 for emp in employees:
@@ -3489,18 +3607,14 @@ def attendance_bulk_manage():
                         try:
                             in_time = dt_time.fromisoformat(bulk_clock_in)
                             att.clock_in = in_time
-                            # Convert local entered time to UTC for storage
-                            local_dt = datetime.combine(filter_date, in_time)
-                            att.clock_in_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                            att.clock_in_time = datetime.combine(filter_date, in_time)
                         except (ValueError, TypeError): pass
                         
                     if bulk_clock_out:
                         try:
                             out_time = dt_time.fromisoformat(bulk_clock_out)
                             att.clock_out = out_time
-                            # Convert local entered time to UTC for storage
-                            local_dt = datetime.combine(filter_date, out_time)
-                            att.clock_out_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                            att.clock_out_time = datetime.combine(filter_date, out_time)
                         except (ValueError, TypeError): pass
                     
                     # Calculate hours
@@ -3551,7 +3665,7 @@ def attendance_bulk_manage():
                     if att and att.status == 'Present' and att.overtime_hours > 0:
                         att.overtime_approved = True
                         att.overtime_approved_by = current_user.id
-                        att.overtime_approved_at = datetime.utcnow()
+                        att.overtime_approved_at = datetime.now()
                         db.session.add(att)
                         count += 1
                 db.session.commit()
@@ -3602,18 +3716,14 @@ def attendance_bulk_manage():
                             try:
                                 in_time = dt_time.fromisoformat(bulk_clock_in_str)
                                 att.clock_in = in_time
-                                # Convert local entered time to UTC for storage
-                                local_dt = datetime.combine(filter_date, in_time)
-                                att.clock_in_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                                att.clock_in_time = datetime.combine(filter_date, in_time)
                             except (ValueError, TypeError): pass
                         
                         if bulk_clock_out_str:
                             try:
                                 out_time = dt_time.fromisoformat(bulk_clock_out_str)
                                 att.clock_out = out_time
-                                # Convert local entered time to UTC for storage
-                                local_dt = datetime.combine(filter_date, out_time)
-                                att.clock_out_time = convert_company_timezone_to_utc(local_dt, emp.company)
+                                att.clock_out_time = datetime.combine(filter_date, out_time)
                             except (ValueError, TypeError): pass
 
                         # Calculate hours if we have both times
