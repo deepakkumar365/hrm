@@ -640,8 +640,8 @@
                         <select name="working_hours_id" class="form-select" required>
                             <option value="">Select Working Hours</option>
                             {% for wh in all_working_hours %}
-                            <option value="{{ wh.id }}">{{ wh.name }} ({{ wh.start_time.strftime('%H:%M') }}-{{
-                                wh.end_time.strftime('%H:%M') }})</option>
+                            <option value="{{ wh.id }}">{{ wh.name }} ({{ wh.start_time.strftime('%H:%M') if wh.start_time else 'N/A' }}-{{
+                                wh.end_time.strftime('%H:%M') if wh.end_time else 'N/A' }})</option>
                             {% endfor %}
                         </select>
                     </div>

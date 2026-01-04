@@ -135,14 +135,19 @@ def create_default_master_data():
         # In this specific case, we'll just check for grace_period as it's the known issue
         if 'grace_period' in wh_columns:
             if WorkingHours.query.count() == 0:
+                from datetime import time
                 working_hours = [
-                    WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0,
+                    WorkingHours(name='Full-time Standard', start_time=time(9, 0), end_time=time(18, 0),
+                               hours_per_day=8.0, hours_per_week=40.0,
                                description='Standard full-time working hours'),
-                    WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0,
+                    WorkingHours(name='Part-time (Half Day)', start_time=time(9, 0), end_time=time(13, 0),
+                               hours_per_day=4.0, hours_per_week=20.0,
                                description='Half day part-time schedule'),
-                    WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0,
+                    WorkingHours(name='Extended Hours', start_time=time(8, 0), end_time=time(18, 0),
+                               hours_per_day=9.0, hours_per_week=45.0,
                                description='Extended working hours with overtime'),
-                    WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0,
+                    WorkingHours(name='Flexible Hours', start_time=time(9, 0), end_time=time(18, 0),
+                               hours_per_day=8.0, hours_per_week=40.0,
                                description='Flexible working arrangement'),
                 ]
                 for wh in working_hours:
