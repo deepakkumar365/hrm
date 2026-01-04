@@ -127,35 +127,45 @@ def create_default_master_data():
                 db.session.add(dept)
 
         # Create default working hours if none exist
-        if WorkingHours.query.count() == 0:
-            working_hours = [
-                WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0,
-                           description='Standard full-time working hours'),
-                WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0,
-                           description='Half day part-time schedule'),
-                WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0,
-                           description='Extended working hours with overtime'),
-                WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0,
-                           description='Flexible working arrangement'),
-            ]
-            for wh in working_hours:
-                db.session.add(wh)
+        from sqlalchemy import inspect
+        inspector = sa.inspect(db.engine)
+        wh_columns = [col['name'] for col in inspector.get_columns('hrm_working_hours')]
+        
+        # Check if we can safely query WorkingHours (need grace_period if models say so)
+        # In this specific case, we'll just check for grace_period as it's the known issue
+        if 'grace_period' in wh_columns:
+            if WorkingHours.query.count() == 0:
+                working_hours = [
+                    WorkingHours(name='Full-time Standard', hours_per_day=8.0, hours_per_week=40.0,
+                               description='Standard full-time working hours'),
+                    WorkingHours(name='Part-time (Half Day)', hours_per_day=4.0, hours_per_week=20.0,
+                               description='Half day part-time schedule'),
+                    WorkingHours(name='Extended Hours', hours_per_day=9.0, hours_per_week=45.0,
+                               description='Extended working hours with overtime'),
+                    WorkingHours(name='Flexible Hours', hours_per_day=8.0, hours_per_week=40.0,
+                               description='Flexible working arrangement'),
+                ]
+                for wh in working_hours:
+                    db.session.add(wh)
+        else:
+            print("[WARNING] 'grace_period' column missing in 'hrm_working_hours'. Skipping WorkingHours initialization.")
 
         # Create default work schedules if none exist
-        if WorkSchedule.query.count() == 0:
-            from datetime import time
-            schedules = [
-                WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0),
-                           break_duration=60, description='Standard 9-to-6 schedule'),
-                WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0),
-                           break_duration=60, description='Early morning shift'),
-                WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0),
-                           break_duration=60, description='Afternoon to evening shift'),
-                WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0),
-                           break_duration=60, description='Flexible timing schedule'),
-            ]
-            for schedule in schedules:
-                db.session.add(schedule)
+        if 'hrm_work_schedules' in tables:
+            if WorkSchedule.query.count() == 0:
+                from datetime import time
+                schedules = [
+                    WorkSchedule(name='Standard Hours', start_time=time(9, 0), end_time=time(18, 0),
+                               break_duration=60, description='Standard 9-to-6 schedule'),
+                    WorkSchedule(name='Early Shift', start_time=time(7, 0), end_time=time(16, 0),
+                               break_duration=60, description='Early morning shift'),
+                    WorkSchedule(name='Late Shift', start_time=time(14, 0), end_time=time(23, 0),
+                               break_duration=60, description='Afternoon to evening shift'),
+                    WorkSchedule(name='Flexible Hours', start_time=time(8, 0), end_time=time(17, 0),
+                               break_duration=60, description='Flexible timing schedule'),
+                ]
+                for schedule in schedules:
+                    db.session.add(schedule)
 
         db.session.commit()
         return True
@@ -190,9 +200,10 @@ def initialize_default_data():
         print("This is normal if the database is not yet set up or tables haven't been created.")
 
 # Initialize database and data on startup (only if not skipped)
-if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
-    # Initialize default data
-    initialize_default_data()
+# NOTE: Moved to app.py or manual run to avoid import-time database queries
+# if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
+#     # Initialize default data
+#     initialize_default_data()
 
 
 @app.before_request

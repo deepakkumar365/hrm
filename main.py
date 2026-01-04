@@ -46,4 +46,12 @@ app.register_blueprint(dev_bp, url_prefix='/dev')
 from core import cli_commands  # noqa: F401
 
 if __name__ == "__main__":
+    # Initialize default data safely if not skipped
+    if os.environ.get('FLASK_SKIP_DB_INIT') != '1':
+        try:
+            from routes.routes import initialize_default_data
+            initialize_default_data()
+        except Exception as e:
+            print(f"⚠️ Warning: Could not initialize default data on startup: {e}")
+
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True)
