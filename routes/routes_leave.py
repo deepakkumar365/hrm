@@ -30,12 +30,13 @@ def leave_request():
             end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d').date()
             reason = request.form.get('reason', '')
             
-            # Validate dates
-            if start_date > end_date:
-                flash("Start date must be before end date", "error")
-                return redirect(url_for('leave_request'))
+            from core.utils import get_current_user_timezone
+            from pytz import timezone, utc
+            user_tz_str = get_current_user_timezone()
+            user_tz = timezone(user_tz_str)
+            today = datetime.now(utc).astimezone(user_tz).date()
             
-            if start_date < datetime.now().date():
+            if start_date < today:
                 flash("Cannot create leave request for past dates", "error")
                 return redirect(url_for('leave_request'))
             

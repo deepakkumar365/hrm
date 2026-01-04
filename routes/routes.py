@@ -243,6 +243,13 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user and user.check_password(form.password.data) and user.is_active:
             login_user(user)
+            
+            # Store user timezone in session for easy access
+            if user.employee_profile:
+                session['user_timezone'] = user.employee_profile.timezone or 'UTC'
+            else:
+                session['user_timezone'] = 'UTC'
+                
             next_page = request.args.get('next')
             
             # Redirect Employee/User to attendance page instead of dashboard
@@ -955,6 +962,7 @@ def employee_add():
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
             employee.is_active = bool(request.form.get('is_active'))
+            employee.timezone = request.form.get('timezone', 'UTC')
 
             # Handle profile image upload (optional)
             file = request.files.get('profile_image')
@@ -1489,6 +1497,7 @@ def employee_edit(employee_id):
             # Set manager flag
             employee.is_manager = bool(request.form.get('is_manager'))
             employee.is_active = bool(request.form.get('is_active'))
+            employee.timezone = request.form.get('timezone', 'UTC')
 
             # Update user role if changed
             user_role_id = request.form.get('user_role_id')
@@ -2418,26 +2427,22 @@ def attendance_list():
 @require_login
 def attendance_mark():
     """Mark attendance (for employees)"""
-    company_timezone = 'UTC'
-    timezone_offset = '+00:00'
-    employee_profile = None
-    local_now = datetime.utcnow()
-
-    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-        employee_profile = current_user.employee_profile
-        if employee_profile.company:
-            company_timezone = employee_profile.company.timezone or 'UTC'
-            try:
-                tz = pytz.timezone(company_timezone)
-                utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
-                local_now = utc_now.astimezone(tz)
-                offset_seconds = local_now.utcoffset().total_seconds()
-                hours = int(offset_seconds // 3600)
-                minutes = int((offset_seconds % 3600) // 60)
-                timezone_offset = f"{'+' if hours >= 0 else '-'}{abs(hours):02d}:{abs(minutes):02d}"
-            except Exception as e:
-                print(f"Error with timezone '{company_timezone}': {e}. Defaulting to UTC.")
-                local_now = datetime.utcnow()
+    employee_profile = current_user.employee_profile if hasattr(current_user, 'employee_profile') else None
+    
+    from core.utils import get_current_user_timezone
+    user_tz_str = get_current_user_timezone()
+    
+    try:
+        tz = pytz.timezone(user_tz_str)
+        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        local_now = utc_now.astimezone(tz)
+        offset_seconds = local_now.utcoffset().total_seconds()
+        hours = int(offset_seconds // 3600)
+        minutes = int((offset_seconds % 3600) // 60)
+        timezone_offset = f"{'+' if hours >= 0 else '-'}{abs(hours):02d}:{abs(minutes):02d}"
+    except Exception as e:
+        print(f"Error with timezone '{user_tz_str}': {e}. Defaulting to UTC.")
+        local_now = datetime.utcnow()
 
     company_local_date = local_now.date()
     company_local_date_str = company_local_date.strftime("%A, %B %d, %Y")

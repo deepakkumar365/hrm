@@ -5,7 +5,7 @@ Supports both session-based and token-based authentication
 Uses simple token mechanism without external JWT dependencies
 """
 
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, session
 from flask_login import current_user, login_user, logout_user
 from functools import wraps
 from datetime import datetime, timedelta, date
@@ -228,11 +228,15 @@ def mobile_api_login():
         # Log user in (creates session)
         login_user(user)
         
-        # Generate token
-        token = generate_token(user.id)
-        
         # Get user's employee profile for additional info
         employee = Employee.query.filter_by(user_id=user.id).first()
+        
+        # Store user timezone in session
+        user_tz = employee.timezone if employee and employee.timezone else 'UTC'
+        session['user_timezone'] = user_tz
+        
+        # Generate token
+        token = generate_token(user.id)
         
         user_data = {
             'user_id': user.id,
@@ -245,6 +249,7 @@ def mobile_api_login():
             'company_id': user.company_id if hasattr(user, 'company_id') else None,
             'employee_id': employee.id if employee else None,
             'profile_image_path': employee.profile_image_path if employee else None,
+            'timezone': user_tz,
             'token': token,
             'expires_in': 86400
         }
@@ -673,8 +678,8 @@ def mobile_api_get_attendance():
                 'id': att.id,
                 'employee_id': att.employee_id,
                 'date': att.date.isoformat() if att.date else None,
-                'clock_in': att.clock_in.isoformat() if att.clock_in else None,
-                'clock_out': att.clock_out.isoformat() if att.clock_out else None,
+                'clock_in': c_in_local.strftime('%H:%M:%S') if c_in_local else (att.clock_in.isoformat() if att.clock_in else None),
+                'clock_out': c_out_local.strftime('%H:%M:%S') if c_out_local else (att.clock_out.isoformat() if att.clock_out else None),
                 'status': att.status,
                 'duration_hours': float(att.total_hours) if hasattr(att, 'total_hours') and att.total_hours else 0
             })
@@ -762,11 +767,15 @@ def mobile_api_mark_attendance():
         
         attendance = Attendance.query.filter_by(employee_id=employee_id, date=today).first()
         
+        from core.utils import get_employee_local_time
+        c_in_local = get_employee_local_time(employee, attendance.clock_in_time if attendance.clock_in_time else attendance.clock_in, attendance.date) if attendance else None
+        c_out_local = get_employee_local_time(employee, attendance.clock_out_time if attendance.clock_out_time else attendance.clock_out, attendance.date) if attendance else None
+
         return api_response('success', message, {
             'employee_id': attendance.employee_id,
             'date': attendance.date.isoformat(),
-            'clock_in': attendance.clock_in.isoformat() if attendance.clock_in else None,
-            'clock_out': attendance.clock_out.isoformat() if attendance.clock_out else None,
+            'clock_in': c_in_local.strftime('%H:%M:%S') if c_in_local else (attendance.clock_in.isoformat() if attendance.clock_in else None),
+            'clock_out': c_out_local.strftime('%H:%M:%S') if c_out_local else (attendance.clock_out.isoformat() if attendance.clock_out else None),
             'status': attendance.status,
             'total_hours': float(attendance.total_hours)
         }, 200)
