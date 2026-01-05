@@ -177,9 +177,11 @@
                 </div>
                 {% endif %}
 
+
                 <!-- Super Admin / Tenant Admin / HR Manager Menu (Masters) -->
-                {% if (check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' or user_role == 'HR
-                Manager') and user_role != 'Employee' %}
+                {% set show_masters = (check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden') or
+                (user_role == 'HR Manager') %}
+                {% if show_masters and user_role != 'Employee' %}
                 <div class="nav-group">
                     <a class="sidebar-link" href="#" role="button">
                         <i class="fas fa-cogs"></i>
@@ -199,8 +201,10 @@
                         -->
 
                         <!-- Configuration Masters (HR Manager & Admin) -->
+                        {% if user_role in ['Super Admin', 'Tenant Admin'] %}
                         <a class="nav-link" href="{{ url_for('organization_master_dashboard') }}">Organization
                             Master</a>
+                        {% endif %}
                         <a class="nav-link" href="{{ url_for('operation_master_dashboard') }}">Operation Master</a>
                     </div>
                 </div>

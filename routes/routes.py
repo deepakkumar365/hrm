@@ -3495,6 +3495,10 @@ def attendance_bulk_manage():
     
     # Handle form submission for bulk updates
     if request.method == 'POST':
+        from core.timezone_utils import convert_local_time_to_utc
+        from datetime import time as dt_time
+        from core.models import AttendanceSegment
+
         action = request.form.get('action')
         try:
             if action == 'bulk_log':
@@ -3511,9 +3515,7 @@ def attendance_bulk_manage():
                 bulk_clock_in = request.form.get('bulk_clock_in')
                 bulk_clock_out = request.form.get('bulk_clock_out')
                 
-                from datetime import time as dt_time
-                from core.models import AttendanceSegment
-                from core.timezone_utils import convert_local_time_to_utc
+
                 
                 count = 0
                 for emp in employees:
@@ -3615,8 +3617,7 @@ def attendance_bulk_manage():
                 # Get bulk times for common application
                 bulk_clock_in_str = request.form.get('bulk_clock_in')
                 bulk_clock_out_str = request.form.get('bulk_clock_out')
-                from datetime import time as dt_time
-                from core.models import AttendanceSegment
+
 
                 count = 0
                 for emp in employees:

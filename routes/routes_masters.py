@@ -32,7 +32,7 @@ def operation_master_dashboard():
                          all_companies=all_companies)
 
 @app.route('/masters/organization-master')
-@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin'])
 def organization_master_dashboard():
     """Consolidated dashboard for Organization Masters (Tenant, Company, Payment Config)"""
     
