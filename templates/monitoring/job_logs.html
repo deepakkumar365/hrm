@@ -39,8 +39,8 @@
                     {% for log in logs.items %}
                     <tr>
                         <td>{{ log.job_name }}</td>
-                        <td>{{ log.started_at|date('d/m/Y H:i:s') }}</td>
-                        <td>{{ log.completed_at|date('H:i:s') if log.completed_at else '-' }}</td>
+                        <td>{{ log.started_at|date('%d/%m/%Y %H:%M:%S') }}</td>
+                        <td>{{ log.completed_at|date('%H:%M:%S') if log.completed_at else '-' }}</td>
                         <td>
                             {% if log.status == 'Success' %}
                             <span class="badge bg-success">Success</span>
