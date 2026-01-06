@@ -21,7 +21,7 @@ Follow these steps to configure the automatic daily attendance processing.
 -   **Schedule**: `0 0 * * *`
     -   This runs the job daily at **Midnight UTC**.
     -   *Note: If you are in Singapore (UTC+8), this will run at 8:00 AM SGT. Adjust if you need it to run closer to your local midnight (e.g. `0 16 * * *` for midnight SGT).*
--   **Command**: `python services/daily_attendance_task.py`
+-   **Command**: `python services/daily_cron_runner.py`
 
 ### 3. Environment Variables (Critical)
 The script needs access to your database.
