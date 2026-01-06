@@ -705,8 +705,8 @@ class Attendance(db.Model):
     overtime_approved_at = db.Column(db.DateTime, nullable=True)
 
     # Status Fields
-    # ENUM('Present','Incomplete','Absent','Leave')
-    status = db.Column(db.Enum('Present', 'Incomplete', 'Absent', 'Leave', name='attendance_status_enum'), default='Absent')
+    # ENUM('Present','Incomplete','Absent','Leave', 'Half Day', 'Weekly Off', 'Holiday', 'On Duty')
+    status = db.Column(db.Enum('Present', 'Incomplete', 'Absent', 'Leave', 'Half Day', 'Weekly Off', 'Holiday', 'On Duty', name='attendance_status_enum'), default='Absent')
     sub_status = db.Column(db.String(50)) # e.g., 'Pending Out', 'Regularization Pending'
     
     # Foreign Keys for Overrides/Corrections
@@ -925,7 +925,14 @@ class WorkingHours(db.Model):
     end_time = db.Column(db.Time, nullable=True)
     hours_per_day = db.Column(db.Numeric(4, 2), nullable=False)
     hours_per_week = db.Column(db.Numeric(4, 2), nullable=False)
-    grace_period = db.Column(db.Integer, default=15)  # Grace period in minutes for late arrival
+    
+    # New Config Fields for Attendance Logic
+    grace_period = db.Column(db.Integer, default=15)  # Grace period in minutes
+    late_mark_after_minutes = db.Column(db.Integer, default=15) # Mark as late if after start_time + this
+    half_day_threshold = db.Column(db.Integer, default=240)     # Minutes (4 hours)
+    full_day_threshold = db.Column(db.Integer, default=480)     # Minutes (8 hours)
+    weekend_days = db.Column(db.String(20), default="5,6")      # 0=Mon, 6=Sun. Default Sat,Sun
+    
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -933,6 +940,27 @@ class WorkingHours(db.Model):
 
     def __repr__(self):
         return f'<WorkingHours {self.name}: {self.hours_per_day}h/day>'
+
+class Holiday(db.Model):
+    """Holiday Master Data"""
+    __tablename__ = 'hrm_holiday'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    type = db.Column(db.String(20), default='National') # National, Restricted, Optional
+    
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id'), nullable=True) # Null = Global Holiday for Tenant
+    is_optional = db.Column(db.Boolean, default=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    company = db.relationship('Company', foreign_keys=[company_id])
+
+    __table_args__ = (UniqueConstraint('date', 'company_id'),)
+
+    def __repr__(self):
+        return f'<Holiday {self.name} on {self.date}>'
 
 
 class WorkSchedule(db.Model):
@@ -1586,3 +1614,26 @@ class OTDailySummary(db.Model):
             'ph': self.ph or 0,
             'sun': self.sun or 0,
         }
+
+class JobExecutionLog(db.Model):
+    """Log for background job executions (e.g., Daily Attendance Task)"""
+    __tablename__ = 'hrm_job_execution_log'
+    __table_args__ = (
+        Index('idx_job_log_job_name', 'job_name'),
+        Index('idx_job_log_started_at', 'started_at'),
+        Index('idx_job_log_status', 'status'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_name = db.Column(db.String(100), nullable=False) # e.g. "Daily Attendance EOD", "Payroll Generation"
+    status = db.Column(db.String(20), default='Running') # Running, Success, Failed
+    
+    started_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    completed_at = db.Column(db.DateTime)
+    
+    triggered_by = db.Column(db.String(50), default='System') # System, User: <username>
+    
+    details = db.Column(db.JSON) # Store stats or error details
+    
+    def __repr__(self):
+        return f'<JobExecutionLog {self.job_name} - {self.status} at {self.started_at}>'

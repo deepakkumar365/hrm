@@ -41,8 +41,12 @@ from routes import routes_ot  # noqa: F401
 from routes import routes_hr_manager  # noqa: F401
 from routes import routes_api  # noqa: F401
 from routes import routes_timezone  # noqa: F401
+from routes import routes_regularization  # noqa: F401
+from routes import routes_reports  # noqa: F401
 from routes.dev_routes import dev_bp
 app.register_blueprint(dev_bp, url_prefix='/dev')
+from routes.routes_monitoring import monitoring_bp
+app.register_blueprint(monitoring_bp)
 from core import cli_commands  # noqa: F401
 
 if __name__ == "__main__":

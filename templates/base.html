@@ -152,7 +152,7 @@
             <div class="sidebar-nav flex-grow-1" id="sidebarNav">
                 {% set user_role = current_user.role.name if current_user.role else None %}
                 {% set is_manager = user_role == 'Manager' %}
-                {% set is_user = user_role == 'Employee' %}
+                {% set is_user = user_role in ['Employee', 'User'] %}
                 {# Check if employee has manager flag enabled #}
                 {% set is_reporting_manager = hasattr(current_user, 'employee_profile') and
                 current_user.employee_profile and current_user.employee_profile.is_manager %}
@@ -181,7 +181,7 @@
                 <!-- Super Admin / Tenant Admin / HR Manager Menu (Masters) -->
                 {% set show_masters = (check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden') or
                 (user_role == 'HR Manager') %}
-                {% if show_masters and user_role != 'Employee' %}
+                {% if show_masters and user_role not in ['Employee', 'User'] %}
                 <div class="nav-group">
                     <a class="sidebar-link" href="#" role="button">
                         <i class="fas fa-cogs"></i>
@@ -235,7 +235,7 @@
                     <div class="sidebar-submenu">
                         <!-- Employee Management -->
                         <!-- Employee Management -->
-                        {% if emp_mgmt_access != 'Hidden' and user_role != 'Employee' %}
+                        {% if emp_mgmt_access != 'Hidden' and user_role not in ['Employee', 'User'] %}
                         <a class="nav-link" href="{{ url_for('employee_add') }}">Add Employee</a>
                         <a class="nav-link" href="{{ url_for('employee_list') }}">All Employees</a>
                         <a class="nav-link" href="{{ url_for('employee_bulk_upload') }}">Bulk Upload</a>
@@ -259,7 +259,23 @@
                     <div class="sidebar-submenu">
                         {% if check_ui_access(user_role, 'Attendance', 'Attendance Management') != 'Hidden' %}
                         <a class="nav-link" href="{{ url_for('attendance_mark') }}">Mark Attendance</a>
-                        <a class="nav-link" href="{{ url_for('attendance_list_view') }}">View Records</a>
+                        <a class="nav-link" href="{{ url_for('attendance_list_view') }}">
+                            {% if user_role in ['Employee', 'User','Manager', 'HR Manager', 'Tenant Admin', 'Super
+                            Admin', 'Admin'] %}My Attendance{% else %}Attendance Values{% endif
+                            %}
+                        </a>
+
+                        <!-- Regularization Links -->
+                        {% if user_role in ['Employee', 'User','Manager', 'HR Manager', 'Tenant Admin', 'Super Admin',
+                        'Admin'] %}
+                        <a class="nav-link" href="{{ url_for('attendance_regularization_list') }}">My
+                            Regularizations</a>
+                        {% endif %}
+
+                        {% if user_role in ['Manager', 'HR Manager', 'Tenant Admin', 'Super Admin', 'Admin'] %}
+                        <a class="nav-link" href="{{ url_for('attendance_regularization_manage') }}">Regularization
+                            Requests</a>
+                        {% endif %}
                         {% endif %}
 
                         {% if not is_super_admin %}
@@ -267,7 +283,7 @@
                         {% endif %}
 
                         {% if check_ui_access(user_role, 'Attendance', 'Attendance Management', 'Bulk Upload') !=
-                        'Hidden' and user_role != 'Employee' %}
+                        'Hidden' and user_role not in ['Employee', 'User'] %}
                         <a class="nav-link" href="{{ url_for('attendance_bulk_manage') }}">Bulk Attendance</a>
                         {% endif %}
                     </div>
@@ -336,7 +352,8 @@
 
                 <!-- Reports -->
                 {% if (check_ui_access(user_role, 'Payroll', 'Payroll Reports') != 'Hidden' or
-                check_ui_access(user_role, 'Employees', 'Employee Reports') != 'Hidden') and user_role != 'Employee' %}
+                check_ui_access(user_role, 'Employees', 'Employee Reports') != 'Hidden') and user_role not in
+                ['Employee', 'User'] %}
                 <div class="nav-group">
                     <a class="sidebar-link" href="#" role="button">
                         <i class="fas fa-chart-bar"></i>
@@ -370,6 +387,10 @@
                         <a class="nav-link" href="{{ url_for('access_control.manage_user_companies') }}">Access
                             Control</a>
                         <a class="nav-link" href="{{ url_for('user_status_toggle') }}">User Status Toggle</a>
+                        {% endif %}
+
+                        {% if user_role == 'Super Admin' %}
+                        <a class="nav-link" href="{{ url_for('monitoring.job_logs') }}">Job Monitoring</a>
                         {% endif %}
                     </div>
                 </div>
@@ -441,7 +462,8 @@
 
 
         <!-- Mobile Floating Action Button -->
-        {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) == 'Employee' %}
+        {% if current_user.is_authenticated and (current_user.role.name if current_user.role else None) in ['Employee',
+        'User'] %}
         <div class="dropdown dropup position-fixed">
             <button class="fab" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-plus"></i>

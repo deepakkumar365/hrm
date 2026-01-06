@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Job Monitoring | Nexar{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2 class="h3 mb-3">Job Execution Logs</h2>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Background Jobs</h6>
+
+        <form action="{{ url_for('monitoring.run_job', job_name='daily_attendance_eod') }}" method="POST"
+            class="d-inline">
+            <input type="hidden" name="date" value="{{ date.today() }}">
+            <button type="submit" class="btn btn-sm btn-primary"
+                onclick="return confirm('Run EOD Attendance for today?');">
+                <i class="fas fa-play me-1"></i> Run EOD Task Now
+            </button>
+        </form>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Job Name</th>
+                        <th>Started At</th>
+                        <th>Completed At</th>
+                        <th>Status</th>
+                        <th>Triggered By</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs.items %}
+                    <tr>
+                        <td>{{ log.job_name }}</td>
+                        <td>{{ log.started_at|date('d/m/Y H:i:s') }}</td>
+                        <td>{{ log.completed_at|date('H:i:s') if log.completed_at else '-' }}</td>
+                        <td>
+                            {% if log.status == 'Success' %}
+                            <span class="badge bg-success">Success</span>
+                            {% elif log.status == 'Running' %}
+                            <span class="badge bg-warning text-dark">Running</span>
+                            {% else %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ log.triggered_by }}</td>
+                        <td>
+                            {% if log.details %}
+                            <button type="button" class="btn btn-xs btn-info" data-bs-toggle="popover" title="Details"
+                                data-bs-content="{{ log.details }}">
+                                View
+                            </button>
+                            <small class="d-none">{{ log.details }}</small>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No logs found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if logs.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% for page_num in logs.iter_pages() %}
+                {% if page_num %}
+                <li class="page-item {{ 'active' if page_num == logs.page else '' }}">
+                    <a class="page-link" href="{{ url_for('monitoring.job_logs', page=page_num) }}">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl)
+        })
+    });
+</script>
+{% endblock %}

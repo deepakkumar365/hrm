@@ -23,7 +23,7 @@ sys.path.insert(0, project_dir)
 
 # Import Flask app and models
 from app import app, db
-from core.models import Employee, Attendance, Leave
+from core.models import Employee, Attendance, Leave, Holiday, WorkingHours, JobExecutionLog
 
 def process_eod_attendance(target_date=None):
     """
@@ -43,6 +43,15 @@ def process_eod_attendance(target_date=None):
     print(f"🔄 Processing EOD Attendance for: {target_date}")
     
     with app.app_context():
+        # Start Job Log
+        job_log = JobExecutionLog(
+            job_name="Daily Attendance EOD",
+            status="Running",
+            details={'target_date': str(target_date)}
+        )
+        db.session.add(job_log)
+        db.session.commit()
+
         try:
             employees = Employee.query.filter_by(is_active=True).all()
             
@@ -52,17 +61,34 @@ def process_eod_attendance(target_date=None):
                 'incomplete': 0,
                 'absent': 0,
                 'leave': 0,
+                'holiday': 0,
+                'weekly_off': 0,
+                'half_day': 0,
                 'updated': 0,
                 'created': 0
             }
             
+            # Pre-fetch Holiday for today (Global)
+            # Validating against company-specific holidays inside loop for accuracy
+            
             for employee in employees:
+                # 0. Get Company/Working Hours Config
+                working_hours = employee.working_hours
+                half_day_threshold = float(working_hours.half_day_threshold) if working_hours and working_hours.half_day_threshold else 240 # Default 4h
+                weekend_days = [int(d) for d in working_hours.weekend_days.split(',')] if working_hours and working_hours.weekend_days else [5, 6] # Default Sat,Sun
+
                 # 1. Check for Approved Leave
                 approved_leave = Leave.query.filter(
                     Leave.employee_id == employee.id,
                     Leave.status == 'Approved',
                     Leave.start_date <= target_date,
                     Leave.end_date >= target_date
+                ).first()
+                
+                # Check for Holiday
+                holiday = Holiday.query.filter(
+                    Holiday.date == target_date,
+                    db.or_(Holiday.company_id == employee.company_id, Holiday.company_id == None)
                 ).first()
                 
                 # 2. Get or Create Attendance Record
@@ -93,7 +119,23 @@ def process_eod_attendance(target_date=None):
                     # attendance.sub_status = approved_leave.leave_type 
                     stats['leave'] += 1
                 
-                # Priority 2: Punches Logic
+                # Priority 2: Holiday (unless worked?)
+                # If punches exist on holiday -> Present (OD/OT logic handled elsewhere or marked as Present with OT)
+                # Here we assume if no punches and it is holiday -> Holiday
+                elif holiday and not (attendance.clock_in_time or attendance.clock_in):
+                    attendance.status = 'Holiday'
+                    attendance.sub_status = holiday.name
+                    attendance.lop = False
+                    stats['holiday'] += 1
+
+                # Priority 3: Weekly Off (unless worked?)
+                elif target_date.weekday() in weekend_days and not (attendance.clock_in_time or attendance.clock_in):
+                    attendance.status = 'Weekly Off'
+                    attendance.sub_status = None
+                    attendance.lop = False
+                    stats['weekly_off'] += 1
+                
+                # Priority 4: Punches Logic
                 else:
                     # Check punches
                     # Use clock_in_time if available, fall back to clock_in (time) + date
@@ -110,6 +152,19 @@ def process_eod_attendance(target_date=None):
                             # TODO: Implement accurate hours calculation using timestamps
                             attendance.total_hours = 8 # Placeholder standard day
                             attendance.regular_hours = 8
+                        
+                        # Half Day Logic
+                        # If total hours < threshold (e.g. 4.5h i.e. 270 mins)
+                        # We use 60 * total_hours if calculated, or fallback/force calc
+                        actual_minutes = float(attendance.total_hours) * 60
+                        
+                        if actual_minutes < half_day_threshold:
+                            attendance.status = 'Half Day'
+                            attendance.sub_status = 'Short Duration'
+                            attendance.lop = True # Or configurable to deduce 0.5 day
+                            stats['half_day'] += 1
+                            stats['present'] -= 1 # Adjust count since we added to present initially
+                            
                             
                     elif has_in and not has_out:
                         attendance.status = 'Incomplete'
@@ -134,6 +189,15 @@ def process_eod_attendance(target_date=None):
             
             db.session.commit()
             
+            # Update Job Log
+            job_log.status = "Success"
+            job_log.completed_at = datetime.now()
+            job_log.details = {
+                'target_date': str(target_date),
+                'stats': stats
+            }
+            db.session.commit()
+
             print(f"✅ EOD Processing Completed for {target_date}")
             print(f"   📊 Stats: {stats}")
             
@@ -145,6 +209,18 @@ def process_eod_attendance(target_date=None):
             
         except Exception as e:
             db.session.rollback()
+            
+            # Log failure
+            try:
+                error_log = JobExecutionLog.query.get(job_log.id)
+                if error_log:
+                    error_log.status = "Failed"
+                    error_log.completed_at = datetime.now()
+                    error_log.details = {'error': str(e), 'target_date': str(target_date)}
+                    db.session.commit()
+            except Exception as log_err:
+                print(f"Failed to log error: {log_err}")
+
             print(f"❌ Error in EOD processing: {str(e)}")
             return {
                 'success': False,
