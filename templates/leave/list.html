@@ -113,7 +113,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
+                        {% if current_user.role_name in ['Super Admin', 'Tenant Admin', 'HR Manager', 'Manager',
+                        'Admin'] %}
                         <h6 class="mb-1">{{ leave.employee.first_name }} {{ leave.employee.last_name }}</h6>
                         <p class="text-muted small mb-0">{{ leave.employee.employee_id }}</p>
                         {% endif %}
@@ -170,8 +171,8 @@
                         </a>
                         {% endif %}
 
-                        {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'Super
-                        Admin'] %}
+                        {% if current_user.role_name in ['Super Admin', 'Tenant Admin', 'HR Manager', 'Manager',
+                        'Admin'] %}
                         <button class="btn btn-sm btn-success" onclick="approveLeave({{ leave.id }}, 'approve')">
                             <i class="fas fa-check me-1"></i>Approve
                         </button>
@@ -194,7 +195,8 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
+                            {% if current_user.role_name in ['Super Admin', 'Tenant Admin', 'HR Manager', 'Manager',
+                            'Admin'] %}
                             <th>Employee</th>
                             {% endif %}
                             <th>Leave Type</th>
@@ -210,7 +212,8 @@
                     <tbody>
                         {% for leave in leave_requests.items %}
                         <tr>
-                            {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager'] %}
+                            {% if current_user.role_name in ['Super Admin', 'Tenant Admin', 'HR Manager', 'Manager',
+                            'Admin'] %}
                             <td>
                                 <div>
                                     <strong>{{ leave.employee.first_name }} {{ leave.employee.last_name }}</strong>
@@ -267,8 +270,8 @@
                                     </a>
                                     {% endif %}
 
-                                    {% if (current_user.role.name if current_user.role else None) in ['Admin',
-                                    'Manager', 'Super Admin'] %}
+                                    {% if current_user.role_name in ['Super Admin', 'Tenant Admin', 'HR Manager',
+                                    'Manager', 'Admin'] %}
                                     <button class="btn btn-outline-success"
                                         onclick="approveLeave({{ leave.id }}, 'approve')" title="Approve">
                                         <i class="fas fa-check"></i>
@@ -400,7 +403,7 @@
 
     function showRejectModal(leaveId) {
         const form = document.getElementById('rejectForm');
-        form.action = `/leave/${leaveId}/approve`;
+        form.action = `/leave/${leaveId}/reject`;
 
         const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
         modal.show();

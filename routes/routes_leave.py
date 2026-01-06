@@ -231,8 +231,8 @@ def leave_detail(leave_id):
                 current_user.employee_profile and
                 current_user.employee_profile.id == leave.employee_id):
             # Check if user is a manager or admin
-            if not (hasattr(current_user, 'role') and 
-                    current_user.role in ['Manager', 'Admin', 'Super Admin']):
+            if not (hasattr(current_user, 'role_name') and 
+                    current_user.role_name in ['Manager', 'Admin', 'Super Admin']):
                 flash("Unauthorized to view this leave request", "error")
                 return redirect(url_for('leave_list'))
         
@@ -250,8 +250,8 @@ def leave_approve(leave_id):
     """Approve a leave request"""
     
     # Check authorization
-    if not (hasattr(current_user, 'role') and 
-            current_user.role in ['Manager', 'Admin', 'Super Admin']):
+    if not (hasattr(current_user, 'role_name') and 
+            current_user.role_name in ['Manager', 'Admin', 'Super Admin', 'HR Manager', 'Tenant Admin']):
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
@@ -281,8 +281,8 @@ def leave_reject(leave_id):
     """Reject a leave request"""
     
     # Check authorization
-    if not (hasattr(current_user, 'role') and 
-            current_user.role in ['Manager', 'Admin', 'Super Admin']):
+    if not (hasattr(current_user, 'role_name') and 
+            current_user.role_name in ['Manager', 'Admin', 'Super Admin', 'HR Manager', 'Tenant Admin']):
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
@@ -360,8 +360,8 @@ def leave_balance():
                                  leaves=leaves)
         else:
             # Show all employees' leave balance (Admin/Manager)
-            if not (hasattr(current_user, 'role') and 
-                    current_user.role in ['Manager', 'Admin', 'Super Admin']):
+            if not (hasattr(current_user, 'role_name') and 
+                    current_user.role_name in ['Manager', 'Admin', 'Super Admin']):
                 flash("Unauthorized", "error")
                 return redirect(url_for('dashboard'))
             
