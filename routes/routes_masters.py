@@ -1150,6 +1150,69 @@ def leave_type_add():
     return redirect(url_for('operation_master_dashboard'))
 
 
+@app.route('/masters/leave-types/create-defaults', methods=['POST'])
+@require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
+def leave_type_create_defaults():
+    """Create default leave types for a company"""
+    try:
+        company_id = request.form.get('company_id')
+        
+        # Determine company context similar to add
+        if not company_id:
+            if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+                company_id = current_user.employee_profile.company_id
+            else:
+                 # Fallback for Tenant Admin/Super Admin if not provided
+                 company = Company.query.filter_by(is_active=True).first()
+                 company_id = company.id if company else None
+        
+        if not company_id:
+            return jsonify({'success': False, 'message': 'Company context required'})
+
+        defaults = [
+            {'name': 'Annual Leave', 'code': 'AL', 'annual_allocation': 12, 'color': '#3498db'},
+            {'name': 'Casual Leave', 'code': 'CL', 'annual_allocation': 7, 'color': '#2ecc71'},
+            {'name': 'Medical Leave', 'code': 'ML', 'annual_allocation': 10, 'color': '#e74c3c'},
+            {'name': 'Maternity Leave', 'code': 'MAT', 'annual_allocation': 90, 'color': '#e84393'},
+            {'name': 'Paternity Leave', 'code': 'PAT', 'annual_allocation': 14, 'color': '#0984e3'},
+            {'name': 'Compassionate Leave', 'code': 'COMP', 'annual_allocation': 5, 'color': '#fdcb6e'},
+            {'name': 'Childcare Leave', 'code': 'CC', 'annual_allocation': 6, 'color': '#a29bfe'},
+            {'name': 'Emergency Leave', 'code': 'EL', 'annual_allocation': 3, 'color': '#d63031'},
+            {'name': 'Study Leave', 'code': 'ST', 'annual_allocation': 5, 'color': '#00b894'},
+            {'name': 'Unpaid Leave', 'code': 'UL', 'annual_allocation': 0, 'color': '#636e72'},
+        ]
+        
+        created_count = 0
+        for default in defaults:
+            existing = LeaveType.query.filter_by(
+                company_id=company_id, 
+                name=default['name']
+            ).first()
+            
+            if not existing:
+                lt = LeaveType(
+                    name=default['name'],
+                    code=default['code'],
+                    annual_allocation=default['annual_allocation'],
+                    color=default.get('color'),
+                    company_id=company_id,
+                    created_by=getattr(current_user, 'username', 'system'),
+                    is_active=True
+                )
+                db.session.add(lt)
+                created_count += 1
+        
+        if created_count > 0:
+            db.session.commit()
+            return jsonify({'success': True, 'message': f'{created_count} default leave types created successfully'})
+        else:
+            return jsonify({'success': True, 'message': 'Default leave types already exist'})
+            
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error creating defaults: {str(e)}'})
+
+
 @app.route('/masters/leave-groups/add', methods=['GET', 'POST'])
 @require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def leave_group_add():

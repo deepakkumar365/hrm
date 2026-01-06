@@ -7,7 +7,8 @@
     <div class="dashboard-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-4">
             <div>
-                <h1 class="dashboard-title">{% if is_edit %}Edit Leave Request{% else %}Submit Leave Request{% endif %}</h1>
+                <h1 class="dashboard-title">{% if is_edit %}Edit Leave Request{% else %}Submit Leave Request{% endif %}
+                </h1>
                 <p class="dashboard-subtitle">Keep your manager informed and plan your time away with clarity</p>
             </div>
             <div class="d-flex gap-3 flex-wrap">
@@ -34,32 +35,55 @@
                             <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Leave Details</h6>
                             <div class="row g-2">
                                 <div class="col-md-6">
-                                    <label for="leave_type" class="form-label small">Leave Type *</label>
-                                    <select class="form-select form-select-sm" id="leave_type" name="leave_type" required>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label for="leave_type" class="form-label small mb-0">Leave Type *</label>
+                                        {% if (current_user.role.name if current_user.role else None) in ['Tenant
+                                        Admin', 'HR Manager', 'Super Admin'] %}
+                                        <a href="{{ url_for('operation_master_dashboard') }}"
+                                            class="text-decoration-none small" title="Configure Leave Types">
+                                            <i class="fas fa-plus-circle text-primary"></i> <span
+                                                class="d-none d-sm-inline">Quick Add</span>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                    <select class="form-select form-select-sm" id="leave_type" name="leave_type"
+                                        required {% if not has_leave_types %}disabled{% endif %}>
                                         <option value="">Select Leave Type</option>
-                                        <option value="Annual Leave" {% if (form_data and form_data.get('leave_type') == 'Annual Leave') or (leave and leave.leave_type == 'Annual Leave' and not form_data) %}selected{% endif %}>Annual Leave</option>
-                                        <option value="Casual Leave" {% if (form_data and form_data.get('leave_type') == 'Casual Leave') or (leave and leave.leave_type == 'Casual Leave' and not form_data) %}selected{% endif %}>Casual Leave</option>
-                                        <option value="Medical Leave" {% if (form_data and form_data.get('leave_type') == 'Medical Leave') or (leave and leave.leave_type == 'Medical Leave' and not form_data) %}selected{% endif %}>Medical Leave</option>
-                                        <option value="Maternity Leave" {% if (form_data and form_data.get('leave_type') == 'Maternity Leave') or (leave and leave.leave_type == 'Maternity Leave' and not form_data) %}selected{% endif %}>Maternity Leave</option>
-                                        <option value="Paternity Leave" {% if (form_data and form_data.get('leave_type') == 'Paternity Leave') or (leave and leave.leave_type == 'Paternity Leave' and not form_data) %}selected{% endif %}>Paternity Leave</option>
-                                        <option value="Compassionate Leave" {% if (form_data and form_data.get('leave_type') == 'Compassionate Leave') or (leave and leave.leave_type == 'Compassionate Leave' and not form_data) %}selected{% endif %}>Compassionate Leave</option>
-                                        <option value="Childcare Leave" {% if (form_data and form_data.get('leave_type') == 'Childcare Leave') or (leave and leave.leave_type == 'Childcare Leave' and not form_data) %}selected{% endif %}>Childcare Leave</option>
-                                        <option value="Emergency Leave" {% if (form_data and form_data.get('leave_type') == 'Emergency Leave') or (leave and leave.leave_type == 'Emergency Leave' and not form_data) %}selected{% endif %}>Emergency Leave</option>
-                                        <option value="Study Leave" {% if (form_data and form_data.get('leave_type') == 'Study Leave') or (leave and leave.leave_type == 'Study Leave' and not form_data) %}selected{% endif %}>Study Leave</option>
-                                        <option value="Unpaid Leave" {% if (form_data and form_data.get('leave_type') == 'Unpaid Leave') or (leave and leave.leave_type == 'Unpaid Leave' and not form_data) %}selected{% endif %}>Unpaid Leave</option>
+                                        {% for type in leave_types %}
+                                        <option value="{{ type.name }}" {% if (form_data and
+                                            form_data.get('leave_type')==type.name) or (leave and
+                                            leave.leave_type==type.name and not form_data) %}selected{% endif %}
+                                            data-allocation="{{ type.annual_allocation }}"
+                                            data-color="{{ type.color }}">
+                                            {{ type.name }}
+                                        </option>
+                                        {% endfor %}
                                     </select>
+                                    {% if not has_leave_types %}
+                                    <div class="form-text text-danger small">
+                                        <i class="fas fa-exclamation-circle me-1"></i>No leave types configured. Please
+                                        contact HR.
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small">Available Balance</label>
-                                    <div class="form-control form-control-sm bg-light" id="balanceDisplay">Select type</div>
+                                    <div class="form-control form-control-sm bg-light" id="balanceDisplay">Select type
+                                    </div>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="start_date" class="form-label small">Start Date *</label>
-                                    <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ form_data.get('start_date') if form_data else (leave.start_date.strftime('%Y-%m-%d') if leave else '') }}" required onclick="this.showPicker()">
+                                    <input type="date" class="form-control form-control-sm" id="start_date"
+                                        name="start_date"
+                                        value="{{ form_data.get('start_date') if form_data else (leave.start_date.strftime('%Y-%m-%d') if leave else '') }}"
+                                        required onclick="this.showPicker()">
                                 </div>
                                 <div class="col-md-4">
                                     <label for="end_date" class="form-label small">End Date *</label>
-                                    <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ form_data.get('end_date') if form_data else (leave.end_date.strftime('%Y-%m-%d') if leave else '') }}" required onclick="this.showPicker()">
+                                    <input type="date" class="form-control form-control-sm" id="end_date"
+                                        name="end_date"
+                                        value="{{ form_data.get('end_date') if form_data else (leave.end_date.strftime('%Y-%m-%d') if leave else '') }}"
+                                        required onclick="this.showPicker()">
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label small">Half Day</label>
@@ -107,17 +131,20 @@
                             <h6 class="mb-3"><i class="fas fa-file-alt me-2"></i>Reason & Documentation</h6>
                             <div class="mb-2">
                                 <label for="reason" class="form-label small">Reason for Leave</label>
-                                <textarea class="form-control form-control-sm" id="reason" name="reason" rows="2" placeholder="Brief context">{{ form_data.get('reason') if form_data else (leave.reason if leave else '') }}</textarea>
+                                <textarea class="form-control form-control-sm" id="reason" name="reason" rows="2"
+                                    placeholder="Brief context">{{ form_data.get('reason') if form_data else (leave.reason if leave else '') }}</textarea>
                             </div>
                             <div class="mb-2">
                                 <label for="attachment" class="form-label small">
                                     <i class="fas fa-paperclip me-1"></i>Attach Document (Optional)
                                 </label>
-                                <input type="file" class="form-control form-control-sm" id="attachment" name="attachment" accept=".pdf,.jpg,.jpeg,.png">
+                                <input type="file" class="form-control form-control-sm" id="attachment"
+                                    name="attachment" accept=".pdf,.jpg,.jpeg,.png">
                                 <small class="form-text text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
                             </div>
                             <div class="alert alert-warning py-2 px-3 mb-0">
-                                <small><i class="fas fa-info-circle me-1"></i><strong>Guidelines:</strong> Annual leave: 2 weeks advance. Medical leave >3 days: MC required.</small>
+                                <small><i class="fas fa-info-circle me-1"></i><strong>Guidelines:</strong> Annual leave:
+                                    2 weeks advance. Medical leave >3 days: MC required.</small>
                             </div>
                         </div>
                         <!-- Right: Contact & Coverage -->
@@ -126,18 +153,21 @@
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <label for="contact_phone" class="form-label small">Emergency Contact</label>
-                                    <input type="tel" class="form-control form-control-sm" id="contact_phone" name="contact_phone" placeholder="+65 XXXX XXXX">
+                                    <input type="tel" class="form-control form-control-sm" id="contact_phone"
+                                        name="contact_phone" placeholder="+65 XXXX XXXX">
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small">Contactable</label>
                                     <div class="form-check form-switch mt-1">
                                         <input class="form-check-input" type="checkbox" id="contactable" checked>
-                                        <label class="form-check-label small" for="contactable">Available for urgent matters</label>
+                                        <label class="form-check-label small" for="contactable">Available for urgent
+                                            matters</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <label for="coverage_notes" class="form-label small">Handover Notes</label>
-                                    <textarea class="form-control form-control-sm" id="coverage_notes" name="coverage_notes" rows="2" placeholder="Task coverage details"></textarea>
+                                    <textarea class="form-control form-control-sm" id="coverage_notes"
+                                        name="coverage_notes" rows="2" placeholder="Task coverage details"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -152,8 +182,8 @@
                         <div>
                             <h6 class="mb-1">Request Summary</h6>
                             <small class="text-muted">
-                                <span id="summaryType">—</span> | 
-                                <span id="summaryPeriod">—</span> | 
+                                <span id="summaryType">—</span> |
+                                <span id="summaryPeriod">—</span> |
                                 <span id="summaryDays">0</span> days
                             </small>
                         </div>
@@ -174,137 +204,135 @@
 
 {% block scripts %}
 <script>
-// Form validation
-(function() {
-    'use strict';
-    window.addEventListener('load', function() {
-        var forms = document.getElementsByClassName('needs-validation');
-        var validation = Array.prototype.filter.call(forms, function(form) {
-            form.addEventListener('submit', function(event) {
-                if (form.checkValidity() === false) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    }, false);
-})();
+    // Form validation
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
 
-// Date calculation
-function calculateDays() {
-    const startDate = document.getElementById('start_date').value;
-    const endDate = document.getElementById('end_date').value;
-    
-    if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        
-        if (end >= start) {
-            const totalMs = end.getTime() - start.getTime() + (24 * 60 * 60 * 1000);
-            const totalDays = Math.floor(totalMs / (24 * 60 * 60 * 1000));
-            
-            // Calculate working days (excluding weekends)
-            let workingDays = 0;
-            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-                if (d.getDay() !== 0 && d.getDay() !== 6) { // Not Sunday or Saturday
-                    workingDays++;
+    // Date calculation
+    function calculateDays() {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            if (end >= start) {
+                const totalMs = end.getTime() - start.getTime() + (24 * 60 * 60 * 1000);
+                const totalDays = Math.floor(totalMs / (24 * 60 * 60 * 1000));
+
+                // Calculate working days (excluding weekends)
+                let workingDays = 0;
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    if (d.getDay() !== 0 && d.getDay() !== 6) { // Not Sunday or Saturday
+                        workingDays++;
+                    }
                 }
+
+                document.getElementById('totalDays').textContent = totalDays;
+                document.getElementById('workingDays').textContent = workingDays;
+
+                // Update summary
+                document.getElementById('summaryDays').textContent = workingDays;
+
+                // Adjust for half day
+                const isHalfDay = document.getElementById('halfDay').checked;
+                if (isHalfDay && totalDays === 1) {
+                    document.getElementById('workingDays').textContent = '0.5';
+                    document.getElementById('summaryDays').textContent = '0.5';
+                }
+            } else {
+                document.getElementById('totalDays').textContent = '0';
+                document.getElementById('workingDays').textContent = '0';
+                document.getElementById('summaryDays').textContent = '0';
             }
-            
-            document.getElementById('totalDays').textContent = totalDays;
-            document.getElementById('workingDays').textContent = workingDays;
-            
-            // Update summary
-            document.getElementById('summaryDays').textContent = workingDays;
-            
-            // Adjust for half day
-            const isHalfDay = document.getElementById('halfDay').checked;
-            if (isHalfDay && totalDays === 1) {
-                document.getElementById('workingDays').textContent = '0.5';
-                document.getElementById('summaryDays').textContent = '0.5';
-            }
-        } else {
-            document.getElementById('totalDays').textContent = '0';
-            document.getElementById('workingDays').textContent = '0';
-            document.getElementById('summaryDays').textContent = '0';
         }
     }
-}
 
-// Leave balance simulation (in real app, this would fetch from API)
-function updateLeaveBalance() {
-    const leaveType = document.getElementById('leave_type').value;
-    const balanceDisplay = document.getElementById('balanceDisplay');
-    const summaryBalance = document.getElementById('summaryBalance');
-    const summaryType = document.getElementById('summaryType');
-    
-    if (leaveType) {
-        // Simulate different balances for different leave types
-        const balances = {
-            'Annual Leave': '12 days',
-            'Medical Leave': '10 days',
-            'Maternity Leave': '90 days',
-            'Paternity Leave': '14 days',
-            'Compassionate Leave': '5 days',
-            'Childcare Leave': '6 days',
-            'Emergency Leave': '3 days',
-            'Study Leave': '5 days',
-            'Unpaid Leave': 'No limit'
-        };
-        
-        const balance = balances[leaveType] || 'Check with HR';
-        balanceDisplay.textContent = balance;
-        summaryBalance.textContent = balance;
-        summaryType.textContent = leaveType;
-    } else {
-        balanceDisplay.textContent = 'Select leave type';
-        summaryBalance.textContent = '—';
-        summaryType.textContent = '—';
-    }
-}
+    // Leave balance logic
+    function updateLeaveBalance() {
+        const leaveTypeSelect = document.getElementById('leave_type');
+        const selectedOption = leaveTypeSelect.options[leaveTypeSelect.selectedIndex];
 
-// Update summary period
-function updateSummaryPeriod() {
-    const startDate = document.getElementById('start_date').value;
-    const endDate = document.getElementById('end_date').value;
-    const summaryPeriod = document.getElementById('summaryPeriod');
-    
-    if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        
-        const startFormatted = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const endFormatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        
-        if (startDate === endDate) {
-            summaryPeriod.textContent = startFormatted + ', ' + start.getFullYear();
+        const balanceDisplay = document.getElementById('balanceDisplay');
+        const summaryBalance = document.getElementById('summaryBalance');
+        const summaryType = document.getElementById('summaryType');
+
+        if (leaveTypeSelect.value) {
+            summaryType.textContent = leaveTypeSelect.value;
+
+            // Use allocation data from the option if available
+            const allocation = selectedOption.getAttribute('data-allocation');
+            if (allocation && allocation !== '0') {
+                const balanceText = allocation + ' days (Annual)'; // Simplified logic
+                balanceDisplay.textContent = balanceText;
+                summaryBalance.textContent = balanceText;
+            } else {
+                // Fallback for types without specific allocation set
+                balanceDisplay.textContent = 'Check with HR';
+                summaryBalance.textContent = '—';
+            }
         } else {
-            summaryPeriod.textContent = startFormatted + ' - ' + endFormatted;
+            balanceDisplay.textContent = 'Select leave type';
+            summaryBalance.textContent = '—';
+            summaryType.textContent = '—';
         }
-    } else {
-        summaryPeriod.textContent = '—';
     }
-}
 
-// Event listeners
-document.getElementById('start_date').addEventListener('change', function() {
+    // Update summary period
+    function updateSummaryPeriod() {
+        const startDate = document.getElementById('start_date').value;
+        const endDate = document.getElementById('end_date').value;
+        const summaryPeriod = document.getElementById('summaryPeriod');
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            const startFormatted = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const endFormatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+            if (startDate === endDate) {
+                summaryPeriod.textContent = startFormatted + ', ' + start.getFullYear();
+            } else {
+                summaryPeriod.textContent = startFormatted + ' - ' + endFormatted;
+            }
+        } else {
+            summaryPeriod.textContent = '—';
+        }
+    }
+
+    // Event listeners
+    document.getElementById('start_date').addEventListener('change', function () {
+        calculateDays();
+        updateSummaryPeriod();
+    });
+
+    document.getElementById('end_date').addEventListener('change', function () {
+        calculateDays();
+        updateSummaryPeriod();
+    });
+
+    document.getElementById('halfDay').addEventListener('change', calculateDays);
+    document.getElementById('leave_type').addEventListener('change', updateLeaveBalance);
+
+    // Initialize
+    updateLeaveBalance();
     calculateDays();
     updateSummaryPeriod();
-});
-
-document.getElementById('end_date').addEventListener('change', function() {
-    calculateDays();
-    updateSummaryPeriod();
-});
-
-document.getElementById('halfDay').addEventListener('change', calculateDays);
-document.getElementById('leave_type').addEventListener('change', updateLeaveBalance);
-
-// Initialize
-updateLeaveBalance();
-calculateDays();
-updateSummaryPeriod();
 </script>
 {% endblock %}
 
