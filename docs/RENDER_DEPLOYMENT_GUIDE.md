@@ -195,7 +195,7 @@ postgresql://user:pass@host:5432/db?sslmode=require
 |--------|-------------|------------|
 | **Environment Variable** | `ENVIRONMENT=development` | `ENVIRONMENT=production` |
 | **Database** | `DEV_DATABASE_URL` (pgnoltrion) | `PROD_DATABASE_URL` (noltrion_hrm) |
-| **Session Secret** | `DEV_SESSION_SECRET` | `PROD_SESSION_SECRET` (auto-generated) |
+| **Session Secret** | `PROD_SESSION_SECRET` | `PROD_SESSION_SECRET` (auto-generated) |
 | **SSL Mode** | Optional | Required (`?sslmode=require`) |
 | **Migrations** | Manual (`flask db upgrade`) | Automatic (via `build.sh`) |
 | **Server** | Flask dev server | Gunicorn (production WSGI) |

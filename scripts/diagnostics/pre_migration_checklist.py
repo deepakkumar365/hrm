@@ -30,7 +30,7 @@ class PreMigrationChecker:
         required_vars = {
             'DEV_DATABASE_URL': 'Development Database URL',
             'PROD_DATABASE_URL': 'Production Database URL',
-            'DEV_SESSION_SECRET': 'Development Session Secret',
+            'PROD_SESSION_SECRET': 'Development Session Secret',
             'PROD_SESSION_SECRET': 'Production Session Secret',
         }
         

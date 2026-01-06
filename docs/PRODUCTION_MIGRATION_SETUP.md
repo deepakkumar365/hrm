@@ -227,7 +227,7 @@ Then set the value in Render Dashboard → Environment → Add Secret.
 |---------|-------------------|---------------------|
 | **ENVIRONMENT** | `development` | `production` |
 | **Database** | `DEV_DATABASE_URL` (pgnoltrion) | `PROD_DATABASE_URL` (noltrion_hrm) |
-| **Session Secret** | `DEV_SESSION_SECRET` | `PROD_SESSION_SECRET` (auto-generated) |
+| **Session Secret** | `PROD_SESSION_SECRET` | `PROD_SESSION_SECRET` (auto-generated) |
 | **Migrations** | Manual (`flask db upgrade`) | Automatic (via `build.sh`) |
 | **Server** | Flask dev server | Gunicorn |
 

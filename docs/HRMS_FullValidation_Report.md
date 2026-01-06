@@ -168,7 +168,7 @@
 1. **Before running the app**, ensure .env file has proper values:
    ```
    ENVIRONMENT=development
-   DEV_SESSION_SECRET=your-secret-key
+   PROD_SESSION_SECRET=your-secret-key
    DEV_DATABASE_URL=postgresql://user:pass@host/dbname
    ```
 

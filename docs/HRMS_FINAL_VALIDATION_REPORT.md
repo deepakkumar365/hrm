@@ -258,7 +258,7 @@ All pages now use consistent teal (#008080) color palette:
 # .env file should contain:
 ENVIRONMENT=production                  # or development
 DEV_DATABASE_URL=postgresql://user:pass@host/dbname
-DEV_SESSION_SECRET=your-secret-key
+PROD_SESSION_SECRET=your-secret-key
 PROD_DATABASE_URL=postgresql://user:pass@host/dbname  # for production
 PROD_SESSION_SECRET=your-secret-key                   # for production
 UPLOAD_FOLDER=/path/to/uploads         # optional, has default
