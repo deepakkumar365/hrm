@@ -204,9 +204,15 @@
                     {% endif %}
                 </button>
 
+                <a href="{{ url_for('attendance_regularization_list') }}" class="btn btn-outline-primary shadow-sm">
+                    <i class="fas fa-history me-1"></i>My Requests
+                </a>
                 <a href="{{ url_for('attendance_mark') }}" class="btn btn-primary shadow-sm">
                     <i class="fas fa-plus me-1"></i>Mark Attendance
                 </a>
+                <button type="button" class="btn btn-outline-success shadow-sm" onclick="exportAttendance()">
+                    <i class="fas fa-file-export me-1"></i>Export
+                </button>
             </div>
         </div>
 
@@ -397,6 +403,12 @@
                             <button class="btn btn-sm btn-outline-secondary border-0" title="View">
                                 <i class="fas fa-eye"></i>
                             </button>
+                            {% if record.status in ['Absent', 'Incomplete', 'Half Day', 'Present'] %}
+                            <button class="btn btn-sm btn-outline-warning border-0" title="Regularize"
+                                onclick="openRegularizationModal('{{ record.id }}', '{{ record.date }}', '{{ record.clock_in_time.isoformat() if record.clock_in_time else '' }}', '{{ record.clock_out_time.isoformat() if record.clock_out_time else '' }}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -455,26 +467,81 @@
         </div>
         {% endif %}
 
+        <!-- Regularization Request Modal -->
+        <div class="modal fade" id="regularizationModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="{{ url_for('attendance_regularize_request') }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Request Regularization</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="attendance_id" id="regAttendanceId">
+                            <p class="text-muted small">Submit a request to correct your attendance for <span
+                                    id="regDateDisplay" class="fw-bold"></span>.</p>
+
+                            <div class="mb-3">
+                                <label class="form-label">Corrected Clock In <span class="text-danger">*</span></label>
+                                <input type="datetime-local" name="corrected_clock_in" id="regClockIn"
+                                    class="form-control" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Corrected Clock Out</label>
+                                <input type="datetime-local" name="corrected_clock_out" id="regClockOut"
+                                    class="form-control">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Reason <span class="text-danger">*</span></label>
+                                <textarea name="reason" class="form-control" rows="3" required
+                                    placeholder="e.g. Forgot to clock out, System error, worked from client site..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Submit Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
     </div>
 
-    <!-- Pagination -->
-    {% if attendance_records.pages > 1 %}
-    <nav class="mt-4">
-        <ul class="pagination justify-content-center">
-            {% for page_num in attendance_records.iter_pages() %}
-            {% if page_num %}
-            <li class="page-item {{ 'active' if page_num == attendance_records.page }}">
-                <a class="page-link shadow-none"
-                    href="{{ url_for('attendance_list_view', page=page_num, date_range=current_filters.date_range, start_date=current_filters.start_date, end_date=current_filters.end_date, employee=current_filters.employee, status=current_filters.status, department=current_filters.department, designation_id=current_filters.designation_id, employment_type=current_filters.employment_type, company_id=current_filters.company_id, per_page=per_page) }}">{{
-                    page_num }}</a>
-            </li>
-            {% else %}
-            <li class="page-item disabled"><span class="page-link">...</span></li>
-            {% endif %}
-            {% endfor %}
-        </ul>
-    </nav>
-    {% endif %}
+    <!-- Items Per Page & Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="d-flex align-items-center">
+            <label class="me-2 text-muted small">Items per page:</label>
+            <select class="form-select form-select-sm shadow-sm border-0" style="width: auto;"
+                onchange="changePerPage(this.value)">
+                <option value="20" {% if per_page==20 %}selected{% endif %}>20</option>
+                <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+                <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
+            </select>
+        </div>
+
+        {% if attendance_records.pages > 1 %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% for page_num in attendance_records.iter_pages() %}
+                {% if page_num %}
+                <li class="page-item {{ 'active' if page_num == attendance_records.page }}">
+                    <a class="page-link shadow-none"
+                        href="{{ url_for('attendance_list_view', page=page_num, date_range=current_filters.date_range, start_date=current_filters.start_date, end_date=current_filters.end_date, employee=current_filters.employee, status=current_filters.status, department=current_filters.department, designation_id=current_filters.designation_id, employment_type=current_filters.employment_type, company_id=current_filters.company_id, per_page=per_page) }}">{{
+                        page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
 </div>
 </div>
 </div>
@@ -496,5 +563,39 @@
             });
         }
     });
+
+    function exportAttendance() {
+        const urlParams = new URLSearchParams(window.location.search);
+        // We don't need page/per_page for export as it exports all
+        urlParams.delete('page');
+        urlParams.delete('per_page');
+
+        const exportUrl = "{{ url_for('attendance_export') }}?" + urlParams.toString();
+        window.location.href = exportUrl;
+    }
+
+    function changePerPage(amount) {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('per_page', amount);
+        urlParams.set('page', 1); // Reset to page 1
+        window.location.search = urlParams.toString();
+    }
+
+    function openRegularizationModal(id, date, inTime, outTime) {
+        document.getElementById('regAttendanceId').value = id;
+        document.getElementById('regDateDisplay').textContent = date;
+
+        // Format ISO string to datetime-local friendly format (YYYY-MM-DDTHH:MM)
+        // ISO string from python is normally YYYY-MM-DDTHH:MM:SS.ssssss
+        // We slice to match input requirement
+        if (inTime) document.getElementById('regClockIn').value = inTime.slice(0, 16);
+        else document.getElementById('regClockIn').value = '';
+
+        if (outTime) document.getElementById('regClockOut').value = outTime.slice(0, 16);
+        else document.getElementById('regClockOut').value = '';
+
+        new bootstrap.Modal(document.getElementById('regularizationModal')).show();
+    }
+
 </script>
 {% endblock %}

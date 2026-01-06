@@ -78,9 +78,9 @@ if environment == "production":
     if not database_url:
         raise RuntimeError("PROD_DATABASE_URL is not set. Define it in .env for production environment.")
 else:
-    session_secret = os.environ.get("DEV_SESSION_SECRET")
+    session_secret = os.environ.get("PROD_SESSION_SECRET")
     if not session_secret:
-        raise RuntimeError("DEV_SESSION_SECRET is not set. Define it in .env for development environment.")
+        raise RuntimeError("PROD_SESSION_SECRET is not set. Define it in .env for development environment.")
     database_url = os.environ.get("DEV_DATABASE_URL")
     if not database_url:
         raise RuntimeError("DEV_DATABASE_URL is not set. Define it in .env for development environment.")

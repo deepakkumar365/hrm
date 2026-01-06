@@ -19,7 +19,8 @@ from core.models import (
     Employee, Attendance, Leave, OTAttendance, OTApproval, OTRequest, Payroll,
     Company, User, LeaveType, Department, Designation
 )
-from core.utils import get_current_month_dates, check_permission
+from core.utils import get_current_month_dates, check_permission, get_current_user_timezone
+import pytz
 
 
 def get_user_companies():
@@ -201,9 +202,9 @@ def get_attendance_details(company_id, status):
         } for rec in records]
 
 
-def get_today_summary(company_id):
+def get_today_summary(company_id, target_date=None):
     """Get today's attendance and leave summary"""
-    today = date.today()
+    today = target_date if target_date else date.today()
     
     # Today's attendance
     # IMPORTANT: 'Present' count includes both 'Present' and 'Late' (they are present at work, just marked late)
@@ -342,12 +343,18 @@ def hr_manager_dashboard():
         flash('Company not found', 'danger')
         return redirect(url_for('index'))
     
-    # Get current month and year
-    today = date.today()
+    # Get current month and year - LOCALIZED
+    user_tz_str = get_current_user_timezone()
+    try:
+        user_tz = pytz.timezone(user_tz_str)
+        today = datetime.now(pytz.utc).astimezone(user_tz).date()
+    except Exception:
+        today = date.today()
+        
     month_start, month_end = get_current_month_dates()
     
     # Get statistics
-    today_summary = get_today_summary(selected_company_id)
+    today_summary = get_today_summary(selected_company_id, target_date=today)
     
     # MTD (Month-To-Date)
     mtd_attendance = get_attendance_stats(selected_company_id, month_start, month_end)

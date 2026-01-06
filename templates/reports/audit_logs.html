@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="mb-4">
+        <h4 class="mb-1">System Audit Logs</h4>
+        <div class="text-muted small">Track important system events and changes</div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-sm">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Time</th>
+                            <th>Action</th>
+                            <th>Resource</th>
+                            <th>User</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs.items %}
+                        <tr>
+                            <td class="ps-4 text-muted" style="width: 150px;">
+                                {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </td>
+                            <td><span class="fw-bold text-dark">{{ log.action }}</span></td>
+                            <td>
+                                <span class="badge bg-light text-secondary border">{{ log.resource_type }}</span>
+                                <span class="text-muted small ms-1">#{{ log.resource_id }}</span>
+                            </td>
+                            <td>
+                                {% if log.user %}
+                                {{ log.user.username }}
+                                {% else %}
+                                <span class="text-muted">System</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted text-truncate" style="max-width: 300px;" title="{{ log.changes }}">
+                                {{ log.changes }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if logs.pages > 1 %}
+            <div class="p-3 border-top">
+                <ul class="pagination justify-content-center mb-0">
+                    {% for page_num in logs.iter_pages() %}
+                    {% if page_num %}
+                    <li class="page-item {{ 'active' if page_num == logs.page else '' }}">
+                        <a class="page-link" href="{{ url_for('report_audit_logs', page=page_num) }}">{{ page_num }}</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

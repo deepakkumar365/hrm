@@ -21,7 +21,7 @@ cp .env.example .env
 # Edit .env and add your database URL:
 ENVIRONMENT=development
 DEV_DATABASE_URL=postgresql://username:password@localhost:5432/hrms_db
-DEV_SESSION_SECRET=your-secret-key-here
+PROD_SESSION_SECRET=your-secret-key-here
 ```
 **Status Check:**
 - [ ] ✅ .env file created

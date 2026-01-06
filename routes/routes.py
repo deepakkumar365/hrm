@@ -2423,7 +2423,157 @@ def attendance_list():
                                'employment_types': all_employment_types,
                                'status_options': status_options
                            },
-                           ot_summaries_map=ot_summaries_map)
+                            ot_summaries_map=ot_summaries_map,
+                            per_page=per_page)
+
+
+@app.route('/attendance/export', endpoint='attendance_export')
+@require_login
+def attendance_export():
+    """Export attendance records to CSV based on current filters"""
+    # Filter Parameters (Same as list view)
+    date_range = request.args.get('date_range', 'month')
+    employee_search = request.args.get('employee', '')
+    status = request.args.get('status', '', type=str)
+    department = request.args.get('department', '', type=str)
+    designation_id = request.args.get('designation_id', '', type=str)
+    employment_type = request.args.get('employment_type', '', type=str)
+    company_id = request.args.get('company_id', '', type=str)
+
+    query = Attendance.query.join(Employee)
+
+    # 1. Date Range Filtering
+    from core.utils import get_current_user_timezone
+    import pytz
+    user_tz = pytz.timezone(get_current_user_timezone())
+    today = datetime.now(pytz.utc).astimezone(user_tz).date()
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+
+    if date_range == 'today':
+        query = query.filter(Attendance.date == today)
+    elif date_range == 'week':
+        start_week = today - timedelta(days=today.weekday())
+        end_week = start_week + timedelta(days=6)
+        query = query.filter(Attendance.date.between(start_week, end_week))
+    elif date_range == 'last_month':
+        first_of_this_month = today.replace(day=1)
+        last_day_of_last_month = first_of_this_month - timedelta(days=1)
+        first_day_of_last_month = last_day_of_last_month.replace(day=1)
+        query = query.filter(Attendance.date.between(first_day_of_last_month, last_day_of_last_month))
+    elif date_range == 'custom' and start_date and end_date:
+        try:
+            s_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            e_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            query = query.filter(Attendance.date.between(s_date, e_date))
+        except (ValueError, TypeError):
+            start_month = today.replace(day=1)
+            _, last_day = calendar.monthrange(today.year, today.month)
+            end_month = today.replace(day=last_day)
+            query = query.filter(Attendance.date.between(start_month, end_month))
+    else:  # Default to month
+        start_month = today.replace(day=1)
+        _, last_day = calendar.monthrange(today.year, today.month)
+        end_month = today.replace(day=last_day)
+        query = query.filter(Attendance.date.between(start_month, end_month))
+
+    # 2. Employee Search
+    if employee_search:
+        if employee_search.isdigit():
+            query = query.filter(Attendance.employee_id == int(employee_search))
+        else:
+            query = query.filter(
+                db.or_(
+                    Employee.first_name.ilike(f'%{employee_search}%'),
+                    Employee.last_name.ilike(f'%{employee_search}%')
+                )
+            )
+
+    # 3. New Filters
+    if status:
+        query = query.filter(Attendance.status == status)
+    
+    if department:
+        query = query.filter(Employee.department == department)
+
+    if designation_id and designation_id.isdigit():
+        query = query.filter(Employee.designation_id == int(designation_id))
+
+    if employment_type:
+        query = query.filter(Employee.employment_type == employment_type)
+
+    if company_id:
+        try:
+            query = query.filter(Employee.company_id == company_id)
+        except Exception:
+            pass
+
+    # 4. Role-based filtering
+    user_role = current_user.role.name if current_user.role else None
+
+    if user_role in ['User', 'Employee'] and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        employee_id = current_user.employee_profile.id
+        query = query.filter(Attendance.employee_id == employee_id)
+
+    elif user_role == 'Manager' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        manager_id = current_user.employee_profile.id
+        query = query.filter(
+            db.or_(
+                Attendance.employee_id == manager_id,
+                Employee.manager_id == manager_id
+            )
+        )
+
+    elif user_role == 'Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        admin_id = current_user.employee_profile.id
+        query = query.filter(Attendance.employee_id == admin_id)
+
+    elif user_role in ['HR Manager', 'Tenant Admin']:
+        accessible_companies = current_user.get_accessible_companies()
+        company_ids = [c.id for c in accessible_companies]
+        query = query.filter(Employee.company_id.in_(company_ids))
+
+    # Fetch all records (no pagination)
+    records = query.order_by(Attendance.date.desc()).all()
+
+    # Prepare data for CSV
+    data = []
+    for record in records:
+        employee = record.employee
+        
+        # Format times
+        clock_in_str = ''
+        clock_out_str = ''
+        
+        if employee:
+            # Re-use logic to get displayed time using employee's timezone
+            clock_in_src = record.clock_in_time if record.clock_in_time else record.clock_in
+            if clock_in_src:
+                dt = get_employee_local_time(employee, clock_in_src, record.date)
+                clock_in_str = dt.strftime('%Y-%m-%d %H:%M:%S') if dt else ''
+            
+            clock_out_src = record.clock_out_time if record.clock_out_time else record.clock_out
+            if clock_out_src:
+                dt = get_employee_local_time(employee, clock_out_src, record.date)
+                clock_out_str = dt.strftime('%Y-%m-%d %H:%M:%S') if dt else ''
+
+        data.append({
+            'Employee ID': employee.employee_id if employee else '',
+            'Name': f"{employee.first_name} {employee.last_name}" if employee else 'Unknown',
+            'Date': record.date.strftime('%Y-%m-%d'),
+            'Status': record.status,
+            'Sub Status': record.sub_status or '',
+            'Clock In': clock_in_str,
+            'Clock Out': clock_out_str,
+            'Regular Hours': f"{record.regular_hours:.2f}" if record.regular_hours else '0.00',
+            'Overtime Hours': f"{record.overtime_hours:.2f}" if record.overtime_hours else '0.00',
+            'Total Hours': f"{record.total_hours:.2f}" if record.total_hours else '0.00'
+        })
+
+    filename = f"attendance_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    headers = ['Employee ID', 'Name', 'Date', 'Status', 'Sub Status', 'Clock In', 'Clock Out', 'Regular Hours', 'Overtime Hours', 'Total Hours']
+    
+    return export_to_csv(data, filename, headers)
 
 
 @app.route('/attendance/mark', methods=['GET', 'POST'])
@@ -3495,6 +3645,10 @@ def attendance_bulk_manage():
     
     # Handle form submission for bulk updates
     if request.method == 'POST':
+        from core.timezone_utils import convert_local_time_to_utc
+        from datetime import time as dt_time
+        from core.models import AttendanceSegment
+
         action = request.form.get('action')
         try:
             if action == 'bulk_log':
@@ -3511,9 +3665,7 @@ def attendance_bulk_manage():
                 bulk_clock_in = request.form.get('bulk_clock_in')
                 bulk_clock_out = request.form.get('bulk_clock_out')
                 
-                from datetime import time as dt_time
-                from core.models import AttendanceSegment
-                from core.timezone_utils import convert_local_time_to_utc
+
                 
                 count = 0
                 for emp in employees:
@@ -3615,8 +3767,7 @@ def attendance_bulk_manage():
                 # Get bulk times for common application
                 bulk_clock_in_str = request.form.get('bulk_clock_in')
                 bulk_clock_out_str = request.form.get('bulk_clock_out')
-                from datetime import time as dt_time
-                from core.models import AttendanceSegment
+
 
                 count = 0
                 for emp in employees:

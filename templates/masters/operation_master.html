@@ -640,7 +640,8 @@
                         <select name="working_hours_id" class="form-select" required>
                             <option value="">Select Working Hours</option>
                             {% for wh in all_working_hours %}
-                            <option value="{{ wh.id }}">{{ wh.name }} ({{ wh.start_time.strftime('%H:%M') if wh.start_time else 'N/A' }}-{{
+                            <option value="{{ wh.id }}">{{ wh.name }} ({{ wh.start_time.strftime('%H:%M') if
+                                wh.start_time else 'N/A' }}-{{
                                 wh.end_time.strftime('%H:%M') if wh.end_time else 'N/A' }})</option>
                             {% endfor %}
                         </select>
@@ -738,7 +739,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Add Leave Type</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="d-flex align-items-center">
+                    <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="createDefaultsBtn"
+                        title="Create standard leave types">
+                        <i class="fas fa-magic me-1"></i> Defaults
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
             </div>
             <div class="modal-body">
                 <form id="addLeaveTypeForm" action="{{ url_for('leave_type_add') }}" method="POST"
@@ -747,13 +754,21 @@
                     {% if all_companies and all_companies|length > 1 %}
                     <div class="mb-3">
                         <label class="form-label">Company</label>
-                        <select name="company_id" class="form-select" required>
+                        <select name="company_id" id="lt_company_id" class="form-select" required>
                             <option value="">Select Company</option>
                             {% for c in all_companies %}
                             <option value="{{ c.id }}">{{ c.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
+                    {% else %}
+                    <!-- Hidden field if only 1 company or employee -->
+                    {% if current_user.employee_profile and current_user.employee_profile.company_id %}
+                    <input type="hidden" name="company_id" id="lt_company_id"
+                        value="{{ current_user.employee_profile.company_id }}">
+                    {% elif all_companies and all_companies|length == 1 %}
+                    <input type="hidden" name="company_id" id="lt_company_id" value="{{ all_companies[0].id }}">
+                    {% endif %}
                     {% endif %}
 
                     <div class="row">
@@ -772,6 +787,67 @@
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Save Leave Type</button>
                 </form>
+
+                <script>
+                    document.getElementById('createDefaultsBtn').addEventListener('click', function () {
+                        const companyIdSelect = document.getElementById('lt_company_id');
+                        let companyId = companyIdSelect ? companyIdSelect.value : null;
+
+                        // Handle hidden input case or if select is hidden
+                        if (!companyId) {
+                            const hiddenInput = document.querySelector('input[name="company_id"]');
+                            if (hiddenInput) companyId = hiddenInput.value;
+                        }
+
+                        // If still null and user is HR/Emp, maybe use profile (handled by backend but we need it here if select exists)
+                        if (!companyId && (!companyIdSelect || companyIdSelect.value === "")) {
+                            alert("Please select a company first");
+                            return;
+                        }
+
+                        if (!confirm("This will create standard leave types (Annual, Medical, etc.) for the selected company. Continue?")) {
+                            return;
+                        }
+
+                        const btn = this;
+                        const originalHtml = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Creating...';
+
+                        const formData = new FormData();
+                        formData.append('company_id', companyId);
+
+                        fetch('/masters/leave-types/create-defaults', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    // Refresh table
+                                    fetchData('leave-types-tbody', '/api/masters/leave-types');
+                                    // Close modal
+                                    const modal = bootstrap.Modal.getInstance(document.getElementById('addLeaveTypeModal'));
+                                    modal.hide();
+                                    // Show toast/alert
+                                    alert(data.message);
+                                } else {
+                                    alert(data.message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('An error occurred while creating defaults');
+                            })
+                            .finally(() => {
+                                btn.disabled = false;
+                                btn.innerHTML = originalHtml;
+                            });
+                    });
+                </script>
             </div>
         </div>
     </div>
