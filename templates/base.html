@@ -391,7 +391,9 @@
                     </a>
                     <div class="sidebar-submenu">
                         {% if check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' %}
+                        {% if user_role == 'Super Admin' %}
                         <a class="nav-link" href="{{ url_for('tenant_list') }}">Tenants</a>
+                        {% endif %}
                         <a class="nav-link" href="{{ url_for('company_list') }}">Companies</a>
                         <a class="nav-link" href="{{ url_for('role_list') }}">Roles</a>
                         {% endif %}
