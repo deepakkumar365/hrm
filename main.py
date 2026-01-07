@@ -48,6 +48,8 @@ from routes.dev_routes import dev_bp
 app.register_blueprint(dev_bp, url_prefix='/dev')
 from routes.routes_monitoring import monitoring_bp
 app.register_blueprint(monitoring_bp)
+from routes.routes_org_structure import org_structure_bp
+app.register_blueprint(org_structure_bp)
 from core import cli_commands  # noqa: F401
 
 if __name__ == "__main__":

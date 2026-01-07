@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Organization Structure - Nexar{% endblock %}
+
+{% block head %}
+<link href="{{ url_for('static', filename='css/org_tree.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Organization Structure</h1>
+            <p class="text-muted small mb-0">Drag and drop nodes to adjust reporting lines.</p>
+        </div>
+
+        <!-- Company Selector (If multiple companies available) -->
+        {% if companies|length > 1 %}
+        <div class="d-flex align-items-center">
+            <label for="companySelect" class="me-2 fw-bold text-nowrap">Select Company:</label>
+            <select id="companySelect" class="form-select form-select-sm" style="width: 200px;">
+                {% for company in companies %}
+                <option value="{{ company.id }}" {% if company.id|string==selected_company_id|string %}selected{% endif
+                    %}>
+                    {{ company.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% elif companies|length == 1 %}
+        <input type="hidden" id="companySelect" value="{{ companies[0].id }}">
+        {% endif %}
+    </div>
+
+    <!-- Tree Container -->
+    <div class="card shadow border-0">
+        <div class="card-body p-0">
+            <div class="org-tree-wrapper p-4" id="orgTreeContainer">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Confirmation -->
+<div class="modal fade" id="confirmMoveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Change</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to change the manager for <b id="employeeName"></b>?</p>
+                <p class="mb-0">New Manager: <b id="newManagerName"></b></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmMoveBtn">Confirm Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/org_tree.js') }}"></script>
+{% endblock %}
