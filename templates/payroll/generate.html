@@ -97,6 +97,9 @@
 
     .custom-table thead {
         background: #f1f5f9;
+        position: sticky;
+        top: 0;
+        z-index: 10;
     }
 
     .custom-table th {
@@ -105,21 +108,29 @@
         font-size: 0.7rem;
         letter-spacing: 0.05em;
         color: #475569;
-        padding: 0.75rem 0.5rem;
+        padding: 0.5rem 0.25rem;
+        /* Reduced padding */
         border-bottom: 2px solid #e2e8f0;
         white-space: nowrap;
         vertical-align: middle;
     }
 
     .custom-table td {
-        padding: 0.5rem 0.5rem;
+        padding: 0.25rem 0.25rem;
+        /* Reduced padding */
         vertical-align: middle;
         border-bottom: 1px solid #f1f5f9;
         white-space: nowrap;
+        height: 48px;
+        /* Fixed height for consistency */
     }
 
     .custom-table tr:hover {
         background-color: #f8fafc;
+    }
+
+    .row-editing {
+        background-color: #fffbeb !important;
     }
 
     /* Status Indicators */
@@ -188,19 +199,18 @@
 
     /* Column Width Optimization */
     .col-checkbox {
-        width: 30px;
+        width: 25px;
         text-align: center;
     }
 
     .col-employee {
-        min-width: 180px;
+        min-width: 160px;
         width: 15%;
     }
 
-    /* Reduced but adequate */
     .col-designation {
-        width: 10%;
-        max-width: 120px;
+        width: 8%;
+        max-width: 100px;
         overflow: hidden;
         text-overflow: ellipsis;
     }
@@ -209,10 +219,11 @@
         text-align: right;
         font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;
         letter-spacing: -0.5px;
+        min-width: 70px;
     }
 
     .col-action {
-        width: 60px;
+        width: 80px;
         text-align: center;
     }
 
@@ -227,6 +238,34 @@
 
     .bg-subtle-blue {
         background-color: rgba(224, 231, 255, 0.2);
+    }
+
+    /* Inline Input Styles */
+    .inline-input {
+        width: 100%;
+        padding: 0.2rem 0.4rem;
+        font-size: 0.8125rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        text-align: right;
+        background: white;
+    }
+
+    .inline-input:focus {
+        border-color: #6366f1;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Hide arrows in number inputs */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type=number] {
+        -moz-appearance: textfield;
     }
 </style>
 
@@ -381,17 +420,18 @@
                             <th class="col-money" title="Meal Allowance">Meal</th>
                             <th class="col-money" title="Other Allowance">Other</th>
                             <th class="col-money text-center">OT Hrs</th>
+                            <th class="col-money bg-light" title="OT Rate (Editable only in edit mode)">OT Rate</th>
                             <th class="col-money">OT ($)</th>
                             <th class="col-money text-deduct">CPF</th>
                             <th class="col-money text-deduct">Total Ded</th>
                             <th class="col-money bg-subtle-blue">Net Pay</th>
                             <th>Status</th>
-                            <th class="col-action">Edit</th>
+                            <th class="col-action">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="employeeTableBody">
                         <tr>
-                            <td colspan="15" class="text-center py-5 text-muted">
+                            <td colspan="16" class="text-center py-5 text-muted">
                                 <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
                                 <p class="mb-0">Select Company and Month to load data</p>
                             </td>
@@ -413,99 +453,10 @@
     </form>
 </div>
 
-<!-- Edit Employee Modal -->
-<div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title fw-bold" id="editModalTitle">Edit Payroll</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4 pt-3">
-                <input type="hidden" id="editEmpId">
-
-                <div class="row g-4">
-                    <!-- Earnings Section -->
-                    <div class="col-md-6 border-end">
-                        <h6 class="text-uppercase text-success fw-bold small mb-3"><i
-                                class="fas fa-arrow-up me-1"></i>Earnings</h6>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Basic Salary</label>
-                            <input type="number" class="form-control" id="editBasic" step="0.01">
-                        </div>
-
-                        <label class="form-label small fw-bold mb-1">Allowances Breakdown</label>
-                        <div class="card bg-light border-0 p-3 mb-3">
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <label class="form-label small text-muted">Transport</label>
-                                    <input type="number" class="form-control form-control-sm" id="editAllow1"
-                                        step="0.01">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label small text-muted">Housing</label>
-                                    <input type="number" class="form-control form-control-sm" id="editAllow2"
-                                        step="0.01">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label small text-muted">Meal</label>
-                                    <input type="number" class="form-control form-control-sm" id="editAllow3"
-                                        step="0.01">
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label small text-muted">Other</label>
-                                    <input type="number" class="form-control form-control-sm" id="editAllow4"
-                                        step="0.01">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">OT Rate (Hourly)</label>
-                            <input type="number" class="form-control" id="editOTRate" step="0.01">
-                            <div class="form-text small">OT Amount = Rate x hours worked</div>
-                        </div>
-                    </div>
-
-                    <!-- Deductions Section -->
-                    <div class="col-md-6">
-                        <h6 class="text-uppercase text-danger fw-bold small mb-3"><i
-                                class="fas fa-arrow-down me-1"></i>Deductions</h6>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">System Calculated CPF</label>
-                            <div class="form-control bg-light text-muted" id="displayCPF">$0.00</div>
-                        </div>
-
-                        <div class="alert alert-light border shadow-sm">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="small text-muted">Gross Pay:</span>
-                                <span class="fw-bold text-success" id="projectedGross">$0.00</span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="small text-muted">Total Deductions:</span>
-                                <span class="fw-bold text-danger" id="projectedDed">$0.00</span>
-                            </div>
-                            <hr class="my-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold text-dark">NET PAY:</span>
-                                <span class="h4 mb-0 fw-bold text-primary" id="projectedNet">$0.00</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer border-top-0 pt-0">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary px-4" onclick="saveModalChanges()">Save Changes</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
     let employeeData = [];
     let currentPage = 1;
-    const itemsPerPage = 20; // Increased density
+    const itemsPerPage = 20;
 
     // Load Data
     function loadEmployeeData() {
@@ -524,11 +475,11 @@
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    // Restore selection state
                     const selectedIds = new Set(employeeData.filter(e => e.selected).map(e => e.id));
 
                     employeeData = data.employees.map(emp => ({
                         ...emp,
+                        isEditing: false, // Track edit state
                         selected: selectedIds.has(emp.id) || employeeData.length === 0
                     }));
                     renderTable();
@@ -552,7 +503,7 @@
         tbody.innerHTML = '';
 
         if (employeeData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="15" class="text-center py-5">No employees found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="16" class="text-center py-5">No employees found.</td></tr>`;
             return;
         }
 
@@ -562,18 +513,55 @@
 
         pageData.forEach(emp => {
             const hasBank = emp.has_bank_info;
-            const lowAttendance = emp.attendance_rate < 80;
-
-            // Status Badges
             let statusHtml = '';
             if (!hasBank) statusHtml += `<span class="badge status-error" title="Missing Bank Details"><i class="fas fa-university"></i></span> `;
-            // if (lowAttendance) statusHtml += `<span class="badge status-warning" title="Low Attendance">${emp.attendance_rate}%</span> `;
             if (hasBank) statusHtml += `<span class="badge status-success">OK</span>`;
 
             const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-            const row = `
-                <tr id="row-${emp.id}">
+            // Row Content logic based on isEditing state
+            let rowContent = '';
+
+            if (emp.isEditing) {
+                // Editable ROW
+                rowContent = `
+                    <td class="col-checkbox"></td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle">${initials}</div>
+                            <div class="text-truncate" style="max-width: 140px;">${emp.name}</div>
+                        </div>
+                    </td>
+                    <td><span class="text-muted small">${emp.designation}</span></td>
+                    
+                    <!-- Editable Fields -->
+                    <td><input type="number" class="inline-input" id="edit-basic-${emp.id}" value="${emp.basic_salary.toFixed(2)}"></td>
+                    <td><input type="number" class="inline-input" id="edit-a1-${emp.id}" value="${emp.allowance_1.toFixed(2)}"></td>
+                    <td><input type="number" class="inline-input" id="edit-a2-${emp.id}" value="${emp.allowance_2.toFixed(2)}"></td>
+                    <td><input type="number" class="inline-input" id="edit-a3-${emp.id}" value="${emp.allowance_3.toFixed(2)}"></td>
+                    <td><input type="number" class="inline-input" id="edit-a4-${emp.id}" value="${emp.allowance_4.toFixed(2)}"></td>
+                    
+                    <td class="text-center text-muted">${emp.ot_hours.toFixed(1)}</td>
+                    <td><input type="number" class="inline-input" id="edit-otrate-${emp.id}" value="${emp.ot_rate.toFixed(2)}"></td>
+                    
+                    <!-- Calculated (Read Only during edit) -->
+                     <td class="col-money text-muted opacity-50">$${formatNumber(emp.ot_amount)}</td>
+                    <td class="col-money text-muted opacity-50">-${formatNumber(emp.cpf_deduction)}</td>
+                    <td class="col-money text-muted opacity-50">-${formatNumber(emp.total_deductions)}</td>
+                    <td class="col-money text-muted opacity-50">$${formatNumber(emp.net_salary)}</td>
+                    
+                    <td><span class="badge bg-warning text-dark">Editing...</span></td>
+                    
+                    <td class="col-action">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-success" title="Save" onclick="saveRow(${emp.id})"><i class="fas fa-check"></i></button>
+                            <button type="button" class="btn btn-light border" title="Cancel" onclick="cancelRow(${emp.id})"><i class="fas fa-times"></i></button>
+                        </div>
+                    </td>
+                `;
+            } else {
+                // Static ROW
+                rowContent = `
                     <td class="col-checkbox">
                         <div class="form-check d-flex justify-content-center">
                             <input class="form-check-input emp-checkbox" type="checkbox" name="employees"
@@ -598,18 +586,22 @@
                     <td class="col-money text-muted">$${formatNumber(emp.allowance_3)}</td>
                     <td class="col-money text-muted">$${formatNumber(emp.allowance_4)}</td>
                     <td class="text-center text-muted">${emp.ot_hours.toFixed(1)}</td>
+                    <td class="col-money text-muted bg-light">$${formatNumber(emp.ot_rate)}</td>
                     <td class="col-money text-earn">$${formatNumber(emp.ot_amount)}</td>
                     <td class="col-money text-deduct">-${formatNumber(emp.cpf_deduction)}</td>
                     <td class="col-money text-deduct">-${formatNumber(emp.total_deductions)}</td>
                     <td class="col-money bg-subtle-blue fw-bold text-primary">$${formatNumber(emp.net_salary)}</td>
                     <td>${statusHtml}</td>
                     <td class="col-action">
-                        <button type="button" class="btn btn-sm btn-light border py-0 px-2" onclick="openEditModal(${emp.id})">
+                        <button type="button" class="btn btn-sm btn-light border py-0 px-2" onclick="editRow(${emp.id})">
                              <i class="fas fa-pencil-alt text-muted small"></i>
                         </button>
                     </td>
-                </tr>
-            `;
+                `;
+            }
+
+            const trClass = emp.isEditing ? 'row-editing' : '';
+            const row = `<tr id="row-${emp.id}" class="${trClass}">${rowContent}</tr>`;
             tbody.insertAdjacentHTML('beforeend', row);
         });
 
@@ -648,97 +640,82 @@
         renderTable();
     }
 
-    // Modal Editing
-    let currentEditId = null;
+    // INLINE EDITING LOGIC
+    function editRow(id) {
+        const emp = employeeData.find(e => e.id === id);
+        if (emp) {
+            emp.isEditing = true;
+            renderTable();
+            // Focus first input
+            setTimeout(() => document.getElementById(`edit-basic-${id}`).focus(), 50);
+        }
+    }
 
-    function openEditModal(id) {
+    function cancelRow(id) {
+        const emp = employeeData.find(e => e.id === id);
+        if (emp) {
+            emp.isEditing = false;
+            renderTable();
+        }
+    }
+
+    function saveRow(id) {
         const emp = employeeData.find(e => e.id === id);
         if (!emp) return;
 
-        currentEditId = id;
-        document.getElementById('editEmpId').value = id;
-        document.getElementById('editModalTitle').innerText = `Edit: ${emp.name}`;
-
-        document.getElementById('editBasic').value = emp.basic_salary;
-        document.getElementById('editAllow1').value = emp.allowance_1;
-        document.getElementById('editAllow2').value = emp.allowance_2;
-        document.getElementById('editAllow3').value = emp.allowance_3;
-        document.getElementById('editAllow4').value = emp.allowance_4;
-
-        document.getElementById('editOTRate').value = emp.ot_rate;
-
-        // Read-only logic
-        document.getElementById('displayCPF').innerText = '$' + formatNumber(emp.cpf_deduction);
-
-        updateProjectedNet(); // Initial calc
-
-        new bootstrap.Modal(document.getElementById('editModal')).show();
-    }
-
-    // Live Calculation in Modal
-    ['editBasic', 'editAllow1', 'editAllow2', 'editAllow3', 'editAllow4', 'editOTRate'].forEach(id => {
-        document.getElementById(id).addEventListener('input', updateProjectedNet);
-    });
-
-    function updateProjectedNet() {
-        const emp = employeeData.find(e => e.id === currentEditId);
-
-        const basic = parseFloat(document.getElementById('editBasic').value) || 0;
-        const a1 = parseFloat(document.getElementById('editAllow1').value) || 0;
-        const a2 = parseFloat(document.getElementById('editAllow2').value) || 0;
-        const a3 = parseFloat(document.getElementById('editAllow3').value) || 0;
-        const a4 = parseFloat(document.getElementById('editAllow4').value) || 0;
-
-        const otRate = parseFloat(document.getElementById('editOTRate').value) || 0;
-        const otAmount = otRate * (emp ? emp.ot_hours : 0);
-
-        const gross = basic + a1 + a2 + a3 + a4 + otAmount;
-        const cpf = emp ? emp.cpf_deduction : 0; // CPF not auto-recalc in this simplified JS model, assumes server does it well enough for preview
-
-        // Approximate total deduct - assuming just CPF for live preview (server will correct on save)
-        const totalDed = cpf;
-        const net = gross - totalDed;
-
-        document.getElementById('projectedGross').innerText = '$' + formatNumber(gross);
-        document.getElementById('projectedDed').innerText = '$' + formatNumber(totalDed);
-        document.getElementById('projectedNet').innerText = '$' + formatNumber(net);
-    }
-
-    function saveModalChanges() {
-        const empId = document.getElementById('editEmpId').value;
-
+        // Gather data
         const payload = {
-            employee_id: empId,
-            basic_salary: document.getElementById('editBasic').value,
-            allowance_1_amount: document.getElementById('editAllow1').value,
-            allowance_2_amount: document.getElementById('editAllow2').value,
-            allowance_3_amount: document.getElementById('editAllow3').value,
-            allowance_4_amount: document.getElementById('editAllow4').value,
-            ot_rate_per_hour: document.getElementById('editOTRate').value
+            employee_id: id,
+            basic_salary: document.getElementById(`edit-basic-${id}`).value,
+            allowance_1_amount: document.getElementById(`edit-a1-${id}`).value,
+            allowance_2_amount: document.getElementById(`edit-a2-${id}`).value,
+            allowance_3_amount: document.getElementById(`edit-a3-${id}`).value,
+            allowance_4_amount: document.getElementById(`edit-a4-${id}`).value,
+            ot_rate_per_hour: document.getElementById(`edit-otrate-${id}`).value
         };
 
-        // Call API
+        // Show loading state for row? Or just wait
+        const originalText = document.querySelector(`#row-${id} .btn-success`).innerHTML;
+        document.querySelector(`#row-${id} .btn-success`).innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        // 1. Update Config (Backend)
         fetch('/payroll/config/update', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    loadEmployeeData(); // Refresh to get server-side CPF recalculations
-                    const modalEl = document.getElementById('editModal');
-                    const modal = bootstrap.Modal.getInstance(modalEl);
-                    modal.hide();
+                    // 2. Fetch Fresh Data (Backend Calculation) for ONLY this employee
+                    const month = document.getElementById('month').value;
+                    const year = document.getElementById('year').value;
+                    const company = document.getElementById('company').value; // Needed for auth/filter logic
+
+                    return fetch(`/api/payroll/preview?employee_id=${id}&company_id=${company}&month=${month}&year=${year}`);
                 } else {
-                    alert('Error updating: ' + data.message);
+                    throw new Error(data.message);
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.employees.length > 0) {
+                    const updatedEmp = data.employees[0];
+
+                    // Update local model
+                    Object.assign(emp, updatedEmp);
+                    emp.isEditing = false;
+
+                    // Re-render
+                    renderTable();
+                    updateSummary(); // Recalculate totals
                 }
             })
             .catch(err => {
-                console.error('Error:', err);
-                alert('Failed to save changes.');
+                console.error(err);
+                alert('Failed to save changes: ' + err.message);
+                emp.isEditing = false; // Revert on error
+                renderTable();
             });
     }
 

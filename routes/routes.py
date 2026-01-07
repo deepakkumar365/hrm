@@ -1969,6 +1969,7 @@ def payroll_preview_api():
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         company_id = request.args.get('company_id', type=str)
+        employee_id = request.args.get('employee_id', type=int)
 
         if not month or not year:
             return jsonify({
@@ -1976,7 +1977,7 @@ def payroll_preview_api():
                 'message': 'Month and year are required'
             }), 400
 
-        if not company_id:
+        if not company_id and not employee_id:
             return jsonify({
                 'success': False,
                 'message': 'Company ID is required'
@@ -1988,11 +1989,15 @@ def payroll_preview_api():
         last_day = monthrange(year, month)[1]
         pay_period_end = date(year, month, last_day)
 
-        # Get active employees for the selected company
-        employees = Employee.query.filter_by(
-            company_id=company_id,
-            is_active=True
-        ).all()
+        # Get active employees
+        query = Employee.query.filter_by(is_active=True)
+        
+        if employee_id:
+            query = query.filter_by(id=employee_id)
+        elif company_id:
+            query = query.filter_by(company_id=company_id)
+            
+        employees = query.all()
 
         employee_data = []
         for emp in employees:
