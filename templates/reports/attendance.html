@@ -70,7 +70,6 @@
                             <th>Clock In</th>
                             <th>Clock Out</th>
                             <th>Work Hours</th>
-                            <th>Overtime</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -115,17 +114,8 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if record.work_hours %}
+                                {% if record.total_hours and record.total_hours > 0 %}
                                 <strong>{{ "%.2f"|format(record.regular_hours or 0) }} hrs</strong>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if record.overtime_hours and record.overtime_hours > 0 %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="fas fa-clock me-1"></i>{{ "%.2f"|format(record.overtime_hours) }} hrs
-                                </span>
                                 {% else %}
                                 <span class="text-muted">-</span>
                                 {% endif %}
@@ -149,7 +139,7 @@
                         {% endfor %}
                         {% else %}
                         <tr>
-                            <td colspan="10" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
                                 No attendance records found for the selected date range
                             </td>
@@ -196,11 +186,6 @@
                         <strong>Half Day:</strong>
                         <span class="badge bg-info">{{ records|selectattr('status', 'equalto', 'Half Day')|list|length
                             }}</span>
-                    </div>
-                    <div class="col-md-3">
-                        <strong>Total Overtime:</strong>
-                        <span class="badge bg-warning text-dark">{{
-                            "%.2f"|format(records|sum(attribute='overtime_hours') or 0) }} hrs</span>
                     </div>
                 </div>
             </div>

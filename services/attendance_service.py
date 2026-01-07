@@ -105,7 +105,7 @@ class AttendanceService:
                 # Duration calculation remains correct with aware datetimes or consistent naive UTC
                 # but since seg.clock_in is now UTC (standardized), we use now_utc
                 duration = (now_utc - open_work.clock_in.replace(tzinfo=utc)).total_seconds() / 60
-                open_work.duration_minutes = int(max(0, duration))
+                open_work.duration_minutes = int(round(max(0, duration)))
             
             # Start break segment
             new_break = AttendanceSegment(
@@ -147,7 +147,7 @@ class AttendanceService:
             # Close break
             open_break.clock_out = now_utc # Store UTC
             duration = (now_utc - open_break.clock_in.replace(tzinfo=utc)).total_seconds() / 60
-            open_break.duration_minutes = int(max(0, duration))
+            open_break.duration_minutes = int(round(max(0, duration)))
             
             # Update legacy break field
             attendance.break_end = now_local.time()
@@ -211,7 +211,7 @@ class AttendanceService:
             # Close segment
             open_segment.clock_out = now_utc # Store UTC
             duration = (now_utc - open_segment.clock_in.replace(tzinfo=utc)).total_seconds() / 60
-            open_segment.duration_minutes = int(max(0, duration))
+            open_segment.duration_minutes = int(round(max(0, duration)))
             if remarks:
                 open_segment.remarks = (open_segment.remarks or "") + f" | Out Note: {remarks}"
             
@@ -268,7 +268,7 @@ class AttendanceService:
                 # seg.clock_in is stored in UTC, so we can subtract directly if both naive or both aware
                 seg_clock_in = seg.clock_in.replace(tzinfo=utc) if seg.clock_in.tzinfo is None else seg.clock_in
                 duration = (cutoff_local.astimezone(utc) - seg_clock_in).total_seconds() / 60
-                seg.duration_minutes = int(max(0, duration))
+                seg.duration_minutes = int(round(max(0, duration)))
                 seg.remarks = (seg.remarks or "") + " [Auto-closed]"
 
             # 2. Update main record
@@ -295,7 +295,7 @@ class AttendanceService:
                 c_in = s.clock_in.replace(tzinfo=utc) if s.clock_in.tzinfo is None else s.clock_in
                 c_out = s.clock_out.replace(tzinfo=utc) if s.clock_out.tzinfo is None else s.clock_out
                 duration = (c_out - c_in).total_seconds() / 60
-                s.duration_minutes = int(max(0, duration))
+                s.duration_minutes = int(round(max(0, duration)))
                 total_minutes += s.duration_minutes
         
         total_hours = total_minutes / 60.0

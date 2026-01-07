@@ -19,17 +19,16 @@
             </thead>
             <tbody>
                 {% for ot in ot_requests %}
-                <!-- Determine objects based on role/query structure -->
-                {% if user_role == 'Manager' %}
-                <!-- ot is OTApproval object joined with OTRequest/Employee -->
-                {% set emp = ot.ot_request.employee %}
-                {% set req = ot.ot_request %}
-                {% set target_id = ot.id %} <!-- Approval ID for Manager -->
-                {% else %}
-                <!-- ot is OTRequest object (HR view) -->
+                <!-- Standardized OTRequest object -->
                 {% set emp = ot.employee %}
                 {% set req = ot %}
-                {% set target_id = ot.id %} <!-- Request ID for HR -->
+
+                {% if ot._approval_context == 'manager' %}
+                {% set target_id = ot._approval_id %} <!-- Use approval_id for Manager actions -->
+                {% set role_context = 'Manager' %}
+                {% else %}
+                {% set target_id = ot.id %} <!-- Use request id for Admin/HR actions -->
+                {% set role_context = 'HR Manager' %} <!-- or Admin -->
                 {% endif %}
 
                 <tr>
@@ -47,7 +46,7 @@
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="openOTModal({
                                     id: '{{ target_id }}',
-                                    role: '{{ user_role }}',
+                                    role: '{{ role_context }}',
                                     empName: '{{ emp.first_name }} {{ emp.last_name }}',
                                     date: '{{ req.ot_date.strftime('%d %b %Y') }}',
                                     hours: '{{ req.requested_hours }}h',
