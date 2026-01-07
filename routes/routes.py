@@ -2031,10 +2031,19 @@ def payroll_preview_api():
             total_deductions = cpf_deduction
             net_salary = gross_salary - total_deductions
 
+            # Validation checks
+            has_bank_info = bool(emp.bank_account and emp.bank_name)
+            
+            # Calculate attendance rate
+            # Assuming standard 22 working days for simple percentage if no schedule
+            working_days_in_month = 22 # Default approximation or calculate from schedule
+            attendance_rate = min(100, int((attendance_days / working_days_in_month) * 100)) if working_days_in_month > 0 else 0
+
             employee_data.append({
                 'id': emp.id,
                 'employee_id': emp.employee_id,
                 'name': f"{emp.first_name} {emp.last_name}",
+                'designation': emp.designation.name if emp.designation else 'Employee',
                 'basic_salary': basic_salary,
                 'allowance_1': allowance_1,
                 'allowance_2': allowance_2,
@@ -2045,10 +2054,13 @@ def payroll_preview_api():
                 'ot_rate': ot_rate,
                 'ot_amount': ot_amount,
                 'attendance_days': attendance_days,
+                'attendance_rate': attendance_rate,
                 'gross_salary': gross_salary,
                 'cpf_deduction': cpf_deduction,
                 'total_deductions': total_deductions,
-                'net_salary': net_salary
+                'net_salary': net_salary,
+                'has_bank_info': has_bank_info,
+                'profile_image': emp.profile_image_path or None
             })
 
         return jsonify({
