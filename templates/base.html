@@ -177,6 +177,17 @@
                 </div>
                 {% endif %}
 
+                <!-- APPROVAL DASHBOARD (New) -->
+                {% if user_role in ['Manager', 'HR Manager', 'Tenant Admin', 'Super Admin'] or is_reporting_manager %}
+                <div class="nav-group">
+                    <a class="sidebar-link {{ 'active' if request.endpoint == 'approval_dashboard' }}"
+                        href="{{ url_for('approval_dashboard') }}" title="Approvals">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Approvals</span>
+                    </a>
+                </div>
+                {% endif %}
+
 
                 <!-- Super Admin / Tenant Admin / HR Manager Menu (Masters) -->
                 {% set show_masters = (check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden') or
@@ -206,6 +217,7 @@
                             Master</a>
                         {% endif %}
                         <a class="nav-link" href="{{ url_for('operation_master_dashboard') }}">Operation Master</a>
+                        <a class="nav-link" href="{{ url_for('org_structure.index') }}">Org Structure</a>
                     </div>
                 </div>
                 {% endif %}
@@ -311,6 +323,7 @@
                 {% endif %}
 
                 <!-- OT Management -->
+                <!--
                 {% if is_admin or is_reporting_manager %}
                 <div class="nav-group">
                     <a class="sidebar-link" href="#" role="button">
@@ -330,6 +343,7 @@
                     </div>
                 </div>
                 {% endif %}
+                -->
 
                 <!-- Payroll -->
                 {% if check_ui_access(user_role, 'Payroll') != 'Hidden' and user_role != 'Employee' %}
@@ -378,7 +392,9 @@
                     </a>
                     <div class="sidebar-submenu">
                         {% if check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden' %}
+                        {% if user_role == 'Super Admin' %}
                         <a class="nav-link" href="{{ url_for('tenant_list') }}">Tenants</a>
+                        {% endif %}
                         <a class="nav-link" href="{{ url_for('company_list') }}">Companies</a>
                         <a class="nav-link" href="{{ url_for('role_list') }}">Roles</a>
                         {% endif %}

@@ -160,7 +160,7 @@ def list_tenants():
 
 
 @app.route('/api/tenants/<uuid:tenant_id>', methods=['GET'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager', 'Tenant Admin'])
 def get_tenant(tenant_id):
     """Get a specific tenant by ID"""
     try:
@@ -175,7 +175,7 @@ def get_tenant(tenant_id):
 
 
 @app.route('/api/tenants', methods=['POST'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin'])
 def create_tenant():
     """Create a new tenant"""
     try:
@@ -224,7 +224,7 @@ def create_tenant():
 
 
 @app.route('/api/tenants/<uuid:tenant_id>', methods=['PUT'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin'])
 def update_tenant(tenant_id):
     """Update an existing tenant"""
     try:
@@ -272,7 +272,7 @@ def update_tenant(tenant_id):
 
 
 @app.route('/api/tenants/<uuid:tenant_id>', methods=['DELETE'])
-@require_role(['Super Admin', 'Tenant Admin'])
+@require_role(['Super Admin'])
 def delete_tenant(tenant_id):
     """Delete a tenant (cascades to companies and employees)"""
     try:
@@ -681,25 +681,7 @@ def get_company_employees(company_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# =====================================================
-# WEB UI ROUTES (Optional - for HTML pages)
-# =====================================================
 
-@app.route('/tenants')
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def tenants_page():
-    """Render tenants management page"""
-    tenants = Tenant.query.order_by(Tenant.created_at.desc()).all()
-    return render_template('masters/tenants.html', tenants=tenants)
-
-
-@app.route('/companies')
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def companies_page():
-    """Render companies management page"""
-    companies = Company.query.order_by(Company.created_at.desc()).all()
-    tenants = Tenant.query.filter_by(is_active=True).all()
-    return render_template('masters/companies.html', companies=companies, tenants=tenants)
 
 
 # =====================================================

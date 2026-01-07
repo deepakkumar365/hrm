@@ -1613,7 +1613,7 @@ def employee_edit(employee_id):
 
 # Payroll Management Routes
 @app.route('/payroll')
-@require_role(['Super Admin', 'Admin', 'Manager', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager', 'HR Manager', 'Tenant Admin'])
 def payroll_list():
     """List payroll records"""
     from uuid import UUID
@@ -1626,17 +1626,13 @@ def payroll_list():
 
     query = Payroll.query.join(Employee)
 
-    # Get accessible companies for HR Manager
+    # Get accessible companies for HR Manager and Tenant Admin
     accessible_companies = []
     accessible_company_ids = []
-    if (current_user.role.name if current_user.role else None) == 'HR Manager':
-        if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
-            # HR Manager can see their own company
-            if current_user.employee_profile.company_id:
-                accessible_company_ids = [current_user.employee_profile.company_id]
-                accessible_companies = Company.query.filter_by(
-                    id=current_user.employee_profile.company_id
-                ).all()
+    if (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+        accessible_companies = current_user.get_accessible_companies()
+        accessible_company_ids = [c.id for c in accessible_companies]
+        
         # Filter query to only include employees from accessible companies
         query = query.filter(Employee.company_id.in_(accessible_company_ids))
 
@@ -1645,8 +1641,8 @@ def payroll_list():
             extract('month', Payroll.pay_period_end) == month,
             extract('year', Payroll.pay_period_end) == year)
 
-    # Company filter for HR Manager
-    if company_id and (current_user.role.name if current_user.role else None) == 'HR Manager':
+    # Company filter for HR Manager / Tenant Admin
+    if company_id and (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
         try:
             company_uuid = UUID(company_id)
             if company_uuid in accessible_company_ids:
@@ -1654,8 +1650,8 @@ def payroll_list():
         except (ValueError, TypeError):
             pass
 
-    # Employee filter for HR Manager
-    if employee_id and (current_user.role.name if current_user.role else None) == 'HR Manager':
+    # Employee filter for HR Manager / Tenant Admin
+    if employee_id and (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
         try:
             emp_id = int(employee_id)
             query = query.filter(Payroll.employee_id == emp_id)
@@ -1681,9 +1677,9 @@ def payroll_list():
     current_year = datetime.now().year
     years = list(range(current_year, current_year - 30, -1))
 
-    # Get employees for filter dropdown (HR Manager only)
+    # Get employees for filter dropdown (HR Manager / Tenant Admin only)
     employees = []
-    if (current_user.role.name if current_user.role else None) == 'HR Manager':
+    if (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
         employees = Employee.query.filter(
             Employee.company_id.in_(accessible_company_ids),
             Employee.is_active == True
@@ -1705,7 +1701,7 @@ def payroll_list():
 
 
 @app.route('/payroll/generate', methods=['GET', 'POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager', 'Tenant Admin'])
 def payroll_generate():
     """Generate payroll for selected period"""
     if request.method == 'POST':
@@ -1841,9 +1837,11 @@ def payroll_generate():
     current_month = dt.now().month
     current_year = dt.now().year
 
-    # Get companies for current user's organization/tenant
+    # Get companies for current user's organization/tenant or accessible companies
     companies = []
-    if current_user and current_user.organization:
+    if (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+        companies = current_user.get_accessible_companies()
+    elif current_user and current_user.organization:
         tenant_id = current_user.organization.tenant_id
         if tenant_id:
             companies = Company.query.filter_by(
@@ -1858,7 +1856,7 @@ def payroll_generate():
 
 
 @app.route('/payroll/config')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager', 'Tenant Admin'])
 def payroll_config():
     """Payroll configuration page - manage employee salary allowances and OT rates"""
     page = request.args.get('page', 1, type=int)
@@ -1866,6 +1864,12 @@ def payroll_config():
 
     # Query active employees
     query = Employee.query.filter_by(is_active=True)
+
+    # Scoping for HR Manager / Tenant Admin
+    if (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+        accessible_companies = current_user.get_accessible_companies()
+        company_ids = [c.id for c in accessible_companies]
+        query = query.filter(Employee.company_id.in_(company_ids))
 
     if search:
         query = query.filter(
@@ -1896,7 +1900,7 @@ def payroll_config():
 
 
 @app.route('/payroll/config/update', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager', 'Tenant Admin'])
 def payroll_config_update():
     """Update payroll configuration for an employee (AJAX endpoint)"""
     try:
@@ -1904,6 +1908,16 @@ def payroll_config_update():
         employee_id = data.get('employee_id')
 
         employee = Employee.query.get_or_404(employee_id)
+
+        # Access Control Check
+        if (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+             accessible_companies = current_user.get_accessible_companies()
+             accessible_company_ids = [c.id for c in accessible_companies]
+             if not employee.company_id or employee.company_id not in accessible_company_ids:
+                 return jsonify({
+                    'success': False,
+                    'message': 'You do not have permission to update this employee.'
+                 }), 403
         config = employee.payroll_config
 
         if not config:
@@ -1948,13 +1962,14 @@ def payroll_config_update():
 
 
 @app.route('/api/payroll/preview')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager', 'Tenant Admin'])
 def payroll_preview_api():
     """API endpoint to preview payroll data for selected month"""
     try:
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
         company_id = request.args.get('company_id', type=str)
+        employee_id = request.args.get('employee_id', type=int)
 
         if not month or not year:
             return jsonify({
@@ -1962,7 +1977,7 @@ def payroll_preview_api():
                 'message': 'Month and year are required'
             }), 400
 
-        if not company_id:
+        if not company_id and not employee_id:
             return jsonify({
                 'success': False,
                 'message': 'Company ID is required'
@@ -1974,11 +1989,15 @@ def payroll_preview_api():
         last_day = monthrange(year, month)[1]
         pay_period_end = date(year, month, last_day)
 
-        # Get active employees for the selected company
-        employees = Employee.query.filter_by(
-            company_id=company_id,
-            is_active=True
-        ).all()
+        # Get active employees
+        query = Employee.query.filter_by(is_active=True)
+        
+        if employee_id:
+            query = query.filter_by(id=employee_id)
+        elif company_id:
+            query = query.filter_by(company_id=company_id)
+            
+        employees = query.all()
 
         employee_data = []
         for emp in employees:
@@ -2017,10 +2036,19 @@ def payroll_preview_api():
             total_deductions = cpf_deduction
             net_salary = gross_salary - total_deductions
 
+            # Validation checks
+            has_bank_info = bool(emp.bank_account and emp.bank_name)
+            
+            # Calculate attendance rate
+            # Assuming standard 22 working days for simple percentage if no schedule
+            working_days_in_month = 22 # Default approximation or calculate from schedule
+            attendance_rate = min(100, int((attendance_days / working_days_in_month) * 100)) if working_days_in_month > 0 else 0
+
             employee_data.append({
                 'id': emp.id,
                 'employee_id': emp.employee_id,
                 'name': f"{emp.first_name} {emp.last_name}",
+                'designation': emp.designation.name if emp.designation else 'Employee',
                 'basic_salary': basic_salary,
                 'allowance_1': allowance_1,
                 'allowance_2': allowance_2,
@@ -2031,10 +2059,13 @@ def payroll_preview_api():
                 'ot_rate': ot_rate,
                 'ot_amount': ot_amount,
                 'attendance_days': attendance_days,
+                'attendance_rate': attendance_rate,
                 'gross_salary': gross_salary,
                 'cpf_deduction': cpf_deduction,
                 'total_deductions': total_deductions,
-                'net_salary': net_salary
+                'net_salary': net_salary,
+                'has_bank_info': has_bank_info,
+                'profile_image': emp.profile_image_path or None
             })
 
         return jsonify({
@@ -2076,9 +2107,27 @@ def payroll_payslip(payroll_id):
     # Prepare data for template
     employee = payroll.employee
     company = employee.organization
-
+    
     # Calculate pay date (end of pay period)
-    pay_date = payroll.pay_period_end.strftime('%d %b %Y')
+    pay_date = payroll.pay_period_end.strftime('%d-%b-%Y')
+    
+    # Calculate worked days (Paid days)
+    # Use payroll.days_worked if available, otherwise calculate from date range
+    from core.utils import calculate_working_days
+    if payroll.days_worked:
+        paid_days = payroll.days_worked
+    else:
+        # Fallback
+        paid_days = calculate_working_days(payroll.pay_period_start, payroll.pay_period_end)
+        
+    lop_days = payroll.lop_days or 0
+    
+    # Get Employee Bank Info (prefer EmployeeBankInfo model if exists, else Employee columns)
+    bank_name = employee.bank_name or 'N/A'
+    bank_account = employee.bank_account or 'N/A'
+    if hasattr(employee, 'bank_info') and employee.bank_info:
+        bank_name = employee.bank_info.bank_name or bank_name
+        bank_account = employee.bank_info.bank_account_number or bank_account
 
     # Prepare earnings data
     earnings = {
@@ -2087,16 +2136,16 @@ def payroll_payslip(payroll_id):
         'overtime_pay_rate': f"{float(employee.hourly_rate or 0):,.2f}" if employee.hourly_rate else "0.00",
         'overtime_hours': f"{float(payroll.overtime_hours):,.2f}",
         'overtime_amount': f"{float(payroll.overtime_pay):,.2f}",
-        'holiday_pay': "0.00",  # Not in current model
-        'vacation_pay': "0.00",  # Not in current model
+        'holiday_pay': "0.00",
+        'vacation_pay': "0.00",
         'others': f"{float(payroll.allowances + payroll.bonuses):,.2f}"
     }
 
     # Prepare deductions data
     deductions = {
         'income_tax': f"{float(payroll.income_tax):,.2f}",
-        'medical': "0.00",  # Not in current model
-        'life_insurance': "0.00",  # Not in current model
+        'medical': "0.00",
+        'life_insurance': "0.00", 
         'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
         'others': f"{float(payroll.other_deductions):,.2f}"
     }
@@ -2104,9 +2153,18 @@ def payroll_payslip(payroll_id):
     # Prepare employee data
     employee_data = {
         'name': f"{employee.first_name} {employee.last_name}",
-        'nric': employee.nric,
+        'employee_code': employee.employee_id,
+        'joining_date': employee.hire_date.strftime('%d-%b-%Y') if employee.hire_date else 'N/A',
+        'nric': employee.nric, # Used as PAN replacement if needed
+        'pan_number': employee.nric or 'N/A', # Using NRIC as PAN placeholder
+        'esi_number': 'N/A', # Placeholder
+        'pf_number': employee.cpf_account or 'N/A',
         'nationality': employee.nationality or 'N/A',
-        'designation': employee.designation.name if employee.designation else 'N/A'
+        'designation': employee.designation.name if employee.designation else 'N/A',
+        'department': employee.department if employee.department else 'N/A',
+        'location': employee.location or 'Singapore', # Default to Singapore if empty
+        'bank_name': bank_name,
+        'bank_account': bank_account
     }
 
     # Prepare company data
@@ -2117,11 +2175,18 @@ def payroll_payslip(payroll_id):
     }
 
     # Prepare payroll summary
+    from core.utils import num_to_words
+    net_pay_val = float(payroll.net_pay)
+    
     payroll_data = {
         'pay_date': pay_date,
+        'period': f"{payroll.pay_period_start.strftime('%B %Y')}",
+        'lop_days': lop_days,
+        'paid_days': paid_days,
         'total_earnings': f"{float(payroll.gross_pay):,.2f}",
         'total_deductions': f"{float(payroll.employee_cpf + payroll.income_tax + payroll.other_deductions):,.2f}",
-        'net_pay': f"{float(payroll.net_pay):,.2f}"
+        'net_pay': f"{net_pay_val:,.2f}",
+        'net_pay_words': num_to_words(net_pay_val)
     }
 
     return render_template('payroll/payslip.html',

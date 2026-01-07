@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Approval Dashboard - Nexar{% endblock %}
+
+{% block head %}
+<style>
+    .approval-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        cursor: pointer;
+    }
+
+    .approval-card:hover,
+    .approval-card.active {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        border-color: var(--bs-primary);
+    }
+
+    .approval-card.active {
+        background-color: #f8f9fa;
+        border: 1px solid var(--bs-primary);
+    }
+
+    .count-badge {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .icon-pending {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">Approval Dashboard</h1>
+        <p class="text-muted mb-0">Manage all your pending approvals in one place</p>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="row g-4 mb-4">
+
+        <!-- LEAVES CARD -->
+        <div class="col-md-4">
+            <div class="card approval-card h-100" onclick="loadApprovalSection('leaves', this)">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle icon-pending mx-auto mb-3">
+                        <i class="fas fa-plane-departure"></i>
+                    </div>
+                    <h5 class="card-title text-muted fw-bold text-uppercase mb-2">Pending Leaves</h5>
+                    <div class="count-badge text-warning mb-2" id="count-leaves">{{ counts.leaves }}</div>
+                    <div class="text-muted small">Requests awaiting your approval</div>
+                    <div class="mt-3">
+                        <span class="btn btn-sm btn-outline-primary rounded-pill px-3">Review Leaves</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OT CARD -->
+        <div class="col-md-4">
+            <div class="card approval-card h-100" onclick="loadApprovalSection('ot', this)">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle icon-pending mx-auto mb-3">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h5 class="card-title text-muted fw-bold text-uppercase mb-2">Pending OT</h5>
+                    <div class="count-badge text-warning mb-2" id="count-ot">{{ counts.ot }}</div>
+                    <div class="text-muted small">Overtime requests awaiting approval</div>
+                    <div class="mt-3">
+                        <span class="btn btn-sm btn-outline-primary rounded-pill px-3">Review OT</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REGULARIZATION CARD -->
+        <div class="col-md-4">
+            <div class="card approval-card h-100" onclick="loadApprovalSection('regularization', this)">
+                <div class="card-body text-center p-4">
+                    <div class="icon-circle icon-pending mx-auto mb-3">
+                        <i class="fas fa-user-clock"></i>
+                    </div>
+                    <h5 class="card-title text-muted fw-bold text-uppercase mb-2">Attendance Regularization</h5>
+                    <div class="count-badge text-warning mb-2" id="count-regularization">{{ counts.regularization }}
+                    </div>
+                    <div class="text-muted small">Correction requests awaiting approval</div>
+                    <div class="mt-3">
+                        <span class="btn btn-sm btn-outline-primary rounded-pill px-3">Review Requests</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Dynamic Content Area -->
+    <div id="approval-content-area" class="mt-4">
+        <!-- Content will be loaded here via AJAX -->
+        <div class="text-center py-5 text-muted bg-light rounded shadow-sm border border-dashed">
+            <i class="fas fa-arrow-up fa-2x mb-3 text-secondary"></i>
+            <p class="mb-0">Select a category above to view pending items.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadApprovalSection(type, cardElement) {
+        const container = document.getElementById('approval-content-area');
+
+        // Update active state if cardElement passed
+        if (cardElement) {
+            document.querySelectorAll('.approval-card').forEach(c => c.classList.remove('active'));
+            cardElement.classList.add('active');
+        }
+
+        // Refresh counts whenever we load/reload a section
+        refreshDashboardCounts();
+
+        // Show loading
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading data...</p>
+            </div>
+        `;
+
+        // Fetch partial
+        fetch(`/dashboard/approvals/load/${type}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load');
+                return response.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+                // Execute any scripts in the loaded HTML (regular innerHTML doesn't execute script tags)
+                // We need to manually execute scripts if they are essential
+                const scripts = container.querySelectorAll("script");
+                scripts.forEach(oldScript => {
+                    const newScript = document.createElement("script");
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                });
+            })
+            .catch(error => {
+                console.error(error);
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        Failed to load data. Please try again or refresh the page.
+                    </div>
+                `;
+            });
+    }
+
+    function refreshDashboardCounts() {
+        fetch('/dashboard/approvals/api/counts')
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error('Failed to fetch counts');
+            })
+            .then(data => {
+                if (document.getElementById('count-leaves'))
+                    document.getElementById('count-leaves').textContent = data.leaves;
+                if (document.getElementById('count-ot'))
+                    document.getElementById('count-ot').textContent = data.ot;
+                if (document.getElementById('count-regularization'))
+                    document.getElementById('count-regularization').textContent = data.regularization;
+            })
+            .catch(err => console.error("Error updating counts:", err));
+    }
+</script>
+{% endblock %}

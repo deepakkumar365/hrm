@@ -510,8 +510,8 @@ class Employee(db.Model):
         manager = Employee.query.get(manager_id)
         if manager is None:
             raise ValueError('Reporting manager must exist.')
-        if manager.organization_id != self.organization_id:
-            raise ValueError('Manager must belong to the same organization as the employee.')
+        if manager.company_id != self.company_id:
+            raise ValueError('Manager must belong to the same company as the employee.')
         return manager_id
 
 

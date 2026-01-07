@@ -82,36 +82,30 @@ def employee_reset_password(employee_id):
 # =====================================================
 
 @app.route('/reports')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'Admin', 'HR Manager'])
 def reports_menu():
     """Reports landing page"""
     return render_template('reports/menu.html')
 
 
 @app.route('/reports/employee-history')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'Admin', 'HR Manager'])
 def report_employee_history():
     """Employee History Report"""
     try:
-        # Get current user's organization and company for tenant filtering
-        user_org = current_user.organization
-        if not user_org:
-            flash('No organization assigned to your account. Please contact administrator.', 'warning')
+        # Get accessible companies for the user
+        accessible_companies = current_user.get_accessible_companies()
+        
+        if not accessible_companies:
+            flash('No accessible companies found. Please contact administrator.', 'warning')
             return render_template('reports/employee_history.html', employees=[])
         
-        # Get company associated with this organization's tenant
-        company = None
-        if user_org.tenant_id:
-            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
+        company_ids = [c.id for c in accessible_companies]
         
-        if not company:
-            flash('No company found for your organization. Please contact administrator.', 'warning')
-            return render_template('reports/employee_history.html', employees=[])
-        
-        # Filter employees by company
-        employees = Employee.query.filter_by(
-            company_id=company.id,
-            is_active=True
+        # Filter employees by accessible companies
+        employees = Employee.query.filter(
+            Employee.company_id.in_(company_ids),
+            Employee.is_active == True
         ).order_by(Employee.hire_date.desc()).all()
         
         # Export if requested
@@ -128,6 +122,7 @@ def report_employee_history():
                     'hire_date': emp.hire_date,
                     'exit_date': emp.termination_date,
                     'manager': f"{emp.manager.first_name} {emp.manager.last_name}" if emp.manager else 'N/A',
+                    'company_code': emp.company.code if emp.company else 'N/A',
                     'status': 'Active' if emp.is_active else 'Inactive'
                 })
             return export_employee_history_csv(report_data)
@@ -144,26 +139,19 @@ def report_employee_history():
 
 
 @app.route('/reports/payroll-configuration')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'Admin', 'HR Manager'])
 def report_payroll_configuration():
     """Payroll Configuration Report with Pagination and Sorting"""
     try:
-        # Get current user's organization and company for tenant filtering
-        user_org = current_user.organization
-        if not user_org:
-            flash('No organization assigned to your account. Please contact administrator.', 'warning')
+        # Get accessible companies for the user
+        accessible_companies = current_user.get_accessible_companies()
+        
+        if not accessible_companies:
+            flash('No accessible companies found. Please contact administrator.', 'warning')
             return render_template('reports/payroll_configuration.html', 
                                  configs=[], total=0, page=1, per_page=15, total_pages=1)
         
-        # Get company associated with this organization's tenant
-        company = None
-        if user_org.tenant_id:
-            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
-        
-        if not company:
-            flash('No company found for your organization. Please contact administrator.', 'warning')
-            return render_template('reports/payroll_configuration.html', 
-                                 configs=[], total=0, page=1, per_page=15, total_pages=1)
+        company_ids = [c.id for c in accessible_companies]
         
         # Get pagination and sorting parameters
         page = request.args.get('page', 1, type=int)
@@ -177,7 +165,7 @@ def report_payroll_configuration():
         
         # Build query
         query = PayrollConfiguration.query.join(Employee).filter(
-            Employee.company_id == company.id,
+            Employee.company_id.in_(company_ids),
             Employee.is_active == True
         )
         
@@ -198,14 +186,15 @@ def report_payroll_configuration():
         report_data = []
         for config in configs:
             emp = config.employee
-            designation = emp.designation.designation_name if emp.designation else 'N/A'
+            designation = emp.designation.name if emp.designation else 'N/A'
             report_data.append({
                 'id': config.id,
                 'employee_id': emp.employee_id,
                 'first_name': emp.first_name,
                 'last_name': emp.last_name,
                 'name': f"{emp.first_name} {emp.last_name}",
-                'designation': designation,
+                'company_code': emp.company.code if emp.company else 'N/A',
+                'designation': emp.designation.name if emp.designation else 'N/A',
                 'basic_salary': float(emp.basic_salary or 0),
                 'allowances': float((config.allowance_1_amount or 0) + (config.allowance_2_amount or 0) + 
                                    (config.allowance_3_amount or 0) + (config.allowance_4_amount or 0)),
@@ -242,7 +231,7 @@ def report_payroll_configuration():
 
 
 @app.route('/reports/payroll-configuration/update/<int:config_id>', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'Admin', 'HR Manager'])
 def update_payroll_configuration(config_id):
     """Update payroll configuration inline"""
     try:
@@ -276,27 +265,19 @@ def update_payroll_configuration(config_id):
 
 
 @app.route('/reports/attendance')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'Admin', 'HR Manager', 'Manager'])
 def report_attendance():
     """Attendance Report"""
     try:
-        # Get current user's organization and company for tenant filtering
-        user_org = current_user.organization
-        if not user_org:
-            flash('No organization assigned to your account. Please contact administrator.', 'warning')
-            return render_template('reports/attendance.html', attendance=[], 
-                                 start_date=date.today(), end_date=date.today())
+        # Get accessible companies for the user
+        accessible_companies = current_user.get_accessible_companies()
         
-        # Get company associated with this organization's tenant
-        company = None
-        if user_org.tenant_id:
-            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
-        
-        if not company:
-            flash('No company found for your organization. Please contact administrator.', 'warning')
-            return render_template('reports/attendance.html', attendance=[], 
-                                 start_date=date.today(), end_date=date.today())
-        
+        if not accessible_companies and current_user.role.name != 'Manager':
+             # Managers might not need company access if they just see direct reports, 
+             # but usually they belong to a company too. 
+             # For now, if no company access, we can't show much unless we rely purely on direct reports for Managers.
+             pass
+
         # Get date range from query params
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
@@ -310,17 +291,41 @@ def report_attendance():
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
         
-        # Filter by company
-        attendance_records = Attendance.query.join(Employee).filter(
-            Employee.company_id == company.id,
+        # Build Query
+        query = Attendance.query.join(Employee).filter(
             Attendance.date.between(start_date, end_date),
             Employee.is_active == True
-        ).order_by(Attendance.date.desc()).all()
+        )
+
+        # Role-based filtering
+        if current_user.role.name == 'Manager':
+            # Manager sees only direct reports - kept as is
+            if current_user.employee_profile:
+                query = query.filter(Employee.manager_id == current_user.employee_profile.id)
+            else:
+                # If manager has no employee profile, they can't have direct reports
+                attendance_records = []
+                query = None # Skip query
+        else:
+            # Admin / HR Manager / Super Admin / Tenant Admin
+            # Filter by accessible companies - standardized logic
+            if accessible_companies:
+                company_ids = [c.id for c in accessible_companies]
+                query = query.filter(Employee.company_id.in_(company_ids))
+            else:
+                attendance_records = []
+                query = None
+
+        if query:
+            attendance_records = query.order_by(Attendance.date.desc()).all()
+        elif 'attendance_records' not in locals():
+             attendance_records = []
         
         report_data = []
         for record in attendance_records:
             emp = record.employee
             report_data.append({
+                'company_code': emp.company.code if emp.company else 'N/A',
                 'employee_id': emp.employee_id,
                 'name': f"{emp.first_name} {emp.last_name}",
                 'date': record.date,
@@ -337,7 +342,7 @@ def report_attendance():
             return export_attendance_csv(report_data)
         
         return render_template('reports/attendance.html', 
-                               attendance=report_data,
+                               records=attendance_records,
                                start_date=start_date,
                                end_date=end_date)
     
@@ -404,7 +409,7 @@ def export_attendance_csv(data):
 # =====================================================
 
 @app.route('/employees/<int:employee_id>/bank-info', methods=['GET'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'Admin', 'HR Manager'])
 def get_bank_info(employee_id):
     """Get employee bank information"""
     try:
@@ -436,7 +441,7 @@ def get_bank_info(employee_id):
 
 
 @app.route('/employees/<int:employee_id>/bank-info', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'Admin', 'HR Manager'])
 def save_bank_info(employee_id):
     """Save or update employee bank information"""
     try:
@@ -472,7 +477,7 @@ def save_bank_info(employee_id):
 # =====================================================
 
 @app.route('/payroll/configuration/<int:config_id>/update', methods=['POST'])
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Tenant Admin', 'Admin', 'HR Manager'])
 def update_payroll_config(config_id):
     """Update payroll configuration with new CPF and net salary fields"""
     try:

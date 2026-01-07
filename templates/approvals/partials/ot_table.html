@@ -1,0 +1,183 @@
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary">Pending OT Requests</h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadApprovalSection('ot')">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+    <div class="table-responsive">
+        {% if ot_requests %}
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Employee</th>
+                    <th>Date</th>
+                    <th>Hours</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ot in ot_requests %}
+                <!-- Standardized OTRequest object -->
+                {% set emp = ot.employee %}
+                {% set req = ot %}
+
+                {% if ot._approval_context == 'manager' %}
+                {% set target_id = ot._approval_id %} <!-- Use approval_id for Manager actions -->
+                {% set role_context = 'Manager' %}
+                {% else %}
+                {% set target_id = ot.id %} <!-- Use request id for Admin/HR actions -->
+                {% set role_context = 'HR Manager' %} <!-- or Admin -->
+                {% endif %}
+
+                <tr>
+                    <td>
+                        <div class="d-flex flex-column">
+                            <span class="fw-bold text-dark">{{ emp.first_name }} {{ emp.last_name }}</span>
+                            <small class="text-muted">{{ emp.employee_id }}</small>
+                        </div>
+                    </td>
+                    <td>{{ req.ot_date.strftime('%d %b %Y') if req.ot_date else '-' }}</td>
+                    <td class="fw-bold">{{ req.requested_hours }}h</td>
+                    <td>
+                        <span class="badge bg-warning text-dark">{{ ot.status }}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="openOTModal({
+                                    id: '{{ target_id }}',
+                                    role: '{{ role_context }}',
+                                    empName: '{{ emp.first_name }} {{ emp.last_name }}',
+                                    date: '{{ req.ot_date.strftime('%d %b %Y') }}',
+                                    hours: '{{ req.requested_hours }}h',
+                                    reason: `{{ req.reason or '' }}`
+                                })">
+                            Review
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clock fa-3x text-muted mb-3 opacity-50"></i>
+            <h5 class="text-muted">No pending OT requests</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- OT Review Modal -->
+<div class="modal fade" id="otReviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review OT Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="otModalId">
+                <input type="hidden" id="otModalRole">
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-0">Employee</label>
+                    <div class="fw-bold fs-5" id="otModalEmployee">-</div>
+                </div>
+
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted small mb-0">Date</label>
+                        <div id="otModalDate">-</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted small mb-0">Hours</label>
+                        <div class="fw-bold fs-5 text-primary" id="otModalHours">-</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small mb-0">Reason</label>
+                    <div class="p-2 bg-light rounded text-break" id="otModalReason">-</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="otModalComments" class="form-label small fw-bold">Review Comments</label>
+                    <textarea class="form-control" id="otModalComments" rows="2"
+                        placeholder="Optional comments..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" onclick="submitOTAction('reject')">Reject</button>
+                <button type="button" class="btn btn-success px-4" onclick="submitOTAction('approve')">Approve</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var otModalInstance;
+
+    function openOTModal(data) {
+        // Set data
+        document.getElementById('otModalId').value = data.id;
+        document.getElementById('otModalRole').value = data.role;
+        document.getElementById('otModalEmployee').textContent = data.empName;
+        document.getElementById('otModalDate').textContent = data.date;
+        document.getElementById('otModalHours').textContent = data.hours;
+        document.getElementById('otModalReason').textContent = data.reason || 'No reason provided';
+        document.getElementById('otModalComments').value = ''; // Reset comments
+
+        // Show Modal
+        if (!otModalInstance) {
+            otModalInstance = new bootstrap.Modal(document.getElementById('otReviewModal'));
+        }
+        otModalInstance.show();
+    }
+
+    function submitOTAction(action) {
+        const id = document.getElementById('otModalId').value;
+        const role = document.getElementById('otModalRole').value;
+        const comments = document.getElementById('otModalComments').value;
+
+        if (!id) return;
+
+        // Disable buttons
+        const btns = document.querySelectorAll('#otReviewModal .modal-footer button');
+        btns.forEach(b => b.disabled = true);
+
+        const formData = new FormData();
+        formData.append('comments', comments);
+
+        let url;
+        if (role === 'Manager') {
+            url = '/ot/manager-bulk-action';
+            formData.append('action', action);
+            formData.append('approval_ids', id); // Manager works on Approval ID
+        } else {
+            url = '/ot/approval';
+            formData.append('action', action);
+            formData.append('ot_request_id', id); // HR works on Request ID
+        }
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            redirect: 'manual' // Don't verify redirect status, just proceed
+        })
+            .then(response => {
+                // We expect a redirect or success. 
+                // Since we are inside the dashboard, we just want to reload the section.
+                otModalInstance.hide();
+                loadApprovalSection('ot');
+
+                // Reset buttons
+                setTimeout(() => btns.forEach(b => b.disabled = false), 500);
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error processing request');
+                btns.forEach(b => b.disabled = false);
+            });
+    }
+</script>

@@ -1,0 +1,96 @@
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary">Attendance Regularization Requests</h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadApprovalSection('regularization')">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+    <div class="table-responsive">
+        {% if requests %}
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Employee</th>
+                    <th>Date</th>
+                    <th>Corrected Time</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td>
+                        <div class="d-flex flex-column">
+                            <span class="fw-bold text-dark">{{ req.employee.first_name }} {{ req.employee.last_name
+                                }}</span>
+                            <small class="text-muted">{{ req.employee.employee_id }}</small>
+                        </div>
+                    </td>
+                    <td>{{ req.date.strftime('%d %b %Y') }}</td>
+                    <td>
+                        <div class="d-flex flex-column small">
+                            <span class="text-success">In: {{ req.corrected_clock_in.strftime('%H:%M') if
+                                req.corrected_clock_in else '-' }}</span>
+                            <span class="text-danger">Out: {{ req.corrected_clock_out.strftime('%H:%M') if
+                                req.corrected_clock_out else '-' }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="d-inline-block text-truncate" style="max-width: 150px;" title="{{ req.reason }}">
+                            {{ req.reason or '-' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-success" onclick="approveRegItem({{ req.id }})">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn btn-danger" onclick="rejectRegItem({{ req.id }})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-user-clock fa-3x text-muted mb-3 opacity-50"></i>
+            <h5 class="text-muted">No pending regularization requests</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function approveRegItem(id) {
+        if (!confirm('Approve this regularization request?')) return;
+
+        fetch(`/attendance/regularize/${id}/approve`, { method: 'POST' })
+            .then(res => {
+                if (res.ok || res.redirected) loadApprovalSection('regularization');
+                else alert('Error processing request');
+            })
+            .catch(err => console.error(err));
+    }
+
+    function rejectRegItem(id) {
+        const reason = prompt("Rejection reason:");
+        if (!reason) return;
+
+        const formData = new FormData();
+        formData.append('rejection_reason', reason);
+
+        fetch(`/attendance/regularize/${id}/reject`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => {
+                if (res.ok || res.redirected) loadApprovalSection('regularization');
+                else alert('Error processing request');
+            })
+            .catch(err => console.error(err));
+    }
+</script>

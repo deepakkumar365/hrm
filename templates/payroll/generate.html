@@ -2,909 +2,740 @@
 
 {% block title %}Generate Payroll - Nexar{% endblock %}
 
-{% block content %}<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                            <li class="breadcrumb-item"><a href="{{ url_for('payroll_list') }}">Payroll</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Generate</li>
-                        </ol>
-                    </nav>
-                    </div>
-                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>Back to Payroll
-                </a>
-            </div>
+{% block content %}
+<style>
+    /* Premium Dashboard Styling */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --glass-border: 1px solid rgba(255, 255, 255, 0.18);
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
 
-            <hr class="mt-2 mb-3">
+    .dashboard-container {
+        padding: 1rem 1.5rem;
+        background-color: #f8fafc;
+        min-height: 100vh;
+        max-width: 100%;
+        /* Ensure full width usage */
+    }
+
+    /* Summary Cards - Compact */
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid #e2e8f0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .stat-content {
+        flex-grow: 1;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.2;
+    }
+
+    /* Filters Section - Compact */
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .form-select-sm-custom {
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        font-size: 0.875rem;
+    }
+
+    /* Modern Table - Dense & Full Width */
+    .custom-table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    .custom-table {
+        width: 100%;
+        font-size: 0.8125rem;
+        /* Smaller font for high density */
+    }
+
+    .custom-table thead {
+        background: #f1f5f9;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .custom-table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+        color: #475569;
+        padding: 0.5rem 0.25rem;
+        /* Reduced padding */
+        border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .custom-table td {
+        padding: 0.25rem 0.25rem;
+        /* Reduced padding */
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        white-space: nowrap;
+        height: 48px;
+        /* Fixed height for consistency */
+    }
+
+    .custom-table tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .row-editing {
+        background-color: #fffbeb !important;
+    }
+
+    /* Status Indicators */
+    .status-badge {
+        padding: 0.15rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .status-warning {
+        background-color: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #ffedd5;
+    }
+
+    .status-success {
+        background-color: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #dcfce7;
+    }
+
+    .status-error {
+        background-color: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fee2e2;
+    }
+
+
+    .avatar-circle {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #e0e7ff;
+        color: #4338ca;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        border-radius: 12px;
+        backdrop-filter: blur(2px);
+    }
+
+    .position-relative {
+        position: relative !important;
+    }
+
+    /* Column Width Optimization */
+    .col-checkbox {
+        width: 25px;
+        text-align: center;
+    }
+
+    .col-employee {
+        min-width: 160px;
+        width: 15%;
+    }
+
+    .col-designation {
+        width: 8%;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .col-money {
+        text-align: right;
+        font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;
+        letter-spacing: -0.5px;
+        min-width: 70px;
+    }
+
+    .col-action {
+        width: 80px;
+        text-align: center;
+    }
+
+    /* Highlights for monetary columns */
+    .text-earn {
+        color: #059669;
+    }
+
+    .text-deduct {
+        color: #dc2626;
+    }
+
+    .bg-subtle-blue {
+        background-color: rgba(224, 231, 255, 0.2);
+    }
+
+    /* Inline Input Styles */
+    .inline-input {
+        width: 100%;
+        padding: 0.2rem 0.4rem;
+        font-size: 0.8125rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        text-align: right;
+        background: white;
+    }
+
+    .inline-input:focus {
+        border-color: #6366f1;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Hide arrows in number inputs */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+</style>
+
+<div class="dashboard-container">
+    <!-- Header with Breadcrumbs -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"
+                            class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('payroll_list') }}"
+                            class="text-decoration-none">Payroll</a></li>
+                    <li class="breadcrumb-item active">Generate</li>
+                </ol>
+            </nav>
+            <h5 class="fw-bold text-dark mb-0 mt-1">Generate Payroll</h5>
+        </div>
+        <div>
+            <a href="{{ url_for('payroll_list') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
         </div>
     </div>
 
+    <!-- Smart Filter Bar -->
     <form method="POST" id="payrollForm">
-        <!-- Filter Section -->
-        <div class="row mb-2">
-            <div class="col-md-2">
-                <label for="company" class="form-label">Select Company *</label>
-                <select name="company" id="company" class="form-select" required>
-                    <option value="">-- Select Company --</option>
-                    {% for company in companies %}
-                    <option value="{{ company.id }}">{{ company.name }}</option>
-                    {% endfor %}
-                </select>
-                {% if not companies %}
-                <div class="alert alert-warning mt-2 mb-0 p-2" role="alert">
-                    <small>
-                        <i class="fas fa-exclamation-circle me-1"></i>
-                        <strong>No companies found!</strong><br>
-                        This usually means:<br>
-                        • Your organization is not linked to a tenant<br>
-                        • No companies exist for your organization's tenant<br>
-                        <br>
-                        <strong>Solution:</strong> Run the fix script:<br>
-                        <code>python fix_company_dropdown.py</code>
-                    </small>
+        <div class="filter-card">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold mb-1">Company</label>
+                    <select name="company" id="company" class="form-select form-select-sm form-select-sm-custom"
+                        required>
+                        <option value="">Select Company...</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}">{{ company.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                {% endif %}
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-bold mb-1">Month</label>
+                    <select name="month" id="month" class="form-select form-select-sm form-select-sm-custom" required>
+                        {% for i in range(1, 13) %}
+                        <option value="{{ i }}" {% if i==current_month %}selected{% endif %}>
+                            {{ ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov',
+                            'Dec'][i] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-bold mb-1">Year</label>
+                    <select name="year" id="year" class="form-select form-select-sm form-select-sm-custom" required>
+                        {% for y in range(current_year - 1, current_year + 2) %}
+                        <option value="{{ y }}" {% if y==current_year %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary btn-sm w-100 py-2" onclick="loadEmployeeData()">
+                        <i class="fas fa-sync-alt me-2"></i>Load Data
+                    </button>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button type="submit" class="btn btn-success btn-sm w-100 py-2" id="generateBtn" disabled>
+                        <i class="fas fa-check-circle me-2"></i>Generate Payslips
+                    </button>
+                </div>
             </div>
-            <div class="col-md-2">
-                <label for="month" class="form-label">Select Month *</label>
-                <select name="month" id="month" class="form-select" required>
-                    <option value="">-- Select Month --</option>
-                    {% for i in range(1, 13) %}
-                    <option value="{{ i }}" {% if i == current_month %}selected{% endif %}>
-                        {{ ['', 'January', 'February', 'March', 'April', 'May', 'June',
-                            'July', 'August', 'September', 'October', 'November', 'December'][i] }}
-                    </option>
-                    {% endfor %}
-                </select>
+
+            {% if not companies %}
+            <div class="alert alert-warning mt-2 mb-0 py-2 small d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <div>
+                    <strong>Config Required:</strong> Run <code>python fix_company_dropdown.py</code>
+                </div>
             </div>
-            <div class="col-md-2">
-                <label for="year" class="form-label">Select Year *</label>
-                <select name="year" id="year" class="form-select" required>
-                    {% for y in range(current_year - 1, current_year + 2) %}
-                    <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
-                    {% endfor %}
-                </select>
+            {% endif %}
+        </div>
+
+        <!-- Summary Statistics Row - Compact -->
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-blue-50 text-primary">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Employees</div>
+                        <div class="stat-value" id="selectedCount">0</div>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-2">
-                <button type="button" class="btn btn-primary w-100" onclick="loadEmployeeData()">
-                    <i class="fas fa-sync me-1"></i>Load Data
-                </button>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-green-50 text-success">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Net Pay</div>
+                        <div class="stat-value text-success" id="totalPayroll">$0.00</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-cyan-50 text-info">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Gross</div>
+                        <div class="stat-value" id="totalGross">$0.00</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon bg-red-50 text-danger">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Deductions</div>
+                        <div class="stat-value text-danger" id="totalDeductions">$0.00</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Employee Payroll Table -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0"><i class="fas fa-table me-2"></i>Employee Payroll Preview</h6>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="selectAll">
-                    <label class="form-check-label" for="selectAll">
-                        Select All
-                    </label>
+        <!-- Data Grid - High Density -->
+        <div class="custom-table-container position-relative">
+            <div id="tableLoading" class="loading-overlay d-none">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 fw-bold text-muted small">Processing...</p>
                 </div>
             </div>
+
             <div class="table-responsive">
-                <table class="table table-hover mb-0" id="payrollTable">
-                    <thead class="table-light">
+                <table class="table custom-table table-hover mb-0" id="payrollTable">
+                    <thead>
                         <tr>
-                            <th>
-                                <input type="checkbox" id="selectAllHeader" class="form-check-input">
+                            <th class="col-checkbox">
+                                <div class="form-check d-flex justify-content-center">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                </div>
                             </th>
-                            <th onclick="sortTable('employee_id')" title="Click to sort">
-                                Emp ID <span class="sort-indicator" id="sort-employee_id"></span>
-                            </th>
-                            <th onclick="sortTable('name')" title="Click to sort">
-                                Name <span class="sort-indicator" id="sort-name"></span>
-                            </th>
-                            <th onclick="sortTable('basic_salary')" title="Click to sort">
-                                Base <span class="sort-indicator" id="sort-basic_salary"></span>
-                            </th>
-                            <th>Trans</th>
-                            <th>House</th>
-                            <th>Meal</th>
-                            <th>Other</th>
-                            <th>Levy</th>
-                            <th>OT Hrs</th>
-                            <th>OT Amt</th>
-                            <th>OT Allow</th>
-                            <th>Att Dy</th>
-                            <th>Abs</th>
-                            <th>LOP</th>
-                            <th>Cal</th>
-                            <th>Oth Ded</th>
-                            <th>Tot Ded</th>
-                            <th>Net</th>
-                            <th>Act</th>
+                            <th class="col-employee">Employee</th>
+                            <th class="col-designation">Role</th>
+                            <th class="col-money">Basic</th>
+                            <th class="col-money" title="Transport Allowance">Trans</th>
+                            <th class="col-money" title="Housing Allowance">House</th>
+                            <th class="col-money" title="Meal Allowance">Meal</th>
+                            <th class="col-money" title="Other Allowance">Other</th>
+                            <th class="col-money text-center">OT Hrs</th>
+                            <th class="col-money bg-light" title="OT Rate (Editable only in edit mode)">OT Rate</th>
+                            <th class="col-money">OT ($)</th>
+                            <th class="col-money text-deduct">CPF</th>
+                            <th class="col-money text-deduct">Total Ded</th>
+                            <th class="col-money bg-subtle-blue">Net Pay</th>
+                            <th>Status</th>
+                            <th class="col-action">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="employeeTableBody">
                         <tr>
-                            <td colspan="12" class="text-center py-5">
-                                <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
-                                <p class="text-muted mb-0">Select a month and click "Load Employee Data" to preview payroll</p>
+                            <td colspan="16" class="text-center py-5 text-muted">
+                                <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
+                                <p class="mb-0">Select Company and Month to load data</p>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <div class="card-footer bg-light">
-                <div class="row align-items-center">
-                    <div class="col-md-4">
-                        <p class="mb-0">
-                            <strong>Selected Employees:</strong> <span id="selectedCount">0</span>
-                        </p>
-                    </div>
-                    <div class="col-md-4 text-center">
-                        <small class="text-muted d-flex align-items-center justify-content-center">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="footerPrevBtn" onclick="previousPage()">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <span id="paginationInfo">Showing 0-0 of 0</span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="footerNextBtn" onclick="nextPage()">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </small>
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <label for="recordsPerPage" class="form-label mb-0">Per Page:</label>
-                        <select id="recordsPerPage" class="form-select d-inline" onchange="changeRecordsPerPage(this.value)">
-                            <option value="15">15</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                    </div>
+            <!-- Pagination Footer -->
+            <div class="p-2 border-top bg-light d-flex justify-content-between align-items-center">
+                <small class="text-muted ms-2" id="paginationInfo">0 records</small>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary me-1 py-0" id="prevBtn"
+                        onclick="changePage(-1)" disabled><i class="fas fa-angle-left"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0" id="nextBtn"
+                        onclick="changePage(1)" disabled><i class="fas fa-angle-right"></i></button>
                 </div>
-
-                <!-- Payroll Summary -->
-                <div class="row mt-2 pt-2 border-top">
-                    <div class="col-12">
-                        <h6 class="mb-1"><i class="fas fa-chart-bar me-1"></i>Payroll Summary</h6>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="summary-item">
-                            <small class="text-muted d-block">Total Basic Salary</small>
-                            <strong id="totalBasic">$0.00</strong>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="summary-item">
-                            <small class="text-muted d-block">Total Allowances</small>
-                            <strong class="text-info" id="totalAllowances">$0.00</strong>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="summary-item">
-                            <small class="text-muted d-block">Total OT Allowance</small>
-                            <strong class="text-warning" id="totalOT">$0.00</strong>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="summary-item">
-                            <small class="text-muted d-block">Total Gross Payroll</small>
-                            <strong class="text-success" id="totalGross">$0.00</strong>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="summary-item">
-                            <small class="text-muted d-block">Total Deductions (CPF/LOP)</small>
-                            <strong class="text-danger" id="totalDeductions">$0.00</strong>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="summary-item">
-                            <small class="text-muted d-block">Total Other Deductions</small>
-                            <strong class="text-danger" id="totalOtherDed">$0.00</strong>
-                        </div>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <div class="summary-item">
-                            <small class="text-muted d-block">Total Net Payroll</small>
-                            <strong class="text-success" id="totalPayroll">$0.00</strong>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pagination Controls (Near Footer) - Removed, now integrated in footer -->
-
-        <!-- Action Buttons -->
-        <div class="row mt-3">
-            <div class="col-12 text-end">
-                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times me-1"></i>Cancel
-                </a>
-                <button type="button" class="btn btn-info" id="saveBtn" onclick="saveAllChanges()">
-                    <i class="fas fa-save me-1"></i>Save Changes
-                </button>
-                <button type="submit" class="btn btn-success" id="generateBtn" disabled>
-                    <i class="fas fa-check me-1"></i>Generate Payslips
-                </button>
             </div>
         </div>
     </form>
 </div>
 
 <script>
-let employeeData = [];
-let currentPage = 1;
-let recordsPerPage = 15;
-let totalPages = 1;
-let sortColumn = null;
-let sortDirection = 'asc'; // 'asc' or 'desc'
+    let employeeData = [];
+    let currentPage = 1;
+    const itemsPerPage = 20;
 
-// Sorting function
-function sortTable(column) {
-    // Toggle sort direction if clicking same column
-    if (sortColumn === column) {
-        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortColumn = column;
-        sortDirection = 'asc';
-    }
+    // Load Data
+    function loadEmployeeData() {
+        const company = document.getElementById('company').value;
+        const month = document.getElementById('month').value;
+        const year = document.getElementById('year').value;
 
-    // Sort the employee data
-    employeeData.sort((a, b) => {
-        let aVal = a[column];
-        let bVal = b[column];
-
-        // Handle numeric values
-        if (typeof aVal === 'number' && typeof bVal === 'number') {
-            return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+        if (!company || !month || !year) {
+            alert('Please select all required fields.');
+            return;
         }
 
-        // Handle string values
-        aVal = String(aVal || '').toLowerCase();
-        bVal = String(bVal || '').toLowerCase();
+        document.getElementById('tableLoading').classList.remove('d-none');
 
-        if (sortDirection === 'asc') {
-            return aVal.localeCompare(bVal);
-        } else {
-            return bVal.localeCompare(aVal);
+        fetch(`/api/payroll/preview?company_id=${company}&month=${month}&year=${year}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const selectedIds = new Set(employeeData.filter(e => e.selected).map(e => e.id));
+
+                    employeeData = data.employees.map(emp => ({
+                        ...emp,
+                        isEditing: false, // Track edit state
+                        selected: selectedIds.has(emp.id) || employeeData.length === 0
+                    }));
+                    renderTable();
+                    updateSummary();
+                } else {
+                    alert(data.message || 'Failed to load data.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('An error occurred while loading data.');
+            })
+            .finally(() => {
+                document.getElementById('tableLoading').classList.add('d-none');
+            });
+    }
+
+    // Render Table
+    function renderTable() {
+        const tbody = document.getElementById('employeeTableBody');
+        tbody.innerHTML = '';
+
+        if (employeeData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="16" class="text-center py-5">No employees found.</td></tr>`;
+            return;
         }
-    });
 
-    // Reset to first page when sorting
-    currentPage = 1;
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageData = employeeData.slice(start, end);
 
-    // Update sort indicators
-    document.querySelectorAll('.sort-indicator').forEach(el => el.textContent = '');
+        pageData.forEach(emp => {
+            const hasBank = emp.has_bank_info;
+            let statusHtml = '';
+            if (!hasBank) statusHtml += `<span class="badge status-error" title="Missing Bank Details"><i class="fas fa-university"></i></span> `;
+            if (hasBank) statusHtml += `<span class="badge status-success">OK</span>`;
 
-    const sortIndicator = document.getElementById(`sort-${column}`);
-    if (sortIndicator) {
-        sortIndicator.textContent = sortDirection === 'asc' ? '▲' : '▼';
-    }
+            const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-    // Re-render table
-    renderEmployeeTable();
-}
+            // Row Content logic based on isEditing state
+            let rowContent = '';
 
-// Change records per page
-function changeRecordsPerPage(value) {
-    recordsPerPage = parseInt(value);
-    currentPage = 1; // Reset to first page
-    document.getElementById('recordsPerPage').value = value; // Update dropdown selection
-    renderEmployeeTable();
-}
-
-// Select all functionality
-document.getElementById('selectAll').addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('.employee-checkbox');
-    checkboxes.forEach(cb => cb.checked = this.checked);
-    updateSummary();
-});
-
-document.getElementById('selectAllHeader').addEventListener('change', function() {
-    document.getElementById('selectAll').checked = this.checked;
-    document.getElementById('selectAll').dispatchEvent(new Event('change'));
-});
-
-function loadEmployeeData() {
-    const company = document.getElementById('company').value;
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-
-    if (!company || !month || !year) {
-        alert('Please select company, month, and year');
-        return;
-    }
-
-    // Show loading
-    const tbody = document.getElementById('employeeTableBody');
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="12" class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="text-muted mt-2 mb-0">Loading employee data...</p>
-            </td>
-        </tr>
-    `;
-
-    // Fetch employee payroll data
-    fetch(`/api/payroll/preview?company_id=${company}&month=${month}&year=${year}`)
-        .then(response => {
-            // Check if response is ok before parsing JSON
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.message || `HTTP Error ${response.status}`);
-                }).catch(() => {
-                    throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                employeeData = data.employees;
-                // Debug log to verify payroll_generated flag
-                console.log('Payroll data received:', {
-                    total_employees: employeeData.length,
-                    generated_payroll_count: employeeData.filter(e => e.payroll_generated).length,
-                    sample: employeeData.slice(0, 2).map(e => ({name: e.name, payroll_generated: e.payroll_generated, id: e.id}))
-                });
-                currentPage = 1; // Reset to first page
-                renderEmployeeTable();
+            if (emp.isEditing) {
+                // Editable ROW
+                rowContent = `
+                    <td class="col-checkbox"></td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle">${initials}</div>
+                            <div class="text-truncate" style="max-width: 140px;">${emp.name}</div>
+                        </div>
+                    </td>
+                    <td><span class="text-muted small">${emp.designation}</span></td>
+                    
+                    <!-- Editable Fields -->
+                    <td><input type="number" class="inline-input" id="edit-basic-${emp.id}" value="${emp.basic_salary.toFixed(2)}"></td>
+                    <td><input type="number" class="inline-input" id="edit-a1-${emp.id}" value="${emp.allowance_1.toFixed(2)}"></td>
+                    <td><input type="number" class="inline-input" id="edit-a2-${emp.id}" value="${emp.allowance_2.toFixed(2)}"></td>
+                    <td><input type="number" class="inline-input" id="edit-a3-${emp.id}" value="${emp.allowance_3.toFixed(2)}"></td>
+                    <td><input type="number" class="inline-input" id="edit-a4-${emp.id}" value="${emp.allowance_4.toFixed(2)}"></td>
+                    
+                    <td class="text-center text-muted">${emp.ot_hours.toFixed(1)}</td>
+                    <td><input type="number" class="inline-input" id="edit-otrate-${emp.id}" value="${emp.ot_rate.toFixed(2)}"></td>
+                    
+                    <!-- Calculated (Read Only during edit) -->
+                     <td class="col-money text-muted opacity-50">$${formatNumber(emp.ot_amount)}</td>
+                    <td class="col-money text-muted opacity-50">-${formatNumber(emp.cpf_deduction)}</td>
+                    <td class="col-money text-muted opacity-50">-${formatNumber(emp.total_deductions)}</td>
+                    <td class="col-money text-muted opacity-50">$${formatNumber(emp.net_salary)}</td>
+                    
+                    <td><span class="badge bg-warning text-dark">Editing...</span></td>
+                    
+                    <td class="col-action">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-success" title="Save" onclick="saveRow(${emp.id})"><i class="fas fa-check"></i></button>
+                            <button type="button" class="btn btn-light border" title="Cancel" onclick="cancelRow(${emp.id})"><i class="fas fa-times"></i></button>
+                        </div>
+                    </td>
+                `;
             } else {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="12" class="text-center py-5 text-danger">
-                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                            <p class="mb-0">${data.message || 'Error loading data'}</p>
-                        </td>
-                    </tr>
+                // Static ROW
+                rowContent = `
+                    <td class="col-checkbox">
+                        <div class="form-check d-flex justify-content-center">
+                            <input class="form-check-input emp-checkbox" type="checkbox" name="employees"
+                                value="${emp.id}" ${emp.selected ? 'checked' : ''} onchange="toggleSelection(${emp.id})">
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle">${initials}</div>
+                            <div class="text-truncate" style="max-width: 140px;" title="${emp.name}">
+                                <div class="fw-bold text-dark">${emp.name}</div>
+                                <div class="small text-muted" style="font-size: 0.65rem;">${emp.employee_id}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="col-designation">
+                        <span class="text-muted small" title="${emp.designation}">${emp.designation}</span>
+                    </td>
+                    <td class="col-money fw-bold text-dark">$${formatNumber(emp.basic_salary)}</td>
+                    <td class="col-money text-muted">$${formatNumber(emp.allowance_1)}</td>
+                    <td class="col-money text-muted">$${formatNumber(emp.allowance_2)}</td>
+                    <td class="col-money text-muted">$${formatNumber(emp.allowance_3)}</td>
+                    <td class="col-money text-muted">$${formatNumber(emp.allowance_4)}</td>
+                    <td class="text-center text-muted">${emp.ot_hours.toFixed(1)}</td>
+                    <td class="col-money text-muted bg-light">$${formatNumber(emp.ot_rate)}</td>
+                    <td class="col-money text-earn">$${formatNumber(emp.ot_amount)}</td>
+                    <td class="col-money text-deduct">-${formatNumber(emp.cpf_deduction)}</td>
+                    <td class="col-money text-deduct">-${formatNumber(emp.total_deductions)}</td>
+                    <td class="col-money bg-subtle-blue fw-bold text-primary">$${formatNumber(emp.net_salary)}</td>
+                    <td>${statusHtml}</td>
+                    <td class="col-action">
+                        <button type="button" class="btn btn-sm btn-light border py-0 px-2" onclick="editRow(${emp.id})">
+                             <i class="fas fa-pencil-alt text-muted small"></i>
+                        </button>
+                    </td>
                 `;
             }
-        })
-        .catch(error => {
-            console.error('Payroll data load error:', error);
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="12" class="text-center py-5 text-danger">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                        <p class="mb-2">Error loading employee data</p>
-                        <small class="text-muted">${error.message || 'Please try again.'}</small>
-                    </td>
-                </tr>
-            `;
+
+            const trClass = emp.isEditing ? 'row-editing' : '';
+            const row = `<tr id="row-${emp.id}" class="${trClass}">${rowContent}</tr>`;
+            tbody.insertAdjacentHTML('beforeend', row);
         });
-}
 
-function renderEmployeeTable() {
-    const tbody = document.getElementById('employeeTableBody');
+        // Pagination State
+        document.getElementById('paginationInfo').innerText = `Showing ${start + 1}-${Math.min(end, employeeData.length)} of ${employeeData.length}`;
+        document.getElementById('prevBtn').disabled = currentPage === 1;
+        document.getElementById('nextBtn').disabled = end >= employeeData.length;
 
-    if (employeeData.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="12" class="text-center py-5">
-                    <i class="fas fa-users-slash fa-2x text-muted mb-2"></i>
-                    <p class="text-muted mb-0">No active employees found</p>
-                </td>
-            </tr>
-        `;
-        document.getElementById('paginationInfo').textContent = 'Showing 0-0 of 0';
-        document.getElementById('footerPrevBtn').disabled = true;
-        document.getElementById('footerNextBtn').disabled = true;
-        return;
+        // Sync Main Checkbox
+        const allSelected = employeeData.length > 0 && employeeData.every(e => e.selected);
+        document.getElementById('selectAll').checked = allSelected;
     }
 
-    // Calculate pagination
-    totalPages = Math.ceil(employeeData.length / recordsPerPage);
-    if (currentPage > totalPages) currentPage = totalPages;
-    if (currentPage < 1) currentPage = 1;
+    // Interactive Functions
+    function formatNumber(num) {
+        return parseFloat(num).toFixed(2);
+    }
 
-    const startIndex = (currentPage - 1) * recordsPerPage;
-    const endIndex = Math.min(startIndex + recordsPerPage, employeeData.length);
-    const pageData = employeeData.slice(startIndex, endIndex);
-
-    // Update pagination info
-    document.getElementById('paginationInfo').textContent = `Showing ${startIndex + 1}-${endIndex} of ${employeeData.length}`;
-
-    // Update pagination buttons
-    document.getElementById('footerPrevBtn').disabled = (currentPage === 1);
-    document.getElementById('footerNextBtn').disabled = (currentPage === totalPages);
-
-    tbody.innerHTML = pageData.map(emp => {
-        // Determine if attendance is low (less than 20 days)
-        const lowAttendance = emp.attendance_days < 20;
-        const attendanceBgClass = lowAttendance ? 'table-warning' : '';
-
-        // Determine if payroll is already generated
-        const payrollGeneratedClass = emp.payroll_generated ? 'payroll-generated' : '';
-        const rowClass = (attendanceBgClass || payrollGeneratedClass) ? `${attendanceBgClass} ${payrollGeneratedClass}`.trim() : '';
-
-        // Debug: Log rows that should have payroll-generated class
-        if (emp.payroll_generated) {
-            console.log(`Row ${emp.id} (${emp.name}): payroll_generated=${emp.payroll_generated}, rowClass="${rowClass}"`);
-        }
-
-        return `
-        <tr class="${rowClass}" id="row-${emp.id}">
-            <td>
-                <input type="checkbox" class="form-check-input employee-checkbox"
-                       name="employees" value="${emp.id}"
-                       onchange="updateSummary()">
-            </td>
-            <td>${emp.employee_id}</td>
-            <td class="employee-name-cell">
-                <strong>${emp.name}</strong>
-                ${emp.payroll_generated ? '<span class="badge bg-success">Generated</span>' : ''}
-            </td>
-            <td>$${parseFloat(emp.basic_salary).toFixed(2)}</td>
-            <!-- Transport -->
-            <td>
-                <div class="display-view-${emp.id} display-cell">
-                    <span class="transport-display-${emp.id}">$${parseFloat(emp.allowance_1 || 0).toFixed(2)}</span>
-                </div>
-                <div class="edit-view-${emp.id}">
-                    <input type="number" class="form-control form-control-sm allowance-input" data-emp-id="${emp.id}" data-field="allowance_1" value="${parseFloat(emp.allowance_1 || 0).toFixed(2)}" step="0.01" min="0">
-                </div>
-            </td>
-            <!-- Housing -->
-            <td>
-                <div class="display-view-${emp.id} display-cell">
-                    <span class="housing-display-${emp.id}">$${parseFloat(emp.allowance_2 || 0).toFixed(2)}</span>
-                </div>
-                <div class="edit-view-${emp.id}">
-                    <input type="number" class="form-control form-control-sm allowance-input" data-emp-id="${emp.id}" data-field="allowance_2" value="${parseFloat(emp.allowance_2 || 0).toFixed(2)}" step="0.01" min="0">
-                </div>
-            </td>
-            <!-- Meal -->
-            <td>
-                <div class="display-view-${emp.id} display-cell">
-                    <span class="meal-display-${emp.id}">$${parseFloat(emp.allowance_3 || 0).toFixed(2)}</span>
-                </div>
-                <div class="edit-view-${emp.id}">
-                    <input type="number" class="form-control form-control-sm allowance-input" data-emp-id="${emp.id}" data-field="allowance_3" value="${parseFloat(emp.allowance_3 || 0).toFixed(2)}" step="0.01" min="0">
-                </div>
-            </td>
-            <!-- Other -->
-            <td>
-                <div class="display-view-${emp.id} display-cell">
-                    <span class="other-display-${emp.id}">$${parseFloat(emp.allowance_4 || 0).toFixed(2)}</span>
-                </div>
-                <div class="edit-view-${emp.id}">
-                    <input type="number" class="form-control form-control-sm allowance-input" data-emp-id="${emp.id}" data-field="allowance_4" value="${parseFloat(emp.allowance_4 || 0).toFixed(2)}" step="0.01" min="0">
-                </div>
-            </td>
-            <!-- Levy -->
-            <td>
-                <div class="display-view-${emp.id} display-cell">
-                    <span class="levy-display-${emp.id}">$${parseFloat(emp.levy_allowance || 0).toFixed(2)}</span>
-                </div>
-                <div class="edit-view-${emp.id}">
-                    <input type="number" class="form-control form-control-sm allowance-input" data-emp-id="${emp.id}" data-field="levy_allowance" value="${parseFloat(emp.levy_allowance || 0).toFixed(2)}" step="0.01" min="0">
-                </div>
-            </td>
-            <td>${parseFloat(emp.ot_hours || 0).toFixed(2)}</td>
-            <td>$${parseFloat(emp.ot_amount || 0).toFixed(2)}</td>
-            <td class="total-allow-${emp.id}" title="Total allowances including: Transport, Housing, Meal, Other, Levy, and OT Allowance (${emp.ot_allowance ? '$' + parseFloat(emp.ot_allowance).toFixed(2) : '$0.00'})">$${parseFloat(emp.total_allowances || 0).toFixed(2)}</td>
-            <td class="${lowAttendance ? 'text-danger fw-bold' : ''}">
-                ${emp.attendance_days || 0}
-            </td>
-            <td>${emp.absent_days || 0}</td>
-            <td>${emp.lop_days || 0}</td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-info" onclick="showCalendarModal(${emp.id}, '${emp.name}')">
-                    <i class="fas fa-calendar"></i>
-                </button>
-            </td>
-            <td>
-                <input type="number" class="form-control form-control-sm other-deductions-input"
-                       value="${parseFloat(emp.other_deductions || 0).toFixed(2)}"
-                       step="0.01" min="0"
-                       onchange="updateEmployeeDeductions(this, ${emp.id})"
-                       placeholder="0.00">
-            </td>
-            <td>$${parseFloat(emp.total_deductions || 0).toFixed(2)}</td>
-            <td class="text-end">
-                <strong class="text-success net-salary-${emp.id}">$${parseFloat(emp.net_salary).toFixed(2)}</strong>
-            </td>
-            <!-- Actions Column -->
-            <td class="text-center">
-                <button type="button" class="btn btn-sm btn-primary edit-btn-${emp.id}" onclick="editRow(${emp.id})">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button type="button" class="btn btn-sm btn-success save-btn-${emp.id}" onclick="saveRow(${emp.id})">
-                    <i class="fas fa-check"></i> Save
-                </button>
-                <button type="button" class="btn btn-sm btn-secondary cancel-btn-${emp.id}" onclick="cancelRow(${emp.id})">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </td>
-        </tr>
-    `;
-    }).join('');
-
-    updateSummary();
-}
-
-function updateEmployeeDeductions(input, empId) {
-    const otherDeduction = parseFloat(input.value) || 0;
-    const emp = employeeData.find(e => e.id === empId);
-
-    if (emp) {
-        // Update the employee data
-        emp.other_deductions = otherDeduction;
-        emp.total_deductions = emp.cpf_deduction + emp.lop_deduction + otherDeduction;
-        emp.net_salary = emp.gross_salary - emp.total_deductions;
-
-        // Update the display
-        const deductionsCell = input.parentElement.nextElementSibling;
-        deductionsCell.textContent = `$${emp.total_deductions.toFixed(2)}`;
-
-        const netSalaryCell = document.querySelector(`.net-salary-${empId}`);
-        netSalaryCell.textContent = `$${emp.net_salary.toFixed(2)}`;
-
-        // Update summary if this employee is checked
-        const checkbox = document.querySelector(`input[value="${empId}"][type="checkbox"].employee-checkbox`);
-        if (checkbox && checkbox.checked) {
+    function toggleSelection(id) {
+        const emp = employeeData.find(e => e.id === id);
+        if (emp) {
+            emp.selected = !emp.selected;
             updateSummary();
         }
     }
-}
 
-// Edit Row Function
-function editRow(empId) {
-    // Hide display view, show edit view
-    document.querySelectorAll(`.display-view-${empId}`).forEach(el => el.style.display = 'none');
-    document.querySelectorAll(`.edit-view-${empId}`).forEach(el => el.style.display = 'block');
-
-    // Hide Edit button, show Save and Cancel
-    document.querySelector(`.edit-btn-${empId}`).style.display = 'none';
-    document.querySelector(`.save-btn-${empId}`).style.display = 'inline-block';
-    document.querySelector(`.cancel-btn-${empId}`).style.display = 'inline-block';
-}
-
-// Save Row Function
-function saveRow(empId) {
-    const emp = employeeData.find(e => e.id === empId);
-
-    if (!emp) return;
-
-    // Get all input values from edit mode
-    const inputs = document.querySelectorAll(`.edit-view-${empId} input.allowance-input`);
-    let hasChanges = false;
-
-    inputs.forEach(input => {
-        const field = input.getAttribute('data-field');
-        const newValue = parseFloat(input.value) || 0;
-        const oldValue = parseFloat(emp[field] || 0);
-
-        if (newValue !== oldValue) {
-            hasChanges = true;
-        }
-
-        // Update employee data
-        emp[field] = newValue;
-    });
-
-    if (!hasChanges) {
-        alert('No changes were made!');
-        cancelRow(empId);
-        return;
-    }
-
-    // Recalculate totals (Config allowances + OT allowances)
-    emp.total_allowances = parseFloat(emp.allowance_1 || 0) +
-                          parseFloat(emp.allowance_2 || 0) +
-                          parseFloat(emp.allowance_3 || 0) +
-                          parseFloat(emp.allowance_4 || 0) +
-                          parseFloat(emp.levy_allowance || 0) +
-                          parseFloat(emp.ot_allowances || 0);
-
-    emp.gross_salary = parseFloat(emp.basic_salary || 0) + emp.total_allowances + parseFloat(emp.ot_amount || 0);
-    emp.total_deductions = parseFloat(emp.cpf_deduction || 0) + parseFloat(emp.lop_deduction || 0) + parseFloat(emp.other_deductions || 0);
-    emp.net_salary = emp.gross_salary - emp.total_deductions;
-
-    // Update display values
-    document.querySelector(`.transport-display-${empId}`).textContent = `$${emp.allowance_1.toFixed(2)}`;
-    document.querySelector(`.housing-display-${empId}`).textContent = `$${emp.allowance_2.toFixed(2)}`;
-    document.querySelector(`.meal-display-${empId}`).textContent = `$${emp.allowance_3.toFixed(2)}`;
-    document.querySelector(`.other-display-${empId}`).textContent = `$${emp.allowance_4.toFixed(2)}`;
-    document.querySelector(`.levy-display-${empId}`).textContent = `$${emp.levy_allowance.toFixed(2)}`;
-    document.querySelector(`.total-allow-${empId}`).textContent = `$${emp.total_allowances.toFixed(2)}`;
-    document.querySelector(`.net-salary-${empId}`).textContent = `$${emp.net_salary.toFixed(2)}`;
-
-    // Show display view, hide edit view
-    document.querySelectorAll(`.display-view-${empId}`).forEach(el => el.style.display = 'block');
-    document.querySelectorAll(`.edit-view-${empId}`).forEach(el => el.style.display = 'none');
-
-    // Show Edit button, hide Save and Cancel
-    document.querySelector(`.edit-btn-${empId}`).style.display = 'inline-block';
-    document.querySelector(`.save-btn-${empId}`).style.display = 'none';
-    document.querySelector(`.cancel-btn-${empId}`).style.display = 'none';
-
-    // Update summary if this employee is checked
-    const checkbox = document.querySelector(`input[value="${empId}"][type="checkbox"].employee-checkbox`);
-    if (checkbox && checkbox.checked) {
+    document.getElementById('selectAll').addEventListener('change', function (e) {
+        const checked = e.target.checked;
+        employeeData.forEach(emp => emp.selected = checked);
+        renderTable();
         updateSummary();
+    });
+
+    function changePage(delta) {
+        currentPage += delta;
+        renderTable();
     }
 
-    alert('Row saved successfully!');
-}
-
-// Cancel Row Function
-function cancelRow(empId) {
-    // Show display view, hide edit view
-    document.querySelectorAll(`.display-view-${empId}`).forEach(el => el.style.display = 'block');
-    document.querySelectorAll(`.edit-view-${empId}`).forEach(el => el.style.display = 'none');
-
-    // Show Edit button, hide Save and Cancel
-    document.querySelector(`.edit-btn-${empId}`).style.display = 'inline-block';
-    document.querySelector(`.save-btn-${empId}`).style.display = 'none';
-    document.querySelector(`.cancel-btn-${empId}`).style.display = 'none';
-}
-
-function updateSummary() {
-    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
-    const count = checkboxes.length;
-
-    let totalBasic = 0;
-    let totalAllowances = 0;
-    let totalOT = 0;
-    let totalGross = 0;
-    let totalDeductions = 0;
-    let totalOtherDed = 0;
-    let totalNetSalary = 0;
-
-    checkboxes.forEach(cb => {
-        const emp = employeeData.find(e => e.id == cb.value);
+    // INLINE EDITING LOGIC
+    function editRow(id) {
+        const emp = employeeData.find(e => e.id === id);
         if (emp) {
-            totalBasic += parseFloat(emp.basic_salary || 0);
-
-            // Sum all allowances (Config allowances + OT allowances from API)
-            totalAllowances += parseFloat(emp.total_allowances || 0);
-
-            totalOT += parseFloat(emp.ot_amount || 0);
-            totalGross += parseFloat(emp.gross_salary || 0);
-            totalDeductions += parseFloat(emp.cpf_deduction || 0) + parseFloat(emp.lop_deduction || 0);
-            totalOtherDed += parseFloat(emp.other_deductions || 0);
-            totalNetSalary += parseFloat(emp.net_salary || 0);
+            emp.isEditing = true;
+            renderTable();
+            // Focus first input
+            setTimeout(() => document.getElementById(`edit-basic-${id}`).focus(), 50);
         }
-    });
+    }
 
-    document.getElementById('selectedCount').textContent = count;
-    document.getElementById('totalBasic').textContent = `$${totalBasic.toFixed(2)}`;
-    document.getElementById('totalAllowances').textContent = `$${totalAllowances.toFixed(2)}`;
-    document.getElementById('totalOT').textContent = `$${totalOT.toFixed(2)}`;
-    document.getElementById('totalGross').textContent = `$${totalGross.toFixed(2)}`;
-    document.getElementById('totalDeductions').textContent = `$${totalDeductions.toFixed(2)}`;
-    document.getElementById('totalOtherDed').textContent = `$${totalOtherDed.toFixed(2)}`;
-    document.getElementById('totalPayroll').textContent = `$${totalNetSalary.toFixed(2)}`;
-    document.getElementById('generateBtn').disabled = count === 0;
-}
+    function cancelRow(id) {
+        const emp = employeeData.find(e => e.id === id);
+        if (emp) {
+            emp.isEditing = false;
+            renderTable();
+        }
+    }
 
-function showCalendarModal(employeeId, employeeName) {
-    const month = parseInt(document.getElementById('month').value);
-    const year = parseInt(document.getElementById('year').value);
+    function saveRow(id) {
+        const emp = employeeData.find(e => e.id === id);
+        if (!emp) return;
 
-    // Create modal HTML
-    const modalHtml = `
-        <div class="modal fade" id="calendarModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fas fa-calendar me-2"></i>Attendance Calendar - ${employeeName}
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="calendarContent">
-                            <div class="text-center">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <p class="text-muted mt-2">Loading attendance data...</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <div class="text-start flex-grow-1">
-                            <small class="text-muted">
-                                <span class="badge bg-success">Green</span> Present &nbsp;
-                                <span class="badge bg-warning text-dark">Yellow</span> Absent &nbsp;
-                                <span class="badge bg-danger">Red</span> LOP &nbsp;
-                                <span class="badge bg-secondary">Grey</span> Holiday/Weekend
-                            </small>
-                        </div>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+        // Gather data
+        const payload = {
+            employee_id: id,
+            basic_salary: document.getElementById(`edit-basic-${id}`).value,
+            allowance_1_amount: document.getElementById(`edit-a1-${id}`).value,
+            allowance_2_amount: document.getElementById(`edit-a2-${id}`).value,
+            allowance_3_amount: document.getElementById(`edit-a3-${id}`).value,
+            allowance_4_amount: document.getElementById(`edit-a4-${id}`).value,
+            ot_rate_per_hour: document.getElementById(`edit-otrate-${id}`).value
+        };
 
-    // Remove existing modal if any
-    const existingModal = document.getElementById('calendarModal');
-    if (existingModal) existingModal.remove();
+        // Show loading state for row? Or just wait
+        const originalText = document.querySelector(`#row-${id} .btn-success`).innerHTML;
+        document.querySelector(`#row-${id} .btn-success`).innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    // Add modal to page
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('calendarModal'));
-    modal.show();
-
-    // Fetch attendance data
-    fetch(`/api/attendance/calendar?employee_id=${employeeId}&month=${month}&year=${year}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                renderAttendanceCalendar(data.calendar, month, year);
-            } else {
-                document.getElementById('calendarContent').innerHTML = `
-                    <div class="text-center text-danger">
-                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                        <p>${data.message || 'Error loading attendance data'}</p>
-                    </div>
-                `;
-            }
+        // 1. Update Config (Backend)
+        fetch('/payroll/config/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         })
-        .catch(error => {
-            document.getElementById('calendarContent').innerHTML = `
-                <div class="text-center text-danger">
-                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                    <p>Error loading attendance data. Please try again.</p>
-                </div>
-            `;
-        });
-}
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // 2. Fetch Fresh Data (Backend Calculation) for ONLY this employee
+                    const month = document.getElementById('month').value;
+                    const year = document.getElementById('year').value;
+                    const company = document.getElementById('company').value; // Needed for auth/filter logic
 
-function renderAttendanceCalendar(calendar, month, year) {
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                        'July', 'August', 'September', 'October', 'November', 'December'];
+                    return fetch(`/api/payroll/preview?employee_id=${id}&company_id=${company}&month=${month}&year=${year}`);
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.employees.length > 0) {
+                    const updatedEmp = data.employees[0];
 
-    let calendarHtml = `
-        <div class="text-center mb-3">
-            <h5>${monthNames[month - 1]} ${year}</h5>
-        </div>
-        <table class="table table-bordered table-sm">
-            <thead class="table-light">
-                <tr>
-                    <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+                    // Update local model
+                    Object.assign(emp, updatedEmp);
+                    emp.isEditing = false;
 
-    // Get first day of month
-    const firstDay = new Date(year, month - 1, 1).getDay();
-    const daysInMonth = new Date(year, month, 0).getDate();
-
-    let dayCounter = 1;
-    let cellCounter = 0;
-
-    // Add empty cells for days before month starts
-    if (firstDay > 0) {
-        calendarHtml += '<tr>';
-        for (let i = 0; i < firstDay; i++) {
-            calendarHtml += '<td class="bg-light"></td>';
-            cellCounter++;
-        }
-    } else {
-        calendarHtml += '<tr>';
+                    // Re-render
+                    renderTable();
+                    updateSummary(); // Recalculate totals
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Failed to save changes: ' + err.message);
+                emp.isEditing = false; // Revert on error
+                renderTable();
+            });
     }
 
-    // Add days of month
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const attendance = calendar[dateStr];
+    // Summary Statistics
+    function updateSummary() {
+        const selected = employeeData.filter(e => e.selected);
 
-        let bgClass = 'bg-secondary';  // Default grey for weekends/holidays
-        let text = day;
+        document.getElementById('selectedCount').innerText = selected.length;
+        document.getElementById('generateBtn').disabled = selected.length === 0;
 
-        if (attendance) {
-            if (attendance.status === 'Present') {
-                bgClass = 'bg-success';
-            } else if (attendance.status === 'Absent' && attendance.lop) {
-                bgClass = 'bg-danger';
-            } else if (attendance.status === 'Absent') {
-                bgClass = 'bg-warning text-dark';
-            }
-            text = day + (attendance.lop && attendance.status === 'Absent' ? '*' : '');
-        }
+        const totals = selected.reduce((acc, emp) => {
+            acc.gross += emp.gross_salary;
+            acc.deductions += emp.total_deductions;
+            acc.net += emp.net_salary;
+            return acc;
+        }, { gross: 0, deductions: 0, net: 0 });
 
-        calendarHtml += `<td class="text-center p-2 ${bgClass} text-white">${text}</td>`;
-
-        cellCounter++;
-        if (cellCounter % 7 === 0) {
-            calendarHtml += '</tr><tr>';
-        }
+        document.getElementById('totalGross').innerText = '$' + totals.gross.toFixed(2);
+        document.getElementById('totalDeductions').innerText = '$' + totals.deductions.toFixed(2);
+        document.getElementById('totalPayroll').innerText = '$' + totals.net.toFixed(2);
     }
-
-    // Fill remaining cells
-    if (cellCounter % 7 !== 0) {
-        const remaining = 7 - (cellCounter % 7);
-        for (let i = 0; i < remaining; i++) {
-            calendarHtml += '<td class="bg-light"></td>';
-        }
-        calendarHtml += '</tr>';
-    } else {
-        calendarHtml += '</tr>';
-    }
-
-    calendarHtml += '</tbody></table>';
-
-    document.getElementById('calendarContent').innerHTML = calendarHtml;
-}
-
-function nextPage() {
-    if (currentPage < totalPages) {
-        currentPage++;
-        renderEmployeeTable();
-    }
-}
-
-function previousPage() {
-    if (currentPage > 1) {
-        currentPage--;
-        renderEmployeeTable();
-    }
-}
-
-function saveAllChanges() {
-    // Show save confirmation
-    const selectedCount = document.querySelectorAll('.employee-checkbox:checked').length;
-    if (selectedCount === 0) {
-        alert('Please select at least one employee to save changes');
-        return;
-    }
-
-    // Collect all deduction changes from current page
-    const deductionInputs = document.querySelectorAll('.other-deductions-input');
-    let changesDetected = false;
-
-    deductionInputs.forEach(input => {
-        if (input.dataset.changed) {
-            changesDetected = true;
-        }
-    });
-
-    if (!changesDetected) {
-        alert('No changes detected to save');
-        return;
-    }
-
-    // Show success message
-    alert(`Changes for ${selectedCount} employee(s) have been saved successfully!`);
-    document.getElementById('saveBtn').style.display = 'none';
-}
-
-// Monitor changes to other deductions
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('other-deductions-input')) {
-        e.target.dataset.changed = 'true';
-        document.getElementById('saveBtn').style.display = 'inline-block';
-    }
-});
-
-// Form submission
-document.getElementById('payrollForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-
-    const selectedCount = document.querySelectorAll('.employee-checkbox:checked').length;
-
-    if (selectedCount === 0) {
-        alert('Please select at least one employee');
-        return;
-    }
-
-    if (confirm(`Generate payroll for ${selectedCount} employee(s)?`)) {
-        this.submit();
-    }
-});
-</script>{% endblock %}
+</script>
+{% endblock %}

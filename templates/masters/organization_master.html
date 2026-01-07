@@ -323,10 +323,12 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
                         <button class="btn btn-light btn-lg" onclick="openAddTenantModal()"
                             title="Add New Organization">
                             <i class="fas fa-plus text-primary"></i>
                         </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -376,9 +378,11 @@
                 </div>
                 <div class="p-3 border-top bg-light mt-auto">
                     <!-- Placeholder for Edit or other actions -->
+                    {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
                     <button class="btn btn-outline-primary w-100 btn-sm" onclick="editTenant()">
                         <i class="fas fa-edit me-2"></i>Edit Tenant Details
                     </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -394,9 +398,11 @@
                             <h5 class="org-card-title">
                                 <i class="fas fa-credit-card text-success"></i> Payment Configuration
                             </h5>
+                            {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
                             <button class="btn btn-sm btn-light text-primary" onclick="configurePayment()">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
+                            {% endif %}
                         </div>
                         <div class="org-card-body">
                             <div id="paymentConfigLoader" class="text-center py-4 d-none">
@@ -466,9 +472,11 @@
         <i class="fas fa-building empty-state-icon"></i>
         <h4>Select an Organization</h4>
         <p>Please select a tenant from the dropdown above to view details, or add a new one.</p>
+        {% if (current_user.role.name if current_user.role else None) == 'Super Admin' %}
         <button class="btn btn-primary mt-3" onclick="openAddTenantModal()">
             <i class="fas fa-plus me-2"></i>Add New Tenant
         </button>
+        {% endif %}
     </div>
 
 </div>

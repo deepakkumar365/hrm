@@ -29,6 +29,7 @@
                 <table class="table table-hover table-striped">
                     <thead class="table-light">
                         <tr>
+                            <th>Company Code</th>
                             <th>Employee ID</th>
                             <th>Name</th>
                             <th>Email</th>
@@ -42,59 +43,59 @@
                     </thead>
                     <tbody>
                         {% if employees %}
-                            {% for emp in employees %}
-                            <tr>
-                                <td>{{ emp.employee_id or 'N/A' }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div>
-                                            {% if emp.profile_image_path %}
-                                            <img src="{{ url_for('static', filename=emp.profile_image_path) }}" 
-                                                 alt="{{ emp.first_name }}" 
-                                                 class="avatar-image">
-                                            {% else %}
-                                            <div class="avatar-placeholder">
-                                                {{ emp.first_name[0] if emp.first_name else 'E' }}
-                                            </div>
-                                            {% endif %}
+                        {% for emp in employees %}
+                        <tr>
+                            <td>{{ emp.company.code if emp.company else 'N/A' }}</td>
+                            <td>{{ emp.employee_id or 'N/A' }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        {% if emp.profile_image_path %}
+                                        <img src="{{ url_for('static', filename=emp.profile_image_path) }}"
+                                            alt="{{ emp.first_name }}" class="avatar-image">
+                                        {% else %}
+                                        <div class="avatar-placeholder">
+                                            {{ emp.first_name[0] if emp.first_name else 'E' }}
                                         </div>
-                                        <span>{{ emp.first_name }} {{ emp.last_name }}</span>
+                                        {% endif %}
                                     </div>
-                                </td>
-                                <td>{{ emp.email or 'N/A' }}</td>
-                                <td>{{ emp.department or 'N/A' }}</td>
-                                <td>{{ emp.position or 'N/A' }}</td>
-                                <td>{{ emp.hire_date.strftime('%d %b %Y') if emp.hire_date else 'N/A' }}</td>
-                                <td>
-                                    {% if emp.termination_date %}
-                                        <span class="badge bg-danger">{{ emp.termination_date.strftime('%d %b %Y') }}</span>
-                                    {% else %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if emp.manager %}
-                                        {{ emp.manager.first_name }} {{ emp.manager.last_name }}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if emp.is_active %}
-                                        <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
+                                    <span>{{ emp.first_name }} {{ emp.last_name }}</span>
+                                </div>
+                            </td>
+                            <td>{{ emp.email or 'N/A' }}</td>
+                            <td>{{ emp.department or 'N/A' }}</td>
+                            <td>{{ emp.position or 'N/A' }}</td>
+                            <td>{{ emp.hire_date.strftime('%d %b %Y') if emp.hire_date else 'N/A' }}</td>
+                            <td>
+                                {% if emp.termination_date %}
+                                <span class="badge bg-danger">{{ emp.termination_date.strftime('%d %b %Y') }}</span>
+                                {% else %}
+                                <span class="badge bg-success">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if emp.manager %}
+                                {{ emp.manager.first_name }} {{ emp.manager.last_name }}
+                                {% else %}
+                                N/A
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if emp.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
                         {% else %}
-                            <tr>
-                                <td colspan="9" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                                    No employee records found
-                                </td>
-                            </tr>
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                No employee records found
+                            </td>
+                        </tr>
                         {% endif %}
                     </tbody>
                 </table>
@@ -114,7 +115,8 @@
                         <strong>Inactive:</strong> {{ employees|rejectattr('is_active')|list|length }}
                     </div>
                     <div class="col-md-3">
-                        <strong>With Termination Date:</strong> {{ employees|selectattr('termination_date')|list|length }}
+                        <strong>With Termination Date:</strong> {{ employees|selectattr('termination_date')|list|length
+                        }}
                     </div>
                 </div>
             </div>

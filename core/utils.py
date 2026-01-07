@@ -334,3 +334,41 @@ def check_ui_access(user_role, module_name, menu_name=None, sub_menu_name=None):
     Returns 'Editable', 'View Only', or 'Hidden'
     """
     return check_module_access(user_role, module_name, menu_name, sub_menu_name)
+
+
+def num_to_words(num):
+    """
+    Convert number to words (Simplified for Payroll)
+    Supports up to 999,999,999.99
+    """
+    if num == 0:
+        return "Zero"
+
+    under_20 = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 
+                'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+    tens = ['Zero', 'Ten', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+
+    def to_words(n):
+        if n < 20:
+            return under_20[int(n)]
+        if n < 100:
+            return tens[int(n // 10)] + ('' if n % 10 == 0 else ' ' + under_20[int(n % 10)])
+        if n < 1000:
+            return under_20[int(n // 100)] + ' Hundred' + ('' if n % 100 == 0 else ' and ' + to_words(n % 100))
+        if n < 100000:
+            return to_words(n // 1000) + ' Thousand' + ('' if n % 1000 == 0 else ' ' + to_words(n % 1000))
+        if n < 10000000:
+            return to_words(n // 100000) + ' Lakh' + ('' if n % 100000 == 0 else ' ' + to_words(n % 100000))
+        return to_words(n // 10000000) + ' Crore' + ('' if n % 10000000 == 0 else ' ' + to_words(n % 10000000))
+
+    try:
+        dollars = int(num)
+        cents = int(round((num - dollars) * 100))
+        
+        words = to_words(dollars)
+        if cents > 0:
+            words += f" and {cents}/100"
+            
+        return words.upper() + " ONLY"
+    except Exception:
+        return str(num)
