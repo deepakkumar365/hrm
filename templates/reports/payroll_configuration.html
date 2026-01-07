@@ -30,6 +30,7 @@
             <table class="payroll-grid">
                 <thead>
                     <tr>
+                        <th class="sortable" data-column="company_code">Co. Code</th>
                         <th class="sortable" data-column="employee_id">Emp ID</th>
                         <th class="sortable" data-column="first_name">Employee Name</th>
                         <th class="sortable" data-column="designation">Job Title</th>
@@ -47,38 +48,46 @@
                 <tbody>
                     {% for config in configs %}
                     <tr data-config-id="{{ config.id }}">
+                        <td>{{ config.company_code }}</td>
                         <td>{{ config.employee_id }}</td>
                         <td>{{ config.name }}</td>
                         <td>{{ config.designation }}</td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.basic_salary) }}</span>
-                            <input type="number" class="edit-value" name="basic_salary" value="{{ config.basic_salary }}" step="0.01">
+                            <input type="number" class="edit-value" name="basic_salary"
+                                value="{{ config.basic_salary }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.allowances) }}</span>
-                            <input type="number" class="edit-value" name="allowances" value="{{ config.allowances }}" step="0.01">
+                            <input type="number" class="edit-value" name="allowances" value="{{ config.allowances }}"
+                                step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.employer_cpf) }}</span>
-                            <input type="number" class="edit-value" name="employer_cpf" value="{{ config.employer_cpf }}" step="0.01">
+                            <input type="number" class="edit-value" name="employer_cpf"
+                                value="{{ config.employer_cpf }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.employee_cpf) }}</span>
-                            <input type="number" class="edit-value" name="employee_cpf" value="{{ config.employee_cpf }}" step="0.01">
+                            <input type="number" class="edit-value" name="employee_cpf"
+                                value="{{ config.employee_cpf }}" step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.gross_salary) }}</span>
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.net_salary) }}</span>
-                            <input type="number" class="edit-value" name="net_salary" value="{{ config.net_salary }}" step="0.01">
+                            <input type="number" class="edit-value" name="net_salary" value="{{ config.net_salary }}"
+                                step="0.01">
                         </td>
                         <td class="numeric">
                             <span class="display-value">${{ "%.2f"|format(config.ot_rate) }}</span>
-                            <input type="number" class="edit-value" name="ot_rate" value="{{ config.ot_rate }}" step="0.01">
+                            <input type="number" class="edit-value" name="ot_rate" value="{{ config.ot_rate }}"
+                                step="0.01">
                         </td>
                         <td>
-                            <span class="display-value" title="{{ config.remarks }}">{{ config.remarks[:20] if config.remarks else '-' }}</span>
+                            <span class="display-value" title="{{ config.remarks }}">{{ config.remarks[:20] if
+                                config.remarks else '-' }}</span>
                             <input type="text" class="edit-value" name="remarks" value="{{ config.remarks }}">
                         </td>
                         <td>
@@ -97,25 +106,29 @@
         <!-- Footer with Pagination and Records Per Page -->
         <div class="payroll-footer">
             <div class="pagination-info">
-                Showing <strong>{{ (page - 1) * per_page + 1 }}-{{ [page * per_page, total]|min }}</strong> of <strong>{{ total }}</strong> records
+                Showing <strong>{{ (page - 1) * per_page + 1 }}-{{ [page * per_page, total]|min }}</strong> of
+                <strong>{{ total }}</strong> records
             </div>
 
             <div class="pagination-controls">
-                <button onclick="goToPage(1)" {% if page <= 1 %}disabled{% endif %}>First</button>
-                <button onclick="goToPage({{ page - 1 }})" {% if page <= 1 %}disabled{% endif %}>← Previous</button>
-                <input type="number" class="pagination-input" id="pageInput" value="{{ page }}" min="1" max="{{ total_pages }}" onchange="goToPage(this.value)">
+                <button onclick="goToPage(1)" {% if page <=1 %}disabled{% endif %}>First</button>
+                <button onclick="goToPage({{ page - 1 }})" {% if page <=1 %}disabled{% endif %}>← Previous</button>
+                <input type="number" class="pagination-input" id="pageInput" value="{{ page }}" min="1"
+                    max="{{ total_pages }}" onchange="goToPage(this.value)">
                 <span>of {{ total_pages }}</span>
-                <button onclick="goToPage({{ page + 1 }})" {% if page >= total_pages %}disabled{% endif %}>Next →</button>
-                <button onclick="goToPage({{ total_pages }})" {% if page >= total_pages %}disabled{% endif %}>Last</button>
+                <button onclick="goToPage({{ page + 1 }})" {% if page>= total_pages %}disabled{% endif %}>Next
+                    →</button>
+                <button onclick="goToPage({{ total_pages }})" {% if page>= total_pages %}disabled{% endif
+                    %}>Last</button>
             </div>
 
             <div class="records-per-page">
                 <label>Records per page:</label>
                 <select onchange="changeRecordsPerPage(this.value)">
-                    <option value="15" {% if per_page == 15 %}selected{% endif %}>15</option>
-                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
-                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                    <option value="15" {% if per_page==15 %}selected{% endif %}>15</option>
+                    <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
                 </select>
             </div>
         </div>
@@ -138,7 +151,7 @@
     };
 
     // Initialize sort indicators
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         updateSortIndicators();
     });
 
@@ -153,14 +166,14 @@
 
     // Sorting
     document.querySelectorAll('.payroll-grid th.sortable').forEach(th => {
-        th.addEventListener('click', function() {
+        th.addEventListener('click', function () {
             const column = this.dataset.column;
             let order = 'asc';
-            
+
             if (currentSort.column === column && currentSort.order === 'asc') {
                 order = 'desc';
             }
-            
+
             const url = new URL(window.location);
             url.searchParams.set('sort_by', column);
             url.searchParams.set('sort_order', order);
@@ -215,39 +228,39 @@
         });
 
         // Send to server
-        fetch(`{{ url_for('update_payroll_configuration', config_id='__CONFIG_ID__') }}`.replace('__CONFIG_ID__', configId), {
+        fetch(`{{ url_for('update_payroll_configuration', config_id=0) }}`.replace('0', configId), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data)
         })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                // Update display values with new values
-                row.querySelectorAll('.edit-value').forEach(input => {
-                    const displayEl = input.parentElement.querySelector('.display-value');
-                    if (displayEl) {
-                        if (input.type === 'number') {
-                            displayEl.textContent = '$' + parseFloat(input.value).toFixed(2);
-                        } else {
-                            displayEl.textContent = input.value || '-';
-                            displayEl.title = input.value;
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Update display values with new values
+                    row.querySelectorAll('.edit-value').forEach(input => {
+                        const displayEl = input.parentElement.querySelector('.display-value');
+                        if (displayEl) {
+                            if (input.type === 'number') {
+                                displayEl.textContent = '$' + parseFloat(input.value).toFixed(2);
+                            } else {
+                                displayEl.textContent = input.value || '-';
+                                displayEl.title = input.value;
+                            }
                         }
-                    }
-                });
+                    });
 
-                cancelEdit(button);
-                alert('Configuration updated successfully!');
-            } else {
-                alert('Error: ' + result.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error saving configuration');
-        });
+                    cancelEdit(button);
+                    alert('Configuration updated successfully!');
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving configuration');
+            });
     }
 
     // Pagination

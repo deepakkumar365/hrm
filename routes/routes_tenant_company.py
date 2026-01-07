@@ -160,7 +160,7 @@ def list_tenants():
 
 
 @app.route('/api/tenants/<uuid:tenant_id>', methods=['GET'])
-@require_role(['Super Admin', 'Admin', 'Manager'])
+@require_role(['Super Admin', 'Admin', 'Manager', 'Tenant Admin'])
 def get_tenant(tenant_id):
     """Get a specific tenant by ID"""
     try:

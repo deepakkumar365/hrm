@@ -1,164 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Payslip - {{ employee.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Calibri:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet"></head>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+            color: #000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        .payslip-box {
+            border: 2px solid #000;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 10mm;
+            box-sizing: border-box;
+            background-color: white;
+        }
+
+        /* Header */
+        .header-section {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #000;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #d32f2f;
+            /* Red-ish color from sample */
+            margin-bottom: 5px;
+        }
+
+        /* Title Bar */
+        .title-bar {
+            text-align: center;
+            padding: 8px;
+            border-bottom: 2px solid #000;
+            color: #1a237e;
+            /* Blue color from sample */
+            font-weight: 700;
+            font-size: 16px;
+            text-transform: uppercase;
+        }
+
+        /* Employee Details Grid */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 2px solid #000;
+        }
+
+        .details-col {
+            padding: 10px;
+        }
+
+        .details-col:first-child {
+            border-right: 2px solid #000;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .label {
+            width: 140px;
+            color: #333;
+        }
+
+        .value {
+            flex: 1;
+            color: #000;
+        }
+
+        /* Pay Table */
+        .pay-table-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 2px solid #000;
+        }
+
+        .pay-col {
+            /* No padding here, handled by table */
+        }
+
+        .pay-col:first-child {}
+
+        .pay-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+
+        .pay-table th {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+            font-weight: 700;
+            /* No extra background on sample, just borders */
+        }
+
+        .pay-table td {
+            border-left: 1px solid #000;
+            border-right: 1px solid #000;
+            padding: 5px 8px;
+        }
+
+        /* Specific borders for the layout */
+        .pay-col:first-child .pay-table td {
+            border-right: 2px solid #000;
+            /* Separator between earnings and deductions */
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .gross-row td {
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            font-weight: 700;
+            padding: 8px;
+        }
+
+        /* Net Pay */
+        .net-pay-section {
+            padding: 15px;
+            border-bottom: 2px solid #000;
+        }
+
+        .net-pay-main {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .net-pay-words {
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        /* Footer */
+        .footer-section {
+            padding: 10px;
+            font-size: 11px;
+        }
+
+        .remark-label {
+            font-weight: 700;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .system-note {
+            margin-top: 15px;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+            font-style: italic;
+        }
+
+        .contact-info {
+            color: blue;
+            text-decoration: underline;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .payslip-box {
+                border: 2px solid #000;
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
 <body>
 
-<div class="payslip-container">
+    <div class="payslip-box">
 
-    <!-- Company Header Bar -->
-    <div class="company-header">
-        <div class="company-name">{{ company.name }}</div>
-        <div class="company-slogan">FOR ALL YOUR FREIGHT SOLUTIONS</div>
-        <div class="company-contact">Tel: +65 9766 6641 | 6254 9447</div>
-        <div class="company-contact">{{ company.address }}</div>
-        <div class="company-uen">UEN: {{ company.uen }}</div>
+        <!-- Header (Using Redacted Style Placeholder or Company Name) -->
+        <div class="header-section">
+            <!-- Logo or Name -->
+            <div class="company-name">{{ company.name }}</div>
+            <div style="font-size: 12px;">{{ company.address }}</div>
+        </div>
+
+        <!-- Month Title -->
+        <div class="title-bar">
+            Pay Slip for the month of {{ payroll.period }}
+        </div>
+
+        <!-- Employee Details -->
+        <div class="details-grid">
+            <div class="details-col">
+                <div class="info-row"><span class="label">Employee Code</span> <span class="value">: {{
+                        employee.employee_code }}</span></div>
+                <div class="info-row"><span class="label">Employee Name</span> <span class="value">: {{ employee.name
+                        }}</span></div>
+                <div class="info-row"><span class="label">Date of Joining</span> <span class="value">: {{
+                        employee.joining_date }}</span></div>
+                <div class="info-row"><span class="label">Designation</span> <span class="value">: {{
+                        employee.designation }}</span></div>
+                <div class="info-row"><span class="label">Department</span> <span class="value">: {{ employee.department
+                        }}</span></div>
+                <div class="info-row"><span class="label">Location</span> <span class="value">: {{ employee.location
+                        }}</span></div>
+                <div class="info-row"><span class="label">Bank</span> <span class="value">: {{ employee.bank_name
+                        }}</span></div>
+            </div>
+            <div class="details-col">
+                <div class="info-row"><span class="label">Bank Account Number</span> <span class="value">: {{
+                        employee.bank_account }}</span></div>
+                <div class="info-row"><span class="label">PAN/GIR No.(TDS)</span> <span class="value">: {{
+                        employee.pan_number }}</span></div>
+                <div class="info-row"><span class="label">PF Account No.</span> <span class="value">: {{
+                        employee.pf_number }}</span></div>
+                <div class="info-row"><span class="label">UAN Account No</span> <span class="value">: N/A</span></div>
+                <div class="info-row"><span class="label">Loss of Pay Days</span> <span class="value">: {{
+                        payroll.lop_days }}</span></div>
+                <div class="info-row"><span class="label">Paid Days</span> <span class="value">: {{ payroll.paid_days
+                        }}</span></div>
+                <div class="info-row"><span class="label">ESI No.</span> <span class="value">: {{ employee.esi_number
+                        }}</span></div>
+            </div>
+        </div>
+
+        <!-- Pay Table -->
+        <div class="pay-table-container">
+            <!-- Earnings -->
+            <div class="pay-col">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%">Earnings</th>
+                            <th style="width: 20%">Rate</th>
+                            <th style="width: 20%">Earned</th>
+                            <th style="width: 20%">Arrear</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>BASIC</td>
+                            <td class="text-right">{{ earnings.regular_pay_rate }}</td>
+                            <td class="text-right">{{ earnings.regular_pay_amount }}</td>
+                            <td class="text-right">0.00</td>
+                        </tr>
+                        <tr>
+                            <td>Overtime</td>
+                            <td class="text-right">{{ earnings.overtime_pay_rate }}</td>
+                            <td class="text-right">{{ earnings.overtime_amount }}</td>
+                            <td class="text-right">0.00</td>
+                        </tr>
+                        <tr>
+                            <td>Allowances</td>
+                            <td class="text-right">-</td>
+                            <td class="text-right">{{ earnings.others }}</td>
+                            <td class="text-right">0.00</td>
+                        </tr>
+                        <!-- Fillers for height layout matching -->
+                        <tr>
+                            <td>&nbsp;</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr class="gross-row">
+                            <td>GROSS TOTAL</td>
+                            <td></td>
+                            <td class="text-right">{{ payroll.total_earnings }}</td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Deductions -->
+            <div class="pay-col">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 70%">Deductions</th>
+                            <th style="width: 30%">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PF Amount</td>
+                            <td class="text-right">{{ deductions.provident_fund }}</td>
+                        </tr>
+                        <tr>
+                            <td>Income Tax/Professional Tax</td>
+                            <td class="text-right">{{ deductions.income_tax }}</td>
+                        </tr>
+                        <tr>
+                            <td>Other Deductions</td>
+                            <td class="text-right">{{ deductions.others }}</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;</td>
+                            <td></td>
+                        </tr>
+                        <tr class="gross-row">
+                            <td>DEDUCTION TOTAL</td>
+                            <td class="text-right">{{ payroll.total_deductions }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Net Pay -->
+        <div class="net-pay-section">
+            <div class="net-pay-main">
+                NET PAY &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {{ payroll.net_pay }}
+            </div>
+            <div class="net-pay-words">
+                (RUPEES {{ payroll.net_pay_words }})
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-section">
+            <span class="remark-label">REMARKS</span>
+            <br>
+            <div class="system-note">
+                This is a system generated pay slip. Hence, signature is not needed
+            </div>
+            <div style="margin-top: 5px; font-style: italic;">
+                For any clarification on salary please write to <span class="contact-info">hr@{{
+                    company.name|lower|replace(' ', '') }}.com</span>
+            </div>
+        </div>
+
     </div>
-
-    <!-- Salary Slip Title Section -->
-    <div class="slip-title-section">
-        <div class="slip-title">PAYROLL SALARY SLIP</div>
-        <div class="slip-subtitle">{{ payroll.pay_date }}</div>
-    </div>
-
-    <!-- Content Area with Background -->
-    <div class="content-area">
-
-        <!-- Employee Information Section -->
-        <div class="info-section">
-            <table class="info-table">
-                <tr>
-                    <td class="label">Employee Name:</td>
-                    <td class="value">{{ employee.name }}</td>
-                    <td class="label">Pay Date:</td>
-                    <td class="value">{{ payroll.pay_date }}</td>
-                </tr>
-                <tr>
-                    <td class="label">NRIC/FIN/WP/SP:</td>
-                    <td class="value">{{ employee.nric }}</td>
-                    <td class="label">Designation:</td>
-                    <td class="value">{{ employee.designation }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Nationality:</td>
-                    <td class="value">{{ employee.nationality }}</td>
-                    <td class="label">Department:</td>
-                    <td class="value">{{ employee.department if employee.department else 'N/A' }}</td>
-                </tr>
-            </table>
-        </div>
-
-        <!-- Pay Details Section -->
-        <div class="pay-section">
-            <table class="pay-table">
-                <thead>
-                <tr>
-                    <th>Earnings</th>
-                    <th>Rate (SGD)</th>
-                    <th>Hours</th>
-                    <th>Amount (SGD)</th>
-                    <th>Deductions</th>
-                    <th>Amount (SGD)</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>Regular Pay</td>
-                    <td>{{ earnings.regular_pay_rate }}</td>
-                    <td>-</td>
-                    <td>{{ earnings.regular_pay_amount }}</td>
-                    <td>Income Tax</td>
-                    <td>{{ deductions.income_tax }}</td>
-                </tr>
-                <tr>
-                    <td>Overtime Pay</td>
-                    <td>{{ earnings.overtime_pay_rate }}</td>
-                    <td>{{ earnings.overtime_hours if earnings.overtime_hours else '-' }}</td>
-                    <td>{{ earnings.overtime_amount }}</td>
-                    <td>Medical</td>
-                    <td>{{ deductions.medical }}</td>
-                </tr>
-                <tr>
-                    <td>Holiday Pay</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>{{ earnings.holiday_pay }}</td>
-                    <td>Life Insurance</td>
-                    <td>{{ deductions.life_insurance }}</td>
-                </tr>
-                <tr>
-                    <td>Vacation Pay</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>{{ earnings.vacation_pay }}</td>
-                    <td>Loss of Pay</td>
-                    <td>{{ deductions.loss_of_pay }}</td>
-                </tr>
-                <tr>
-                    <td>Others</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>{{ earnings.others }}</td>
-                    <td>Central Provident Fund</td>
-                    <td>{{ deductions.provident_fund }}</td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>Other Deductions</td>
-                    <td>{{ deductions.others }}</td>
-                </tr>
-                <tr class="totals-row">
-                    <td colspan="3">Total (Gross)</td>
-                    <td>{{ payroll.total_earnings }}</td>
-                    <td>Total</td>
-                    <td>{{ payroll.total_deductions }}</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Summary Section -->
-        <div class="summary-section">
-            <table class="summary-table">
-                <tr>
-                    <td class="label">Total Earnings (SGD)</td>
-                    <td>{{ payroll.total_earnings }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Total Deductions (SGD)</td>
-                    <td>{{ payroll.total_deductions }}</td>
-                </tr>
-                <tr class="netpay-row">
-                    <td class="label">Net Pay (SGD)</td>
-                    <td>{{ payroll.net_pay }}</td>
-                </tr>
-            </table>
-        </div>
-
-    </div>
-
-    <!-- Footer Section -->
-    <div class="footer-wave">
-        <div class="footer-note">
-            This is a system-generated document. Hence, signature is not needed!
-        </div>
-        <div class="footer-contact">
-            Email: james.woo@aksfs.com | segar@aksfs.com | sashi@aksfs.com | acc@aksfs.com
-        </div>
-        <div class="footer-contact">
-            Website: www.aksgroup.com.sg
-        </div>
-        <div class="footer-logo">
-            AKS FREIGHT SOLUTIONS PTE.LTD.
-        </div>
-    </div>
-
-</div>
 
 </body>
+
 </html>
