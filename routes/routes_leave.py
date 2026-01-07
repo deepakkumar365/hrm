@@ -206,7 +206,7 @@ def leave_list():
         
         # Filter by status if provided
         if status_filter:
-            query = query.filter_by(status=status_filter)
+            query = query.filter(Leave.status == status_filter)
         
         # Paginate results
         leave_requests = query.order_by(Leave.created_at.desc()).paginate(page=page, per_page=10)

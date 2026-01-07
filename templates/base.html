@@ -177,6 +177,17 @@
                 </div>
                 {% endif %}
 
+                <!-- APPROVAL DASHBOARD (New) -->
+                {% if user_role in ['Manager', 'HR Manager', 'Tenant Admin', 'Super Admin'] %}
+                <div class="nav-group">
+                    <a class="sidebar-link {{ 'active' if request.endpoint == 'approval_dashboard' }}"
+                        href="{{ url_for('approval_dashboard') }}" title="Approvals">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Approvals</span>
+                    </a>
+                </div>
+                {% endif %}
+
 
                 <!-- Super Admin / Tenant Admin / HR Manager Menu (Masters) -->
                 {% set show_masters = (check_ui_access(user_role, 'Admin Settings', 'Master Data') != 'Hidden') or
@@ -311,6 +322,7 @@
                 {% endif %}
 
                 <!-- OT Management -->
+                <!--
                 {% if is_admin or is_reporting_manager %}
                 <div class="nav-group">
                     <a class="sidebar-link" href="#" role="button">
@@ -330,6 +342,7 @@
                     </div>
                 </div>
                 {% endif %}
+                -->
 
                 <!-- Payroll -->
                 {% if check_ui_access(user_role, 'Payroll') != 'Hidden' and user_role != 'Employee' %}

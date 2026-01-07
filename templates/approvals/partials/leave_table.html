@@ -1,0 +1,111 @@
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary">Pending Leave Requests</h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="loadApprovalSection('leaves')">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+    <div class="table-responsive">
+        {% if leaves %}
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Employee</th>
+                    <th>Type</th>
+                    <th>Dates</th>
+                    <th>Days</th>
+                    <th>Reason</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for leave in leaves %}
+                <tr>
+                    <td>
+                        <div class="d-flex flex-column">
+                            <span class="fw-bold text-dark">{{ leave.employee.first_name }} {{ leave.employee.last_name
+                                }}</span>
+                            <small class="text-muted">{{ leave.employee.employee_id }}</small>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-info text-dark">{{ leave.leave_type }}</span></td>
+                    <td>
+                        <div class="d-flex flex-column small">
+                            <span>From: {{ leave.start_date.strftime('%d %b %Y') }}</span>
+                            <span>To: {{ leave.end_date.strftime('%d %b %Y') }}</span>
+                        </div>
+                    </td>
+                    <td class="fw-bold text-center">{{ leave.days_requested }}</td>
+                    <td>
+                        <span class="d-inline-block text-truncate" style="max-width: 150px;" title="{{ leave.reason }}">
+                            {{ leave.reason or '-' }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{{ url_for('leave_edit', leave_id=leave.id) }}" class="btn btn-outline-primary"
+                                title="View/Edit">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <button class="btn btn-success" onclick="approveLeaveItem({{ leave.id }}, 'approve')">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="btn btn-danger" onclick="rejectLeaveItem({{ leave.id }})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-check-circle fa-3x text-muted mb-3 opacity-50"></i>
+            <h5 class="text-muted">No pending leave requests</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Local Scripts for AJAX Actions -->
+<script>
+    function approveLeaveItem(id, action) {
+        if (!confirm('Approve this leave request?')) return;
+
+        fetch(`/leave/${id}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=${action}`
+        })
+            .then(async res => {
+                if (res.ok || res.redirected) {
+                    // Reload the section to remove the item
+                    loadApprovalSection('leaves');
+                    // Show toast or simplified notification
+                    // alert('Approved successfully'); 
+                } else {
+                    alert('Error processing request');
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    function rejectLeaveItem(id) {
+        const reason = prompt("Enter rejection reason:");
+        if (!reason) return;
+
+        const formData = new FormData();
+        formData.append('rejection_reason', reason);
+        formData.append('action', 'reject');
+
+        fetch(`/leave/${id}/reject`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(res => {
+                loadApprovalSection('leaves');
+            })
+            .catch(err => console.error(err));
+    }
+</script>
