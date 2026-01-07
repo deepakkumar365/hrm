@@ -187,7 +187,7 @@ def leave_list():
                     employees = Employee.query.filter_by(company_id=emp.company_id).order_by(Employee.first_name).all()
             
             # Manager: View own leaves AND leaves of direct reports
-            elif role == 'Manager':
+            elif role == 'Manager' or (role == 'Employee' and emp.is_manager):
                 query = query.join(Leave.employee).filter(
                     or_(
                         Leave.employee_id == emp.id,

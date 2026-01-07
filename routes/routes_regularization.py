@@ -102,7 +102,11 @@ def attendance_regularization_list():
 @login_required
 def attendance_regularization_manage():
     """List pending regularization requests for approval"""
-    if current_user.role.name not in ['HR Manager', 'Super Admin', 'Tenant Admin', 'Manager']:
+    is_reporting_manager = (hasattr(current_user, 'employee_profile') and 
+                          current_user.employee_profile and 
+                          current_user.employee_profile.is_manager)
+
+    if current_user.role.name not in ['HR Manager', 'Super Admin', 'Tenant Admin', 'Manager'] and not is_reporting_manager:
         flash('Unauthorized', 'error')
         return redirect(url_for('dashboard'))
         
@@ -113,7 +117,7 @@ def attendance_regularization_manage():
     
     query = AttendanceRegularization.query.filter_by(status='Pending').join(Employee)
     
-    if current_user.role.name == 'Manager':
+    if current_user.role.name == 'Manager' or (current_user.role.name == 'Employee' and is_reporting_manager):
         # Get employees reporting to this user
         # user.employee_profile.id is the manager_employee_id
         if not current_user.employee_profile:

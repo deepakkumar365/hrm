@@ -26,6 +26,11 @@ def get_approval_counts_for_user(user):
 
     user_role = user.role.name if user.role else None
     
+    # Check for reporting manager status
+    is_reporting_manager = False
+    if hasattr(user, 'employee_profile') and user.employee_profile:
+        is_reporting_manager = user.employee_profile.is_manager
+    
     try:
         # Get accessible companies for the user
         accessible_companies = user.get_accessible_companies()
@@ -34,7 +39,7 @@ def get_approval_counts_for_user(user):
         # --- 1. LEAVES ---
         leave_query = Leave.query.filter_by(status='Pending')
         
-        if user_role == 'Manager':
+        if user_role == 'Manager' or (user_role == 'Employee' and is_reporting_manager):
              # Only direct reports
              if user.employee_profile:
                  leave_query = leave_query.join(Employee).filter(Employee.manager_id == user.employee_profile.id)
@@ -53,7 +58,7 @@ def get_approval_counts_for_user(user):
         counts['leaves'] = leave_query.count()
 
         # --- 2. OT REQUESTS ---
-        if user_role == 'Manager':
+        if user_role == 'Manager' or (user_role == 'Employee' and is_reporting_manager):
             ot_query = OTApproval.query.filter_by(status='pending_manager', approval_level=1)
             ot_query = ot_query.filter(OTApproval.approver_id == user.id)
             counts['ot'] = ot_query.count()
@@ -71,7 +76,7 @@ def get_approval_counts_for_user(user):
         # --- 3. REGULARIZATION ---
         reg_query = AttendanceRegularization.query.filter_by(status='Pending')
         
-        if user_role == 'Manager':
+        if user_role == 'Manager' or (user_role == 'Employee' and is_reporting_manager):
              if user.employee_profile:
                  reg_query = reg_query.join(Employee).filter(Employee.manager_id == user.employee_profile.id)
              else:
@@ -98,7 +103,12 @@ def approval_dashboard():
     allowed_roles = ['Manager', 'HR Manager', 'Tenant Admin', 'Super Admin']
     user_role = current_user.role.name if current_user.role else None
     
-    if user_role not in allowed_roles:
+    # Check for reporting manager status
+    is_reporting_manager = False
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        is_reporting_manager = current_user.employee_profile.is_manager
+    
+    if user_role not in allowed_roles and not is_reporting_manager:
         flash('Access Denied', 'danger')
         return redirect(url_for('dashboard'))
         
@@ -129,7 +139,14 @@ def load_approval_data(type):
     Dynamic loader for approval dashboard content
     """
     allowed_roles = ['Manager', 'HR Manager', 'Tenant Admin', 'Super Admin']
-    if (current_user.role.name if current_user.role else None) not in allowed_roles:
+    user_role = current_user.role.name if current_user.role else None
+    
+    # Check for reporting manager status
+    is_reporting_manager = False
+    if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+        is_reporting_manager = current_user.employee_profile.is_manager
+
+    if user_role not in allowed_roles and not is_reporting_manager:
         return "Unauthorized", 403
 
     user_role = current_user.role.name
@@ -141,7 +158,7 @@ def load_approval_data(type):
     if type == 'leaves':
         query = Leave.query.filter_by(status='Pending')
         
-        if user_role == 'Manager':
+        if user_role == 'Manager' or (user_role == 'Employee' and is_reporting_manager):
             if current_user.employee_profile:
                 query = query.join(Employee).filter(Employee.manager_id == current_user.employee_profile.id)
             else:
@@ -156,7 +173,7 @@ def load_approval_data(type):
         return render_template('approvals/partials/leave_table.html', leaves=leaves, user_role=user_role)
 
     elif type == 'ot':
-        if user_role == 'Manager':
+        if user_role == 'Manager' or (user_role == 'Employee' and is_reporting_manager):
             # Level 1 Pending
             query = OTApproval.query.filter_by(status='pending_manager', approval_level=1)
             query = query.filter(OTApproval.approver_id == current_user.id)
@@ -177,7 +194,7 @@ def load_approval_data(type):
             ot_requests = []
 
         link_target = "#"
-        if user_role == 'Manager':
+        if user_role == 'Manager' or (user_role == 'Employee' and is_reporting_manager):
              link_target = url_for('ot_manager_approval') if 'ot_manager_approval' in app.view_functions else '#'
         elif user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
              link_target = url_for('hr_manager_ot_approval')
@@ -187,7 +204,7 @@ def load_approval_data(type):
     elif type == 'regularization':
         query = AttendanceRegularization.query.filter_by(status='Pending')
         
-        if user_role == 'Manager':
+        if user_role == 'Manager' or (user_role == 'Employee' and is_reporting_manager):
             if current_user.employee_profile:
                 query = query.join(Employee).filter(Employee.manager_id == current_user.employee_profile.id)
             else:

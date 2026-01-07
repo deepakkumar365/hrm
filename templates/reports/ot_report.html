@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Overtime Report - Nexar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3>
+                <i class="fas fa-clock me-2"></i>Overtime Report
+            </h3>
+            <p class="text-muted mb-0">Detailed overtime requests and approvals</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('reports_menu') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Reports
+            </a>
+            <a href="{{ url_for('report_overtime', export='csv', start_date=start_date, end_date=end_date, employee_id=selected_employee, status=selected_status) }}"
+                class="btn btn-success">
+                <i class="fas fa-file-csv me-1"></i>Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_overtime') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}"
+                        required>
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}"
+                        required>
+                </div>
+
+                {% if employees %}
+                <div class="col-md-3">
+                    <label for="employee_id" class="form-label">Employee</label>
+                    <select class="form-select" id="employee_id" name="employee_id">
+                        <option value="">All Employees</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if selected_employee==emp.id %}selected{% endif %}>
+                            {{ emp.first_name }} {{ emp.last_name }} ({{ emp.employee_id }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="all" {% if selected_status=='all' %}selected{% endif %}>All Statuses</option>
+                        <option value="pending_manager" {% if selected_status=='pending_manager' %}selected{% endif %}>
+                            Pending Manager</option>
+                        <option value="manager_approved" {% if selected_status=='manager_approved' %}selected{% endif
+                            %}>Manager Approved</option>
+                        <option value="hr_approved" {% if selected_status=='hr_approved' %}selected{% endif %}>HR
+                            Approved</option>
+                        <option value="rejected" {% if selected_status=='rejected' %}selected{% endif %}>Rejected
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-1"></i>Apply Filters
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="setThisMonthFilter()">
+                        <i class="fas fa-calendar-alt me-1"></i>This Month
+                    </button>
+                    <a href="{{ url_for('report_overtime') }}" class="btn btn-link text-decoration-none">
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Employee</th>
+                            <th>OT Type</th>
+                            <th>Hours</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if records %}
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.ot_date.strftime('%d %b %Y') }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if record.employee.profile_image %}
+                                    <img src="{{ url_for('static', filename='uploads/profiles/' + record.employee.profile_image) }}"
+                                        alt="{{ record.employee.first_name }}" class="rounded-circle me-2" width="32"
+                                        height="32">
+                                    {% else %}
+                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2"
+                                        style="width: 32px; height: 32px; font-size: 12px;">
+                                        {{ record.employee.first_name[0] }}{{ record.employee.last_name[0] }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-bold">{{ record.employee.first_name }} {{
+                                            record.employee.last_name }}</div>
+                                        <div class="small text-muted">{{ record.employee.employee_id }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if record.ot_type %}
+                                <span class="badge bg-secondary">{{ record.ot_type.name }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ "%.2f"|format(record.requested_hours) }}</strong> hrs
+                            </td>
+                            <td>
+                                {{ "%.2f"|format(record.amount) }}
+                            </td>
+                            <td>
+                                {% if 'approved' in record.status %}
+                                {% if record.status == 'hr_approved' %}
+                                <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                <span class="badge bg-info">Manager Approved</span>
+                                {% endif %}
+                                {% elif 'rejected' in record.status %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="text-muted small text-truncate d-inline-block" style="max-width: 200px;"
+                                    title="{{ record.reason }}">
+                                    {{ record.reason }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fas fa-clock fa-3x mb-3 d-block opacity-50"></i>
+                                No overtime records found for the selected criteria
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                    {% if records %}
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total:</td>
+                            <td class="fw-bold">{{ "%.2f"|format(records|sum(attribute='requested_hours')) }} hrs</td>
+                            <td class="fw-bold">{{ "%.2f"|format(records|sum(attribute='amount')) }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function setThisMonthFilter() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+        // Adjust for timezone offset to prevent off-by-one errors when converting to string
+        const offset = today.getTimezoneOffset() * 60000;
+        const firstDayStr = new Date(firstDay.getTime() - offset).toISOString().split('T')[0];
+        const lastDayStr = new Date(lastDay.getTime() - offset).toISOString().split('T')[0];
+
+        document.getElementById('start_date').value = firstDayStr;
+        document.getElementById('end_date').value = lastDayStr;
+    }
+</script>
+{% endblock %}

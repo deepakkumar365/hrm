@@ -178,7 +178,7 @@
                 {% endif %}
 
                 <!-- APPROVAL DASHBOARD (New) -->
-                {% if user_role in ['Manager', 'HR Manager', 'Tenant Admin', 'Super Admin'] %}
+                {% if user_role in ['Manager', 'HR Manager', 'Tenant Admin', 'Super Admin'] or is_reporting_manager %}
                 <div class="nav-group">
                     <a class="sidebar-link {{ 'active' if request.endpoint == 'approval_dashboard' }}"
                         href="{{ url_for('approval_dashboard') }}" title="Approvals">
