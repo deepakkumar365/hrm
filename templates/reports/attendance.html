@@ -16,7 +16,8 @@
             <a href="{{ url_for('reports_menu') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-1"></i>Back to Reports
             </a>
-            <a href="{{ url_for('report_attendance', export='csv', start_date=start_date, end_date=end_date) }}" class="btn btn-success">
+            <a href="{{ url_for('report_attendance', export='csv', start_date=start_date, end_date=end_date) }}"
+                class="btn btn-success">
                 <i class="fas fa-file-csv me-1"></i>Export CSV
             </a>
         </div>
@@ -28,13 +29,13 @@
             <form method="GET" action="{{ url_for('report_attendance') }}" class="row g-3">
                 <div class="col-md-4">
                     <label for="start_date" class="form-label">Start Date</label>
-                    <input type="date" class="form-control" id="start_date" name="start_date" 
-                           value="{{ start_date or '' }}" required>
+                    <input type="date" class="form-control" id="start_date" name="start_date"
+                        value="{{ start_date or '' }}" required>
                 </div>
                 <div class="col-md-4">
                     <label for="end_date" class="form-label">End Date</label>
-                    <input type="date" class="form-control" id="end_date" name="end_date" 
-                           value="{{ end_date or '' }}" required>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date or '' }}"
+                        required>
                 </div>
                 <div class="col-md-4 d-flex align-items-end gap-2">
                     <button type="submit" class="btn btn-primary">
@@ -74,83 +75,83 @@
                     </thead>
                     <tbody>
                         {% if records %}
-                            {% for record in records %}
-                            <tr>
-                                <td>{{ record.date.strftime('%d %b %Y') if record.date else 'N/A' }}</td>
-                                <td>{{ record.employee.employee_id or 'N/A' }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        {% if record.employee.profile_image %}
-                                        <img src="{{ url_for('static', filename='uploads/profiles/' + record.employee.profile_image) }}" 
-                                             alt="{{ record.employee.first_name }}" 
-                                             class="rounded-circle me-2">
-                                        {% else %}
-                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2">
-                                            {{ record.employee.first_name[0] }}{{ record.employee.last_name[0] }}
-                                        </div>
-                                        {% endif %}
-                                        <span>{{ record.employee.first_name }} {{ record.employee.last_name }}</span>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.date.strftime('%d %b %Y') if record.date else 'N/A' }}</td>
+                            <td>{{ record.employee.employee_id or 'N/A' }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if record.employee.profile_image %}
+                                    <img src="{{ url_for('static', filename='uploads/profiles/' + record.employee.profile_image) }}"
+                                        alt="{{ record.employee.first_name }}" class="rounded-circle me-2">
+                                    {% else %}
+                                    <div
+                                        class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2">
+                                        {{ record.employee.first_name[0] }}{{ record.employee.last_name[0] }}
                                     </div>
-                                </td>
-                                <td>{{ record.employee.department if record.employee.department else 'N/A' }}</td>
-                                <td>
-                                    {% if record.clock_in %}
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-sign-in-alt me-1"></i>{{ record.clock_in.strftime('%I:%M %p') }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
                                     {% endif %}
-                                </td>
-                                <td>
-                                    {% if record.clock_out %}
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-sign-out-alt me-1"></i>{{ record.clock_out.strftime('%I:%M %p') }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if record.work_hours %}
-                                        <strong>{{ "%.2f"|format(record.work_hours) }} hrs</strong>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if record.overtime_hours and record.overtime_hours > 0 %}
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="fas fa-clock me-1"></i>{{ "%.2f"|format(record.overtime_hours) }} hrs
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if record.status == 'Present' %}
-                                        <span class="badge bg-success">Present</span>
-                                    {% elif record.status == 'Absent' %}
-                                        <span class="badge bg-danger">Absent</span>
-                                    {% elif record.status == 'Late' %}
-                                        <span class="badge bg-warning text-dark">Late</span>
-                                    {% elif record.status == 'Half Day' %}
-                                        <span class="badge bg-info">Half Day</span>
-                                    {% elif record.status == 'On Leave' %}
-                                        <span class="badge bg-secondary">On Leave</span>
-                                    {% else %}
-                                        <span class="badge bg-light text-dark">{{ record.status or 'N/A' }}</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
+                                    <span>{{ record.employee.first_name }} {{ record.employee.last_name }}</span>
+                                </div>
+                            </td>
+                            <td>{{ record.employee.department if record.employee.department else 'N/A' }}</td>
+                            <td>
+                                {% if record.clock_in %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-sign-in-alt me-1"></i>{{ record.clock_in.strftime('%I:%M %p') }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.clock_out %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-sign-out-alt me-1"></i>{{ record.clock_out.strftime('%I:%M %p') }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.work_hours %}
+                                <strong>{{ "%.2f"|format(record.regular_hours or 0) }} hrs</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.overtime_hours and record.overtime_hours > 0 %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock me-1"></i>{{ "%.2f"|format(record.overtime_hours) }} hrs
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.status == 'Present' %}
+                                <span class="badge bg-success">Present</span>
+                                {% elif record.status == 'Absent' %}
+                                <span class="badge bg-danger">Absent</span>
+                                {% elif record.status == 'Late' %}
+                                <span class="badge bg-warning text-dark">Late</span>
+                                {% elif record.status == 'Half Day' %}
+                                <span class="badge bg-info">Half Day</span>
+                                {% elif record.status == 'On Leave' %}
+                                <span class="badge bg-secondary">On Leave</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark">{{ record.status or 'N/A' }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
                         {% else %}
-                            <tr>
-                                <td colspan="9" class="text-center text-muted py-4">
-                                    <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
-                                    No attendance records found for the selected date range
-                                </td>
-                            </tr>
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                No attendance records found for the selected date range
+                            </td>
+                        </tr>
                         {% endif %}
                     </tbody>
                 </table>
@@ -164,34 +165,40 @@
                         <strong>Total Records:</strong> {{ records|length }}
                     </div>
                     <div class="col-md-3">
-                        <strong>Present:</strong> 
-                        <span class="badge bg-success">{{ records|selectattr('status', 'equalto', 'Present')|list|length }}</span>
+                        <strong>Present:</strong>
+                        <span class="badge bg-success">{{ records|selectattr('status', 'equalto', 'Present')|list|length
+                            }}</span>
                     </div>
                     <div class="col-md-3">
-                        <strong>Absent:</strong> 
-                        <span class="badge bg-danger">{{ records|selectattr('status', 'equalto', 'Absent')|list|length }}</span>
+                        <strong>Absent:</strong>
+                        <span class="badge bg-danger">{{ records|selectattr('status', 'equalto', 'Absent')|list|length
+                            }}</span>
                     </div>
                     <div class="col-md-3">
-                        <strong>Total Work Hours:</strong> 
-                        {{ "%.2f"|format(records|sum(attribute='work_hours') or 0) }} hrs
+                        <strong>Total Work Hours:</strong>
+                        {{ "%.2f"|format(records|sum(attribute='regular_hours') or 0) }} hrs
                     </div>
                 </div>
                 <div class="row mt-2">
                     <div class="col-md-3">
-                        <strong>Late:</strong> 
-                        <span class="badge bg-warning text-dark">{{ records|selectattr('status', 'equalto', 'Late')|list|length }}</span>
+                        <strong>Late:</strong>
+                        <span class="badge bg-warning text-dark">{{ records|selectattr('status', 'equalto',
+                            'Late')|list|length }}</span>
                     </div>
                     <div class="col-md-3">
-                        <strong>On Leave:</strong> 
-                        <span class="badge bg-secondary">{{ records|selectattr('status', 'equalto', 'On Leave')|list|length }}</span>
+                        <strong>On Leave:</strong>
+                        <span class="badge bg-secondary">{{ records|selectattr('status', 'equalto', 'On
+                            Leave')|list|length }}</span>
                     </div>
                     <div class="col-md-3">
-                        <strong>Half Day:</strong> 
-                        <span class="badge bg-info">{{ records|selectattr('status', 'equalto', 'Half Day')|list|length }}</span>
+                        <strong>Half Day:</strong>
+                        <span class="badge bg-info">{{ records|selectattr('status', 'equalto', 'Half Day')|list|length
+                            }}</span>
                     </div>
                     <div class="col-md-3">
-                        <strong>Total Overtime:</strong> 
-                        <span class="badge bg-warning text-dark">{{ "%.2f"|format(records|sum(attribute='overtime_hours') or 0) }} hrs</span>
+                        <strong>Total Overtime:</strong>
+                        <span class="badge bg-warning text-dark">{{
+                            "%.2f"|format(records|sum(attribute='overtime_hours') or 0) }} hrs</span>
                     </div>
                 </div>
             </div>
@@ -213,7 +220,7 @@
         const today = new Date();
         const firstDay = new Date(today.setDate(today.getDate() - today.getDay()));
         const lastDay = new Date(today.setDate(today.getDate() - today.getDay() + 6));
-        
+
         document.getElementById('start_date').value = firstDay.toISOString().split('T')[0];
         document.getElementById('end_date').value = lastDay.toISOString().split('T')[0];
     }
@@ -223,16 +230,16 @@
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        
+
         document.getElementById('start_date').value = firstDay.toISOString().split('T')[0];
         document.getElementById('end_date').value = lastDay.toISOString().split('T')[0];
     }
 
     // Set default date range on page load if not already set
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const startDate = document.getElementById('start_date').value;
         const endDate = document.getElementById('end_date').value;
-        
+
         // If no dates are set, default to this month
         if (!startDate && !endDate) {
             setThisMonthFilter();

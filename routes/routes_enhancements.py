@@ -276,27 +276,19 @@ def update_payroll_configuration(config_id):
 
 
 @app.route('/reports/attendance')
-@require_role(['Super Admin', 'Admin', 'HR Manager'])
+@require_role(['Super Admin', 'Admin', 'HR Manager', 'Manager'])
 def report_attendance():
     """Attendance Report"""
     try:
-        # Get current user's organization and company for tenant filtering
-        user_org = current_user.organization
-        if not user_org:
-            flash('No organization assigned to your account. Please contact administrator.', 'warning')
-            return render_template('reports/attendance.html', attendance=[], 
-                                 start_date=date.today(), end_date=date.today())
+        # Get accessible companies for the user
+        accessible_companies = current_user.get_accessible_companies()
         
-        # Get company associated with this organization's tenant
-        company = None
-        if user_org.tenant_id:
-            company = Company.query.filter_by(tenant_id=user_org.tenant_id).first()
-        
-        if not company:
-            flash('No company found for your organization. Please contact administrator.', 'warning')
-            return render_template('reports/attendance.html', attendance=[], 
-                                 start_date=date.today(), end_date=date.today())
-        
+        if not accessible_companies and current_user.role.name != 'Manager':
+             # Managers might not need company access if they just see direct reports, 
+             # but usually they belong to a company too. 
+             # For now, if no company access, we can't show much unless we rely purely on direct reports for Managers.
+             pass
+
         # Get date range from query params
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
@@ -310,12 +302,36 @@ def report_attendance():
             start_date = parse_date(start_date)
             end_date = parse_date(end_date)
         
-        # Filter by company
-        attendance_records = Attendance.query.join(Employee).filter(
-            Employee.company_id == company.id,
+        # Build Query
+        query = Attendance.query.join(Employee).filter(
             Attendance.date.between(start_date, end_date),
             Employee.is_active == True
-        ).order_by(Attendance.date.desc()).all()
+        )
+
+        # Role-based filtering
+        if current_user.role.name == 'Manager':
+            # Manager sees only direct reports
+            if current_user.employee_profile:
+                query = query.filter(Employee.manager_id == current_user.employee_profile.id)
+            else:
+                # If manager has no employee profile, they can't have direct reports
+                attendance_records = []
+                query = None # Skip query
+        else:
+            # Admin / HR Manager / Super Admin
+            # Filter by accessible companies
+            if accessible_companies:
+                company_ids = [c.id for c in accessible_companies]
+                query = query.filter(Employee.company_id.in_(company_ids))
+            else:
+                # Should not happen if strictly enforcing organization/company linkage, but good fallback
+                attendance_records = []
+                query = None
+
+        if query:
+            attendance_records = query.order_by(Attendance.date.desc()).all()
+        elif 'attendance_records' not in locals():
+             attendance_records = []
         
         report_data = []
         for record in attendance_records:
@@ -337,7 +353,7 @@ def report_attendance():
             return export_attendance_csv(report_data)
         
         return render_template('reports/attendance.html', 
-                               attendance=report_data,
+                               records=attendance_records,
                                start_date=start_date,
                                end_date=end_date)
     
