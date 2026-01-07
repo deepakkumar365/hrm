@@ -23,24 +23,31 @@ def get_approval_counts_for_user(user):
         'regularization': 0
     }
     
+
     user_role = user.role.name if user.role else None
     
     try:
+        # Get accessible companies for the user
+        accessible_companies = user.get_accessible_companies()
+        accessible_company_ids = [c.id for c in accessible_companies]
+        
         # --- 1. LEAVES ---
         leave_query = Leave.query.filter_by(status='Pending')
         
-        if user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
-            # All pending in company/companies
-            if hasattr(user, 'employee_profile') and user.employee_profile and user.employee_profile.company_id:
-                # HR Manager scope
-                leave_query = leave_query.join(Employee).filter(Employee.company_id == user.employee_profile.company_id)
-            elif user_role in ['Tenant Admin', 'Super Admin']:
-                 pass 
-        elif user_role == 'Manager':
+        if user_role == 'Manager':
              # Only direct reports
              if user.employee_profile:
                  leave_query = leave_query.join(Employee).filter(Employee.manager_id == user.employee_profile.id)
              else:
+                 leave_query = leave_query.filter(False)
+        elif user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+            # Filter by accessible companies
+            # Optimization: If Super Admin and wants to see all, get_accessible_companies returns all.
+            # But checking if list is not empty is safer.
+            if accessible_company_ids:
+                 leave_query = leave_query.join(Employee).filter(Employee.company_id.in_(accessible_company_ids))
+            else:
+                 # No accessible companies means no data
                  leave_query = leave_query.filter(False)
                  
         counts['leaves'] = leave_query.count()
@@ -54,22 +61,26 @@ def get_approval_counts_for_user(user):
         elif user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
             ot_req_query = OTRequest.query.filter_by(status='manager_approved')
             
-            if hasattr(user, 'employee_profile') and user.employee_profile and user.employee_profile.company_id:
-                 ot_req_query = ot_req_query.filter(OTRequest.company_id == user.employee_profile.company_id)
+            if accessible_company_ids:
+                 ot_req_query = ot_req_query.filter(OTRequest.company_id.in_(accessible_company_ids))
+            else:
+                 ot_req_query = ot_req_query.filter(False)
             
             counts['ot'] = ot_req_query.count()
 
         # --- 3. REGULARIZATION ---
         reg_query = AttendanceRegularization.query.filter_by(status='Pending')
         
-        if user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
-             if hasattr(user, 'employee_profile') and user.employee_profile and user.employee_profile.company_id:
-                reg_query = reg_query.join(Employee).filter(Employee.company_id == user.employee_profile.company_id)
-        elif user_role == 'Manager':
+        if user_role == 'Manager':
              if user.employee_profile:
                  reg_query = reg_query.join(Employee).filter(Employee.manager_id == user.employee_profile.id)
              else:
                  reg_query = reg_query.filter(False)
+        elif user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+             if accessible_company_ids:
+                reg_query = reg_query.join(Employee).filter(Employee.company_id.in_(accessible_company_ids))
+             else:
+                reg_query = reg_query.filter(False)
                  
         counts['regularization'] = reg_query.count()
         
@@ -122,15 +133,22 @@ def load_approval_data(type):
         return "Unauthorized", 403
 
     user_role = current_user.role.name
+    
+    # Get accessible companies
+    accessible_companies = current_user.get_accessible_companies()
+    accessible_company_ids = [c.id for c in accessible_companies]
 
     if type == 'leaves':
         query = Leave.query.filter_by(status='Pending')
-        if user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
-            if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-                query = query.join(Employee).filter(Employee.company_id == current_user.employee_profile.company_id)
-        elif user_role == 'Manager':
+        
+        if user_role == 'Manager':
             if current_user.employee_profile:
                 query = query.join(Employee).filter(Employee.manager_id == current_user.employee_profile.id)
+            else:
+                 query = query.filter(False)
+        elif user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+            if accessible_company_ids:
+                query = query.join(Employee).filter(Employee.company_id.in_(accessible_company_ids))
             else:
                 query = query.filter(False)
         
@@ -149,8 +167,10 @@ def load_approval_data(type):
         elif user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
             # Level 2 Pending (manager_approved requests)
             query = OTRequest.query.filter_by(status='manager_approved')
-            if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-                query = query.filter(OTRequest.company_id == current_user.employee_profile.company_id)
+            if accessible_company_ids:
+                 query = query.filter(OTRequest.company_id.in_(accessible_company_ids))
+            else:
+                 query = query.filter(False)
             ot_requests = query.all()
         
         else:
@@ -166,12 +186,15 @@ def load_approval_data(type):
 
     elif type == 'regularization':
         query = AttendanceRegularization.query.filter_by(status='Pending')
-        if user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
-            if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-                query = query.join(Employee).filter(Employee.company_id == current_user.employee_profile.company_id)
-        elif user_role == 'Manager':
+        
+        if user_role == 'Manager':
             if current_user.employee_profile:
                 query = query.join(Employee).filter(Employee.manager_id == current_user.employee_profile.id)
+            else:
+                query = query.filter(False)
+        elif user_role in ['HR Manager', 'Tenant Admin', 'Super Admin']:
+            if accessible_company_ids:
+                query = query.join(Employee).filter(Employee.company_id.in_(accessible_company_ids))
             else:
                 query = query.filter(False)
         

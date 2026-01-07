@@ -133,7 +133,18 @@ def attendance_regularization_manage():
         requests = query.all()
         
     else:
-        # Admin sees all (or filtered by tenant if implemented)
+        # Tenant Admin / Super Admin
+        accessible_companies = current_user.get_accessible_companies()
+        # Optimization for Super Admin: get_accessible_companies returns all, but check if we need to filter if list is huge?
+        # For Tenant Admin, this is crucial.
+        company_ids = [c.id for c in accessible_companies]
+        
+        if company_ids:
+             query = query.filter(Employee.company_id.in_(company_ids))
+        else:
+             # No companies accessible -> Show nothing
+             query = query.filter(False)
+             
         requests = query.all()
         
     return render_template('attendance/regularization_manage.html', requests=requests)
