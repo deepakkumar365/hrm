@@ -1861,15 +1861,36 @@ def payroll_config():
     """Payroll configuration page - manage employee salary allowances and OT rates"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
+    
+    # Filter params
+    company_id = request.args.get('company_id', '', type=str)
+    department = request.args.get('department', '', type=str)
+    manager_id = request.args.get('manager_id', '', type=str)
 
     # Query active employees
     query = Employee.query.filter_by(is_active=True)
 
     # Scoping for HR Manager / Tenant Admin
-    if (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+    user_role = current_user.role.name if current_user.role else None
+    accessible_companies = []
+    
+    if user_role in ['HR Manager', 'Tenant Admin']:
         accessible_companies = current_user.get_accessible_companies()
         company_ids = [c.id for c in accessible_companies]
         query = query.filter(Employee.company_id.in_(company_ids))
+    elif user_role in ['Super Admin', 'Admin']:
+         # Admins can see all companies
+        accessible_companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+
+    # Apply Filters
+    if company_id:
+        query = query.filter(Employee.company_id == company_id)
+    
+    if department:
+        query = query.filter(Employee.department == department)
+        
+    if manager_id and manager_id.isdigit():
+        query = query.filter(Employee.manager_id == int(manager_id))
 
     if search:
         query = query.filter(
@@ -1895,8 +1916,36 @@ def payroll_config():
     except Exception as e:
         db.session.rollback()
         print(f"Error creating payroll configs: {e}")
+        
+    # --- Load Data for Filters ---
+    
+    # Departments (From Master + Distinct Existing)
+    master_depts = [d.name for d in Department.query.filter_by(is_active=True).order_by(Department.name).all()]
+    existing_depts = [d[0] for d in db.session.query(Employee.department).distinct().filter(Employee.department.isnot(None), Employee.is_active==True).all()]
+    all_departments = sorted(list(set(master_depts + existing_depts)))
+    
+    # Managers (Active employees who are managers)
+    managers_query = Employee.query.filter_by(is_active=True, is_manager=True)
+    if user_role in ['HR Manager', 'Tenant Admin']:
+        # Limit managers to accessible companies
+        acc_company_ids = [c.id for c in accessible_companies]
+        managers_query = managers_query.filter(Employee.company_id.in_(acc_company_ids))
+        
+    all_managers = managers_query.order_by(Employee.first_name).all()
 
-    return render_template('payroll/config.html', employees=employees, search=search)
+    return render_template('payroll/config.html', 
+                           employees=employees, 
+                           search=search,
+                           current_filters={
+                               'company_id': company_id,
+                               'department': department,
+                               'manager_id': int(manager_id) if manager_id and manager_id.isdigit() else ''
+                           },
+                           filter_options={
+                               'companies': accessible_companies,
+                               'departments': all_departments,
+                               'managers': all_managers
+                           })
 
 
 @app.route('/payroll/config/update', methods=['POST'])
