@@ -1737,23 +1737,33 @@ def payroll_generate():
                 # Get payroll config
                 config = employee.payroll_config
 
-                # Calculate allowances
-                total_allowances = 0
+                # Calculate fixed allowances
+                fixed_allowances = 0
                 if config:
-                    total_allowances = float(config.get_total_allowances())
+                    fixed_allowances = float(config.get_total_allowances())
 
-                # Get attendance data for overtime calculation
+                # Get Approved OT Data (Hours, Amount, Allowances)
+                ot_summaries = OTDailySummary.query.filter_by(
+                    employee_id=employee.id,
+                    status='Approved'
+                ).filter(
+                    extract('month', OTDailySummary.ot_date) == month,
+                    extract('year', OTDailySummary.ot_date) == year
+                ).all()
+
+                # Aggregate Approved OT Data
+                total_overtime = sum(float(s.ot_hours or 0) for s in ot_summaries)
+                overtime_pay = sum(float(s.ot_amount or 0) for s in ot_summaries)
+                ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
+
+                # Total Allowances
+                total_allowances = fixed_allowances + ot_allowances
+                
+                # Get attendance records (strictly for days worked count)
                 attendance_records = Attendance.query.filter_by(
                     employee_id=employee.id).filter(
                         Attendance.date.between(pay_period_start,
                                                 pay_period_end)).all()
-
-                total_overtime = sum(float(record.overtime_hours or 0)
-                                     for record in attendance_records)
-
-                # Calculate OT pay
-                ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
-                overtime_pay = total_overtime * ot_rate
 
                 # Calculate gross pay
                 basic_pay = float(employee.basic_salary)
@@ -2053,14 +2063,32 @@ def payroll_preview_api():
             # Get payroll config
             config = emp.payroll_config
 
-            # Calculate allowances
+            # Calculate fixed allowances
             allowance_1 = float(config.allowance_1_amount) if config else 0
             allowance_2 = float(config.allowance_2_amount) if config else 0
             allowance_3 = float(config.allowance_3_amount) if config else 0
             allowance_4 = float(config.allowance_4_amount) if config else 0
-            total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
+            fixed_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
 
-            # Get attendance data for the month
+            # Get Approved OT Data (Hours, Amount, Allowances) from OTDailySummary
+            # Status must be 'Approved' (by HR)
+            ot_summaries = OTDailySummary.query.filter_by(
+                employee_id=emp.id,
+                status='Approved'
+            ).filter(
+                extract('month', OTDailySummary.ot_date) == month,
+                extract('year', OTDailySummary.ot_date) == year
+            ).all()
+
+            # Aggregate Approved OT Data
+            total_ot_hours = sum(float(s.ot_hours or 0) for s in ot_summaries)
+            ot_amount = sum(float(s.ot_amount or 0) for s in ot_summaries)
+            ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
+
+            # Total Allowances = Fixed + OT Allowances
+            total_allowances = fixed_allowances + ot_allowances
+
+            # Get attendance data for the month (only for days worked count)
             attendance_records = Attendance.query.filter_by(
                 employee_id=emp.id
             ).filter(
@@ -2068,11 +2096,10 @@ def payroll_preview_api():
             ).all()
 
             attendance_days = len(attendance_records)
-            total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
 
-            # Calculate OT amount
+            # OT Rate is just for display/reference now (taken from config or calculated average)
+            # Since amount is sum of daily variable rates, a single rate might be misleading but we keep it for UI
             ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(emp.hourly_rate or 0)
-            ot_amount = total_ot_hours * ot_rate
 
             # Calculate gross salary
             basic_salary = float(emp.basic_salary)

@@ -26,9 +26,13 @@
                 {% if ot._approval_context == 'manager' %}
                 {% set target_id = ot._approval_id %} <!-- Use approval_id for Manager actions -->
                 {% set role_context = 'Manager' %}
+                {% set btn_class = 'btn-outline-primary' %}
+                {% set btn_text = 'Manager Review' %}
                 {% else %}
                 {% set target_id = ot.id %} <!-- Use request id for Admin/HR actions -->
                 {% set role_context = 'HR Manager' %} <!-- or Admin -->
+                {% set btn_class = 'btn-primary' %}
+                {% set btn_text = 'HR Final Review' %}
                 {% endif %}
 
                 <tr>
@@ -36,15 +40,25 @@
                         <div class="d-flex flex-column">
                             <span class="fw-bold text-dark">{{ emp.first_name }} {{ emp.last_name }}</span>
                             <small class="text-muted">{{ emp.employee_id }}</small>
+                            <small class="text-muted" style="font-size: 0.75rem;">
+                                {% if role_context == 'Manager' %}
+                                <i class="fas fa-user-check text-info"></i> Level 1: Manager
+                                {% else %}
+                                <i class="fas fa-building text-warning"></i> Level 2: HR
+                                {% endif %}
+                            </small>
                         </div>
                     </td>
                     <td>{{ req.ot_date.strftime('%d %b %Y') if req.ot_date else '-' }}</td>
                     <td class="fw-bold">{{ req.requested_hours }}h</td>
                     <td>
-                        <span class="badge bg-warning text-dark">{{ ot.status }}</span>
+                        <span
+                            class="badge {{ 'bg-info' if ot.status == 'pending_manager' else 'bg-warning' }} text-dark">
+                            {{ ot.status|replace('_', ' ')|capitalize }}
+                        </span>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-primary" onclick="openOTModal({
+                        <button class="btn btn-sm {{ btn_class }}" onclick="openOTModal({
                                     id: '{{ target_id }}',
                                     role: '{{ role_context }}',
                                     empName: '{{ emp.first_name }} {{ emp.last_name }}',
@@ -52,7 +66,7 @@
                                     hours: '{{ req.requested_hours }}h',
                                     reason: `{{ req.reason or '' }}`
                                 })">
-                            Review
+                            {{ btn_text }}
                         </button>
                     </td>
                 </tr>

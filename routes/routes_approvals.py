@@ -90,6 +90,21 @@ def get_approval_counts_for_user(user):
                 q2 = q2.filter(Employee.company_id.in_(accessible_company_ids))
                 ot_count += q2.count()
 
+        elif user_role == 'HR Manager':
+            # HR Manager Case:
+            # 1. Level 1 (Direct Reports)
+            if user.employee_profile:
+                q1_hr = q1.filter(Employee.manager_id == user.employee_profile.id)
+                ot_count += q1_hr.count()
+            
+            # 2. Level 2 (Manager Approved) - ALL Accessible Companies
+            q2 = OTRequest.query.filter_by(status='manager_approved')
+            q2 = q2.join(Employee).filter(Employee.id != self_emp_id)
+            
+            if accessible_company_ids:
+                q2 = q2.filter(Employee.company_id.in_(accessible_company_ids))
+                ot_count += q2.count()
+
         elif is_managerial:
             # Managers only see Level 1 for their reports
             if user.employee_profile:
@@ -247,8 +262,33 @@ def load_approval_data(type):
                       if req not in ot_requests:
                           ot_requests.append(req)
 
+        elif user_role == 'HR Manager':
+             # HR Manager Case:
+             # 1. Level 1 (Direct Reports) - Act as Manager
+             if current_user.employee_profile:
+                 q1_hr = q1.filter(Employee.manager_id == current_user.employee_profile.id)
+                 for app_obj in q1_hr.all():
+                     req = app_obj.ot_request
+                     req._approval_context = 'manager'
+                     req._approval_id = app_obj.id
+                     if req not in ot_requests:
+                        ot_requests.append(req)
+
+             # 2. Level 2 (Manager Approved) - Act as HR - For ALL Accessible Companies
+             q2 = OTRequest.query.filter_by(status='manager_approved')
+             q2 = q2.join(Employee).filter(Employee.id != self_emp_id)
+             
+             if accessible_company_ids:
+                  q2 = q2.filter(Employee.company_id.in_(accessible_company_ids))
+                  requests_l2 = q2.all()
+                  for req in requests_l2:
+                      # Context 'hr' ensures they get the HR approval buttons
+                      req._approval_context = 'hr' 
+                      if req not in ot_requests:
+                          ot_requests.append(req)
+
         elif is_managerial:
-             # Manager sees Level 1 for direct reports
+             # Regular Manager sees Level 1 for direct reports
              if current_user.employee_profile:
                  q1 = q1.filter(Employee.manager_id == current_user.employee_profile.id)
                  approvals = q1.all()
