@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Payslip Templates - Nexar{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">Payslip Templates</h1>
+        <a href="{{ url_for('payroll_config_template_new') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Create New Template
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Templates List</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Template Name</th>
+                            <th>Company</th>
+                            <th>Status</th>
+                            <th>Default</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for template in templates %}
+                        <tr>
+                            <td>
+                                <strong>{{ template.name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ template.description or '' }}</small>
+                            </td>
+                            <td>
+                                {% if template.company %}
+                                {{ template.company.name }}
+                                {% else %}
+                                <span class="badge bg-secondary">All Companies (Tenant)</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if template.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if template.is_default %}
+                                <span class="badge bg-info">Default</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else '' }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('payroll_config_template_edit', template_id=template.id) }}"
+                                    class="btn btn-sm btn-info" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                {% if not template.is_default %}
+                                <form action="{{ url_for('payroll_config_template_default', template_id=template.id) }}"
+                                    method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-warning" title="Set as Default">
+                                        <i class="fas fa-star"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                    data-bs-target="#deleteModal{{ template.id }}" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+
+                                <!-- Delete Modal -->
+                                <div class="modal fade" id="deleteModal{{ template.id }}" tabindex="-1"
+                                    aria-labelledby="deleteModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                    aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Are you sure you want to delete the template <strong>{{ template.name
+                                                    }}</strong>?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <form
+                                                    action="{{ url_for('payroll_config_template_delete', template_id=template.id) }}"
+                                                    method="POST">
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No templates found. Create one to get started.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

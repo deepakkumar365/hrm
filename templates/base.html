@@ -357,7 +357,10 @@
                         <a class="nav-link" href="{{ url_for('payroll_list') }}">Payroll List</a>
                         <a class="nav-link" href="{{ url_for('payroll_generate') }}">Generate Payroll</a>
                         <a class="nav-link" href="{{ url_for('payroll_config') }}">Payroll Configuration</a>
+                        <a class="nav-link" href="{{ url_for('payroll_config_templates_list') }}">Payslip Templates</a>
                         {% elif check_ui_access(user_role, 'Payroll', 'Payslip Management') != 'Hidden' %}
+
+
                         <a class="nav-link" href="{{ url_for('payroll_list') }}">My Payslips</a>
                         {% endif %}
                     </div>

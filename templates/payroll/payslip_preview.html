@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Preview Payslip</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fc;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .preview-container {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 10mm;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .watermark-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.1;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            z-index: 0;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Standard Styles */
+        .header-section {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .company-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #d32f2f;
+            text-transform: uppercase;
+        }
+
+        .company-address {
+            font-size: 12px;
+        }
+
+        .section-box {
+            margin-bottom: 15px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: 1px solid #000;
+        }
+
+        .details-col {
+            padding: 10px;
+        }
+
+        .details-col:first-child {
+            border-right: 1px solid #000;
+        }
+
+        .info-row {
+            display: flex;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+
+        .label {
+            width: 140px;
+            font-weight: 600;
+        }
+
+        .pay-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            border: 1px solid #000;
+        }
+
+        .pay-table th {
+            border: 1px solid #000;
+            padding: 5px;
+            background: #eee;
+        }
+
+        .pay-table td {
+            border: 1px solid #000;
+            padding: 5px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .fw-bold {
+            font-weight: bold;
+        }
+
+        .net-pay-box {
+            border: 2px solid #000;
+            padding: 10px;
+            text-align: center;
+            margin-top: 10px;
+            background: #f0f0f0;
+        }
+
+        .net-pay-amount {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .footer-image {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .footer-image img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            padding-top: 10px;
+        }
+
+        .signature-box {
+            border-top: 1px solid #000;
+            width: 200px;
+            text-align: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="preview-container">
+        <!-- Watermark -->
+        {% if watermark_path %}
+        <div class="watermark-layer" style="background-image: url('/static/{{ watermark_path }}');"></div>
+        {% endif %}
+
+        <div class="content-layer">
+            {% for section in layout_config %}
+            <!-- Dynamic Sections -->
+            {% if section == 'header' %}
+            <div class="header-section section-box">
+                <table style="width: 100%; border: none;">
+                    <tr>
+                        <td style="width: 20%; text-align: left; vertical-align: top; border: none;">
+                            {% if left_logo_path %}
+                            <img src="/static/{{ left_logo_path }}" style="max-height: 80px; max-width: 100%;">
+                            {% endif %}
+                        </td>
+                        <td style="width: 60%; text-align: center; vertical-align: top; border: none;">
+                            {% if logo_path %}
+                            <img src="/static/{{ logo_path }}" style="max-height: 60px; margin-bottom: 5px;">
+                            {% endif %}
+                            <div class="company-name">{{ company.name }}</div>
+                            <div class="company-address">{{ company.address }}</div>
+                            <div
+                                style="margin-top: 5px; font-weight: bold; border-top: 1px solid #000; display: inline-block; padding: 2px 10px;">
+                                PAYSLIP FOR {{ payroll.period | upper }}
+                            </div>
+                        </td>
+                        <td style="width: 20%; text-align: right; vertical-align: top; border: none;">
+                            {% if right_logo_path %}
+                            <img src="/static/{{ right_logo_path }}" style="max-height: 80px; max-width: 100%;">
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            {% elif section == 'employee_summary' %}
+            <div class="details-grid section-box">
+                <div class="details-col">
+                    <div class="info-row"><span class="label">Employee Code</span>: {{ employee.employee_code }}</div>
+                    <div class="info-row"><span class="label">Employee Name</span>: {{ employee.name }}</div>
+                    <div class="info-row"><span class="label">Date of Joining</span>: {{ employee.joining_date }}</div>
+                    <div class="info-row"><span class="label">Designation</span>: {{ employee.designation }}</div>
+                </div>
+                <div class="details-col">
+                    <div class="info-row"><span class="label">Department</span>: {{ employee.department }}</div>
+                    <div class="info-row"><span class="label">Location</span>: {{ employee.location }}</div>
+                    <div class="info-row"><span class="label">Bank</span>: {{ employee.bank_name }} - {{
+                        employee.bank_account }}</div>
+                    <div class="info-row"><span class="label">PAN / NRIC</span>: {{ employee.pan_number }}</div>
+                    <div class="info-row"><span class="label">Days Worked</span>: {{ payroll.paid_days }}</div>
+                </div>
+            </div>
+
+            {% elif section == 'earnings_table' %}
+            <div class="section-box">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th>EARNINGS</th>
+                            <th class="text-right">AMOUNT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in earnings.breakdown %}
+                        <tr>
+                            <td>{{ item.label }}</td>
+                            <td class="text-right">{{ item.amount }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="fw-bold">
+                            <td class="text-right">Total Earnings</td>
+                            <td class="text-right">{{ payroll.total_earnings }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            {% elif section == 'deductions_table' %}
+            <div class="section-box">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th>DEDUCTIONS</th>
+                            <th class="text-right">AMOUNT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Provident Fund (PF)</td>
+                            <td class="text-right">{{ deductions.pf }}</td>
+                        </tr>
+                        <tr>
+                            <td>Professional Tax</td>
+                            <td class="text-right">{{ deductions.tax }}</td>
+                        </tr>
+                        <tr class="fw-bold">
+                            <td class="text-right">Total Deductions</td>
+                            <td class="text-right">{{ payroll.total_deductions }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            {% elif section == 'net_pay' %}
+            <div class="net-pay-box section-box">
+                <div>NET PAY</div>
+                <div class="net-pay-amount">{{ payroll.net_pay }}</div>
+                <div style="font-size: 11px; margin-top: 5px;">( {{ payroll.net_pay_words }} )</div>
+            </div>
+
+            {% elif section == 'signatures' %}
+            <div class="signatures section-box">
+                <div class="signature-box">Employee Signature</div>
+                <div class="signature-box">Authorized Signatory</div>
+            </div>
+
+            {% elif section == 'footer_image' %}
+            {% if footer_image_path %}
+            <div class="footer-image section-box">
+                <img src="/static/{{ footer_image_path }}">
+            </div>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</body>
+
+</html>

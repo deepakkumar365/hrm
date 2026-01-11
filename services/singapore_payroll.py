@@ -138,13 +138,16 @@ class SingaporePayrollCalculator:
         """Calculate complete payroll for an employee"""
         
         # Calculate basic pay (monthly salary)
-        basic_pay = employee.basic_salary
+        # Use Payroll Configuration as master source of truth
+        basic_pay = (employee.payroll_config.basic_salary or Decimal(0)) if employee.payroll_config else Decimal(0)
         
         # Calculate overtime pay
         overtime_pay = self.calculate_overtime_pay(employee, overtime_hours)
         
         # Total allowances
-        total_allowances = employee.allowances + additional_allowances
+        # Use Payroll Configuration as master source of truth
+        config_allowances = employee.payroll_config.get_total_allowances() if employee.payroll_config else Decimal(0)
+        total_allowances = config_allowances + additional_allowances
         
         # Calculate gross pay
         gross_pay = basic_pay + overtime_pay + total_allowances + bonuses

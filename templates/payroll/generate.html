@@ -420,10 +420,12 @@
                             <th class="col-money" title="Meal Allowance">Meal</th>
                             <th class="col-money" title="Other Allowance">Other</th>
                             <th class="col-money text-center">OT Hrs</th>
-                            <th class="col-money bg-light" title="OT Rate (Editable only in edit mode)">OT Rate</th>
-                            <th class="col-money">OT ($)</th>
-                            <th class="col-money text-deduct">CPF</th>
-                            <th class="col-money text-deduct">Total Ded</th>
+
+                            <th class="text-right">OT Amount</th>
+                            <th class="col-money bg-subtle-success fw-bold">Gross Pay</th>
+                            <th class="text-right">Employee CPF</th>
+                            <th class="text-right">Employer CPF</th>
+                            <th class="text-right">Total Ded</th>
                             <th class="col-money bg-subtle-blue">Net Pay</th>
                             <th>Status</th>
                             <th class="col-action">Actions</th>
@@ -541,12 +543,14 @@
                     <td><input type="number" class="inline-input" id="edit-a3-${emp.id}" value="${emp.allowance_3.toFixed(2)}"></td>
                     <td><input type="number" class="inline-input" id="edit-a4-${emp.id}" value="${emp.allowance_4.toFixed(2)}"></td>
                     
-                    <td class="text-center text-muted">${emp.ot_hours.toFixed(1)}</td>
-                    <td><input type="number" class="inline-input" id="edit-otrate-${emp.id}" value="${emp.ot_rate.toFixed(2)}"></td>
+                    <td><input type="number" step="0.5" class="inline-input" id="edit-othours-${emp.id}" value="${emp.ot_hours.toFixed(1)}" oninput="calculateOTAmount(${emp.id}, ${emp.ot_rate})"></td>
+
                     
                     <!-- Calculated (Read Only during edit) -->
-                     <td class="col-money text-muted opacity-50">$${formatNumber(emp.ot_amount)}</td>
-                    <td class="col-money text-muted opacity-50">-${formatNumber(emp.cpf_deduction)}</td>
+                     <td><input type="number" step="0.01" class="inline-input" id="edit-otamount-${emp.id}" value="${emp.ot_amount.toFixed(2)}"></td>
+                     <td class="col-money bg-subtle-success fw-bold">$${formatNumber(emp.gross_salary)}</td>
+                    <td><input type="number" step="0.01" class="inline-input text-deduct" id="edit-cpf-${emp.id}" value="${emp.cpf_deduction.toFixed(2)}"></td>
+                     <td><input type="number" step="0.01" class="inline-input text-deduct" id="edit-employercpf-${emp.id}" value="${emp.employer_cpf.toFixed(2)}"></td>
                     <td class="col-money text-muted opacity-50">-${formatNumber(emp.total_deductions)}</td>
                     <td class="col-money text-muted opacity-50">$${formatNumber(emp.net_salary)}</td>
                     
@@ -586,9 +590,11 @@
                     <td class="col-money text-muted">$${formatNumber(emp.allowance_3)}</td>
                     <td class="col-money text-muted">$${formatNumber(emp.allowance_4)}</td>
                     <td class="text-center text-muted">${emp.ot_hours.toFixed(1)}</td>
-                    <td class="col-money text-muted bg-light">$${formatNumber(emp.ot_rate)}</td>
+
                     <td class="col-money text-earn">$${formatNumber(emp.ot_amount)}</td>
+                    <td class="col-money bg-subtle-success fw-bold">$${formatNumber(emp.gross_salary)}</td>
                     <td class="col-money text-deduct">-${formatNumber(emp.cpf_deduction)}</td>
+                    <td class="col-money text-deduct">-${formatNumber(emp.employer_cpf)}</td>
                     <td class="col-money text-deduct">-${formatNumber(emp.total_deductions)}</td>
                     <td class="col-money bg-subtle-blue fw-bold text-primary">$${formatNumber(emp.net_salary)}</td>
                     <td>${statusHtml}</td>
@@ -659,6 +665,12 @@
         }
     }
 
+    function calculateOTAmount(id, rate) {
+        const hours = parseFloat(document.getElementById(`edit-othours-${id}`).value) || 0;
+        const amount = hours * rate;
+        document.getElementById(`edit-otamount-${id}`).value = amount.toFixed(2);
+    }
+
     function saveRow(id) {
         const emp = employeeData.find(e => e.id === id);
         if (!emp) return;
@@ -671,7 +683,13 @@
             allowance_2_amount: document.getElementById(`edit-a2-${id}`).value,
             allowance_3_amount: document.getElementById(`edit-a3-${id}`).value,
             allowance_4_amount: document.getElementById(`edit-a4-${id}`).value,
-            ot_rate_per_hour: document.getElementById(`edit-otrate-${id}`).value
+            ot_hours: document.getElementById(`edit-othours-${id}`).value,
+            ot_amount: document.getElementById(`edit-otamount-${id}`).value,
+            cpf_deduction: document.getElementById(`edit-cpf-${id}`).value,
+            employer_cpf: document.getElementById(`edit-employercpf-${id}`).value,
+            month: document.getElementById('month').value,
+            year: document.getElementById('year').value,
+            company_id: document.getElementById('company').value
         };
 
         // Show loading state for row? Or just wait

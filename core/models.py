@@ -592,6 +592,7 @@ class PayrollConfiguration(db.Model):
     levy_allowance_name = db.Column(db.String(100), default='Levy Allowance')
     levy_allowance_amount = db.Column(db.Numeric(10, 2), default=0)
 
+    basic_salary = db.Column(db.Numeric(10, 2), default=0)
     ot_rate_per_hour = db.Column(db.Numeric(8, 2), nullable=True)
 
     employer_cpf = db.Column(db.Numeric(10, 2), default=0)
@@ -798,6 +799,8 @@ class Claim(db.Model):
 
     submitted_by = db.Column(db.Integer, db.ForeignKey(User.id))
     approved_by = db.Column(db.Integer, db.ForeignKey(User.id))
+
+
     approved_at = db.Column(db.DateTime)
     rejection_reason = db.Column(db.Text)
 
@@ -1637,3 +1640,45 @@ class JobExecutionLog(db.Model):
     
     def __repr__(self):
         return f'<JobExecutionLog {self.job_name} - {self.status} at {self.started_at}>'
+
+class PayslipTemplate(db.Model):
+    """Configuration template for generated payslips"""
+    __tablename__ = 'hrm_payslip_templates'
+    __table_args__ = (
+        Index('ix_payslip_tmpl_tenant', 'tenant_id'),
+        Index('ix_payslip_tmpl_company', 'company_id'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
+    
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    
+    # Visual Assets
+    logo_path = db.Column(db.String(255))
+    left_logo_path = db.Column(db.String(255))
+    right_logo_path = db.Column(db.String(255))
+    watermark_path = db.Column(db.String(255))
+    footer_image_path = db.Column(db.String(255))
+    
+    # Layout & Configuration (JSON)
+    # layout_config example: ['header', 'employee_summary', 'earnings_table', 'deductions_table', 'net_pay_section', 'footer']
+    layout_config = db.Column(db.JSON, default=list)
+    
+    # field_config example: {'show_pan': true, 'show_designation': false, 'custom_title': 'Salary Slip'}
+    field_config = db.Column(db.JSON, default=dict)
+    
+    is_default = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    created_by = db.Column(db.Integer, db.ForeignKey(User.id))
+    updated_by = db.Column(db.Integer, db.ForeignKey(User.id))
+    
+    tenant = db.relationship('Tenant', backref=db.backref('payslip_templates', cascade='all, delete-orphan'))
+    company = db.relationship('Company', backref=db.backref('payslip_templates', cascade='all, delete-orphan'))
+    creator = db.relationship('User', foreign_keys=[created_by])

@@ -320,8 +320,6 @@
                         <th class="col-money">Transport</th>
                         <th class="col-money">Housing</th>
                         <th class="col-money">Meal</th>
-                        <th class="col-money">Other</th>
-                        <th class="col-money">OT Rate</th>
                         <th class="col-money text-muted">Est. Net</th>
                         <th class="col-action">Actions</th>
                     </tr>
@@ -349,8 +347,10 @@
                         </td>
 
                         <!-- Display Mode -->
-                        <td class="col-money display-value fw-bold text-dark">${{ "%.2f"|format(employee.basic_salary or
-                            0) }}</td>
+                        <td class="col-money display-value fw-bold text-dark">${{
+                            "%.2f"|format((employee.payroll_config.basic_salary or 0) if employee.payroll_config else 0)
+                            }}
+                        </td>
                         <td class="col-money display-value text-muted">${{
                             "%.2f"|format(employee.payroll_config.allowance_1_amount if employee.payroll_config else 0)
                             }}</td>
@@ -360,16 +360,12 @@
                         <td class="col-money display-value text-muted">${{
                             "%.2f"|format(employee.payroll_config.allowance_3_amount if employee.payroll_config else 0)
                             }}</td>
-                        <td class="col-money display-value text-muted">${{
-                            "%.2f"|format(employee.payroll_config.allowance_4_amount if employee.payroll_config else 0)
-                            }}</td>
-                        <td class="col-money display-value text-muted">${{
-                            "%.2f"|format(employee.payroll_config.ot_rate_per_hour if employee.payroll_config and
-                            employee.payroll_config.ot_rate_per_hour else 0) }}</td>
 
                         <!-- Edit Mode Inputs (Hidden by default) -->
                         <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
-                                name="basic_salary" value="{{ employee.basic_salary or 0 }}" step="0.01"></td>
+                                name="basic_salary"
+                                value="{{ (employee.payroll_config.basic_salary or 0) if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
                         <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
                                 name="allowance_1_amount"
                                 value="{{ employee.payroll_config.allowance_1_amount if employee.payroll_config else 0 }}"
@@ -381,14 +377,6 @@
                         <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
                                 name="allowance_3_amount"
                                 value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}"
-                                step="0.01"></td>
-                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
-                                name="allowance_4_amount"
-                                value="{{ employee.payroll_config.allowance_4_amount if employee.payroll_config else 0 }}"
-                                step="0.01"></td>
-                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
-                                name="ot_rate_per_hour"
-                                value="{{ employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else 0 }}"
                                 step="0.01"></td>
 
                         <td class="col-money text-muted opacity-50 display-value">
@@ -489,9 +477,7 @@
             basic_salary: row.querySelector('input[name="basic_salary"]').value,
             allowance_1_amount: row.querySelector('input[name="allowance_1_amount"]').value,
             allowance_2_amount: row.querySelector('input[name="allowance_2_amount"]').value,
-            allowance_3_amount: row.querySelector('input[name="allowance_3_amount"]').value,
-            allowance_4_amount: row.querySelector('input[name="allowance_4_amount"]').value,
-            ot_rate_per_hour: row.querySelector('input[name="ot_rate_per_hour"]').value
+            allowance_3_amount: row.querySelector('input[name="allowance_3_amount"]').value
         };
 
         // Show loading indicator

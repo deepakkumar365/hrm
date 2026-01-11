@@ -243,7 +243,7 @@
                 </div>
 
                 <!-- Approval Form (Shown Only When Expanded) -->
-                <form method="POST" action="{{ url_for('ot_approval') }}" class="action-form">
+                <form method="POST" action="/ot/approval" class="action-form">
                     <input type="hidden" name="ot_request_id" value="{{ approval.ot_request.id }}">
                     <input type="hidden" name="action" id="action_{{ approval.id }}" value="">
 
@@ -261,11 +261,11 @@
                     </div>
 
                     <div class="action-buttons">
-                        <button type="submit" class="btn btn-sm"
+                        <button type="button" class="btn btn-sm"
                             onclick="submitAction(event, 'approve', '{{ approval.id }}')">
                             <i class="fas fa-check"></i> Approve
                         </button>
-                        <button type="submit" class="btn btn-sm"
+                        <button type="button" class="btn btn-sm"
                             onclick="submitAction(event, 'reject', '{{ approval.id }}')">
                             <i class="fas fa-times"></i> Reject
                         </button>
@@ -287,10 +287,10 @@
         <ul class="pagination justify-content-center">
             {% if pending_approvals.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('ot_approval', page=1) }}">First</a>
+                <a class="page-link" href="/ot/approval?page=1">First</a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.prev_num) }}">Previous</a>
+                <a class="page-link" href="/ot/approval?page={{ pending_approvals.prev_num }}">Previous</a>
             </li>
             {% endif %}
 
@@ -300,7 +300,7 @@
             <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
             {% else %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('ot_approval', page=page_num) }}">{{ page_num }}</a>
+                <a class="page-link" href="/ot/approval?page={{ page_num }}">{{ page_num }}</a>
             </li>
             {% endif %}
             {% endif %}
@@ -308,10 +308,10 @@
 
             {% if pending_approvals.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.next_num) }}">Next</a>
+                <a class="page-link" href="/ot/approval?page={{ pending_approvals.next_num }}">Next</a>
             </li>
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('ot_approval', page=pending_approvals.pages) }}">Last</a>
+                <a class="page-link" href="/ot/approval?page={{ pending_approvals.pages }}">Last</a>
             </li>
             {% endif %}
         </ul>
@@ -343,7 +343,7 @@
 
     // Submit action - sets the hidden field and shows loader
     function submitAction(event, action, approvalId) {
-        event.preventDefault();
+        // No default to prevent because type="button"
 
         // Set the hidden action field
         const actionField = document.getElementById('action_' + approvalId);
@@ -358,7 +358,16 @@
         }
 
         // Submit the form
-        event.target.closest('form').submit();
+        // Find form robustly: the button is inside .action-buttons, inside form
+        const btn = event.target.closest('button'); // Ensure we get the button even if clicked on icon
+        if (btn) {
+            const form = btn.closest('form');
+            if (form) {
+                form.submit();
+            } else {
+                console.error("Form not found for approval " + approvalId);
+            }
+        }
     }
 
     function toggleModify(approvalId) {

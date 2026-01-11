@@ -14,7 +14,7 @@ from core.auth import require_login, require_role, create_default_users
 from core.models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                      ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                      Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation,
-                     Organization, OTDailySummary, EmployeeGroup, UserCompanyAccess)
+                     Organization, OTDailySummary, EmployeeGroup, UserCompanyAccess, PayslipTemplate)
 from sqlalchemy import tuple_
 from core.forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
@@ -128,7 +128,7 @@ def create_default_master_data():
 
         # Create default working hours if none exist
         from sqlalchemy import inspect
-        inspector = sa.inspect(db.engine)
+        inspector = inspect(db.engine)
         wh_columns = [col['name'] for col in inspector.get_columns('hrm_working_hours')]
         
         # Check if we can safely query WorkingHours (need grace_period if models say so)
@@ -1731,8 +1731,10 @@ def payroll_generate():
                     pay_period_end=pay_period_end).first()
 
                 if existing:
-                    skipped_count += 1
-                    continue
+                    if existing.status != 'Draft':
+                        skipped_count += 1
+                        continue
+                    # If Draft, proceed to recalculate and overwrite
 
                 # Get payroll config
                 config = employee.payroll_config
@@ -1766,7 +1768,8 @@ def payroll_generate():
                                                 pay_period_end)).all()
 
                 # Calculate gross pay
-                basic_pay = float(employee.basic_salary)
+                # Use Payroll Configuration as master source
+                basic_pay = float(employee.payroll_config.basic_salary or 0) if employee.payroll_config else 0.0
                 gross_pay = basic_pay + total_allowances + overtime_pay
 
                 # Calculate CPF (simplified)
@@ -1776,8 +1779,9 @@ def payroll_generate():
                 # Calculate net pay
                 net_pay = gross_pay - employee_cpf
 
-                # Create payroll record
-                payroll = Payroll()
+                # Create or Update payroll record
+                payroll = existing if existing else Payroll()
+                
                 payroll.employee_id = employee.id
                 payroll.pay_period_start = pay_period_start
                 payroll.pay_period_end = pay_period_end
@@ -1796,7 +1800,8 @@ def payroll_generate():
                 payroll.generated_by = current_user.id
                 payroll.status = 'Draft'
 
-                db.session.add(payroll)
+                if not existing:
+                    db.session.add(payroll)
                 generated_count += 1
 
             db.session.commit()
@@ -1863,6 +1868,8 @@ def payroll_generate():
                          current_month=current_month,
                          current_year=current_year,
                          companies=companies)
+
+
 
 
 @app.route('/payroll/config')
@@ -1965,6 +1972,8 @@ def payroll_config_update():
     try:
         data = request.get_json()
         employee_id = data.get('employee_id')
+        month = data.get('month')
+        year = data.get('year')
 
         employee = Employee.query.get_or_404(employee_id)
 
@@ -1977,15 +1986,17 @@ def payroll_config_update():
                     'success': False,
                     'message': 'You do not have permission to update this employee.'
                  }), 403
+        
+        # 1. Update Master Configuration (Basic & Allowances)
         config = employee.payroll_config
 
         if not config:
             config = PayrollConfiguration(employee_id=employee_id)
             db.session.add(config)
 
-        # Update base salary (on Employee model)
+        # Update base salary (on PayrollConfiguration model)
         if 'basic_salary' in data:
-            employee.basic_salary = float(data['basic_salary'])
+            config.basic_salary = float(data['basic_salary'])
 
         # Update allowances
         if 'allowance_1_amount' in data:
@@ -1997,12 +2008,63 @@ def payroll_config_update():
         if 'allowance_4_amount' in data:
             config.allowance_4_amount = float(data['allowance_4_amount']) if data['allowance_4_amount'] else 0
 
-        # Update OT rate
+        # Update OT rate (Optional, mostly removed from UI but kept for backend compat)
         if 'ot_rate_per_hour' in data:
             config.ot_rate_per_hour = float(data['ot_rate_per_hour']) if data['ot_rate_per_hour'] else None
 
         config.updated_by = current_user.id
         config.updated_at = datetime.now()
+        
+        # 2. Update Monthly Overrides (OT Hours, CPF) -> Stored in Draft Payroll Record
+        if month and year: # removed 'ot_hours' in data check to allow just updating CPF if needed
+            try:
+                 # Calculate pay period range
+                from calendar import monthrange
+                pay_period_start = date(int(year), int(month), 1)
+                last_day = monthrange(int(year), int(month))[1]
+                pay_period_end = date(int(year), int(month), last_day)
+                
+                # Check for existing payroll record
+                payroll = Payroll.query.filter_by(
+                    employee_id=employee_id,
+                    pay_period_start=pay_period_start,
+                    pay_period_end=pay_period_end
+                ).first()
+                
+                if not payroll:
+                    payroll = Payroll(
+                        employee_id=employee_id,
+                        pay_period_start=pay_period_start,
+                        pay_period_end=pay_period_end,
+                        status='Draft',
+                        # Initialize required fields with defaults to avoid NOT NULL errors
+                        basic_pay=0, gross_pay=0, net_pay=0 
+                    )
+                    db.session.add(payroll)
+                
+                payroll.status = 'Draft'
+                
+                # Update OT Hours Override
+                if 'ot_hours' in data:
+                    payroll.overtime_hours = float(data['ot_hours'])
+                    # Default: Recalculate amount based on rate (unless overridden below)
+                    ot_rate = float(config.ot_rate_per_hour) if config.ot_rate_per_hour else float(employee.hourly_rate or 0)
+                    payroll.overtime_pay = payroll.overtime_hours * ot_rate
+                
+                # Update OT Amount Override (Prioritize over calculation)
+                if 'ot_amount' in data:
+                    payroll.overtime_pay = float(data['ot_amount'])
+                
+                # Update CPF Override
+                if 'cpf_deduction' in data:
+                    payroll.employee_cpf = float(data['cpf_deduction'])
+                
+                # Update Employer CPF Override (Does NOT affect Net Pay)
+                if 'employer_cpf' in data:
+                    payroll.employer_cpf = float(data['employer_cpf'])
+                
+            except ValueError:
+                pass # Ignore invalid month/year
 
         db.session.commit()
 
@@ -2070,20 +2132,51 @@ def payroll_preview_api():
             allowance_4 = float(config.allowance_4_amount) if config else 0
             fixed_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
 
-            # Get Approved OT Data (Hours, Amount, Allowances) from OTDailySummary
-            # Status must be 'Approved' (by HR)
-            ot_summaries = OTDailySummary.query.filter_by(
+            # ---------------------------------------------------------
+            # DATA SOURCES STRATEGY:
+            # 1. Check for 'Draft' or 'Generated' Payroll Record (Overrides)
+            # 2. Fallback to OTDailySummary (Calculated)
+            # ---------------------------------------------------------
+            
+            payroll_record = Payroll.query.filter_by(
                 employee_id=emp.id,
-                status='Approved'
-            ).filter(
-                extract('month', OTDailySummary.ot_date) == month,
-                extract('year', OTDailySummary.ot_date) == year
-            ).all()
+                pay_period_start=pay_period_start,
+                pay_period_end=pay_period_end
+            ).first()
+            
+            total_ot_hours = 0.0
+            ot_amount = 0.0
+            ot_allowances = 0.0
+            cpf_override = None # Track if we have a persisted CPF value
+            employer_cpf = 0.0 # Track Employer CPF
+            
+            if payroll_record and payroll_record.status in ['Draft', 'Generated', 'Approved', 'Paid']:
+                # SOURCE 1: Use persisted overrides from Payroll table
+                total_ot_hours = float(payroll_record.overtime_hours or 0)
+                ot_amount = float(payroll_record.overtime_pay or 0)
+                
+                # Use persisted CPF if available
+                if payroll_record.employee_cpf is not None:
+                     cpf_override = float(payroll_record.employee_cpf)
+                
+                # Use persisted Employer CPF if available
+                if payroll_record.employer_cpf is not None:
+                    employer_cpf = float(payroll_record.employer_cpf)
 
-            # Aggregate Approved OT Data
-            total_ot_hours = sum(float(s.ot_hours or 0) for s in ot_summaries)
-            ot_amount = sum(float(s.ot_amount or 0) for s in ot_summaries)
-            ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
+            else:
+                # SOURCE 2: Calculate from Daily Summaries
+                ot_summaries = OTDailySummary.query.filter_by(
+                    employee_id=emp.id,
+                    status='Approved'
+                ).filter(
+                    extract('month', OTDailySummary.ot_date) == month,
+                    extract('year', OTDailySummary.ot_date) == year
+                ).all()
+
+                # Aggregate Approved OT Data
+                total_ot_hours = sum(float(s.ot_hours or 0) for s in ot_summaries)
+                ot_amount = sum(float(s.ot_amount or 0) for s in ot_summaries)
+                ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
 
             # Total Allowances = Fixed + OT Allowances
             total_allowances = fixed_allowances + ot_allowances
@@ -2102,11 +2195,17 @@ def payroll_preview_api():
             ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(emp.hourly_rate or 0)
 
             # Calculate gross salary
-            basic_salary = float(emp.basic_salary)
+            # Use Payroll Configuration
+            basic_salary = float(emp.payroll_config.basic_salary or 0) if emp.payroll_config else 0.0
             gross_salary = basic_salary + total_allowances + ot_amount
 
-            # Calculate CPF deductions (simplified - using employee rate)
-            cpf_deduction = gross_salary * (float(emp.employee_cpf_rate) / 100)
+            # Calculate CPF deductions
+            # Calculate CPF deductions
+            if cpf_override is not None:
+                cpf_deduction = cpf_override
+            else:
+                # Manual entry only - default to 0
+                cpf_deduction = 0.0
 
             # Calculate net salary
             total_deductions = cpf_deduction
@@ -2138,6 +2237,7 @@ def payroll_preview_api():
                 'attendance_rate': attendance_rate,
                 'gross_salary': gross_salary,
                 'cpf_deduction': cpf_deduction,
+                'employer_cpf': employer_cpf,
                 'total_deductions': total_deductions,
                 'net_salary': net_salary,
                 'has_bank_info': has_bank_info,
@@ -2182,7 +2282,14 @@ def payroll_payslip(payroll_id):
 
     # Prepare data for template
     employee = payroll.employee
-    company = employee.organization
+    company = employee.company
+    if not company:
+        # Fallback to organization if company is not linked directly, though unusual for payslip context
+        company = employee.organization
+        
+    if not company:
+        flash('Employee is not associated with a valid company.', 'error')
+        return redirect(url_for('dashboard'))
     
     # Calculate pay date (end of pay period)
     pay_date = payroll.pay_period_end.strftime('%d-%b-%Y')
@@ -2205,8 +2312,67 @@ def payroll_payslip(payroll_id):
         bank_name = employee.bank_info.bank_name or bank_name
         bank_account = employee.bank_info.bank_account_number or bank_account
 
-    # Prepare earnings data
+    # Prepare earnings breakdown
+    earnings_breakdown = []
+    
+    # 1. Basic Pay
+    earnings_breakdown.append({
+        'label': 'Basic Salary', 
+        'amount': f"{float(payroll.basic_pay):,.2f}"
+    })
+
+    # 2. Allowances from Configuration
+    config = employee.payroll_config
+    total_config_allowances = 0
+    if config:
+        # Helper to add allowance if > 0
+        def add_allowance(name, amount):
+            if amount and amount > 0:
+                earnings_breakdown.append({
+                    'label': name, 
+                    'amount': f"{float(amount):,.2f}"
+                })
+                return float(amount)
+            return 0
+
+        total_config_allowances += add_allowance(config.allowance_1_name or 'Transport Allowance', config.allowance_1_amount)
+        total_config_allowances += add_allowance(config.allowance_2_name or 'Housing Allowance', config.allowance_2_amount)
+        total_config_allowances += add_allowance(config.allowance_3_name or 'Meal Allowance', config.allowance_3_amount)
+        total_config_allowances += add_allowance(config.allowance_4_name or 'Other Allowance', config.allowance_4_amount)
+        total_config_allowances += add_allowance(config.levy_allowance_name or 'Levy Allowance', config.levy_allowance_amount)
+
+    # 3. Overtime Pay
+    if payroll.overtime_pay and payroll.overtime_pay > 0:
+         earnings_breakdown.append({
+            'label': 'Overtime Pay', 
+            'amount': f"{float(payroll.overtime_pay):,.2f}"
+        })
+
+    # 4. Bonuses
+    if payroll.bonuses and payroll.bonuses > 0:
+         earnings_breakdown.append({
+            'label': 'Bonuses', 
+            'amount': f"{float(payroll.bonuses):,.2f}"
+        })
+        
+    # 5. Any other difference in allowances (e.g. from OT daily allowances)
+    # Total recorded allowances in payroll vs what we found in config
+    recorded_allowances = float(payroll.allowances or 0)
+    remaining_allowances = recorded_allowances - total_config_allowances
+    if remaining_allowances > 0.01: # Tolerance for float comparison
+        earnings_breakdown.append({
+            'label': 'Additional Allowances', 
+            'amount': f"{remaining_allowances:,.2f}"
+        })
+
+    # Legacy mappings for template compatibility (if needed, though we will update template)
     earnings = {
+        'basic': f"{float(payroll.basic_pay):,.2f}",
+        'hra': "0.00", 
+        'transport': "0.00",
+        'other': f"{float(payroll.allowances + payroll.bonuses + payroll.overtime_pay):,.2f}",
+        'breakdown': earnings_breakdown, # Passing the new list
+        # Legacy keys for backward compatibility
         'regular_pay_rate': f"{float(employee.basic_salary):,.2f}",
         'regular_pay_amount': f"{float(payroll.basic_pay):,.2f}",
         'overtime_pay_rate': f"{float(employee.hourly_rate or 0):,.2f}" if employee.hourly_rate else "0.00",
@@ -2217,8 +2383,11 @@ def payroll_payslip(payroll_id):
         'others': f"{float(payroll.allowances + payroll.bonuses):,.2f}"
     }
 
-    # Prepare deductions data
+    # Prepare deductions data (Mapped for payslip_preview.html)
     deductions = {
+        'tax': f"{float(payroll.income_tax):,.2f}",
+        'pf': f"{float(payroll.employee_cpf):,.2f}",
+        # Legacy keys
         'income_tax': f"{float(payroll.income_tax):,.2f}",
         'medical': "0.00",
         'life_insurance': "0.00", 
@@ -2265,12 +2434,43 @@ def payroll_payslip(payroll_id):
         'net_pay_words': num_to_words(net_pay_val)
     }
 
+
+    # Check for default template
+    # 1. Company level default
+    template = PayslipTemplate.query.filter_by(
+        company_id=employee.company_id,
+        is_default=True
+    ).first()
+    
+    # 2. Tenant level default (if no company specific)
+    if not template and company.tenant_id:
+        template = PayslipTemplate.query.filter_by(
+            tenant_id=company.tenant_id,
+            company_id=None,
+            is_default=True
+        ).first()
+
+    if template:
+        return render_template('payroll/payslip_preview.html',
+                             layout_config=template.layout_config,
+                             logo_path=template.logo_path,
+                             left_logo_path=template.left_logo_path,
+                             right_logo_path=template.right_logo_path,
+                             watermark_path=template.watermark_path,
+                             footer_image_path=template.footer_image_path,
+                             payroll=payroll_data,
+                             employee=employee_data,
+                             company=company_data,
+                             earnings=earnings,
+                             deductions=deductions)
+
     return render_template('payroll/payslip.html',
                          payroll=payroll_data,
                          employee=employee_data,
                          company=company_data,
                          earnings=earnings,
                          deductions=deductions)
+
 
 
 @app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])

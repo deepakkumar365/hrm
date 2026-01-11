@@ -44,6 +44,8 @@ from routes import routes_timezone  # noqa: F401
 from routes import routes_regularization  # noqa: F401
 from routes import routes_reports  # noqa: F401
 from routes import routes_approvals  # noqa: F401
+from routes import routes_payroll_config  # noqa: F401
+
 from routes.dev_routes import dev_bp
 app.register_blueprint(dev_bp, url_prefix='/dev')
 from routes.routes_monitoring import monitoring_bp

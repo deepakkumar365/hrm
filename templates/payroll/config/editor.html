@@ -1,0 +1,502 @@
+{% extends "base.html" %}
+
+{% block title %}Payslip Template Editor - Nexar{% endblock %}
+
+{% block head %}
+<!-- SortableJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+<style>
+    .editor-canvas {
+        min-height: 600px;
+        background-color: #ffffff;
+        background-image: linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px);
+        background-size: 20px 20px;
+        position: relative;
+        padding: 40px;
+        border: 1px solid #ddd;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .sortable-list {
+        min-height: 100px;
+    }
+
+    .draggable-item {
+        cursor: grab;
+        border: 1px dashed #ccc;
+        margin-bottom: 10px;
+        background: #fff;
+        padding: 10px;
+        transition: all 0.2s;
+    }
+
+    .draggable-item:hover {
+        border-color: #007bff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .canvas-item {
+        border: 1px solid transparent;
+        margin-bottom: 5px;
+        position: relative;
+    }
+
+    .canvas-item:hover {
+        border: 1px dashed #007bff;
+    }
+
+    .canvas-item .actions {
+        display: none;
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        z-index: 10;
+    }
+
+    .canvas-item:hover .actions {
+        display: block;
+    }
+
+    .watermark-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
+        opacity: 0.1;
+        z-index: 0;
+    }
+
+    .content-layer {
+        position: relative;
+        z-index: 1;
+    }
+
+    #available-sections .draggable-item {
+        background-color: #f8f9fa;
+    }
+
+    .preview-placeholder {
+        background: #eee;
+        height: 20px;
+        width: 80%;
+        margin: 5px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 text-gray-800">
+            {% if template %}Edit Payslip Template{% else %}New Payslip Template{% endif %}
+        </h1>
+
+        <div>
+            <button type="button" class="btn btn-info me-2" onclick="previewTemplate()">
+                <i class="fas fa-eye me-1"></i> Preview
+            </button>
+            <a href="{{ url_for('payroll_config_templates_list') }}" class="btn btn-secondary me-2">Cancel</a>
+            <button type="button" class="btn btn-primary" onclick="saveTemplate()">Save Template</button>
+        </div>
+    </div>
+
+    <!-- Basic Info Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Template Name</label>
+                    <input type="text" class="form-control" id="templateName"
+                        value="{{ template.name if template else '' }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Company (Optional)</label>
+                    <select class="form-select" id="companySelect">
+                        <option value="">All Companies (Tenant Level)</option>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}" {% if template and
+                            template.company_id|string==company.id|string %}selected{% endif %}>{{ company.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control" id="templateDescription"
+                        value="{{ template.description if template else '' }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Sidebar Tools -->
+        <div class="col-md-3">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Available Sections</h6>
+                </div>
+                <div class="card-body">
+                    <div id="available-sections" class="sortable-list">
+                        <div class="draggable-item" data-type="header">
+                            <i class="fas fa-heading me-2"></i> Header (Logo & Company)
+                        </div>
+                        <div class="draggable-item" data-type="employee_summary">
+                            <i class="fas fa-user me-2"></i> Employee Summary
+                        </div>
+                        <div class="draggable-item" data-type="earnings_table">
+                            <i class="fas fa-plus-circle me-2"></i> Earnings Table
+                        </div>
+                        <div class="draggable-item" data-type="deductions_table">
+                            <i class="fas fa-minus-circle me-2"></i> Deductions Table
+                        </div>
+                        <div class="draggable-item" data-type="net_pay">
+                            <i class="fas fa-money-bill-wave me-2"></i> Net Pay Section
+                        </div>
+                        <div class="draggable-item" data-type="signatures">
+                            <i class="fas fa-pen-nib me-2"></i> Signatures
+                        </div>
+                        <div class="draggable-item" data-type="footer_image">
+                            <i class="fas fa-image me-2"></i> Footer Image
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Assets & Config</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Left Logo</label>
+                        <input type="file" class="form-control form-control-sm" id="leftLogoUpload" accept="image/*">
+                        {% if template and template.left_logo_path %}
+                        <small class="text-success mt-1 d-block"><i class="fas fa-check"></i> Uploaded</small>
+                        {% endif %}
+                        <input type="hidden" id="leftLogoPath"
+                            value="{{ template.left_logo_path if template else '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Center Logo (Main)</label>
+                        <input type="file" class="form-control form-control-sm" id="logoUpload" accept="image/*">
+                        {% if template and template.logo_path %}
+                        <small class="text-success mt-1 d-block"><i class="fas fa-check"></i> Uploaded</small>
+                        {% endif %}
+                        <input type="hidden" id="logoPath" value="{{ template.logo_path if template else '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Right Logo</label>
+                        <input type="file" class="form-control form-control-sm" id="rightLogoUpload" accept="image/*">
+                        {% if template and template.right_logo_path %}
+                        <small class="text-success mt-1 d-block"><i class="fas fa-check"></i> Uploaded</small>
+                        {% endif %}
+                        <input type="hidden" id="rightLogoPath"
+                            value="{{ template.right_logo_path if template else '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Watermark</label>
+                        <input type="file" class="form-control form-control-sm" id="watermarkUpload" accept="image/*">
+                        {% if template and template.watermark_path %}
+                        <small class="text-success mt-1 d-block"><i class="fas fa-check"></i> Watermark uploaded</small>
+                        {% endif %}
+                        <input type="hidden" id="watermarkPath"
+                            value="{{ template.watermark_path if template else '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Footer Image</label>
+                        <input type="file" class="form-control form-control-sm" id="footerImgUpload" accept="image/*">
+                        {% if template and template.footer_image_path %}
+                        <small class="text-success mt-1 d-block"><i class="fas fa-check"></i> Footer uploaded</small>
+                        {% endif %}
+                        <input type="hidden" id="footerImgPath"
+                            value="{{ template.footer_image_path if template else '' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="col-md-9">
+            <div class="editor-canvas" id="payslip-canvas">
+                <!-- Watermark Layer -->
+                <div class="watermark-layer" id="watermarkDisplay"
+                    style="{% if template and template.watermark_path %}background-image: url('{{ url_for('static', filename=template.watermark_path) }}'){% endif %}">
+                </div>
+
+                <!-- Content Layer -->
+                <div class="content-layer sortable-list" id="canvas-content">
+                    <!-- Existing layout gets rendered here via JS or Jinja if simple -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Payslip Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="background-color: #f0f0f0; text-align: center;">
+                <div id="previewContent" style="display: inline-block; text-align: left;">
+                    <div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i><br>Generating Preview...
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initial Data
+    const initialLayout = {{ (template.layout_config if template and template.layout_config else[]) | tojson }};
+    const templateId = {{ template.id if template else 'null' }};
+
+    // Upload Handlers
+    function handleUpload(inputId, hiddenId, displayCallback) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+
+        input.addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show loading state
+            const parent = input.parentElement;
+            let status = parent.querySelector('.upload-status');
+            if (!status) {
+                status = document.createElement('small');
+                status.className = 'upload-status mt-1 d-block';
+                parent.insertBefore(status, input.nextSibling);
+            }
+            status.className = 'upload-status mt-1 d-block text-info';
+            status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+            try {
+                const response = await fetch("{{ url_for('payroll_config_upload_image') }}", {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById(hiddenId).value = result.path;
+                    status.className = 'upload-status mt-1 d-block text-success';
+                    status.innerHTML = '<i class="fas fa-check"></i> Upload successful';
+
+                    if (displayCallback) displayCallback(result.path);
+                } else {
+                    status.className = 'upload-status mt-1 d-block text-danger';
+                    status.innerHTML = '<i class="fas fa-times"></i> ' + result.message;
+                }
+            } catch (err) {
+                console.error(err);
+                status.className = 'upload-status mt-1 d-block text-danger';
+                status.innerHTML = '<i class="fas fa-times"></i> Upload error';
+            }
+        });
+    }
+
+    handleUpload('logoUpload', 'logoPath', null);
+    handleUpload('leftLogoUpload', 'leftLogoPath', null);
+    handleUpload('rightLogoUpload', 'rightLogoPath', null);
+    handleUpload('footerImgUpload', 'footerImgPath', null);
+    handleUpload('watermarkUpload', 'watermarkPath', (path) => {
+        document.getElementById('watermarkDisplay').style.backgroundImage = `url('/static/${path}')`;
+    });
+
+    // Drag and Drop
+    const availableList = document.getElementById('available-sections');
+    const canvasList = document.getElementById('canvas-content');
+
+    new Sortable(availableList, {
+        group: {
+            name: 'shared',
+            pull: 'clone',
+            put: false
+        },
+        sort: false,
+        animation: 150
+    });
+
+    new Sortable(canvasList, {
+        group: 'shared',
+        animation: 150,
+        ghostClass: 'bg-light',
+        onAdd: function (evt) {
+            const item = evt.item;
+            const type = item.getAttribute('data-type');
+            renderCanvasItem(item, type);
+        }
+    });
+
+    function renderCanvasItem(element, type) {
+        let content = '';
+        if (type === 'header') {
+            content = '<div class="text-center border-bottom pb-3 mb-3"><h3>Company Header</h3><p>Address Line 1</p></div>';
+        } else if (type === 'employee_summary') {
+            content = '<div class="row mb-3"><div class="col-6">Name: John Doe<br>ID: EMP001</div><div class="col-6 text-end">Designation: Manager<br>Dept: Sales</div></div>';
+        } else if (type === 'earnings_table') {
+            content = '<table class="table table-sm table-bordered"><thead><tr><th>Earnings</th><th>Amount</th></tr></thead><tbody><tr><td>Basic</td><td>5000</td></tr></tbody></table>';
+        } else if (type === 'deductions_table') {
+            content = '<table class="table table-sm table-bordered"><thead><tr><th>Deductions</th><th>Amount</th></tr></thead><tbody><tr><td>Tax</td><td>500</td></tr></tbody></table>';
+        } else if (type === 'net_pay') {
+            content = '<div class="alert alert-success text-center fw-bold">Net Pay: $4500</div>';
+        } else if (type === 'signatures') {
+            content = '<div class="d-flex justify-content-between mt-5"><div>Employee Signature</div><div>Auth Signature</div></div>';
+        } else if (type === 'footer_image') {
+            content = '<div class="text-center p-3 text-muted border">[Footer Image Placeholder]</div>';
+        }
+
+        element.innerHTML = content + '<div class="actions"><button class="btn btn-sm btn-danger remove-btn"><i class="fas fa-times"></i></button></div>';
+        element.classList.remove('draggable-item');
+        element.classList.add('canvas-item', 'p-3', 'bg-white');
+
+        // Bind remove
+        element.querySelector('.remove-btn').addEventListener('click', function () {
+            element.remove();
+        });
+
+        element.setAttribute('data-config-type', type);
+    }
+
+    // Load Initial Layout
+    if (initialLayout && initialLayout.length > 0) {
+        initialLayout.forEach(type => {
+            const wrapper = document.createElement('div');
+            wrapper.setAttribute('data-type', type);
+            canvasList.appendChild(wrapper);
+            renderCanvasItem(wrapper, type);
+        });
+    }
+
+    // Preview Function
+    async function previewTemplate() {
+        const companyId = document.getElementById('companySelect').value;
+        const logoPath = document.getElementById('logoPath').value;
+        const leftLogoPath = document.getElementById('leftLogoPath').value;
+        const rightLogoPath = document.getElementById('rightLogoPath').value;
+        const watermarkPath = document.getElementById('watermarkPath').value;
+        const footerImgPath = document.getElementById('footerImgPath').value;
+
+        const layoutConfig = [];
+        document.querySelectorAll('#canvas-content > div').forEach(el => {
+            layoutConfig.push(el.getAttribute('data-config-type'));
+        });
+
+        if (layoutConfig.length === 0) {
+            alert('Please add some sections to the canvas first.');
+            return;
+        }
+
+        // Show Modal
+        const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+        previewModal.show();
+
+        const previewContent = document.getElementById('previewContent');
+        previewContent.innerHTML = '<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i><br>Generating Preview...</div>';
+
+        try {
+            const response = await fetch("{{ url_for('payroll_config_template_preview') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    company_id: companyId || null,
+                    layout_config: layoutConfig,
+                    logo_path: logoPath,
+                    left_logo_path: leftLogoPath,
+                    right_logo_path: rightLogoPath,
+                    watermark_path: watermarkPath,
+                    footer_image_path: footerImgPath
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                previewContent.innerHTML = result.html; // Inject the rendered HTML
+            } else {
+                previewContent.innerHTML = '<div class="alert alert-danger">Error generating preview: ' + result.message + '</div>';
+            }
+        } catch (err) {
+            console.error(err);
+            previewContent.innerHTML = '<div class="alert alert-danger">Network Error</div>';
+        }
+    }
+
+    // Save
+    async function saveTemplate() {
+        const name = document.getElementById('templateName').value;
+        const companyId = document.getElementById('companySelect').value;
+        const description = document.getElementById('templateDescription').value;
+        const logoPath = document.getElementById('logoPath').value;
+        const watermarkPath = document.getElementById('watermarkPath').value;
+        const footerImgPath = document.getElementById('footerImgPath').value;
+
+        if (!name) {
+            alert('Please enter a template name');
+            return;
+        }
+
+        // Collect Layout
+        const layoutItems = Array.from(document.querySelectorAll('#canvas-content .canvas-item'));
+        const layoutConfig = layoutItems.map(item => item.getAttribute('data-config-type'));
+
+        const payload = {
+            id: templateId,
+            name: name,
+            company_id: companyId || null,
+            description: description,
+            layout_config: layoutConfig,
+            field_config: {}, // Can start empty for now
+            logo_path: logoPath,
+            watermark_path: watermarkPath,
+            footer_image_path: footerImgPath
+        };
+
+        try {
+            const response = await fetch("{{ url_for('payroll_config_template_save') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                window.location.href = result.redirect_url;
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Save failed');
+        }
+    }
+</script>
+
+{% endblock %}
