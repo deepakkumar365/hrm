@@ -1127,6 +1127,14 @@ def mobile_api_create_leave_request():
         try:
             from_date = datetime.fromisoformat(data['from_date']).date()
             to_date = datetime.fromisoformat(data['to_date']).date()
+            
+            # Calculate days requested
+            if to_date < from_date:
+                return api_response('error', 'End date cannot be before start date', None, 400)
+                
+            days_requested = (to_date - from_date).days + 1
+            if days_requested <= 0:
+                 days_requested = 1 # Fallback, though the date check above should catch this
         except:
             return api_response('error', 'Invalid date format. Use YYYY-MM-DD', None, 400)
         
@@ -1134,6 +1142,7 @@ def mobile_api_create_leave_request():
             employee_id=data['employee_id'],
             start_date=from_date,
             end_date=to_date,
+            days_requested=days_requested,
             leave_type=data['leave_type'],
             reason=data.get('reason', ''),
             status='pending'
