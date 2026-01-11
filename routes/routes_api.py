@@ -1049,8 +1049,8 @@ def mobile_api_get_leave_requests():
                 'id': leave.id,
                 'employee_id': leave.employee_id,
                 'employee_name': f"{leave.employee.first_name} {leave.employee.last_name}" if leave.employee else None,
-                'from_date': leave.from_date.isoformat() if leave.from_date else None,
-                'to_date': leave.to_date.isoformat() if leave.to_date else None,
+                'from_date': leave.start_date.isoformat() if leave.start_date else None,
+                'to_date': leave.end_date.isoformat() if leave.end_date else None,
                 'leave_type': leave.leave_type,
                 'reason': leave.reason,
                 'status': leave.status,
@@ -1132,8 +1132,8 @@ def mobile_api_create_leave_request():
         
         leave_request = Leave(
             employee_id=data['employee_id'],
-            from_date=from_date,
-            to_date=to_date,
+            start_date=from_date,
+            end_date=to_date,
             leave_type=data['leave_type'],
             reason=data.get('reason', ''),
             status='pending'
@@ -1145,8 +1145,8 @@ def mobile_api_create_leave_request():
         return api_response('success', 'Leave request created', {
             'id': leave_request.id,
             'employee_id': leave_request.employee_id,
-            'from_date': leave_request.from_date.isoformat(),
-            'to_date': leave_request.to_date.isoformat(),
+            'from_date': leave_request.start_date.isoformat(),
+            'to_date': leave_request.end_date.isoformat(),
             'status': leave_request.status
         }, 201)
     
