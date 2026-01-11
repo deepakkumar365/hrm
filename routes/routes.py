@@ -2428,7 +2428,7 @@ def payroll_payslip(payroll_id):
 
     # Prepare Employer Contributions (Not Deducted)
     employer_contributions = {
-        'cpf': f"{float(payroll.employer_cpf):,.2f}"
+        'cpf': f"{float(payroll.employer_cpf or 0):,.2f}"
     }
 
     # Prepare employee data

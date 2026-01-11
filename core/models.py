@@ -510,7 +510,9 @@ class Employee(db.Model):
         manager = Employee.query.get(manager_id)
         if manager is None:
             raise ValueError('Reporting manager must exist.')
-        if manager.company_id != self.company_id:
+        
+        # Ensure we compare string representations to handle UUID vs String mismatch
+        if str(manager.company_id) != str(self.company_id):
             raise ValueError('Manager must belong to the same company as the employee.')
         return manager_id
 

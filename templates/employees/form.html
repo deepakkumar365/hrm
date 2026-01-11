@@ -292,14 +292,7 @@
                             <div class="form-grid-item">
                                 <label for="email" class="form-label">Email</label>
                                 <input type="text" class="form-control" id="email" name="email"
-                                    value="{{ form_data.get('email') if form_data else (employee.email or '' if employee else '') }}"
-                                    {% if (current_user.role.name if current_user.role else None) not in ['HR
-                                    Manager', 'Super Admin' , 'Tenant Admin' ] %}readonly{% endif %}>
-                                {% if (current_user.role.name if current_user.role else None) not in ['HR Manager',
-                                'Super Admin', 'Tenant Admin'] %}
-                                <small class="text-muted d-block mt-1">Contact HR Manager or Admin to edit this
-                                    field</small>
-                                {% endif %}
+                                    value="{{ form_data.get('email') if form_data else (employee.email or '' if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="phone" class="form-label">Phone</label>
@@ -315,7 +308,7 @@
                                 {% endif %}
                                 <input type="text" class="form-control" id="nric" name="nric"
                                     value="{{ form_data.get('nric') if form_data else (employee.nric or '' if employee else '') }}"
-                                    placeholder="e.g., S1234567D or E12345678" {% if employee %}readonly{% endif %}>
+                                    placeholder="e.g., S1234567D or E12345678">
                             </div>
                             <div class="form-grid-item">
                                 <label for="date_of_birth" class="form-label">Date of Birth</label>

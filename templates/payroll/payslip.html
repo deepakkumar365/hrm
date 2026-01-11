@@ -234,6 +234,8 @@
                         }}</span></div>
                 <div class="info-row"><span class="label">Bank</span> <span class="value">: {{ employee.bank_name
                         }}</span></div>
+                <div class="info-row"><span class="label">NRIC/FIN/Work Permit</span> <span class="value">: {{
+                        employee.nric or employee.work_permit_number or 'N/A' }}</span></div>
             </div>
             <div class="details-col">
                 <div class="info-row"><span class="label">Bank Account Number</span> <span class="value">: {{
@@ -264,7 +266,7 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="border: none; padding-left: 10px;">Employer CPF</td>
+                        <td style="border: none; padding-left: 10px;">Non-deducted Employer CPF</td>
                         <td class="text-right" style="border: none; padding-right: 17px;">{{ employer_contributions.cpf
                             }}</td>
                     </tr>
