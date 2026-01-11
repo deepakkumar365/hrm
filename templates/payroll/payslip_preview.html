@@ -213,6 +213,26 @@
                 </div>
             </div>
 
+            {% elif section == 'employer_contributions' %}
+            <div class="section-box">
+                <table class="pay-table" style="border: none;">
+                    <thead>
+                        <tr>
+                            <th style="width: 70%; text-align: left; border: none; padding-left: 10px;">Employer
+                                Contributions (Not Deducted)</th>
+                            <th style="width: 30%; text-align: right; border: none; padding-right: 10px;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="border: none; padding-left: 10px;">Employer CPF</td>
+                            <td class="text-right" style="border: none; padding-right: 17px;">{{
+                                employer_contributions.cpf }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
             {% elif section == 'earnings_table' %}
             <div class="section-box">
                 <table class="pay-table">
@@ -248,12 +268,8 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Provident Fund (PF)</td>
-                            <td class="text-right">{{ deductions.pf }}</td>
-                        </tr>
-                        <tr>
-                            <td>Professional Tax</td>
-                            <td class="text-right">{{ deductions.tax }}</td>
+                            <td>CPF</td>
+                            <td class="text-right">{{ deductions.cpf }}</td>
                         </tr>
                         <tr class="fw-bold">
                             <td class="text-right">Total Deductions</td>

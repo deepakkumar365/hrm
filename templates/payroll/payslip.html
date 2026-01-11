@@ -252,6 +252,26 @@
             </div>
         </div>
 
+        <!-- Employer Contributions (Not Deducted) -->
+        <div style="border-bottom: 2px solid #000; margin-bottom: 0;">
+            <table class="pay-table" style="border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 70%; text-align: left; border: none; padding-left: 10px;">Employer
+                            Contributions (Not Deducted from Salary)</th>
+                        <th style="width: 30%; text-align: right; border: none; padding-right: 17px;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="border: none; padding-left: 10px;">Employer CPF</td>
+                        <td class="text-right" style="border: none; padding-right: 17px;">{{ employer_contributions.cpf
+                            }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
         <!-- Pay Table -->
         <div class="pay-table-container">
             <!-- Earnings -->
@@ -318,16 +338,16 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>PF Amount</td>
-                            <td class="text-right">{{ deductions.provident_fund }}</td>
-                        </tr>
-                        <tr>
-                            <td>Income Tax/Professional Tax</td>
-                            <td class="text-right">{{ deductions.income_tax }}</td>
+                            <td>CPF</td>
+                            <td class="text-right">{{ deductions.cpf }}</td>
                         </tr>
                         <tr>
                             <td>Other Deductions</td>
                             <td class="text-right">{{ deductions.others }}</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;</td>
+                            <td class="text-right"></td>
                         </tr>
                         <tr>
                             <td>&nbsp;</td>

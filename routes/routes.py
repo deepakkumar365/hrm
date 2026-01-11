@@ -1755,10 +1755,13 @@ def payroll_generate():
 
                 # Aggregate Approved OT Data
                 total_overtime = sum(float(s.ot_hours or 0) for s in ot_summaries)
-                overtime_pay = sum(float(s.ot_amount or 0) for s in ot_summaries)
+                calculated_overtime_pay = sum(float(s.ot_amount or 0) for s in ot_summaries)
                 ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
-
-                ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
+                
+                # Apply Override Logic if enabled
+                overtime_pay = calculated_overtime_pay
+                if existing and existing.ot_override_amount and existing.ot_override_amount > 0:
+                     overtime_pay = float(existing.ot_override_amount)
 
                 # Total Allowances
                 total_allowances = fixed_allowances + ot_allowances
@@ -2055,6 +2058,13 @@ def payroll_config_update():
                 
                 # Update OT Amount Override (Prioritize over calculation)
                 if 'ot_amount' in data:
+                    # Treat 'ot_amount' from frontend as the override amount
+                    # Use a new field ot_override_amount for explicit storage
+                    payroll.ot_override_amount = float(data['ot_amount'])
+                    
+                    # Also update final pay if override is active (>0) or we want to force it
+                    # Logic: If user types 0, it might mean "Reset" or "No OT".
+                    # Let's assume if they send it, it's an override.
                     payroll.overtime_pay = float(data['ot_amount'])
                 
                 # Update CPF Override
@@ -2136,9 +2146,22 @@ def payroll_preview_api():
 
             # ---------------------------------------------------------
             # DATA SOURCES STRATEGY:
-            # 1. Check for 'Draft' or 'Generated' Payroll Record (Overrides)
-            # 2. Fallback to OTDailySummary (Calculated)
+            # 1. Calculated (Source 2) - Always calculates "Original"
+            # 2. Override (Source 1) - Checks for manual override in DB
             # ---------------------------------------------------------
+            
+            # Step 1: Calculate "Original" from Daily Summaries (Live Data)
+            ot_summaries = OTDailySummary.query.filter_by(
+                employee_id=emp.id,
+                status='Approved'
+            ).filter(
+                extract('month', OTDailySummary.ot_date) == month,
+                extract('year', OTDailySummary.ot_date) == year
+            ).all()
+
+            calculated_ot_hours = sum(float(s.ot_hours or 0) for s in ot_summaries)
+            calculated_ot_amount = sum(float(s.ot_amount or 0) for s in ot_summaries)
+            calculated_ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
             
             payroll_record = Payroll.query.filter_by(
                 employee_id=emp.id,
@@ -2146,46 +2169,42 @@ def payroll_preview_api():
                 pay_period_end=pay_period_end
             ).first()
             
-            total_ot_hours = 0.0
-            ot_amount = 0.0
-            ot_allowances = 0.0
-            cpf_override = None # Track if we have a persisted CPF value
-            employer_cpf = 0.0 # Track Employer CPF
+            total_ot_hours = calculated_ot_hours
+            ot_amount = calculated_ot_amount # Default to calculated
+            ot_allowances = calculated_ot_allowances
             
-            if payroll_record and payroll_record.status in ['Generated', 'Approved', 'Paid']:
-                # SOURCE 1: Use persisted overrides from Payroll table
-                total_ot_hours = float(payroll_record.overtime_hours or 0)
-                ot_amount = float(payroll_record.overtime_pay or 0)
+            ot_override_amount = 0.0
+            
+            cpf_override = None 
+            employer_cpf = 0.0 
+            
+            if payroll_record:
+                # Get Override Amount
+                ot_override_amount = float(payroll_record.ot_override_amount or 0)
                 
-                # Use persisted CPF if available
-                if payroll_record.employee_cpf is not None:
-                     cpf_override = float(payroll_record.employee_cpf)
+                # Logic: If override > 0, use it. Else use calculated.
+                # Note: User requirement "if the over ride amount is grated than zero it should take the overided amount else the original calculated amount"
+                if ot_override_amount > 0:
+                    ot_amount = ot_override_amount
+                    # Note: We don't automatically adjust hours if amount is overridden, 
+                    # but we could keep calculated hours or use stored hours if we wanted.
+                    # For now, keeping calculated hours is safer for display unless explicitly overridden too.
                 
-                # Use persisted Employer CPF if available
-                if payroll_record.employer_cpf is not None:
-                    employer_cpf = float(payroll_record.employer_cpf)
-
-            else:
-                # SOURCE 2: Calculate from Daily Summaries
-                ot_summaries = OTDailySummary.query.filter_by(
-                    employee_id=emp.id,
-                    status='Approved'
-                ).filter(
-                    extract('month', OTDailySummary.ot_date) == month,
-                    extract('year', OTDailySummary.ot_date) == year
-                ).all()
-
-                # Aggregate Approved OT Data
-                total_ot_hours = sum(float(s.ot_hours or 0) for s in ot_summaries)
-                ot_amount = sum(float(s.ot_amount or 0) for s in ot_summaries)
-                ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
-
-                # Logic Update: Preservation of CPF overrides for Draft records
-                if payroll_record and payroll_record.status == 'Draft':
+                # Use persisted CPF if available (for Draft/Generated)
+                if payroll_record.status in ['Draft', 'Generated', 'Approved', 'Paid']:
                     if payroll_record.employee_cpf is not None:
-                        cpf_override = float(payroll_record.employee_cpf)
+                         cpf_override = float(payroll_record.employee_cpf)
                     if payroll_record.employer_cpf is not None:
                         employer_cpf = float(payroll_record.employer_cpf)
+                        
+                # If record is finalized (Approved/Paid), strictly use stored values?
+                # Actually, user said "regenerate whenever", implying Draft should always auto-update calculated part.
+                # If finalized, we probably shouldn't change it.
+                if payroll_record.status in ['Approved', 'Paid']:
+                     # For finalized records, stick to what's in DB completely
+                     total_ot_hours = float(payroll_record.overtime_hours or 0)
+                     ot_amount = float(payroll_record.overtime_pay or 0)
+                     ot_override_amount = float(payroll_record.ot_override_amount or 0) # Keep historical override logic if needed
 
             # Total Allowances = Fixed + OT Allowances
             total_allowances = fixed_allowances + ot_allowances
@@ -2242,6 +2261,8 @@ def payroll_preview_api():
                 'ot_hours': total_ot_hours,
                 'ot_rate': ot_rate,
                 'ot_amount': ot_amount,
+                'ot_override_amount': ot_override_amount,
+                'original_ot_amount': calculated_ot_amount,
                 'attendance_days': attendance_days,
                 'attendance_rate': attendance_rate,
                 'gross_salary': gross_salary,
@@ -2394,14 +2415,20 @@ def payroll_payslip(payroll_id):
 
     # Prepare deductions data (Mapped for payslip_preview.html)
     deductions = {
-        'tax': f"{float(payroll.income_tax):,.2f}",
-        'pf': f"{float(payroll.employee_cpf):,.2f}",
+        'pf': f"{float(payroll.employee_cpf):,.2f}", # Renamed/Label update handled in template, this key is for data
+        'cpf': f"{float(payroll.employee_cpf):,.2f}", # New key for clarity
+        'tax': "0.00", # Set to 0 or remove from template display
         # Legacy keys
         'income_tax': f"{float(payroll.income_tax):,.2f}",
         'medical': "0.00",
         'life_insurance': "0.00", 
         'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
         'others': f"{float(payroll.other_deductions):,.2f}"
+    }
+
+    # Prepare Employer Contributions (Not Deducted)
+    employer_contributions = {
+        'cpf': f"{float(payroll.employer_cpf):,.2f}"
     }
 
     # Prepare employee data
@@ -2460,8 +2487,18 @@ def payroll_payslip(payroll_id):
         ).first()
 
     if template:
+        # Dynamic injection of 'employer_contributions' section
+        layout_config = list(template.layout_config) # Copy to avoid mutating DB object in session if that happens
+        if 'employer_contributions' not in layout_config:
+            # Insert before earnings_table if exists, else append
+            if 'earnings_table' in layout_config:
+                idx = layout_config.index('earnings_table')
+                layout_config.insert(idx, 'employer_contributions')
+            else:
+                layout_config.append('employer_contributions')
+
         return render_template('payroll/payslip_preview.html',
-                             layout_config=template.layout_config,
+                             layout_config=layout_config,
                              logo_path=template.logo_path,
                              left_logo_path=template.left_logo_path,
                              right_logo_path=template.right_logo_path,
@@ -2471,14 +2508,16 @@ def payroll_payslip(payroll_id):
                              employee=employee_data,
                              company=company_data,
                              earnings=earnings,
-                             deductions=deductions)
+                             deductions=deductions,
+                             employer_contributions=employer_contributions)
 
     return render_template('payroll/payslip.html',
                          payroll=payroll_data,
                          employee=employee_data,
                          company=company_data,
                          earnings=earnings,
-                         deductions=deductions)
+                         deductions=deductions,
+                         employer_contributions=employer_contributions)
 
 
 

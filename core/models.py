@@ -625,6 +625,7 @@ class Payroll(db.Model):
 
     basic_pay = db.Column(db.Numeric(10, 2), nullable=False)
     overtime_pay = db.Column(db.Numeric(10, 2), default=0)
+    ot_override_amount = db.Column(db.Numeric(10, 2), default=0) # Manual override for OT amount
     allowances = db.Column(db.Numeric(10, 2), default=0)
     bonuses = db.Column(db.Numeric(10, 2), default=0)
     gross_pay = db.Column(db.Numeric(10, 2), nullable=False)
