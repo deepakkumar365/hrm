@@ -1758,6 +1758,8 @@ def payroll_generate():
                 overtime_pay = sum(float(s.ot_amount or 0) for s in ot_summaries)
                 ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
 
+                ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
+
                 # Total Allowances
                 total_allowances = fixed_allowances + ot_allowances
                 
@@ -2150,7 +2152,7 @@ def payroll_preview_api():
             cpf_override = None # Track if we have a persisted CPF value
             employer_cpf = 0.0 # Track Employer CPF
             
-            if payroll_record and payroll_record.status in ['Draft', 'Generated', 'Approved', 'Paid']:
+            if payroll_record and payroll_record.status in ['Generated', 'Approved', 'Paid']:
                 # SOURCE 1: Use persisted overrides from Payroll table
                 total_ot_hours = float(payroll_record.overtime_hours or 0)
                 ot_amount = float(payroll_record.overtime_pay or 0)
@@ -2177,6 +2179,13 @@ def payroll_preview_api():
                 total_ot_hours = sum(float(s.ot_hours or 0) for s in ot_summaries)
                 ot_amount = sum(float(s.ot_amount or 0) for s in ot_summaries)
                 ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
+
+                # Logic Update: Preservation of CPF overrides for Draft records
+                if payroll_record and payroll_record.status == 'Draft':
+                    if payroll_record.employee_cpf is not None:
+                        cpf_override = float(payroll_record.employee_cpf)
+                    if payroll_record.employer_cpf is not None:
+                        employer_cpf = float(payroll_record.employer_cpf)
 
             # Total Allowances = Fixed + OT Allowances
             total_allowances = fixed_allowances + ot_allowances
