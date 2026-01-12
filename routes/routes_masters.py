@@ -892,6 +892,7 @@ def ot_type_add():
         color_code = request.form.get('color_code', '#3498db')
         display_order = request.form.get('display_order', '0')
         is_active = request.form.get('is_active') == 'on'
+        is_fixed_rate = request.form.get('is_fixed_rate') == 'on'
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         # Get day flags
@@ -920,6 +921,7 @@ def ot_type_add():
                 description=description if description else None,
                 rate_multiplier=float(rate_multiplier),
                 color_code=color_code,
+                is_fixed_rate=is_fixed_rate,
                 # applicable_days=applicable_days if applicable_days else None, # Removed
                 display_order=int(display_order),
                 is_active=is_active,
@@ -963,6 +965,7 @@ def ot_type_edit(ot_type_id):
         applicable_days = request.form.get('applicable_days', '')
         display_order = request.form.get('display_order', '0')
         is_active = request.form.get('is_active') == 'on'
+        is_fixed_rate = request.form.get('is_fixed_rate') == 'on'
         
         if not name or not code:
             flash('OT Type name and code are required', 'error')
@@ -984,7 +987,8 @@ def ot_type_edit(ot_type_id):
             ot_type.rate_multiplier = float(rate_multiplier)
             ot_type.color_code = color_code
             ot_type.display_order = int(display_order)
-            ot_type.is_active = request.form.get('is_active') == 'on'
+            ot_type.is_active = is_active
+            ot_type.is_fixed_rate = is_fixed_rate
             
             # Update day flags
             days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']

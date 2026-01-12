@@ -7,6 +7,7 @@ import os
 import time as pytime
 import subprocess
 from werkzeug.utils import secure_filename
+from decimal import Decimal
 import pytz
 
 from app import app, db
@@ -1777,9 +1778,15 @@ def payroll_generate():
                 basic_pay = float(employee.payroll_config.basic_salary or 0) if employee.payroll_config else 0.0
                 gross_pay = basic_pay + total_allowances + overtime_pay
 
-                # Calculate CPF (simplified)
-                employee_cpf = gross_pay * (float(employee.employee_cpf_rate) / 100)
-                employer_cpf = gross_pay * (float(employee.employer_cpf_rate) / 100)
+                # Calculate CPF (from Configuration)
+                employee_cpf = 0.0
+                employer_cpf = 0.0
+                
+                if config:
+                    if config.employee_cpf is not None:
+                        employee_cpf = float(config.employee_cpf)
+                    if config.employer_cpf is not None:
+                         employer_cpf = float(config.employer_cpf)
 
                 # Calculate net pay
                 net_pay = gross_pay - employee_cpf
@@ -2001,21 +2008,33 @@ def payroll_config_update():
 
         # Update base salary (on PayrollConfiguration model)
         if 'basic_salary' in data:
-            config.basic_salary = float(data['basic_salary'])
+            config.basic_salary = Decimal(str(data['basic_salary'])) if data['basic_salary'] else Decimal(0)
 
         # Update allowances
         if 'allowance_1_amount' in data:
-            config.allowance_1_amount = float(data['allowance_1_amount']) if data['allowance_1_amount'] else 0
+            config.allowance_1_amount = Decimal(str(data['allowance_1_amount'])) if data['allowance_1_amount'] else Decimal(0)
         if 'allowance_2_amount' in data:
-            config.allowance_2_amount = float(data['allowance_2_amount']) if data['allowance_2_amount'] else 0
+            config.allowance_2_amount = Decimal(str(data['allowance_2_amount'])) if data['allowance_2_amount'] else Decimal(0)
         if 'allowance_3_amount' in data:
-            config.allowance_3_amount = float(data['allowance_3_amount']) if data['allowance_3_amount'] else 0
+            config.allowance_3_amount = Decimal(str(data['allowance_3_amount'])) if data['allowance_3_amount'] else Decimal(0)
         if 'allowance_4_amount' in data:
-            config.allowance_4_amount = float(data['allowance_4_amount']) if data['allowance_4_amount'] else 0
+            config.allowance_4_amount = Decimal(str(data['allowance_4_amount'])) if data['allowance_4_amount'] else Decimal(0)
 
         # Update OT rate (Optional, mostly removed from UI but kept for backend compat)
         if 'ot_rate_per_hour' in data:
-            config.ot_rate_per_hour = float(data['ot_rate_per_hour']) if data['ot_rate_per_hour'] else None
+            config.ot_rate_per_hour = Decimal(str(data['ot_rate_per_hour'])) if data['ot_rate_per_hour'] else None
+
+        # Update CPF Configuration (Master)
+        if 'employee_cpf' in data:
+            config.employee_cpf = Decimal(str(data['employee_cpf'])) if data['employee_cpf'] is not None and data['employee_cpf'] != '' else Decimal(0)
+        
+        if 'employer_cpf' in data:
+            config.employer_cpf = Decimal(str(data['employer_cpf'])) if data['employer_cpf'] is not None and data['employer_cpf'] != '' else Decimal(0)
+
+        # Recalculate Net Salary (Estimated)
+        # Net = Basic + Allowances - Employee CPF
+        total_allowances = config.get_total_allowances()
+        config.net_salary = (config.basic_salary or Decimal(0)) + total_allowances - (config.employee_cpf or Decimal(0))
 
         config.updated_by = current_user.id
         config.updated_at = datetime.now()
@@ -2190,12 +2209,17 @@ def payroll_preview_api():
                     # but we could keep calculated hours or use stored hours if we wanted.
                     # For now, keeping calculated hours is safer for display unless explicitly overridden too.
                 
-                # Use persisted CPF if available (for Draft/Generated)
-                if payroll_record.status in ['Draft', 'Generated', 'Approved', 'Paid']:
+                # Use persisted CPF only if record is finalized
+                if payroll_record.status in ['Approved', 'Paid']:
                     if payroll_record.employee_cpf is not None:
                          cpf_override = float(payroll_record.employee_cpf)
                     if payroll_record.employer_cpf is not None:
                         employer_cpf = float(payroll_record.employer_cpf)
+                        
+                # Note: For 'Draft' or 'Generated', we intentionally IGNORE the stored 
+                # Payroll.employee_cpf/employer_cpf and fall through to use the
+                # PayrollConfiguration (Master) values below. This ensures that
+                # clicking "Load Data" always reflects the latest Configuration.
                         
                 # If record is finalized (Approved/Paid), strictly use stored values?
                 # Actually, user said "regenerate whenever", implying Draft should always auto-update calculated part.
@@ -2228,12 +2252,22 @@ def payroll_preview_api():
             gross_salary = basic_salary + total_allowances + ot_amount
 
             # Calculate CPF deductions
-            # Calculate CPF deductions
             if cpf_override is not None:
                 cpf_deduction = cpf_override
             else:
-                # Manual entry only - default to 0
-                cpf_deduction = 0.0
+                # Use Configuration values as default
+                if config and config.employee_cpf is not None:
+                    cpf_deduction = float(config.employee_cpf)
+                else:
+                    cpf_deduction = 0.0
+                
+                # Also ensure Employer CPF is set from config if not overridden (and not already set by payroll record)
+                # Note: We check if it's already set (from Approved/Paid record above). 
+                # If it's 0.0 (default) or we are in Draft mode (where we ignored persisted values), we load from config.
+                if payroll_record and payroll_record.status in ['Approved', 'Paid'] and payroll_record.employer_cpf is not None:
+                     pass # Already handled above
+                elif config and config.employer_cpf is not None:
+                     employer_cpf = float(config.employer_cpf)
 
             # Calculate net salary
             total_deductions = cpf_deduction

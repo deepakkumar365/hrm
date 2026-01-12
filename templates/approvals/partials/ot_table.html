@@ -13,6 +13,7 @@
                     <th>Employee</th>
                     <th>Date</th>
                     <th>Hours</th>
+                    <th>Amount</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -51,6 +52,7 @@
                     </td>
                     <td>{{ req.ot_date.strftime('%d %b %Y') if req.ot_date else '-' }}</td>
                     <td class="fw-bold">{{ req.requested_hours }}h</td>
+                    <td class="text-success fw-bold">${{ "%.2f"|format(req.amount or 0) }}</td>
                     <td>
                         <span
                             class="badge {{ 'bg-info' if ot.status == 'pending_manager' else 'bg-warning' }} text-dark">
@@ -64,8 +66,8 @@
                                     empName: '{{ emp.first_name }} {{ emp.last_name }}',
                                     date: '{{ req.ot_date.strftime('%d %b %Y') }}',
                                     hours: '{{ req.requested_hours }}h',
-                                    reason: `{{ req.reason or '' }}`
-                                })">
+                                    amount: '{{ " %.2f"|format(req.amount or 0) }}', reason: `{{ req.reason or '' }}`
+                            })">
                             {{ btn_text }}
                         </button>
                     </td>
@@ -104,15 +106,35 @@
                         <label class="form-label text-muted small mb-0">Date</label>
                         <div id="otModalDate">-</div>
                     </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label text-muted small mb-0">Hours</label>
-                        <div class="fw-bold fs-5 text-primary" id="otModalHours">-</div>
+                </div>
+
+                <div class="row bg-light rounded p-2 mb-3 mx-0">
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-0">Current Hours</label>
+                        <div class="fw-bold text-dark" id="otModalHours">-</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label text-muted small mb-0">Current Amount</label>
+                        <div class="fw-bold text-success" id="otModalAmount">-</div>
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label text-muted small mb-0">Reason</label>
                     <div class="p-2 bg-light rounded text-break" id="otModalReason">-</div>
+                </div>
+
+                <hr class="my-3">
+                <h6 class="text-primary mb-3"><i class="fas fa-edit"></i> Amend & Approve</h6>
+
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="otModalModifiedAmount" class="form-label small fw-bold">Amend Amount ($)</label>
+                        <input type="number" class="form-control form-control-sm" id="otModalModifiedAmount" step="0.01"
+                            placeholder="Override amount">
+                        <div class="form-text x-small">Leave empty to keep original amount.</div>
+                    </div>
+                    <!-- Optional: add modified hours here if needed, keeping simple for now as per requirement -->
                 </div>
 
                 <div class="mb-3">
@@ -123,7 +145,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-danger" onclick="submitOTAction('reject')">Reject</button>
-                <button type="button" class="btn btn-success px-4" onclick="submitOTAction('approve')">Approve</button>
+                <button type="button" class="btn btn-success px-4" onclick="submitOTAction('approve')">Approve with
+                    Changes</button>
             </div>
         </div>
     </div>
@@ -139,8 +162,12 @@
         document.getElementById('otModalEmployee').textContent = data.empName;
         document.getElementById('otModalDate').textContent = data.date;
         document.getElementById('otModalHours').textContent = data.hours;
+        document.getElementById('otModalAmount').textContent = '$' + data.amount;
         document.getElementById('otModalReason').textContent = data.reason || 'No reason provided';
-        document.getElementById('otModalComments').value = ''; // Reset comments
+
+        // Reset Inputs
+        document.getElementById('otModalComments').value = '';
+        document.getElementById('otModalModifiedAmount').value = data.amount; // Pre-fill with current amount for easier editing
 
         // Show Modal
         if (!otModalInstance) {
@@ -153,6 +180,7 @@
         const id = document.getElementById('otModalId').value;
         const role = document.getElementById('otModalRole').value;
         const comments = document.getElementById('otModalComments').value;
+        const modifiedAmount = document.getElementById('otModalModifiedAmount').value;
 
         if (!id) return;
 
@@ -162,6 +190,11 @@
 
         const formData = new FormData();
         formData.append('comments', comments);
+
+        // Append modification if present
+        if (modifiedAmount) {
+            formData.append('modified_amount', modifiedAmount);
+        }
 
         let url;
         if (role === 'Manager') {

@@ -1,4 +1,5 @@
 from datetime import datetime, date, time
+from decimal import Decimal
 from uuid import uuid4
 
 from app import db
@@ -610,9 +611,9 @@ class PayrollConfiguration(db.Model):
     updated_by_user = db.relationship('User')
 
     def get_total_allowances(self):
-        return (self.allowance_1_amount or 0) + (self.allowance_2_amount or 0) + \
-               (self.allowance_3_amount or 0) + (self.allowance_4_amount or 0) + \
-               (self.levy_allowance_amount or 0)
+        return (self.allowance_1_amount or Decimal(0)) + (self.allowance_2_amount or Decimal(0)) + \
+               (self.allowance_3_amount or Decimal(0)) + (self.allowance_4_amount or Decimal(0)) + \
+               (self.levy_allowance_amount or Decimal(0))
 
     def get_effective_ot_rate(self):
         return self.ot_rate_per_hour or self.employee.hourly_rate or 0
@@ -1382,6 +1383,7 @@ class OTType(db.Model):
     rate_multiplier = db.Column(db.Numeric(5, 2), default=1.5)
     color_code = db.Column(db.String(20), default='#3498db')
     is_active = db.Column(db.Boolean, default=True)
+    is_fixed_rate = db.Column(db.Boolean, default=False)  # If True, rate_multiplier is treated as fixed amount
     # Days active
     monday = db.Column(db.Boolean, default=True)
     tuesday = db.Column(db.Boolean, default=True)
@@ -1405,6 +1407,7 @@ class OTType(db.Model):
             'name': self.name,
             'code': self.code,
             'rate_multiplier': float(self.rate_multiplier),
+            'is_fixed_rate': self.is_fixed_rate,
             'color_code': self.color_code,
             'is_active': self.is_active,
         }

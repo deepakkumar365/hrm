@@ -320,6 +320,8 @@
                         <th class="col-money">Transport</th>
                         <th class="col-money">Housing</th>
                         <th class="col-money">Meal</th>
+                        <th class="col-money">Emp. CPF ($)</th>
+                        <th class="col-money">Employer CPF ($)</th>
                         <th class="col-money text-muted">Est. Net</th>
                         <th class="col-action">Actions</th>
                     </tr>
@@ -361,6 +363,14 @@
                             "%.2f"|format(employee.payroll_config.allowance_3_amount if employee.payroll_config else 0)
                             }}</td>
 
+                        <td class="col-money display-value text-muted fw-bold text-primary">${{
+                            "%.2f"|format(employee.payroll_config.employee_cpf if employee.payroll_config else 0)
+                            }}</td>
+
+                        <td class="col-money display-value text-muted">${{
+                            "%.2f"|format(employee.payroll_config.employer_cpf if employee.payroll_config else 0)
+                            }}</td>
+
                         <!-- Edit Mode Inputs (Hidden by default) -->
                         <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
                                 name="basic_salary"
@@ -377,6 +387,16 @@
                         <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
                                 name="allowance_3_amount"
                                 value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
+
+                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
+                                name="employee_cpf"
+                                value="{{ employee.payroll_config.employee_cpf if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
+
+                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
+                                name="employer_cpf"
+                                value="{{ employee.payroll_config.employer_cpf if employee.payroll_config else 0 }}"
                                 step="0.01"></td>
 
                         <td class="col-money text-muted opacity-50 display-value">
@@ -477,7 +497,9 @@
             basic_salary: row.querySelector('input[name="basic_salary"]').value,
             allowance_1_amount: row.querySelector('input[name="allowance_1_amount"]').value,
             allowance_2_amount: row.querySelector('input[name="allowance_2_amount"]').value,
-            allowance_3_amount: row.querySelector('input[name="allowance_3_amount"]').value
+            allowance_3_amount: row.querySelector('input[name="allowance_3_amount"]').value,
+            employee_cpf: row.querySelector('input[name="employee_cpf"]').value,
+            employer_cpf: row.querySelector('input[name="employer_cpf"]').value
         };
 
         // Show loading indicator

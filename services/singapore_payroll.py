@@ -98,7 +98,23 @@ class SingaporePayrollCalculator:
         return employee_rate, employer_rate
     
     def calculate_cpf_contribution(self, employee, gross_salary, pay_date=None):
-        """Calculate CPF contributions"""
+        """
+        Calculate CPF contributions.
+        PRIORITY 1: Use specific values from Payroll Configuration if available.
+        PRIORITY 2: Auto-calculate based on Age/Residency (Fallback only).
+        """
+        # PRIORITY 1: Check Payroll Configuration
+        if employee.payroll_config:
+            config_emp_cpf = employee.payroll_config.employee_cpf
+            config_employer_cpf = employee.payroll_config.employer_cpf
+            
+            # If values differ from None (even if 0), use them.
+            # Assuming the migration populated accurate values, we trust config.
+            # We treat None as "not configured".
+            if config_emp_cpf is not None and config_employer_cpf is not None:
+                return config_emp_cpf, config_employer_cpf
+        
+        # PRIORITY 2: Fallback to Auto-Calculation (Existing Logic)
         if gross_salary <= 0:
             return 0, 0
         

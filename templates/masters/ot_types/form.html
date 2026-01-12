@@ -105,77 +105,87 @@
                                         first)</small>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="is_active" class="form-label">Status</label>
-                                    <div class="form-check form-switch mt-2">
-                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
-                                            {% if ot_type and ot_type.is_active or not ot_type %}checked{% endif %}>
-                                        <label class="form-check-label" for="is_active">
-                                            Active (Available for employees)
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
-
-                        <!-- Description -->
+                    </div>
+                    <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3"
-                                placeholder="Optional description of when this OT type applies">{{ ot_type.description if ot_type else '' }}</textarea>
-                            <small class="form-text text-muted">e.g., Applied to work done on weekends, holidays,
-                                etc.</small>
-                        </div>
-
-                        <!-- Applicable Days -->
-                        <div class="mb-3">
-                            <label class="form-label d-block">Applicable Days</label>
-                            <div class="row g-3">
-                                {% for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
-                                'sunday'] %}
-                                <div class="col-md-3 col-sm-6">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="{{ day }}" name="{{ day }}"
-                                            {% if ot_type and getattr(ot_type, day) %}checked{% elif not ot_type and day
-                                            not in ['saturday', 'sunday' ] %}checked{% endif %}>
-                                        <label class="form-check-label text-capitalize" for="{{ day }}">
-                                            {{ day }}
-                                        </label>
-                                    </div>
-                                </div>
-                                {% endfor %}
+                            <label for="is_active" class="form-label">Status</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" {% if
+                                    ot_type and ot_type.is_active or not ot_type %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    Active (Available for employees)
+                                </label>
                             </div>
-                            <small class="form-text text-muted mt-2 d-block">Select the days when this OT type is
-                                applicable</small>
-                        </div>
 
-                        <!-- Info Box -->
-                        <div class="alert alert-info">
-                            <i class="fas fa-lightbulb me-2"></i>
-                            <strong>Tip:</strong> Rate Multiplier is used to calculate overtime pay.
-                            For example, a multiplier of 1.5x means the employee gets 1.5 times their base hourly rate.
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="is_fixed_rate" name="is_fixed_rate"
+                                    {% if ot_type and ot_type.is_fixed_rate %}checked{% endif %}>
+                                <label class="form-check-label" for="is_fixed_rate">
+                                    Fixed Rate (Ignore Base Salary)
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Submit buttons -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="d-flex gap-2 justify-content-end">
-                            <a href="{{ url_for('ot_type_list') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i>
-                                {{ "Update OT Type" if ot_type else "Add OT Type" }}
-                            </button>
-                        </div>
-                    </div>
+                <!-- Description -->
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"
+                        placeholder="Optional description of when this OT type applies">{{ ot_type.description if ot_type else '' }}</textarea>
+                    <small class="form-text text-muted">e.g., Applied to work done on weekends, holidays,
+                        etc.</small>
                 </div>
-            </form>
+
+                <!-- Applicable Days -->
+                <div class="mb-3">
+                    <label class="form-label d-block">Applicable Days</label>
+                    <div class="row g-3">
+                        {% for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
+                        'sunday'] %}
+                        <div class="col-md-3 col-sm-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="{{ day }}" name="{{ day }}" {% if
+                                    ot_type and getattr(ot_type, day) %}checked{% elif not ot_type and day not in
+                                    ['saturday', 'sunday' ] %}checked{% endif %}>
+                                <label class="form-check-label text-capitalize" for="{{ day }}">
+                                    {{ day }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <small class="form-text text-muted mt-2 d-block">Select the days when this OT type is
+                        applicable</small>
+                </div>
+
+                <!-- Info Box -->
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>Tip:</strong> Rate Multiplier is used to calculate overtime pay.
+                    For example, a multiplier of 1.5x means the employee gets 1.5 times their base hourly rate.
+                </div>
         </div>
     </div>
+
+    <!-- Submit buttons -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="{{ url_for('ot_type_list') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>
+                    {{ "Update OT Type" if ot_type else "Add OT Type" }}
+                </button>
+            </div>
+        </div>
+    </div>
+    </form>
+</div>
+</div>
 </div>
 
 <script>

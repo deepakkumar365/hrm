@@ -932,16 +932,9 @@ def mobile_api_create_ot_request():
              return api_response('error', 'Reporting manager has no user account', None, 400)
 
         # 3. Calculate Amount (Logic from routes_ot.py)
-        base_rate = 0
-        if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
-             base_rate = float(employee.payroll_config.ot_rate_per_hour)
-        elif employee.hourly_rate:
-             base_rate = float(employee.hourly_rate)
-        elif employee.basic_salary:
-             base_rate = float(employee.basic_salary) / 173.33
-             
-        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 1.0
-        effective_rate = round(base_rate * multiplier, 2)
+        # 3. Calculate Amount (Simplified Logic: Rate = Multiplier)
+        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 0.0
+        effective_rate = round(multiplier, 2)
         total_amount = round(effective_rate * quantity, 2)
 
         # 4. Create OT Request (Directly to Pending Manager)
@@ -973,6 +966,7 @@ def mobile_api_create_ot_request():
             ot_date=ot_date,
             ot_type_id=ot_type_id,
             requested_hours=quantity,
+            amount=total_amount,
             reason=notes or 'Mobile OT Submission',
             status='pending_manager',
             created_by=user.username

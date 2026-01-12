@@ -17,7 +17,8 @@ from sqlalchemy import and_, or_
 import logging
 
 from app import app, db
-from core.models import OTAttendance, OTApproval, OTRequest, Employee, User, Role, Company, Department, OTType, OTDailySummary, PayrollConfiguration, Attendance
+from app import app, db
+from core.models import OTAttendance, OTApproval, OTRequest, Employee, User, Role, Company, Department, OTType, OTDailySummary, PayrollConfiguration, Attendance, AuditLog
 from core.auth import require_login, require_role
 
 logger = logging.getLogger(__name__)
@@ -240,18 +241,11 @@ def log_ot_entry():
         if not ot_type:
             return jsonify({'success': False, 'message': 'Invalid OT Type'}), 400
             
-        # Determine Base Rate
-        base_rate = 0
-        if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
-             base_rate = float(employee.payroll_config.ot_rate_per_hour)
-        elif employee.hourly_rate:
-             base_rate = float(employee.hourly_rate)
-        elif employee.basic_salary:
-             base_rate = float(employee.basic_salary) / 173.33
-             
-        # Effective Rate = Base * Multiplier
-        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 1.0
-        effective_rate = round(base_rate * multiplier, 2)
+        # Effective Rate = Multiplier (User simplified logic: Multiplier IS the Rate)
+        # We ignore base salary/hourly rate entirely.
+        
+        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 0.0
+        effective_rate = round(multiplier, 2)
         
         # Total Amount
         total_amount = round(effective_rate * quantity, 2)
@@ -551,17 +545,9 @@ def submit_ot_attendance(attendance_id):
             # Recalculate amount if 0 (Self-Correction for old records or missing rates)
             current_amount = float(ot_attendance.amount) if ot_attendance.amount else 0
             if current_amount == 0 and requested_hours > 0:
-                base_rate = 0
-                if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
-                     base_rate = float(employee.payroll_config.ot_rate_per_hour)
-                elif employee.hourly_rate:
-                     base_rate = float(employee.hourly_rate)
-                elif employee.basic_salary:
-                     # Standard 173.33 hours/month
-                     base_rate = float(employee.basic_salary) / 173.33
-                
-                multiplier = float(ot_attendance.ot_type.rate_multiplier) if ot_attendance.ot_type and ot_attendance.ot_type.rate_multiplier else 1.0
-                effective_rate = round(base_rate * multiplier, 2)
+                # Simplified Logic: Rate = Multiplier
+                multiplier = float(ot_attendance.ot_type.rate_multiplier) if ot_attendance.ot_type and ot_attendance.ot_type.rate_multiplier else 0.0
+                effective_rate = round(multiplier, 2)
                 
                 calculated_amount = round(effective_rate * requested_hours, 2)
                 
@@ -1064,6 +1050,14 @@ def ot_manager_bulk_action():
                     # If multiple, applying same date/qty is risky.
                     # LIMITATION: Modification only works for single item approval via the modal.
                     
+                    # Update Approval Record
+                    approval.status = 'manager_approved'
+                    approval.comments = comments if comments else 'Approved by Manager'
+                    approval.updated_at = datetime.now()
+                    
+                    # Create Audit Log for Modifications
+                    old_amount = ot_request.amount
+                    
                     if len(approval_ids) == 1:
                         if modified_date:
                             ot_request.ot_date = datetime.strptime(modified_date, '%Y-%m-%d').date()
@@ -1071,15 +1065,24 @@ def ot_manager_bulk_action():
                             ot_request.ot_type_id = int(modified_ot_type_id)
                         if modified_quantity:
                             ot_request.requested_hours = float(modified_quantity)
+                        
                         if modified_amount:
-                            ot_request.amount = float(modified_amount)
+                            new_amount = float(modified_amount)
+                            if new_amount != float(old_amount or 0):
+                                ot_request.amount = new_amount
+                                # Log amendment
+                                audit = AuditLog(
+                                    user_id=current_user.id,
+                                    action='OT_AMOUNT_AMEND_MANAGER',
+                                    resource_type='OTRequest',
+                                    resource_id=str(ot_request.id),
+                                    changes=f'Amount changed from {old_amount} to {new_amount}',
+                                    status='Success'
+                                )
+                                db.session.add(audit)
+
                         if modified_reason:
                             ot_request.reason = modified_reason
-
-                    # Update Approval Record
-                    approval.status = 'manager_approved'
-                    approval.comments = comments if comments else 'Approved by Manager'
-                    approval.updated_at = datetime.now()
                     
                     # Update Request Status
                     ot_request.status = 'manager_approved'
@@ -1205,6 +1208,7 @@ def ot_approval():
                 action = request.form.get('action')  # approve or reject
                 comments = request.form.get('comments', '')
                 modified_hours = request.form.get('modified_hours')
+                modified_amount = request.form.get('modified_amount')
 
                 # Get allowance fields
                 allowances = {
@@ -1254,18 +1258,9 @@ def ot_approval():
                     
                     if not ot_summary:
                         # Create new summary for this request
-                        # Calculate rate
-                        emp = ot_request.employee
-                        base_rate = 0
-                        if emp.payroll_config and emp.payroll_config.ot_rate_per_hour:
-                             base_rate = float(emp.payroll_config.ot_rate_per_hour)
-                        elif emp.hourly_rate:
-                             base_rate = float(emp.hourly_rate)
-                        elif emp.basic_salary:
-                             base_rate = float(emp.basic_salary) / 173.33
-                        
-                        multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 1.0
-                        ot_rate_per_hour = round(base_rate * multiplier, 2)
+                        # Simplified Logic: Rate = Multiplier
+                        multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 0.0
+                        ot_rate_per_hour = round(multiplier, 2)
 
                         ot_summary = OTDailySummary(
                             employee_id=ot_request.employee_id,
@@ -1286,6 +1281,23 @@ def ot_approval():
                     ot_request.approved_at = datetime.now()
                     ot_request.approval_comments = comments
                     ot_request.approved_hours = float(modified_hours) if modified_hours else ot_request.requested_hours
+                    
+                    # Handle HR Amount Amendment
+                    if modified_amount:
+                        old_amount = ot_request.amount
+                        new_amount = float(modified_amount)
+                        if new_amount != float(old_amount or 0):
+                            ot_request.amount = new_amount
+                            # Log amendment
+                            audit = AuditLog(
+                                user_id=current_user.id,
+                                action='OT_AMOUNT_AMEND_HR',
+                                resource_type='OTRequest',
+                                resource_id=str(ot_request.id),
+                                changes=f'Amount changed from {old_amount} to {new_amount}',
+                                status='Success'
+                            )
+                            db.session.add(audit)
 
                     db.session.flush()
 
@@ -1295,16 +1307,9 @@ def ot_approval():
                     # Re-verify rate (in case emp config changed, but sticking to created summary rate is usually safer unless 0)
                     if not ot_summary.ot_rate_per_hour:
                          # recalculate if missing
-                         emp = ot_request.employee
-                         base_rate = 0
-                         if emp.payroll_config and emp.payroll_config.ot_rate_per_hour:
-                              base_rate = float(emp.payroll_config.ot_rate_per_hour)
-                         elif emp.hourly_rate:
-                              base_rate = float(emp.hourly_rate)
-                         elif emp.basic_salary:
-                              base_rate = float(emp.basic_salary) / 173.33
-                         multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 1.0
-                         ot_summary.ot_rate_per_hour = round(base_rate * multiplier, 2)
+                         # Simplified Logic: Rate = Multiplier
+                         multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 0.0
+                         ot_summary.ot_rate_per_hour = round(multiplier, 2)
 
                     ot_summary.ot_hours = h
                     ot_summary.ot_amount = round(h * float(ot_summary.ot_rate_per_hour), 2)

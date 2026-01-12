@@ -299,7 +299,8 @@
         const multiplier = parseFloat(selectedOption.getAttribute('data-multiplier') || 0);
         const quantity = parseFloat(document.getElementById('quantity').value || 0);
 
-        const effectiveRate = HOURLY_RATE * multiplier;
+        // Simplified Logic: Rate = Multiplier (ignoring HOURLY_RATE)
+        const effectiveRate = multiplier;
         const totalAmount = effectiveRate * quantity;
 
         document.getElementById('previewMult').innerText = multiplier + 'x';
