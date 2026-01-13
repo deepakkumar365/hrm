@@ -43,10 +43,10 @@
                     </td>
                     <td>
                         <div class="btn-group btn-group-sm">
-                            <a href="{{ url_for('leave_edit', leave_id=leave.id) }}" class="btn btn-outline-primary"
-                                title="View/Edit">
+                            <button class="btn btn-outline-primary" onclick="viewLeaveDetails({{ leave.id }})"
+                                title="View Details">
                                 <i class="fas fa-eye"></i>
-                            </a>
+                            </button>
                             <button class="btn btn-success" onclick="approveLeaveItem({{ leave.id }}, 'approve')">
                                 <i class="fas fa-check"></i>
                             </button>
@@ -68,8 +68,50 @@
     </div>
 </div>
 
+<!-- Leave Detail Modal -->
+<div class="modal fade" id="leaveDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title">Leave Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="leaveDetailContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Local Scripts for AJAX Actions -->
 <script>
+    function viewLeaveDetails(id) {
+        var modal = new bootstrap.Modal(document.getElementById('leaveDetailModal'));
+        document.getElementById('leaveDetailContent').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+        modal.show();
+
+        fetch(`/leave/${id}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('leaveDetailContent').innerHTML = html;
+            })
+            .catch(error => {
+                document.getElementById('leaveDetailContent').innerHTML = '<div class="alert alert-danger">Error loading details</div>';
+            });
+    }
+
     function approveLeaveItem(id, action) {
         if (!confirm('Approve this leave request?')) return;
 
@@ -80,10 +122,7 @@
         })
             .then(async res => {
                 if (res.ok || res.redirected) {
-                    // Reload the section to remove the item
                     loadApprovalSection('leaves');
-                    // Show toast or simplified notification
-                    // alert('Approved successfully'); 
                 } else {
                     alert('Error processing request');
                 }
@@ -107,5 +146,43 @@
                 loadApprovalSection('leaves');
             })
             .catch(err => console.error(err));
+    }
+
+    // Modal Interaction Helpers (Available globally for the modal content)
+    window.approveLeaveModal = function (id) {
+        var modalEl = document.getElementById('leaveDetailModal');
+        var modal = bootstrap.Modal.getInstance(modalEl);
+
+        if (!confirm('Approve this leave request?')) return;
+
+        fetch(`/leave/${id}/approve`, { method: 'POST' })
+            .then(res => {
+                if (res.ok || res.redirected) {
+                    modal.hide();
+                    loadApprovalSection('leaves');
+                } else {
+                    alert('Error processing request');
+                }
+            });
+    }
+
+    window.rejectLeaveModal = function (id) {
+        var modalEl = document.getElementById('leaveDetailModal');
+        var modal = bootstrap.Modal.getInstance(modalEl);
+
+        const reason = prompt("Enter rejection reason:");
+        if (!reason) return;
+        const formData = new FormData();
+        formData.append('rejection_reason', reason);
+
+        fetch(`/leave/${id}/reject`, { method: 'POST', body: formData })
+            .then(res => {
+                if (res.ok || res.redirected) {
+                    modal.hide();
+                    loadApprovalSection('leaves');
+                } else {
+                    alert('Error processing request');
+                }
+            });
     }
 </script>

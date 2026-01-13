@@ -1033,6 +1033,8 @@ def mobile_api_get_leave_requests():
             query = query.filter_by(employee_id=employee_id)
         
         if status:
+            # defined statuses are Capitalized (Pending, Approved, Rejected)
+            status = status.capitalize()
             query = query.filter_by(status=status)
         
         paginated = query.order_by(Leave.created_at.desc()).paginate(page=page, per_page=per_page)
@@ -1139,7 +1141,7 @@ def mobile_api_create_leave_request():
             days_requested=days_requested,
             leave_type=data['leave_type'],
             reason=data.get('reason', ''),
-            status='pending'
+            status='Pending'
         )
         
         db.session.add(leave_request)
