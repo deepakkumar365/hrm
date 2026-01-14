@@ -85,13 +85,18 @@ def payroll_config_template_save():
         data = request.json
         template_id = data.get('id')
         
+        # Helper to clean IDs
+        def clean_id(val):
+            if val in [None, 'None', '', 'null']: return None
+            try: return int(val)
+            except: return None
+
         name = data.get('name')
         description = data.get('description')
         company_id = data.get('company_id')
         layout_config = data.get('layout_config', [])
         field_config = data.get('field_config', {})
         
-        # New Image Paths
         # New Image Paths
         logo_path = data.get('logo_path')
         left_logo_path = data.get('left_logo_path')
@@ -124,6 +129,14 @@ def payroll_config_template_save():
             template.right_logo_path = right_logo_path
             template.watermark_path = watermark_path
             template.footer_image_path = footer_image_path
+            
+            # [NEW] FileStorage IDs
+            template.logo_id = clean_id(data.get('logo_id'))
+            template.left_logo_id = clean_id(data.get('left_logo_id'))
+            template.right_logo_id = clean_id(data.get('right_logo_id'))
+            template.watermark_id = clean_id(data.get('watermark_id'))
+            template.footer_image_id = clean_id(data.get('footer_image_id'))
+            
             template.updated_by = current_user.id
             template.updated_at = datetime.utcnow()
             
@@ -145,6 +158,11 @@ def payroll_config_template_save():
                 right_logo_path=right_logo_path,
                 watermark_path=watermark_path,
                 footer_image_path=footer_image_path,
+                logo_id=clean_id(data.get('logo_id')),
+                left_logo_id=clean_id(data.get('left_logo_id')),
+                right_logo_id=clean_id(data.get('right_logo_id')),
+                watermark_id=clean_id(data.get('watermark_id')),
+                footer_image_id=clean_id(data.get('footer_image_id')),
                 created_by=current_user.id,
                 updated_by=current_user.id
             )
@@ -172,23 +190,39 @@ def payroll_config_upload_image():
             return jsonify({'success': False, 'message': 'No selected file'}), 400
             
         if file:
-            # Secure filename logic
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            if ext not in ['jpg', 'jpeg', 'png', 'gif']:
-                 return jsonify({'success': False, 'message': 'Invalid file type'}), 400
-                 
-            filename = secrets.token_hex(8) + '.' + ext
+            from services.file_service import FileService
             
-            # Save to static/uploads/payslip_assets
-            upload_folder = os.path.join(app.root_path, 'static', 'uploads', 'payslip_assets')
-            os.makedirs(upload_folder, exist_ok=True)
+            # Determine tenant
+            tenant_id = current_user.tenant.id if current_user.tenant else None
+            # If SuperAdmin without tenant context, might fail? 
+            # FileService usually expects tenant_id.
+            # If Super Admin creating global template, we might need a system tenant or NONE
+            if not tenant_id:
+                 # Try to get from request or default? 
+                 # For now, require tenant (since templates are tenant scoped mostly)
+                 # But Super Admin can edit all.
+                 pass
+
+            # Upload using FileService
+            # We use 'payslip_assets' as category
+            file_record = FileService.upload_file(
+                file_obj=file,
+                module='Config',
+                tenant_id=tenant_id if tenant_id else 0, # 0 for system/global if needed
+                file_category='payslip_assets',
+                resize_to=(500, 500) # Standard resize
+            )
             
-            filepath = os.path.join(upload_folder, filename)
-            file.save(filepath)
-            
-            # Return relative path for frontend
-            relative_path = f'uploads/payslip_assets/{filename}'
-            return jsonify({'success': True, 'path': relative_path})
+            if file_record:
+                # Return URL and ID
+                return jsonify({
+                    'success': True, 
+                    'path': file_record.file_path, # S3 Key or Presigned URL? FileService.get_file_url(id) is better
+                    'url': FileService.get_file_url(file_record.id),
+                    'file_id': file_record.id
+                })
+            else:
+                 return jsonify({'success': False, 'message': 'Upload failed'}), 500
             
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -249,12 +283,34 @@ def payroll_config_template_preview():
             if current_user.tenant.companies:
                 company = current_user.tenant.companies[0]
         
+        # Helper to resolve assets
+        def get_preview_url(file_id, path):
+            if file_id:
+                try:
+                    from services.file_service import FileService
+                    return FileService.get_file_url(file_id)
+                except:
+                    pass
+            if path:
+                if path.startswith('http'): return path
+                # Basic check for legacy S3 vs Local
+                if 'tenants/' in path: # S3 Key
+                     try:
+                         from services.s3_service import S3Service
+                         return S3Service().generate_presigned_url(path)
+                     except:
+                         pass
+                return url_for('static', filename=path)
+            return None
+
         # Dummy Data Generation
         preview_data = {
             'layout_config': layout_config,
-            'logo_path': data.get('logo_path'),
-            'watermark_path': data.get('watermark_path'),
-            'footer_image_path': data.get('footer_image_path'),
+            'logo_path': get_preview_url(data.get('logo_id'), data.get('logo_path')),
+            'left_logo_path': get_preview_url(data.get('left_logo_id'), data.get('left_logo_path')),
+            'right_logo_path': get_preview_url(data.get('right_logo_id'), data.get('right_logo_path')),
+            'watermark_path': get_preview_url(data.get('watermark_id'), data.get('watermark_path')),
+            'footer_image_path': get_preview_url(data.get('footer_image_id'), data.get('footer_image_path')),
             
             'company': {
                 'name': company.name if company else 'ACME Corp',

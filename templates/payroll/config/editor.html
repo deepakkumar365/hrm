@@ -181,6 +181,7 @@
                         {% endif %}
                         <input type="hidden" id="leftLogoPath"
                             value="{{ template.left_logo_path if template else '' }}">
+                        <input type="hidden" id="leftLogoId" value="{{ template.left_logo_id if template else '' }}">
                     </div>
 
                     <div class="mb-3">
@@ -190,6 +191,7 @@
                         <small class="text-success mt-1 d-block"><i class="fas fa-check"></i> Uploaded</small>
                         {% endif %}
                         <input type="hidden" id="logoPath" value="{{ template.logo_path if template else '' }}">
+                        <input type="hidden" id="logoId" value="{{ template.logo_id if template else '' }}">
                     </div>
 
                     <div class="mb-3">
@@ -200,6 +202,7 @@
                         {% endif %}
                         <input type="hidden" id="rightLogoPath"
                             value="{{ template.right_logo_path if template else '' }}">
+                        <input type="hidden" id="rightLogoId" value="{{ template.right_logo_id if template else '' }}">
                     </div>
 
                     <div class="mb-3">
@@ -210,6 +213,7 @@
                         {% endif %}
                         <input type="hidden" id="watermarkPath"
                             value="{{ template.watermark_path if template else '' }}">
+                        <input type="hidden" id="watermarkId" value="{{ template.watermark_id if template else '' }}">
                     </div>
 
                     <div class="mb-3">
@@ -220,6 +224,8 @@
                         {% endif %}
                         <input type="hidden" id="footerImgPath"
                             value="{{ template.footer_image_path if template else '' }}">
+                        <input type="hidden" id="footerImgId"
+                            value="{{ template.footer_image_id if template else '' }}">
                     </div>
                 </div>
             </div>
@@ -272,7 +278,7 @@
     const templateId = {{ template.id if template else 'null' }};
 
     // Upload Handlers
-    function handleUpload(inputId, hiddenId, displayCallback) {
+    function handleUpload(inputId, hiddenId, hiddenIdField, displayCallback) {
         const input = document.getElementById(inputId);
         if (!input) return;
 
@@ -303,10 +309,12 @@
 
                 if (result.success) {
                     document.getElementById(hiddenId).value = result.path;
+                    if (hiddenIdField) document.getElementById(hiddenIdField).value = result.file_id;
+
                     status.className = 'upload-status mt-1 d-block text-success';
                     status.innerHTML = '<i class="fas fa-check"></i> Upload successful';
 
-                    if (displayCallback) displayCallback(result.path);
+                    if (displayCallback) displayCallback(result.url || result.path);
                 } else {
                     status.className = 'upload-status mt-1 d-block text-danger';
                     status.innerHTML = '<i class="fas fa-times"></i> ' + result.message;
@@ -319,12 +327,15 @@
         });
     }
 
-    handleUpload('logoUpload', 'logoPath', null);
-    handleUpload('leftLogoUpload', 'leftLogoPath', null);
-    handleUpload('rightLogoUpload', 'rightLogoPath', null);
-    handleUpload('footerImgUpload', 'footerImgPath', null);
-    handleUpload('watermarkUpload', 'watermarkPath', (path) => {
-        document.getElementById('watermarkDisplay').style.backgroundImage = `url('/static/${path}')`;
+    handleUpload('logoUpload', 'logoPath', 'logoId', null);
+    handleUpload('leftLogoUpload', 'leftLogoPath', 'leftLogoId', null);
+    handleUpload('rightLogoUpload', 'rightLogoPath', 'rightLogoId', null);
+    handleUpload('footerImgUpload', 'footerImgPath', 'footerImgId', null);
+    handleUpload('watermarkUpload', 'watermarkPath', 'watermarkId', (path) => {
+        // If path is full URL (from result.url), use it. otherwise assumes static.
+        // FileService return result.url which is full URL.
+        const url_bg = path.startsWith('http') ? path : `/static/${path}`;
+        document.getElementById('watermarkDisplay').style.backgroundImage = `url('${url_bg}')`;
     });
 
     // Drag and Drop
@@ -431,7 +442,13 @@
                     left_logo_path: leftLogoPath,
                     right_logo_path: rightLogoPath,
                     watermark_path: watermarkPath,
-                    footer_image_path: footerImgPath
+                    footer_image_path: footerImgPath,
+
+                    logo_id: document.getElementById('logoId').value || null,
+                    left_logo_id: document.getElementById('leftLogoId').value || null,
+                    right_logo_id: document.getElementById('rightLogoId').value || null,
+                    watermark_id: document.getElementById('watermarkId').value || null,
+                    footer_image_id: document.getElementById('footerImgId').value || null
                 })
             });
 
@@ -474,7 +491,13 @@
             field_config: {}, // Can start empty for now
             logo_path: logoPath,
             watermark_path: watermarkPath,
-            footer_image_path: footerImgPath
+            footer_image_path: footerImgPath,
+
+            logo_id: document.getElementById('logoId').value || null,
+            left_logo_id: document.getElementById('leftLogoId').value || null,
+            right_logo_id: document.getElementById('rightLogoId').value || null,
+            watermark_id: document.getElementById('watermarkId').value || null,
+            footer_image_id: document.getElementById('footerImgId').value || null
         };
 
         try {

@@ -80,9 +80,7 @@
                                     <label class="form-label">Logo Preview</label>
                                     <div class="border rounded p-3 text-center">
                                         {% if config.payslip_logo_path %}
-                                        <img id="logoPreview"
-                                            src="{{ url_for('static', filename=config.payslip_logo_path.replace('\\', '/')) }}"
-                                            alt="Payslip Logo">
+                                        <img id="logoPreview" src="{{ logo_url }}" alt="Payslip Logo">
                                         {% else %}
                                         <div id="logoPreview" class="text-muted">
                                             <i class="fas fa-image fa-3x mb-2"></i>

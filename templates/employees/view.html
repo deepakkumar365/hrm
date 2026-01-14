@@ -68,8 +68,8 @@
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-4">
                 <div class="profile-hero-avatar">
-                    {% if employee.profile_image_path %}
-                    <img src="{{ url_for('static', filename=employee.profile_image_path) }}" alt="Profile image">
+                    {% if employee.photo_url %}
+                    <img src="{{ employee.photo_url }}" alt="Profile image">
                     {% else %}
                     {{ employee.first_name[0] if employee.first_name else 'E' }}
                     {% endif %}

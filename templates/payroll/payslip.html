@@ -208,6 +208,9 @@
         <!-- Header (Using Redacted Style Placeholder or Company Name) -->
         <div class="header-section">
             <!-- Logo or Name -->
+            {% if logo_url %}
+            <img src="{{ logo_url }}" alt="Company Logo" style="max-height: 80px; margin-bottom: 10px;">
+            {% endif %}
             <div class="company-name">{{ company.name }}</div>
             <div style="font-size: 12px;">{{ company.address }}</div>
         </div>

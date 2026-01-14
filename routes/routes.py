@@ -24,7 +24,9 @@ from core.utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, check_permission,
                    mobile_optimized_pagination, get_current_month_dates, get_employee_local_time)
 from core.constants import DEFAULT_USER_PASSWORD
+from core.constants import DEFAULT_USER_PASSWORD
 from services.attendance_service import AttendanceService
+from services.file_service import FileService
 
 # Helper to validate image extension
 def _allowed_image(filename: str) -> bool:
@@ -983,15 +985,53 @@ def employee_add():
                                            leave_groups=leave_groups,
                                            overtime_groups=overtime_groups)
 
-                # Save image with unique name based on employee_id and timestamp
-                original = secure_filename(file.filename)
-                ext = original.rsplit('.', 1)[1].lower()
-                unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
-                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-                file.save(save_path)
-                employee.profile_image_path = f"uploads/employees/{unique_name}"
+                # Save using FileService
+                # Path: tenants/{id}/companies/{id}/employees/{id}/profile/
+                file_record = FileService.upload_file(
+                    file_obj=file,
+                    module='HR',
+                    tenant_id=tenant_id,
+                    company_id=employee.company_id,
+                    employee_id=employee.employee_id, # Use string ID for path if preferred, or object ID if available (object ID is None here before flush)
+                    # Note: employee.id is None here. We can flush to get ID or use employee_id string.
+                    # FileService expects ID. Let's use flush()
+                    file_category='profile'
+                )
+                
+                # To get employee.id, we need to add and flush
+                # But we generally add at end.
+                # Let's adjust approach: saving file AFTER flush/commit or accept using employee_id string in path?
+                # FileService.upload_file takes `employee_id`. If we want integer ID, we must flush.
+                
+                # ALTERNATIVE: Use employee.employee_id (string) for the path logic in FileService if it supports it?
+                # The Plan said: tenants/{tenant_id}/companies/{company_id}/employees/{employee_id}/
+                # Standard practice usually implies DB ID, but String ID is more readable. 
+                # Let's try to flush first.
+                
+                # However, if we flush, we might commit partial state? No, flush just assigns ID.
+                db.session.add(employee)
+                db.session.flush()
+                
+                # Retry upload with ID
+                file_record = FileService.upload_file(
+                    file_obj=file,
+                    module='HR',
+                    tenant_id=tenant_id,
+                    company_id=employee.company_id,
+                    employee_id=employee.id,
+                    file_category='profile',
+                    resize_to=(500, 500)
+                )
+                
+                if file_record:
+                    employee.profile_picture_id = file_record.id
+                    employee.profile_image_path = file_record.file_path # Legacy support
+                else:
+                    flash('Failed to upload profile image', 'warning')
 
-            db.session.add(employee)
+            if not employee.id: # If not flushed above
+                db.session.add(employee)
+            
             db.session.commit()
 
             # Create user account for the new employee
@@ -1144,7 +1184,7 @@ def employee_view(employee_id):
                            today=date.today())
 
 
-@app.route('/profile')
+@app.route('/profile', methods=['GET', 'POST'])
 @require_login
 def profile():
     """User's own profile page"""
@@ -1153,6 +1193,46 @@ def profile():
         return redirect(url_for('dashboard'))
 
     employee = current_user.employee_profile
+
+    # Handle Profile Picture Upload
+    if request.method == 'POST':
+        file = request.files.get('profile_image')
+        if file and file.filename.strip():
+             if not _allowed_image(file.filename):
+                 flash('Invalid image type.', 'error')
+             else:
+                 try:
+                     tenant_id = employee.company.tenant_id if employee.company else get_current_user_tenant_id()
+                     from services.file_service import FileService
+                     
+                     file_record = FileService.upload_file(
+                         file_obj=file,
+                         module='HR',
+                         tenant_id=tenant_id,
+                         company_id=employee.company_id,
+                         employee_id=employee.id,
+                         file_category='profile',
+                         resize_to=(500, 500)
+                     )
+                     
+                     if file_record:
+                         if employee.profile_picture_id:
+                             try:
+                                 FileService.delete_file(employee.profile_picture_id)
+                             except:
+                                 pass
+                         
+                         employee.profile_picture_id = file_record.id
+                         employee.profile_image_path = file_record.file_path
+                         db.session.commit()
+                         flash('Profile picture updated successfully', 'success')
+                     else:
+                         flash('Failed to upload profile picture', 'error')
+                 except Exception as e:
+                     db.session.rollback()
+                     flash(f'Error uploading picture: {str(e)}', 'error')
+        
+        return redirect(url_for('profile'))
 
     # Get attendance stats
     today = date.today()
@@ -1268,10 +1348,6 @@ def employee_edit(employee_id):
     timezones = pytz.all_timezones
     leave_groups = EmployeeGroup.query.filter_by(is_active=True).all()
     overtime_groups = get_overtime_groups(tenant_id)
-
-    # DEBUG: Log department status
-    print(f"[DEBUG] Employee Edit {employee_id}: Found {len(departments)} active departments")
-    print(f"[DEBUG] Employee Edit {employee_id}: Current Employee Dept: '{employee.department}'")
 
     if request.method == 'POST':
         try:
@@ -1454,21 +1530,32 @@ def employee_edit(employee_id):
                                            timezones=timezones,
                                            leave_groups=leave_groups,
                                            overtime_groups=overtime_groups)
-                # Save new image
-                original = secure_filename(file.filename)
-                ext = original.rsplit('.', 1)[1].lower()
-                unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
-                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-                file.save(save_path)
-                # Optionally remove old file
-                try:
-                    if employee.profile_image_path:
-                        old_abs = os.path.join(app.root_path, 'static', employee.profile_image_path)
-                        if os.path.isfile(old_abs):
-                            os.remove(old_abs)
-                except Exception:
-                    pass
-                employee.profile_image_path = f"uploads/employees/{unique_name}"
+                                           
+                # Determine tenant_id (if not set on object, use current context or user)
+                tenant_id = employee.company.tenant_id if employee.company else get_current_user_tenant_id()
+                
+                # Upload new file
+                file_record = FileService.upload_file(
+                    file_obj=file,
+                    module='HR',
+                    tenant_id=tenant_id,
+                    company_id=employee.company_id,
+                    employee_id=employee.id,
+                    file_category='profile',
+                    resize_to=(500, 500)
+                )
+                
+                if file_record:
+                    # Optional: Delete old file using Service if it was a FileStorage record
+                    if employee.profile_picture_id:
+                         FileService.delete_file(employee.profile_picture_id)
+                    
+                    # Update references
+                    employee.profile_picture_id = file_record.id
+                    employee.profile_image_path = file_record.file_path # Legacy match
+                    
+                else:
+                    flash('Failed to upload new profile image', 'warning')
 
             # Handle master data relationships
             designation_id = request.form.get('designation_id')
@@ -2530,14 +2617,32 @@ def payroll_payslip(payroll_id):
                 layout_config.insert(idx, 'employer_contributions')
             else:
                 layout_config.append('employer_contributions')
+        
+        # [NEW] Resolve Asset URLs
+        def get_asset_url(file_id, legacy_path):
+             if file_id:
+                  try:
+                       from services.file_service import FileService
+                       return FileService.get_file_url(file_id)
+                  except:
+                       pass
+             if legacy_path:
+                  return url_for('static', filename=legacy_path)
+             return None
+
+        logo_path = get_asset_url(template.logo_id, template.logo_path)
+        left_logo_path = get_asset_url(template.left_logo_id, template.left_logo_path)
+        right_logo_path = get_asset_url(template.right_logo_id, template.right_logo_path)
+        watermark_path = get_asset_url(template.watermark_id, template.watermark_path)
+        footer_image_path = get_asset_url(template.footer_image_id, template.footer_image_path)
 
         return render_template('payroll/payslip_preview.html',
                              layout_config=layout_config,
-                             logo_path=template.logo_path,
-                             left_logo_path=template.left_logo_path,
-                             right_logo_path=template.right_logo_path,
-                             watermark_path=template.watermark_path,
-                             footer_image_path=template.footer_image_path,
+                             logo_path=logo_path,
+                             left_logo_path=left_logo_path,
+                             right_logo_path=right_logo_path,
+                             watermark_path=watermark_path,
+                             footer_image_path=footer_image_path,
                              payroll=payroll_data,
                              employee=employee_data,
                              company=company_data,
@@ -2545,13 +2650,44 @@ def payroll_payslip(payroll_id):
                              deductions=deductions,
                              employer_contributions=employer_contributions)
 
+    # 6. Fetch Payslip Logo (Tenant Configuration)
+    logo_url = None
+    try:
+        from core.models import TenantConfiguration
+        from services.file_service import FileService
+        from services.s3_service import S3Service
+        
+        # Determine Tenant ID
+        tenant_id = None
+        if company and company.tenant_id:
+            tenant_id = company.tenant_id
+        
+        if tenant_id:
+            # Fetch Config
+            tenant_config = TenantConfiguration.query.filter_by(tenant_id=tenant_id).first()
+            if tenant_config:
+                # 1. Try FileStorage [NEW]
+                if tenant_config.payslip_logo_id:
+                    logo_url = FileService.get_file_url(tenant_config.payslip_logo_id)
+                
+                # 2. Fallback to Legacy Path
+                elif tenant_config.payslip_logo_path:
+                    if 'tenant_logos/' in tenant_config.payslip_logo_path or tenant_config.payslip_logo_path.startswith('tenants/'):
+                        s3 = S3Service()
+                        logo_url = s3.generate_presigned_url(tenant_config.payslip_logo_path)
+                    else:
+                        logo_url = url_for('static', filename=tenant_config.payslip_logo_path.replace('\\', '/'))
+    except Exception as e:
+        print(f"Error loading payslip logo: {e}")
+
     return render_template('payroll/payslip.html',
                          payroll=payroll_data,
                          employee=employee_data,
                          company=company_data,
                          earnings=earnings,
                          deductions=deductions,
-                         employer_contributions=employer_contributions)
+                         employer_contributions=employer_contributions,
+                         logo_url=logo_url)
 
 
 

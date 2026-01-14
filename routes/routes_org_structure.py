@@ -32,7 +32,7 @@ def build_hierarchy(employees, manager_id=None):
             'id': emp.id,
             'name': f"{emp.first_name} {emp.last_name}",
             'title': emp.designation.name if emp.designation else "No Designation",
-            'image': emp.profile_image_path if emp.profile_image_path else None,
+            'image': emp.photo_url,
             'children': build_hierarchy(employees, emp.id)
         }
         hierarchy.append(node)

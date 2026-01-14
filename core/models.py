@@ -158,6 +158,39 @@ class User(db.Model, UserMixin):
         return []
 
 
+class FileStorage(db.Model):
+    """Centralized storage for all file uploads"""
+    __tablename__ = 'hrm_file_storage'
+    __table_args__ = (
+        Index('idx_file_storage_tenant_id', 'tenant_id'),
+        Index('idx_file_storage_module', 'module'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=True)
+    module = db.Column(db.String(50), nullable=True)  # e.g., 'HR', 'Payroll', 'Config'
+
+    original_filename = db.Column(db.String(255), nullable=False)
+    storage_filename = db.Column(db.String(255), nullable=False, unique=True)
+    file_path = db.Column(db.String(512), nullable=False)  # S3 Key or local path
+
+    file_size = db.Column(db.Integer)  # In bytes
+    mime_type = db.Column(db.String(100))
+    extension = db.Column(db.String(20))
+
+    storage_provider = db.Column(db.String(20), default='S3')  # 'S3', 'LOCAL'
+    bucket_name = db.Column(db.String(100))
+
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    uploader = db.relationship('User', foreign_keys=[uploaded_by])
+    tenant = db.relationship('Tenant')
+
+    def __repr__(self):
+        return f'<FileStorage {self.original_filename} ({self.id})>'
+
+
 class Tenant(db.Model):
     """Top-level tenant entity for multi-tenant HRMS"""
     __tablename__ = 'hrm_tenant'
@@ -389,6 +422,11 @@ class TenantDocument(db.Model):
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
     file_name = db.Column(db.String(255), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
+    
+    # [NEW] FileStorage Integration
+    file_storage_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    file = db.relationship('FileStorage', foreign_keys=[file_storage_id])
+
     file_type = db.Column(db.String(50), nullable=True)
     file_size = db.Column(db.Integer, nullable=True)
 
@@ -430,6 +468,11 @@ class Employee(db.Model):
     postal_code = db.Column(db.String(10))
     location = db.Column(db.String(100))
     profile_image_path = db.Column(db.String(255))
+    
+    # [NEW] FileStorage Integration
+    profile_picture_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    profile_picture = db.relationship('FileStorage', foreign_keys=[profile_picture_id])
+
     timezone = db.Column(db.String(50), default='UTC')
 
     # Position field removed - use designation_id instead
@@ -503,6 +546,53 @@ class Employee(db.Model):
     appraisals = db.relationship('Appraisal', back_populates='employee')
     documents = db.relationship('EmployeeDocument', back_populates='employee', cascade='all, delete-orphan')
 
+    @property
+    def photo_url(self):
+        """
+        Returns the URL for the employee's profile picture.
+        Prioritizes FileStorage (S3) -> Legacy Path -> Default Placeholder
+        """
+        from flask import url_for
+        # Import inside method to avoid circular import
+        # referencing services.file_service might still be risky if it imports models.
+        # But FileService imports models. 
+        # Check if we can just query the FileStorage object via relationship?
+        # self.profile_picture is the relationship.
+        
+        if self.profile_picture_id:
+             # Ideally use FileService to generate signed URL
+             # But we can't import FileService easily due to circular dependency.
+             # FileService -> S3Service. 
+             # Let's try importing local to the function.
+             try:
+                 from services.file_service import FileService
+                 return FileService.get_file_url(self.profile_picture_id)
+             except ImportError:
+                 return None # Should not happen
+
+        if self.profile_image_path:
+            # Legacy Logic
+            if self.profile_image_path.startswith('tenants/') or self.profile_image_path.startswith('uploads/'):
+                 # Ensure we don't double-prefix for static if it's already an S3 key acting as legacy
+                 # Wait, if it IS an S3 key (tenants/...), we need S3Service or FileService to sign it.
+                 # If it is 'uploads/employees/...' (local legacy), we use url_for static.
+                 
+                 if self.profile_image_path.startswith('tenants/'):
+                      # This is an S3 path. Needs signing.
+                      try:
+                          from services.s3_service import S3Service
+                          s3 = S3Service()
+                          return s3.generate_presigned_url(self.profile_image_path)
+                      except:
+                          return None
+                          
+                 return url_for('static', filename=self.profile_image_path.replace('\\', '/'))
+            else:
+                 # Legacy fallback
+                 return url_for('static', filename=f"uploads/photos/{self.profile_image_path}")
+        
+        return None
+
     @validates('manager_id')
     def validate_manager(self, key, manager_id):
         if manager_id is None:
@@ -531,6 +621,11 @@ class EmployeeDocument(db.Model):
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
     document_type = db.Column(db.String(50), nullable=False)
     file_path = db.Column(db.String(255), nullable=False)
+    
+    # [NEW] FileStorage Integration
+    file_storage_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    file = db.relationship('FileStorage', foreign_keys=[file_storage_id])
+
     issue_date = db.Column(db.Date, nullable=False)
     month = db.Column(db.Integer, nullable=True)
     year = db.Column(db.Integer, nullable=True)
@@ -668,6 +763,10 @@ class AttendanceRegularization(db.Model):
     
     reason = db.Column(db.Text)
     proof_path = db.Column(db.String(255))
+    
+    # [NEW] FileStorage Integration
+    proof_file_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    proof_file = db.relationship('FileStorage', foreign_keys=[proof_file_id])
     
     status = db.Column(db.String(20), default='Pending')  # Pending, Approved, Rejected
     
@@ -1136,6 +1235,10 @@ class TenantConfiguration(db.Model):
     payslip_logo_filename = db.Column(db.String(255), nullable=True)
     payslip_logo_uploaded_by = db.Column(db.String(100), nullable=True)
     payslip_logo_uploaded_at = db.Column(db.DateTime, nullable=True)
+
+    # [NEW] FileStorage Integration
+    payslip_logo_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    payslip_logo = db.relationship('FileStorage', foreign_keys=[payslip_logo_id])
 
     # Employee ID Configuration
     employee_id_prefix = db.Column(db.String(50), default='EMP')
@@ -1668,6 +1771,19 @@ class PayslipTemplate(db.Model):
     right_logo_path = db.Column(db.String(255))
     watermark_path = db.Column(db.String(255))
     footer_image_path = db.Column(db.String(255))
+    
+    # [NEW] FileStorage Integration
+    logo_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    left_logo_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    right_logo_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    watermark_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    footer_image_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    
+    logo_file = db.relationship('FileStorage', foreign_keys=[logo_id])
+    left_logo_file = db.relationship('FileStorage', foreign_keys=[left_logo_id])
+    right_logo_file = db.relationship('FileStorage', foreign_keys=[right_logo_id])
+    watermark_file = db.relationship('FileStorage', foreign_keys=[watermark_id])
+    footer_image_file = db.relationship('FileStorage', foreign_keys=[footer_image_id])
     
     # Layout & Configuration (JSON)
     # layout_config example: ['header', 'employee_summary', 'earnings_table', 'deductions_table', 'net_pay_section', 'footer']
