@@ -299,200 +299,331 @@
                     {% endif %}
                 </div>
             </div>
+        </div>
+        {% endif %}
+
+        <!-- Employee Documents (Categorized) -->
+        <div class="dash-card mb-4">
+            <div class="dash-card-header">
+                <span>Documents</span>
+                <i class="fas fa-folder-open"></i>
+            </div>
+
+            {% set official_docs = [] %}
+            {% set personal_docs = [] %}
+            {% for doc in employee.documents %}
+            {% if doc.category == 'Personal' %}
+            {% set _ = personal_docs.append(doc) %}
+            {% else %}
+            {% set _ = official_docs.append(doc) %}
+            {% endif %}
+            {% endfor %}
+
+            <!-- [NEW] Append Certifications to Personal Docs -->
+            {% if employee.hazmat_file_id %}
+            {% set _ = personal_docs.append({'document_type': 'HAZMAT Certificate', 'issue_date':
+            employee.hazmat_expiry, 'description': 'Certification Renewal', 'file_url': employee.hazmat_file_url,
+            'is_cert': true}) %}
+            {% endif %}
+            {% if employee.airport_pass_file_id %}
+            {% set _ = personal_docs.append({'document_type': 'Airport Pass', 'issue_date':
+            employee.airport_pass_expiry, 'description': 'Pass Renewal', 'file_url': employee.airport_pass_file_url,
+            'is_cert': true}) %}
+            {% endif %}
+            {% if employee.psa_pass_file_id %}
+            {% set _ = personal_docs.append({'document_type': 'PSA Pass', 'issue_date': employee.psa_pass_expiry,
+            'description': 'Pass Renewal', 'file_url': employee.psa_pass_file_url, 'is_cert': true}) %}
             {% endif %}
 
-            <!-- Financial Information (Protected View) -->
-            {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager',
-            'Tenant Admin'] %}
-            <div class="dash-card mb-4">
-                <div class="dash-card-header">
-                    <span>Financial Information</span>
-                    <i class="fas fa-coins"></i>
-                </div>
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <label class="info-label">Basic Salary</label>
-                        <div class="info-value">{{ employee.basic_salary | currency }}</div>
+            <div class="card-body">
+                <ul class="nav nav-tabs mb-3" id="docTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="official-tab" data-bs-toggle="tab"
+                            data-bs-target="#official" type="button" role="tab" aria-controls="official"
+                            aria-selected="true">
+                            Official Docs <span class="badge bg-secondary ms-1">{{ official_docs|length }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal"
+                            type="button" role="tab" aria-controls="personal" aria-selected="false">
+                            Personal Docs <span class="badge bg-secondary ms-1">{{ personal_docs|length }}</span>
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="docTabsContent">
+                    <!-- Official Documents Tab -->
+                    <div class="tab-pane fade show active" id="official" role="tabpanel" aria-labelledby="official-tab">
+                        {% if official_docs %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in official_docs|sort(attribute='issue_date', reverse=True) %}
+                                    <tr>
+                                        <td>{{ doc.document_type }}</td>
+                                        <td>{{ doc.issue_date.strftime('%d %b %Y') }}</td>
+                                        <td>{{ doc.description or '-' }}</td>
+                                        <td>
+                                            <a href="{{ url_for('document_download', document_id=doc.id) }}"
+                                                class="btn btn-sm btn-outline-primary py-0" target="_blank">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted small py-2">No official documents found.</p>
+                        {% endif %}
                     </div>
-                    <div class="col-md-4">
-                        <label class="info-label">Allowances</label>
-                        <div class="info-value">{{ employee.allowances | currency }}</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="info-label">Hourly Rate</label>
-                        <div class="info-value">{{ employee.hourly_rate | currency }} / hr</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="info-label">CPF Account</label>
-                        <div class="info-value font-monospace">{{ employee.cpf_account or '-' }}</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="info-label">Employee CPF</label>
-                        <div class="info-value">{{ employee.employee_cpf_rate }}%</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="info-label">Employer CPF</label>
-                        <div class="info-value">{{ employee.employer_cpf_rate }}%</div>
+
+                    <!-- Personal Documents Tab -->
+                    <div class="tab-pane fade" id="personal" role="tabpanel" aria-labelledby="personal-tab">
+                        {% if personal_docs %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for doc in personal_docs|sort(attribute='issue_date', reverse=True) %}
+                                    <tr>
+                                        <td>{{ doc.document_type }}</td>
+                                        <td>{{ doc.issue_date.strftime('%d %b %Y') }}</td>
+                                        <td>{{ doc.description or '-' }}</td>
+                                        <td>
+                                            {% if doc.is_cert %}
+                                            <a href="{{ doc.file_url }}" class="btn btn-sm btn-outline-primary py-0"
+                                                target="_blank">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            {% else %}
+                                            <a href="{{ url_for('document_download', document_id=doc.id) }}"
+                                                class="btn btn-sm btn-outline-primary py-0" target="_blank">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted small py-2">No personal documents found.</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-            {% endif %}
-
-            <!-- Banking Details -->
-            {% if employee.bank_name or employee.bank_account %}
-            <div class="dash-card mb-4">
-                <div class="dash-card-header">
-                    <span>Banking Details</span>
-                    <i class="fas fa-university"></i>
-                </div>
-                <div class="row g-2">
-                    {% if employee.account_holder_name %}
-                    <div class="col-md-4">
-                        <label class="info-label">Account Holder</label>
-                        <div class="info-value">{{ employee.account_holder_name }}</div>
-                    </div>
-                    {% endif %}
-                    {% if employee.bank_name %}
-                    <div class="col-md-4">
-                        <label class="info-label">Bank Name</label>
-                        <div class="info-value">{{ employee.bank_name }}</div>
-                    </div>
-                    {% endif %}
-                    {% if employee.bank_account %}
-                    <div class="col-md-4">
-                        <label class="info-label">Account Number</label>
-                        <div class="info-value font-monospace">{{ employee.bank_account }}</div>
-                    </div>
-                    {% endif %}
-                    {% if employee.swift_code %}
-                    <div class="col-md-6">
-                        <label class="info-label">SWIFT Code</label>
-                        <div class="info-value font-monospace">{{ employee.swift_code }}</div>
-                    </div>
-                    {% endif %}
-                    {% if employee.ifsc_code %}
-                    <div class="col-md-6">
-                        <label class="info-label">IFSC Code</label>
-                        <div class="info-value font-monospace">{{ employee.ifsc_code }}</div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
         </div>
 
-        <!-- Sidebar Column -->
-        <div class="col-lg-4">
-            <!-- Quick Actions -->
-            <div class="dash-card mb-4">
-                <div class="dash-card-header">
-                    <span>Quick Actions</span>
-                    <i class="fas fa-bolt"></i>
+        <!-- Financial Information (Protected View) -->
+        {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR Manager',
+        'Tenant Admin'] %}
+        <div class="dash-card mb-4">
+            <div class="dash-card-header">
+                <span>Financial Information</span>
+                <i class="fas fa-coins"></i>
+            </div>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="info-label">Basic Salary</label>
+                    <div class="info-value">{{ employee.basic_salary | currency }}</div>
                 </div>
-                <div class="d-flex flex-column gap-2">
-                    {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'HR Manager',
-                    'Super Admin'] %}
-                    <a href="{{ url_for('payroll_list', employee_id=employee.id) }}"
-                        class="btn-action w-100 justify-content-start">
-                        <i class="fas fa-file-invoice-dollar fa-fw"></i> View Payroll History
-                    </a>
-                    <a href="{{ url_for('leave_list') }}?employee_id={{ employee.id }}"
-                        class="btn-action w-100 justify-content-start">
-                        <i class="fas fa-calendar-minus fa-fw"></i> View Leave History
-                    </a>
-                    <a href="{{ url_for('attendance_list_view', employee=employee.id) }}"
-                        class="btn-action w-100 justify-content-start">
-                        <i class="fas fa-clock fa-fw"></i> View Attendance
-                    </a>
-                    <a href="{{ url_for('admin_documents_list') }}?user_id={{ employee.id }}"
-                        class="btn-action w-100 justify-content-start">
-                        <i class="fas fa-folder-open fa-fw"></i> View Documents
-                    </a>
-                    {% endif %}
-
-                    {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
-                    <hr class="my-2">
-                    <a href="{{ url_for('appraisal_create') }}?employee_id={{ employee.id }}"
-                        class="btn-action w-100 justify-content-start">
-                        <i class="fas fa-star fa-fw"></i> Create Appraisal
-                    </a>
-                    {% endif %}
+                <div class="col-md-4">
+                    <label class="info-label">Allowances</label>
+                    <div class="info-value">{{ employee.allowances | currency }}</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="info-label">Hourly Rate</label>
+                    <div class="info-value">{{ employee.hourly_rate | currency }} / hr</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="info-label">CPF Account</label>
+                    <div class="info-value font-monospace">{{ employee.cpf_account or '-' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="info-label">Employee CPF</label>
+                    <div class="info-value">{{ employee.employee_cpf_rate }}%</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="info-label">Employer CPF</label>
+                    <div class="info-value">{{ employee.employer_cpf_rate }}%</div>
                 </div>
             </div>
-
-            <!-- Recent Payslips -->
-            {% if recent_payslips %}
-            <div class="dash-card mb-4">
-                <div class="dash-card-header">
-                    <span>Recent Payslips</span>
-                    <i class="fas fa-receipt"></i>
-                </div>
-                <div class="d-flex flex-column gap-0">
-                    {% for payslip in recent_payslips %}
-                    <div class="stat-row">
-                        <div class="d-flex flex-column">
-                            <span class="stat-label text-dark">{{ payslip.pay_period_end | date }}</span>
-                            <span class="small text-muted">Net Pay</span>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="stat-value">{{ payslip.net_pay | currency }}</span>
-                            <a href="{{ url_for('payroll_payslip', payroll_id=payslip.id) }}" class="text-primary">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Recent Attendance -->
-            {% if recent_attendance %}
-            <div class="dash-card mb-4">
-                <div class="dash-card-header">
-                    <span>Recent Attendance</span>
-                    <i class="fas fa-history"></i>
-                </div>
-                <div class="d-flex flex-column gap-2">
-                    {% for attendance in recent_attendance %}
-                    <div class="p-2 border rounded bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fw-bold small">{{ attendance.date | date }}</span>
-                            {% if attendance.status == 'Present' %}
-                            <span class="badge bg-success small">Present</span>
-                            {% elif attendance.status == 'Absent' %}
-                            <span class="badge bg-danger small">Absent</span>
-                            {% elif attendance.status == 'Late' %}
-                            <span class="badge bg-warning text-dark small">Late</span>
-                            {% else %}
-                            <span class="badge bg-secondary small">{{ attendance.status }}</span>
-                            {% endif %}
-                        </div>
-                        <div class="d-flex justify-content-between small text-muted">
-                            <span>
-                                {% if attendance.clock_in %}
-                                {{ attendance.clock_in.strftime('%H:%M') }}
-                                {% if attendance.clock_out %}
-                                - {{ attendance.clock_out.strftime('%H:%M') }}
-                                {% else %}
-                                - ...
-                                {% endif %}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </span>
-                            {% if attendance.overtime_hours > 0 %}
-                            <span class="text-info fw-bold">{{ attendance.overtime_hours }}h OT</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
         </div>
+        {% endif %}
+
+        <!-- Banking Details -->
+        {% if employee.bank_name or employee.bank_account %}
+        <div class="dash-card mb-4">
+            <div class="dash-card-header">
+                <span>Banking Details</span>
+                <i class="fas fa-university"></i>
+            </div>
+            <div class="row g-2">
+                {% if employee.account_holder_name %}
+                <div class="col-md-4">
+                    <label class="info-label">Account Holder</label>
+                    <div class="info-value">{{ employee.account_holder_name }}</div>
+                </div>
+                {% endif %}
+                {% if employee.bank_name %}
+                <div class="col-md-4">
+                    <label class="info-label">Bank Name</label>
+                    <div class="info-value">{{ employee.bank_name }}</div>
+                </div>
+                {% endif %}
+                {% if employee.bank_account %}
+                <div class="col-md-4">
+                    <label class="info-label">Account Number</label>
+                    <div class="info-value font-monospace">{{ employee.bank_account }}</div>
+                </div>
+                {% endif %}
+                {% if employee.swift_code %}
+                <div class="col-md-6">
+                    <label class="info-label">SWIFT Code</label>
+                    <div class="info-value font-monospace">{{ employee.swift_code }}</div>
+                </div>
+                {% endif %}
+                {% if employee.ifsc_code %}
+                <div class="col-md-6">
+                    <label class="info-label">IFSC Code</label>
+                    <div class="info-value font-monospace">{{ employee.ifsc_code }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
+
+    <!-- Sidebar Column -->
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="dash-card mb-4">
+            <div class="dash-card-header">
+                <span>Quick Actions</span>
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="d-flex flex-column gap-2">
+                {% if (current_user.role.name if current_user.role else None) in ['Admin', 'Manager', 'HR Manager',
+                'Super Admin'] %}
+                <a href="{{ url_for('payroll_list', employee_id=employee.id) }}"
+                    class="btn-action w-100 justify-content-start">
+                    <i class="fas fa-file-invoice-dollar fa-fw"></i> View Payroll History
+                </a>
+                <a href="{{ url_for('leave_list') }}?employee_id={{ employee.id }}"
+                    class="btn-action w-100 justify-content-start">
+                    <i class="fas fa-calendar-minus fa-fw"></i> View Leave History
+                </a>
+                <a href="{{ url_for('attendance_list_view', employee=employee.id) }}"
+                    class="btn-action w-100 justify-content-start">
+                    <i class="fas fa-clock fa-fw"></i> View Attendance
+                </a>
+                <a href="{{ url_for('admin_documents_list') }}?user_id={{ employee.id }}"
+                    class="btn-action w-100 justify-content-start">
+                    <i class="fas fa-folder-open fa-fw"></i> View Documents
+                </a>
+                {% endif %}
+
+                {% if (current_user.role.name if current_user.role else None) == 'Admin' %}
+                <hr class="my-2">
+                <a href="{{ url_for('appraisal_create') }}?employee_id={{ employee.id }}"
+                    class="btn-action w-100 justify-content-start">
+                    <i class="fas fa-star fa-fw"></i> Create Appraisal
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Payslips -->
+        {% if recent_payslips %}
+        <div class="dash-card mb-4">
+            <div class="dash-card-header">
+                <span>Recent Payslips</span>
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div class="d-flex flex-column gap-0">
+                {% for payslip in recent_payslips %}
+                <div class="stat-row">
+                    <div class="d-flex flex-column">
+                        <span class="stat-label text-dark">{{ payslip.pay_period_end | date }}</span>
+                        <span class="small text-muted">Net Pay</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="stat-value">{{ payslip.net_pay | currency }}</span>
+                        <a href="{{ url_for('payroll_payslip', payroll_id=payslip.id) }}" class="text-primary">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Attendance -->
+        {% if recent_attendance %}
+        <div class="dash-card mb-4">
+            <div class="dash-card-header">
+                <span>Recent Attendance</span>
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="d-flex flex-column gap-2">
+                {% for attendance in recent_attendance %}
+                <div class="p-2 border rounded bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold small">{{ attendance.date | date }}</span>
+                        {% if attendance.status == 'Present' %}
+                        <span class="badge bg-success small">Present</span>
+                        {% elif attendance.status == 'Absent' %}
+                        <span class="badge bg-danger small">Absent</span>
+                        {% elif attendance.status == 'Late' %}
+                        <span class="badge bg-warning text-dark small">Late</span>
+                        {% else %}
+                        <span class="badge bg-secondary small">{{ attendance.status }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted">
+                        <span>
+                            {% if attendance.clock_in %}
+                            {{ attendance.clock_in.strftime('%H:%M') }}
+                            {% if attendance.clock_out %}
+                            - {{ attendance.clock_out.strftime('%H:%M') }}
+                            {% else %}
+                            - ...
+                            {% endif %}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </span>
+                        {% if attendance.overtime_hours > 0 %}
+                        <span class="text-info fw-bold">{{ attendance.overtime_hours }}h OT</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
 </div>
 
 <script>

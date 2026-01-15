@@ -103,7 +103,7 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
 app.config["SESSION_REFRESH_EACH_REQUEST"] = False  # Don't extend session on each request
 
 # File upload configuration
-app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 1 * 1024 * 1024))  # 1MB default
+app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))  # 16MB default
 app.config["ALLOWED_IMAGE_EXTENSIONS"] = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config["UPLOAD_FOLDER"] = os.environ.get("UPLOAD_FOLDER") or os.path.join(app.root_path, "static", "uploads", "employees")
 

@@ -490,6 +490,16 @@ class Employee(db.Model):
     psa_pass_number = db.Column(db.String(50), nullable=True)
     psa_pass_expiry = db.Column(db.Date, nullable=True)
 
+    # Document Certifications
+    hazmat_file_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    hazmat_file = db.relationship('FileStorage', foreign_keys=[hazmat_file_id])
+
+    airport_pass_file_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    airport_pass_file = db.relationship('FileStorage', foreign_keys=[airport_pass_file_id])
+
+    psa_pass_file_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    psa_pass_file = db.relationship('FileStorage', foreign_keys=[psa_pass_file_id])
+
     basic_salary = db.Column(db.Numeric(10, 2), nullable=False)
     allowances = db.Column(db.Numeric(10, 2), default=0)
     hourly_rate = db.Column(db.Numeric(8, 2))
@@ -593,6 +603,36 @@ class Employee(db.Model):
         
         return None
 
+    @property
+    def hazmat_file_url(self):
+        if self.hazmat_file_id:
+            try:
+                from services.file_service import FileService
+                return FileService.get_file_url(self.hazmat_file_id)
+            except:
+                return None
+        return None
+
+    @property
+    def airport_pass_file_url(self):
+        if self.airport_pass_file_id:
+            try:
+                from services.file_service import FileService
+                return FileService.get_file_url(self.airport_pass_file_id)
+            except:
+                return None
+        return None
+
+    @property
+    def psa_pass_file_url(self):
+        if self.psa_pass_file_id:
+            try:
+                from services.file_service import FileService
+                return FileService.get_file_url(self.psa_pass_file_id)
+            except:
+                return None
+        return None
+
     @validates('manager_id')
     def validate_manager(self, key, manager_id):
         if manager_id is None:
@@ -620,6 +660,7 @@ class EmployeeDocument(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     employee_id = db.Column(db.Integer, db.ForeignKey('hrm_employee.id', ondelete='CASCADE'), nullable=False)
     document_type = db.Column(db.String(50), nullable=False)
+    category = db.Column(db.String(20), default='Official', nullable=True) # 'Official' or 'Personal'
     file_path = db.Column(db.String(255), nullable=False)
     
     # [NEW] FileStorage Integration

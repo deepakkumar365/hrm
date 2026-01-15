@@ -12,7 +12,8 @@
                     <!-- Breadcrumb navigation -->
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ url_for('admin_documents_list') }}">Documents</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('admin_documents_list') }}">Documents</a>
+                            </li>
                             <li class="breadcrumb-item active" aria-current="page">Upload Document</li>
                         </ol>
                     </nav>
@@ -29,14 +30,15 @@
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+        role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 
     <!-- Upload Form -->
@@ -50,7 +52,8 @@
                     <form method="POST" enctype="multipart/form-data">
                         <!-- Employee Selection -->
                         <div class="mb-3">
-                            <label for="employee_id" class="form-label">Employee <span class="text-danger">*</span></label>
+                            <label for="employee_id" class="form-label">Employee <span
+                                    class="text-danger">*</span></label>
                             <select class="form-select" id="employee_id" name="employee_id" required>
                                 <option value="">Select Employee</option>
                                 {% for employee in employees %}
@@ -61,9 +64,20 @@
                             </select>
                         </div>
 
+                        <!-- Category -->
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="Official" selected>Official</option>
+                                <option value="Personal">Personal</option>
+                            </select>
+                        </div>
+
+
                         <!-- Document Type -->
                         <div class="mb-3">
-                            <label for="document_type" class="form-label">Document Type <span class="text-danger">*</span></label>
+                            <label for="document_type" class="form-label">Document Type <span
+                                    class="text-danger">*</span></label>
                             <select class="form-select" id="document_type" name="document_type" required>
                                 <option value="">Select Document Type</option>
                                 <option value="Offer Letter">Offer Letter</option>
@@ -98,8 +112,8 @@
                         <!-- Year (for Salary Slip) -->
                         <div class="mb-3" id="year_field">
                             <label for="year" class="form-label">Year</label>
-                            <input type="number" class="form-control" id="year" name="year" 
-                                   min="2000" max="2100" placeholder="e.g., 2024">
+                            <input type="number" class="form-control" id="year" name="year" min="2000" max="2100"
+                                placeholder="e.g., 2024">
                         </div>
 
                         <!-- Issue Date -->
@@ -111,15 +125,16 @@
                         <!-- Description -->
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" 
-                                      rows="3" placeholder="Optional description or notes"></textarea>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                                placeholder="Optional description or notes"></textarea>
                         </div>
 
                         <!-- File Upload -->
                         <div class="mb-3">
-                            <label for="document_file" class="form-label">Document File <span class="text-danger">*</span></label>
-                            <input type="file" class="form-control" id="document_file" name="document_file" 
-                                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+                            <label for="document_file" class="form-label">Document File <span
+                                    class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="document_file" name="document_file"
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
                             <div class="form-text">
                                 Allowed formats: PDF, DOC, DOCX, JPG, PNG (Max size: 10MB)
                             </div>
@@ -143,12 +158,12 @@
 
 <script>
     // Show/hide month and year fields based on document type
-    document.getElementById('document_type').addEventListener('change', function() {
+    document.getElementById('document_type').addEventListener('change', function () {
         const monthField = document.getElementById('month_field');
         const yearField = document.getElementById('year_field');
         const monthInput = document.getElementById('month');
         const yearInput = document.getElementById('year');
-        
+
         if (this.value === 'Salary Slip') {
             monthField.style.display = 'block';
             yearField.style.display = 'block';

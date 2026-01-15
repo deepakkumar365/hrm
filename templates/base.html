@@ -67,9 +67,9 @@
                                 data-bs-toggle="dropdown" aria-expanded="false">
                                 <span class="profile-image-container avatar-circle">
                                     {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile
-                                    and current_user.employee_profile.profile_image_path %}
-                                    <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}"
-                                        alt="Profile" class="avatar-image">
+                                    and current_user.employee_profile.photo_url %}
+                                    <img src="{{ current_user.employee_profile.photo_url }}" alt="Profile"
+                                        class="avatar-image">
                                     {% else %}
                                     <div class="avatar-placeholder">
                                         <i class="fas fa-user"></i>
@@ -84,9 +84,9 @@
                                     <div class="profile-card-avatar mb-2">
                                         {% if hasattr(current_user, 'employee_profile') and
                                         current_user.employee_profile and
-                                        current_user.employee_profile.profile_image_path %}
-                                        <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}"
-                                            alt="Profile" class="avatar-lg rounded-circle">
+                                        current_user.employee_profile.photo_url %}
+                                        <img src="{{ current_user.employee_profile.photo_url }}" alt="Profile"
+                                            class="avatar-lg rounded-circle">
                                         {% else %}
                                         <div
                                             class="avatar-placeholder avatar-lg rounded-circle mx-auto d-flex align-items-center justify-content-center">

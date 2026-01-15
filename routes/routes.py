@@ -925,6 +925,32 @@ def employee_add():
             if psa_pass_expiry:
                 employee.psa_pass_expiry = parse_date(psa_pass_expiry)
 
+            # [NEW] Handle Certification Files (Add Mode) - require employee.id so we flush first if needed or allow FileService to use employee_id string
+            # We already flush later for profile image, let's flush here if we have files.
+            
+            # Helper to upload cert file
+            def upload_cert_file(file_key, file_cat, emp_obj, field_name):
+                f_obj = request.files.get(file_key)
+                if f_obj and f_obj.filename.strip():
+                    if not emp_obj.id:
+                        db.session.add(emp_obj)
+                        db.session.flush()
+                    
+                    record = FileService.upload_file(
+                        file_obj=f_obj,
+                        module='HR',
+                        tenant_id=tenant_id,
+                        company_id=emp_obj.company_id,
+                        employee_id=emp_obj.id,
+                        file_category=file_cat
+                    )
+                    if record:
+                        setattr(emp_obj, field_name, record.id)
+
+            upload_cert_file('hazmat_file', 'hazmat', employee, 'hazmat_file_id')
+            upload_cert_file('airport_pass_file', 'airport_pass', employee, 'airport_pass_file_id')
+            upload_cert_file('psa_pass_file', 'psa_pass', employee, 'psa_pass_file_id')
+
             employee.basic_salary = float(request.form.get('basic_salary') or 0)
             employee.allowances = float(request.form.get('allowances') or 0)
             
@@ -1471,6 +1497,28 @@ def employee_edit(employee_id):
                 employee.psa_pass_expiry = parse_date(psa_pass_expiry)
             else:
                 employee.psa_pass_expiry = None
+
+            # [NEW] Handle Certification Files (Edit Mode)
+            def upload_cert_file_edit(file_key, file_cat, emp_obj, field_name):
+                f_obj = request.files.get(file_key)
+                if f_obj and f_obj.filename.strip():
+                    # Determine tenant_id from company or context
+                    t_id = emp_obj.company.tenant_id if emp_obj.company else get_current_user_tenant_id()
+                    
+                    record = FileService.upload_file(
+                        file_obj=f_obj,
+                        module='HR',
+                        tenant_id=t_id,
+                        company_id=emp_obj.company_id,
+                        employee_id=emp_obj.id,
+                        file_category=file_cat
+                    )
+                    if record:
+                        setattr(emp_obj, field_name, record.id)
+
+            upload_cert_file_edit('hazmat_file', 'hazmat', employee, 'hazmat_file_id')
+            upload_cert_file_edit('airport_pass_file', 'airport_pass', employee, 'airport_pass_file_id')
+            upload_cert_file_edit('psa_pass_file', 'psa_pass', employee, 'psa_pass_file_id')
 
             basic_salary = request.form.get('basic_salary')
             employee.basic_salary = float(basic_salary) if basic_salary and basic_salary.strip() else 0.0
