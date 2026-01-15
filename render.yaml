@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: nexar-hrm
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn app:app -c gunicorn.conf.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ENVIRONMENT
+        value: production
+      - key: PROD_DATABASE_URL
+        sync: false
+      - key: PROD_SESSION_SECRET
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 2
