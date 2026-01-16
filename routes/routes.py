@@ -4091,29 +4091,7 @@ def update_user_role(user_id):
     return redirect(url_for('user_management'))
 
 
-@app.route('/export/employees')
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def export_employees():
-    """Export employees to CSV"""
-    employees = Employee.query.filter_by(is_active=True).all()
 
-    csv_data = []
-    for emp in employees:
-        csv_data.append([
-            emp.employee_id, emp.first_name, emp.last_name, emp.email,
-            emp.nric, emp.designation.name if emp.designation else '', emp.department,
-            format_date(emp.hire_date), emp.employment_type,
-            emp.work_permit_type,
-            format_currency(emp.basic_salary)
-        ])
-
-    headers = [
-        'Employee ID', 'First Name', 'Last Name', 'Email', 'NRIC', 'Designation',
-        'Department', 'Hire Date', 'Employment Type', 'Work Permit Type',
-        'Basic Salary'
-    ]
-
-    return export_to_csv(csv_data, 'employees_export.csv', headers)
 
 
 # Mobile API routes for PWA functionality

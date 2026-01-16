@@ -68,6 +68,10 @@ class S3Service:
         :return: Presigned URL as string. If error, returns None.
         """
         try:
+            if not self.bucket_name:
+                logging.warning("AWS_S3_BUCKET_NAME is not set")
+                return None
+                
             response = self.s3_client.generate_presigned_url(
                 'get_object',
                 Params={
