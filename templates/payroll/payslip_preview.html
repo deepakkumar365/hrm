@@ -34,7 +34,7 @@
             opacity: 0.1;
             background-position: center;
             background-repeat: no-repeat;
-            background-size: contain;
+            background-size: 300px;
             z-index: 0;
         }
 
@@ -130,14 +130,32 @@
             font-weight: 700;
         }
 
+        .header-image {
+            text-align: center;
+            margin-bottom: 20px;
+            margin-left: -10mm;
+            margin-right: -10mm;
+            width: calc(100% + 20mm);
+        }
+
+        .header-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
         .footer-image {
             text-align: center;
             margin-top: 20px;
+            margin-left: -10mm;
+            margin-right: -10mm;
+            width: calc(100% + 20mm);
         }
 
         .footer-image img {
-            max-width: 100%;
+            width: 100%;
             height: auto;
+            display: block;
         }
 
         .signatures {
@@ -152,6 +170,22 @@
             width: 200px;
             text-align: center;
             font-size: 12px;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+                margin: 0;
+            }
+
+            .preview-container {
+                border: none;
+                box-shadow: none;
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -194,6 +228,13 @@
                     </tr>
                 </table>
             </div>
+
+            {% elif section == 'header_image' %}
+            {% if header_image_path %}
+            <div class="header-image section-box">
+                <img src="{{ header_image_path }}">
+            </div>
+            {% endif %}
 
             {% elif section == 'employee_summary' %}
             <div class="details-grid section-box">

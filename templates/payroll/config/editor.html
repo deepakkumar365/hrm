@@ -146,6 +146,9 @@
                         <div class="draggable-item" data-type="header">
                             <i class="fas fa-heading me-2"></i> Header (Logo & Company)
                         </div>
+                        <div class="draggable-item" data-type="header_image">
+                            <i class="fas fa-image me-2"></i> Full Width Header Image
+                        </div>
                         <div class="draggable-item" data-type="employee_summary">
                             <i class="fas fa-user me-2"></i> Employee Summary
                         </div>
@@ -173,6 +176,18 @@
                     <h6 class="m-0 font-weight-bold text-primary">Assets & Config</h6>
                 </div>
                 <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Header Image (Full Width)</label>
+                        <input type="file" class="form-control form-control-sm" id="headerImgUpload" accept="image/*">
+                        {% if template and template.header_image_path %}
+                        <small class="text-success mt-1 d-block"><i class="fas fa-check"></i> Uploaded</small>
+                        {% endif %}
+                        <input type="hidden" id="headerImgPath"
+                            value="{{ template.header_image_path if template else '' }}">
+                        <input type="hidden" id="headerImgId"
+                            value="{{ template.header_image_id if template else '' }}">
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Left Logo</label>
                         <input type="file" class="form-control form-control-sm" id="leftLogoUpload" accept="image/*">
@@ -330,6 +345,7 @@
     handleUpload('logoUpload', 'logoPath', 'logoId', null);
     handleUpload('leftLogoUpload', 'leftLogoPath', 'leftLogoId', null);
     handleUpload('rightLogoUpload', 'rightLogoPath', 'rightLogoId', null);
+    handleUpload('headerImgUpload', 'headerImgPath', 'headerImgId', null);
     handleUpload('footerImgUpload', 'footerImgPath', 'footerImgId', null);
     handleUpload('watermarkUpload', 'watermarkPath', 'watermarkId', (path) => {
         // If path is full URL (from result.url), use it. otherwise assumes static.
@@ -367,6 +383,10 @@
         let content = '';
         if (type === 'header') {
             content = '<div class="text-center border-bottom pb-3 mb-3"><h3>Company Header</h3><p>Address Line 1</p></div>';
+        } else if (type === 'header_image') {
+            const headerImgPath = document.getElementById('headerImgPath').value;
+            const imgSrc = headerImgPath ? (headerImgPath.startsWith('http') ? headerImgPath : `/static/${headerImgPath}`) : 'https://via.placeholder.com/800x150?text=Header+Image';
+            content = `<div class="text-center mb-3"><img src="${imgSrc}" style="max-width:100%; height:auto;" alt="Header Image"></div>`;
         } else if (type === 'employee_summary') {
             content = '<div class="row mb-3"><div class="col-6">Name: John Doe<br>ID: EMP001</div><div class="col-6 text-end">Designation: Manager<br>Dept: Sales</div></div>';
         } else if (type === 'earnings_table') {
@@ -379,6 +399,12 @@
             content = '<div class="d-flex justify-content-between mt-5"><div>Employee Signature</div><div>Auth Signature</div></div>';
         } else if (type === 'footer_image') {
             content = '<div class="text-center p-3 text-muted border">[Footer Image Placeholder]</div>';
+        }
+
+        // Refresh image on upload if it's a header image block
+        if (type === 'header_image') {
+            // We can attach a listener or just rely on preview. 
+            // Ideally we'd update this block when the hidden input changes, but for now simple rendering is okay.
         }
 
         element.innerHTML = content + '<div class="actions"><button class="btn btn-sm btn-danger remove-btn"><i class="fas fa-times"></i></button></div>';
@@ -409,6 +435,7 @@
         const logoPath = document.getElementById('logoPath').value;
         const leftLogoPath = document.getElementById('leftLogoPath').value;
         const rightLogoPath = document.getElementById('rightLogoPath').value;
+        const headerImgPath = document.getElementById('headerImgPath').value;
         const watermarkPath = document.getElementById('watermarkPath').value;
         const footerImgPath = document.getElementById('footerImgPath').value;
 
@@ -441,12 +468,14 @@
                     logo_path: logoPath,
                     left_logo_path: leftLogoPath,
                     right_logo_path: rightLogoPath,
+                    header_image_path: headerImgPath,
                     watermark_path: watermarkPath,
                     footer_image_path: footerImgPath,
 
                     logo_id: document.getElementById('logoId').value || null,
                     left_logo_id: document.getElementById('leftLogoId').value || null,
                     right_logo_id: document.getElementById('rightLogoId').value || null,
+                    header_image_id: document.getElementById('headerImgId').value || null,
                     watermark_id: document.getElementById('watermarkId').value || null,
                     footer_image_id: document.getElementById('footerImgId').value || null
                 })
@@ -470,6 +499,7 @@
         const companyId = document.getElementById('companySelect').value;
         const description = document.getElementById('templateDescription').value;
         const logoPath = document.getElementById('logoPath').value;
+        const headerImgPath = document.getElementById('headerImgPath').value;
         const watermarkPath = document.getElementById('watermarkPath').value;
         const footerImgPath = document.getElementById('footerImgPath').value;
 
@@ -490,12 +520,14 @@
             layout_config: layoutConfig,
             field_config: {}, // Can start empty for now
             logo_path: logoPath,
+            header_image_path: headerImgPath,
             watermark_path: watermarkPath,
             footer_image_path: footerImgPath,
 
             logo_id: document.getElementById('logoId').value || null,
             left_logo_id: document.getElementById('leftLogoId').value || null,
             right_logo_id: document.getElementById('rightLogoId').value || null,
+            header_image_id: document.getElementById('headerImgId').value || null,
             watermark_id: document.getElementById('watermarkId').value || null,
             footer_image_id: document.getElementById('footerImgId').value || null
         };

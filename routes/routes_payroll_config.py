@@ -101,6 +101,7 @@ def payroll_config_template_save():
         logo_path = data.get('logo_path')
         left_logo_path = data.get('left_logo_path')
         right_logo_path = data.get('right_logo_path')
+        header_image_path = data.get('header_image_path')
         watermark_path = data.get('watermark_path')
         footer_image_path = data.get('footer_image_path')
         is_default = data.get('is_default', False)
@@ -127,6 +128,7 @@ def payroll_config_template_save():
             template.logo_path = logo_path
             template.left_logo_path = left_logo_path
             template.right_logo_path = right_logo_path
+            template.header_image_path = header_image_path
             template.watermark_path = watermark_path
             template.footer_image_path = footer_image_path
             
@@ -134,6 +136,7 @@ def payroll_config_template_save():
             template.logo_id = clean_id(data.get('logo_id'))
             template.left_logo_id = clean_id(data.get('left_logo_id'))
             template.right_logo_id = clean_id(data.get('right_logo_id'))
+            template.header_image_id = clean_id(data.get('header_image_id'))
             template.watermark_id = clean_id(data.get('watermark_id'))
             template.footer_image_id = clean_id(data.get('footer_image_id'))
             
@@ -156,11 +159,13 @@ def payroll_config_template_save():
                 logo_path=logo_path,
                 left_logo_path=left_logo_path,
                 right_logo_path=right_logo_path,
+                header_image_path=header_image_path,
                 watermark_path=watermark_path,
                 footer_image_path=footer_image_path,
                 logo_id=clean_id(data.get('logo_id')),
                 left_logo_id=clean_id(data.get('left_logo_id')),
                 right_logo_id=clean_id(data.get('right_logo_id')),
+                header_image_id=clean_id(data.get('header_image_id')),
                 watermark_id=clean_id(data.get('watermark_id')),
                 footer_image_id=clean_id(data.get('footer_image_id')),
                 created_by=current_user.id,
@@ -210,7 +215,7 @@ def payroll_config_upload_image():
                 module='Config',
                 tenant_id=tenant_id if tenant_id else 0, # 0 for system/global if needed
                 file_category='payslip_assets',
-                resize_to=(500, 500) # Standard resize
+                resize_to=(1200, 1200) # Increased resize for header images if needed
             )
             
             if file_record:
@@ -309,6 +314,7 @@ def payroll_config_template_preview():
             'logo_path': get_preview_url(data.get('logo_id'), data.get('logo_path')),
             'left_logo_path': get_preview_url(data.get('left_logo_id'), data.get('left_logo_path')),
             'right_logo_path': get_preview_url(data.get('right_logo_id'), data.get('right_logo_path')),
+            'header_image_path': get_preview_url(data.get('header_image_id'), data.get('header_image_path')),
             'watermark_path': get_preview_url(data.get('watermark_id'), data.get('watermark_path')),
             'footer_image_path': get_preview_url(data.get('footer_image_id'), data.get('footer_image_path')),
             

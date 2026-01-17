@@ -2675,6 +2675,13 @@ def payroll_payslip(payroll_id):
                   except:
                        pass
              if legacy_path:
+                  if legacy_path.startswith('http'): return legacy_path
+                  if 'tenants/' in legacy_path:
+                       try:
+                           from services.s3_service import S3Service
+                           return S3Service().generate_presigned_url(legacy_path)
+                       except:
+                           pass
                   return url_for('static', filename=legacy_path)
              return None
 
@@ -2683,12 +2690,14 @@ def payroll_payslip(payroll_id):
         right_logo_path = get_asset_url(template.right_logo_id, template.right_logo_path)
         watermark_path = get_asset_url(template.watermark_id, template.watermark_path)
         footer_image_path = get_asset_url(template.footer_image_id, template.footer_image_path)
+        header_image_path = get_asset_url(template.header_image_id, template.header_image_path) #[NEW]
 
         return render_template('payroll/payslip_preview.html',
                              layout_config=layout_config,
                              logo_path=logo_path,
                              left_logo_path=left_logo_path,
                              right_logo_path=right_logo_path,
+                             header_image_path=header_image_path, #[NEW]
                              watermark_path=watermark_path,
                              footer_image_path=footer_image_path,
                              payroll=payroll_data,

@@ -1810,6 +1810,7 @@ class PayslipTemplate(db.Model):
     logo_path = db.Column(db.String(255))
     left_logo_path = db.Column(db.String(255))
     right_logo_path = db.Column(db.String(255))
+    header_image_path = db.Column(db.String(255)) # [NEW] Full width header
     watermark_path = db.Column(db.String(255))
     footer_image_path = db.Column(db.String(255))
     
@@ -1817,12 +1818,14 @@ class PayslipTemplate(db.Model):
     logo_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
     left_logo_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
     right_logo_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
+    header_image_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True) #[NEW]
     watermark_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
     footer_image_id = db.Column(db.Integer, db.ForeignKey('hrm_file_storage.id'), nullable=True)
     
     logo_file = db.relationship('FileStorage', foreign_keys=[logo_id])
     left_logo_file = db.relationship('FileStorage', foreign_keys=[left_logo_id])
     right_logo_file = db.relationship('FileStorage', foreign_keys=[right_logo_id])
+    header_image_file = db.relationship('FileStorage', foreign_keys=[header_image_id]) # [NEW]
     watermark_file = db.relationship('FileStorage', foreign_keys=[watermark_id])
     footer_image_file = db.relationship('FileStorage', foreign_keys=[footer_image_id])
     
