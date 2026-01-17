@@ -22,6 +22,8 @@
             border: 1px solid #ccc;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         .watermark-layer {
@@ -41,6 +43,9 @@
         .content-layer {
             position: relative;
             z-index: 1;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
         }
 
         /* Standard Styles */
@@ -146,7 +151,7 @@
 
         .footer-image {
             text-align: center;
-            margin-top: 20px;
+            margin-top: auto;
             margin-left: -10mm;
             margin-right: -10mm;
             width: calc(100% + 20mm);
