@@ -2,269 +2,535 @@
 
 {% block title %}Payroll Configuration - Nexar{% endblock %}
 
-{% block content %}<div class="payroll-config-container">
-    <!-- Header Section -->
-    <div class="payroll-header">
+{% block content %}
+<style>
+    /* Premium Dashboard Styling (Referencing generate.html) */
+    :root {
+        --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --glass-bg: rgba(255, 255, 255, 0.95);
+        --glass-border: 1px solid rgba(255, 255, 255, 0.18);
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .dashboard-container {
+        padding: 1rem 1.5rem;
+        background-color: #f8fafc;
+        min-height: 100vh;
+        max-width: 100%;
+    }
+
+    /* Filters Section - Compact */
+    .filter-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Modern Table - Dense & Full Width */
+    .custom-table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    .custom-table {
+        width: 100%;
+        font-size: 0.8125rem;
+    }
+
+    .custom-table thead {
+        background: #f1f5f9;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .custom-table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+        color: #475569;
+        padding: 0.5rem 0.25rem;
+        border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .custom-table td {
+        padding: 0.25rem 0.25rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+        white-space: nowrap;
+        height: 48px;
+    }
+
+    .custom-table tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .row-editing {
+        background-color: #fffbeb !important;
+    }
+
+    .avatar-circle {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #e0e7ff;
+        color: #4338ca;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    /* Column Widths */
+    .col-employee {
+        min-width: 160px;
+        width: 15%;
+    }
+
+    .col-designation {
+        width: 12%;
+        max-width: 120px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    .col-money {
+        text-align: right;
+        font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;
+        letter-spacing: -0.5px;
+        min-width: 80px;
+    }
+
+    .col-action {
+        width: 100px;
+        text-align: center;
+    }
+
+    /* Inline Input Styles */
+    .inline-input {
+        width: 100%;
+        padding: 0.2rem 0.4rem;
+        font-size: 0.8125rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        text-align: right;
+        background: white;
+    }
+
+    .inline-input:focus {
+        border-color: #6366f1;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Input Clean up */
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    /* Pagination Styles aligned with Generate Payroll */
+    .pagination-footer {
+        padding: 0.5rem 1rem;
+        border-top: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+</style>
+
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <div>
-                <h3>
-                    <i class="fas fa-dollar-sign me-2"></i>Payroll Configuration
-                </h3>
-                <p>Manage salary components and CPF contributions</p>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"
+                            class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('payroll_list') }}"
+                            class="text-decoration-none">Payroll</a></li>
+                    <li class="breadcrumb-item active">Configuration</li>
+                </ol>
+            </nav>
+            <h5 class="fw-bold text-dark mb-0 mt-1">Payroll Configuration</h5>
+        </div>
+        <div>
+            <a href="{{ url_for('payroll_list') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Card -->
+    <div class="filter-card">
+        <div class="row g-2 align-items-center justify-content-between">
+            <div class="col-md-6">
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-2"></i>Filters
+                        {% if current_filters.company_id or current_filters.department or current_filters.manager_id %}
+                        <span class="badge bg-primary ms-1 rounded-pill">!</span>
+                        {% endif %}
+                    </button>
+
+                    <form method="GET" class="d-flex flex-grow-1">
+                        <input type="hidden" name="company_id" value="{{ current_filters.company_id }}">
+                        <input type="hidden" name="department" value="{{ current_filters.department }}">
+                        <input type="hidden" name="manager_id" value="{{ current_filters.manager_id }}">
+
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i
+                                    class="fas fa-search text-muted"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0 ps-0"
+                                placeholder="Search by name or ID..." value="{{ search }}">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div>
-                <a href="{{ url_for('payroll_list') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>Back
+            <div class="col-md-6 text-end">
+                {% if search or current_filters.company_id or current_filters.department or current_filters.manager_id
+                %}
+                <a href="{{ url_for('payroll_config') }}" class="btn btn-link text-decoration-none text-muted">
+                    <i class="fas fa-times me-1"></i>Clear All
                 </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Active Filters Display -->
+        {% if current_filters.company_id or current_filters.department or current_filters.manager_id %}
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+            {% if current_filters.company_id %}
+            {% set company = filter_options.companies | selectattr('id', 'equalto', current_filters.company_id | int ) |
+            first %}
+            <span class="badge bg-light text-dark border px-2 py-1 fw-normal">
+                Company: <strong>{{ company.name if company else current_filters.company_id }}</strong>
+            </span>
+            {% endif %}
+
+            {% if current_filters.department %}
+            <span class="badge bg-light text-dark border px-2 py-1 fw-normal">
+                Dept: <strong>{{ current_filters.department }}</strong>
+            </span>
+            {% endif %}
+
+            {% if current_filters.manager_id %}
+            {% set manager = filter_options.managers | selectattr('id', 'equalto', current_filters.manager_id ) | first
+            %}
+            <span class="badge bg-light text-dark border px-2 py-1 fw-normal">
+                Manager: <strong>{{ manager.first_name if manager else current_filters.manager_id }}</strong>
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filter Modal -->
+    <div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Filter Employees</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="GET">
+                    <div class="modal-body">
+                        <!-- Maintain search if exists -->
+                        <input type="hidden" name="search" value="{{ search }}">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Company</label>
+                            <select name="company_id" class="form-select">
+                                <option value="">All Companies</option>
+                                {% for company in filter_options.companies %}
+                                <option value="{{ company.id }}" {% if current_filters.company_id==company.id|string
+                                    %}selected{% endif %}>
+                                    {{ company.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Department</label>
+                            <select name="department" class="form-select">
+                                <option value="">All Departments</option>
+                                {% for dept in filter_options.departments %}
+                                <option value="{{ dept }}" {% if current_filters.department==dept %}selected{% endif %}>
+                                    {{ dept }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Reporting Manager</label>
+                            <select name="manager_id" class="form-select">
+                                <option value="">All Managers</option>
+                                {% for manager in filter_options.managers %}
+                                <option value="{{ manager.id }}" {% if current_filters.manager_id==manager.id
+                                    %}selected{% endif %}>
+                                    {{ manager.first_name }} {{ manager.last_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <a href="{{ url_for('payroll_config') }}"
+                            class="btn btn-link text-muted text-decoration-none">Reset</a>
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- Toolbar Section -->
-    <div class="payroll-toolbar">
-        <form method="GET">
-            <input type="text" name="search" placeholder="Search employee..." value="{{ search }}">
-            <button type="submit">
-                <i class="fas fa-search"></i> Search
-            </button>
-            {% if search %}
-            <a href="{{ url_for('payroll_config') }}">
-                <i class="fas fa-times"></i> Clear
-            </a>
-            {% endif %}
-        </form>
-    </div>
-
-    <!-- Content Section -->
-    <div class="payroll-content">
-        {% if employees and employees.items|length > 0 %}
-        <div class="grid-wrapper">
-            <table class="payroll-grid">
+    <!-- Data Grid -->
+    <div class="custom-table-container">
+        <div class="table-responsive">
+            <table class="table custom-table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th class="sortable" data-column="employee_id">Emp ID</th>
-                        <th class="sortable" data-column="first_name">Employee Name</th>
-                        <th class="sortable" data-column="designation">Job Title</th>
-                        <th class="sortable numeric" data-column="basic_salary">Basic Salary</th>
-                        <th class="sortable numeric">Transport</th>
-                        <th class="sortable numeric">Housing</th>
-                        <th class="sortable numeric">Meal</th>
-                        <th class="sortable numeric">Other</th>
-                        <th class="sortable numeric" data-column="ot_rate_per_hour">OT Rate</th>
-                        <th class="sortable numeric">Emp. CPF</th>
-                        <th class="sortable numeric">Net Salary</th>
-                        <th>Action</th>
+                        <th class="ps-3" style="width: 80px;">Emp ID</th>
+                        <th class="col-employee">Employee</th>
+                        <th class="col-designation">Designation</th>
+                        <th class="col-money">Basic Salary</th>
+                        <th class="col-money">Transport</th>
+                        <th class="col-money">Housing</th>
+                        <th class="col-money">Meal</th>
+                        <th class="col-money">Emp. CPF ($)</th>
+                        <th class="col-money">Employer CPF ($)</th>
+                        <th class="col-money text-muted">Est. Net</th>
+                        <th class="col-action">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% if employees and employees.items|length > 0 %}
                     {% for employee in employees.items %}
-                    <tr data-employee-id="{{ employee.id }}">
-                        <td>{{ employee.employee_id }}</td>
-                        <td>{{ employee.first_name }} {{ employee.last_name }}</td>
-                        <td>{{ employee.designation.name if employee.designation else '-' }}</td>
-                        <td class="numeric">
-                            <span class="display-value">${{ "%.2f"|format(employee.basic_salary or 0) }}</span>
-                            <input type="number" class="edit-value" name="basic_salary" value="{{ employee.basic_salary or 0 }}" step="0.01">
-                        </td>
-                        <td class="numeric">
-                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_1_amount if employee.payroll_config else 0) }}</span>
-                            <input type="number" class="edit-value" name="allowance_1_amount" value="{{ employee.payroll_config.allowance_1_amount if employee.payroll_config else 0 }}" step="0.01">
-                        </td>
-                        <td class="numeric">
-                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_2_amount if employee.payroll_config else 0) }}</span>
-                            <input type="number" class="edit-value" name="allowance_2_amount" value="{{ employee.payroll_config.allowance_2_amount if employee.payroll_config else 0 }}" step="0.01">
-                        </td>
-                        <td class="numeric">
-                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_3_amount if employee.payroll_config else 0) }}</span>
-                            <input type="number" class="edit-value" name="allowance_3_amount" value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}" step="0.01">
-                        </td>
-                        <td class="numeric">
-                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.allowance_4_amount if employee.payroll_config else 0) }}</span>
-                            <input type="number" class="edit-value" name="allowance_4_amount" value="{{ employee.payroll_config.allowance_4_amount if employee.payroll_config else 0 }}" step="0.01">
-                        </td>
-                        <td class="numeric">
-                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else 0) }}</span>
-                            <input type="number" class="edit-value" name="ot_rate_per_hour" value="{{ employee.payroll_config.ot_rate_per_hour if employee.payroll_config and employee.payroll_config.ot_rate_per_hour else 0 }}" step="0.01">
-                        </td>
-                        <td class="numeric">
-                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.employee_cpf if employee.payroll_config else 0) }}</span>
-                        </td>
-                        <td class="numeric">
-                            <span class="display-value">${{ "%.2f"|format(employee.payroll_config.net_salary if employee.payroll_config else 0) }}</span>
-                        </td>
+                    <tr id="row-{{ employee.id }}">
+                        <td class="ps-3 text-muted small">{{ employee.employee_id }}</td>
                         <td>
-                            <div class="action-buttons">
-                                <button class="btn-edit" onclick="enableEdit(this)" title="Edit">Edit</button>
-                                <button class="btn-save" onclick="saveConfig(this, {{ employee.id }})" title="Save">Save</button>
-                                <button class="btn-cancel" onclick="cancelEdit(this)" title="Cancel">✕</button>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle">
+                                    {{ employee.first_name[0] }}{{ employee.last_name[0] if employee.last_name else ''
+                                    }}
+                                </div>
+                                <div class="text-truncate" style="max-width: 140px;">
+                                    <div class="fw-bold text-dark">{{ employee.first_name }} {{ employee.last_name }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="col-designation">
+                            <span class="text-muted small">{{ employee.designation.name if employee.designation else '-'
+                                }}</span>
+                        </td>
+
+                        <!-- Display Mode -->
+                        <td class="col-money display-value fw-bold text-dark">${{
+                            "%.2f"|format((employee.payroll_config.basic_salary or 0) if employee.payroll_config else 0)
+                            }}
+                        </td>
+                        <td class="col-money display-value text-muted">${{
+                            "%.2f"|format(employee.payroll_config.allowance_1_amount if employee.payroll_config else 0)
+                            }}</td>
+                        <td class="col-money display-value text-muted">${{
+                            "%.2f"|format(employee.payroll_config.allowance_2_amount if employee.payroll_config else 0)
+                            }}</td>
+                        <td class="col-money display-value text-muted">${{
+                            "%.2f"|format(employee.payroll_config.allowance_3_amount if employee.payroll_config else 0)
+                            }}</td>
+
+                        <td class="col-money display-value text-muted fw-bold text-primary">${{
+                            "%.2f"|format(employee.payroll_config.employee_cpf if employee.payroll_config else 0)
+                            }}</td>
+
+                        <td class="col-money display-value text-muted">${{
+                            "%.2f"|format(employee.payroll_config.employer_cpf if employee.payroll_config else 0)
+                            }}</td>
+
+                        <!-- Edit Mode Inputs (Hidden by default) -->
+                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
+                                name="basic_salary"
+                                value="{{ (employee.payroll_config.basic_salary or 0) if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
+                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
+                                name="allowance_1_amount"
+                                value="{{ employee.payroll_config.allowance_1_amount if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
+                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
+                                name="allowance_2_amount"
+                                value="{{ employee.payroll_config.allowance_2_amount if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
+                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
+                                name="allowance_3_amount"
+                                value="{{ employee.payroll_config.allowance_3_amount if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
+
+                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
+                                name="employee_cpf"
+                                value="{{ employee.payroll_config.employee_cpf if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
+
+                        <td class="edit-field" style="display:none;"><input type="number" class="inline-input"
+                                name="employer_cpf"
+                                value="{{ employee.payroll_config.employer_cpf if employee.payroll_config else 0 }}"
+                                step="0.01"></td>
+
+                        <td class="col-money text-muted opacity-50 display-value">
+                            ${{ "%.2f"|format(employee.payroll_config.net_salary if employee.payroll_config else 0) }}
+                        </td>
+                        <td class="edit-field text-center text-warning small fw-bold" style="display:none;">Editing...
+                        </td>
+
+                        <td class="col-action">
+                            <button class="btn btn-sm btn-light border py-0 px-2 btn-edit" onclick="enableEdit(this)">
+                                <i class="fas fa-pencil-alt text-muted small"></i>
+                            </button>
+                            <div class="btn-group btn-group-sm btn-save-group" style="display:none;">
+                                <button class="btn btn-success" onclick="saveConfig(this, {{ employee.id }})"><i
+                                        class="fas fa-check"></i></button>
+                                <button class="btn btn-light border" onclick="cancelEdit(this)"><i
+                                        class="fas fa-times"></i></button>
                             </div>
                         </td>
                     </tr>
                     {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="text-center py-5">
+                            <i class="fas fa-users fa-2x mb-2 text-muted opacity-25"></i>
+                            <p class="text-muted mb-0">No employees found matching your search.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
 
-        <!-- Footer with Pagination and Records Per Page -->
-        <div class="payroll-footer">
-            <div class="pagination-info">
-                Showing {{ (employees.page - 1) * employees.per_page + 1 }}-{{ [employees.page * employees.per_page, employees.total]|min }} of {{ employees.total }} records
-            </div>
+        <!-- Pagination Footer -->
+        <div class="pagination-footer">
+            <small class="text-muted">
+                Showing {{ (employees.page - 1) * employees.per_page + 1 }}-{{ [employees.page * employees.per_page,
+                employees.total]|min }} of {{ employees.total }} records
+            </small>
+            <div>
+                {% if employees.has_prev %}
+                <a href="{{ url_for('payroll_config', page=employees.prev_num, search=search, company_id=current_filters.company_id, department=current_filters.department, manager_id=current_filters.manager_id) }}"
+                    class="btn btn-sm btn-outline-secondary me-1 py-0">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+                {% else %}
+                <button class="btn btn-sm btn-outline-secondary me-1 py-0" disabled><i
+                        class="fas fa-angle-left"></i></button>
+                {% endif %}
 
-            <div class="pagination-controls">
-                <button {% if not employees.has_prev %}disabled{% endif %} onclick="goToPage(1)">First</button>
-                <button {% if not employees.has_prev %}disabled{% endif %} onclick="goToPage({{ employees.prev_num }})">Previous</button>
-                
-                <input type="number" class="pagination-input" id="pageInput" value="{{ employees.page }}" min="1" max="{{ employees.pages }}" onchange="goToPage(this.value)">
-                
-                <span>of {{ employees.pages }}</span>
-                
-                <button {% if not employees.has_next %}disabled{% endif %} onclick="goToPage({{ employees.next_num }})">Next</button>
-                <button {% if not employees.has_next %}disabled{% endif %} onclick="goToPage({{ employees.pages }})">Last</button>
-            </div>
-
-            <div class="records-per-page">
-                <label for="perPageSelect">Records per page:</label>
-                <select id="perPageSelect" onchange="changePerPage(this.value)">
-                    <option value="15" {% if per_page == 15 %}selected{% endif %}>15</option>
-                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
-                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-                </select>
+                {% if employees.has_next %}
+                <a href="{{ url_for('payroll_config', page=employees.next_num, search=search, company_id=current_filters.company_id, department=current_filters.department, manager_id=current_filters.manager_id) }}"
+                    class="btn btn-sm btn-outline-secondary py-0">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+                {% else %}
+                <button class="btn btn-sm btn-outline-secondary py-0" disabled><i
+                        class="fas fa-angle-right"></i></button>
+                {% endif %}
             </div>
         </div>
-        {% else %}
-        <div class="empty-state">
-            <i class="fas fa-inbox"></i>
-            <p>No employees found</p>
-        </div>
-        {% endif %}
     </div>
 </div>
 
 <script>
-function goToPage(pageNum) {
-    const search = new URLSearchParams(window.location.search).get('search') || '';
-    const perPage = document.getElementById('perPageSelect').value;
-    const sortBy = new URLSearchParams(window.location.search).get('sort_by') || 'employee_id';
-    const sortOrder = new URLSearchParams(window.location.search).get('sort_order') || 'asc';
-    const url = new URL(window.location);
-    url.searchParams.set('page', pageNum);
-    url.searchParams.set('per_page', perPage);
-    url.searchParams.set('sort_by', sortBy);
-    url.searchParams.set('sort_order', sortOrder);
-    if (search) url.searchParams.set('search', search);
-    window.location.href = url.toString();
-}
+    function enableEdit(btn) {
+        const row = btn.closest('tr');
+        row.classList.add('row-editing');
 
-function changePerPage(value) {
-    const url = new URL(window.location);
-    url.searchParams.set('page', 1);
-    url.searchParams.set('per_page', value);
-    window.location.href = url.toString();
-}
+        // Toggle visibility
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-field').forEach(el => el.style.display = 'table-cell'); // changed to table-cell for alignment
 
-// Sorting functionality
-document.querySelectorAll('.payroll-grid th.sortable').forEach(th => {
-    th.addEventListener('click', function() {
-        const column = this.dataset.column;
-        const currentSort = new URLSearchParams(window.location.search).get('sort_by') || 'employee_id';
-        const currentOrder = new URLSearchParams(window.location.search).get('sort_order') || 'asc';
-        
-        let newOrder = 'asc';
-        if (column === currentSort && currentOrder === 'asc') {
-            newOrder = 'desc';
-        }
-        
-        const url = new URL(window.location);
-        url.searchParams.set('sort_by', column);
-        url.searchParams.set('sort_order', newOrder);
-        url.searchParams.set('page', 1);
-        window.location.href = url.toString();
-    });
-});
+        // Toggle buttons
+        row.querySelector('.btn-edit').style.display = 'none';
+        row.querySelector('.btn-save-group').style.display = 'inline-flex';
 
-// Edit/Save functionality
-function enableEdit(btn) {
-    const row = btn.closest('tr');
-    row.classList.add('editing');
-    
-    row.querySelectorAll('.edit-value').forEach(input => {
-        input.style.display = 'block';
-    });
-    
-    row.querySelectorAll('.display-value').forEach(span => {
-        span.style.display = 'none';
-    });
-    
-    row.querySelector('.btn-edit').style.display = 'none';
-    row.querySelector('.btn-save').style.display = 'inline-block';
-    row.querySelector('.btn-cancel').style.display = 'inline-block';
-}
+        // Focus first input
+        const firstInput = row.querySelector('input');
+        if (firstInput) firstInput.focus();
+    }
 
-function cancelEdit(btn) {
-    const row = btn.closest('tr');
-    row.classList.remove('editing');
-    
-    row.querySelectorAll('.edit-value').forEach(input => {
-        input.style.display = 'none';
-    });
-    
-    row.querySelectorAll('.display-value').forEach(span => {
-        span.style.display = 'block';
-    });
-    
-    row.querySelector('.btn-edit').style.display = 'inline-block';
-    row.querySelector('.btn-save').style.display = 'none';
-    row.querySelector('.btn-cancel').style.display = 'none';
-}
+    function cancelEdit(btn) {
+        const row = btn.closest('tr');
+        row.classList.remove('row-editing');
 
-function saveConfig(btn, employeeId) {
-    const row = btn.closest('tr');
-    const data = {
-        employee_id: employeeId,
-        basic_salary: row.querySelector('input[name="basic_salary"]').value,
-        allowance_1_amount: row.querySelector('input[name="allowance_1_amount"]').value,
-        allowance_2_amount: row.querySelector('input[name="allowance_2_amount"]').value,
-        allowance_3_amount: row.querySelector('input[name="allowance_3_amount"]').value,
-        allowance_4_amount: row.querySelector('input[name="allowance_4_amount"]').value,
-        ot_rate_per_hour: row.querySelector('input[name="ot_rate_per_hour"]').value
-    };
+        row.querySelectorAll('.display-value').forEach(el => el.style.display = 'table-cell');
+        row.querySelectorAll('.edit-field').forEach(el => el.style.display = 'none');
 
-    fetch('{{ url_for("payroll_config_update") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            alert('Configuration saved successfully!');
-            location.reload();
-        } else {
-            alert('Error: ' + result.message);
-        }
-    })
-    .catch(error => {
-        alert('Error saving configuration: ' + error);
-    });
-}
+        row.querySelector('.btn-edit').style.display = 'inline-block';
+        row.querySelector('.btn-save-group').style.display = 'none';
+    }
 
-// Highlight sort column
-function highlightSortColumn() {
-    const sortBy = new URLSearchParams(window.location.search).get('sort_by') || 'employee_id';
-    const sortOrder = new URLSearchParams(window.location.search).get('sort_order') || 'asc';
-    
-    document.querySelectorAll('.payroll-grid th.sortable').forEach(th => {
-        if (th.dataset.column === sortBy) {
-            th.classList.add(sortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
-        }
-    });
-}
+    function saveConfig(btn, employeeId) {
+        const row = btn.closest('tr');
+        const data = {
+            employee_id: employeeId,
+            basic_salary: row.querySelector('input[name="basic_salary"]').value,
+            allowance_1_amount: row.querySelector('input[name="allowance_1_amount"]').value,
+            allowance_2_amount: row.querySelector('input[name="allowance_2_amount"]').value,
+            allowance_3_amount: row.querySelector('input[name="allowance_3_amount"]').value,
+            employee_cpf: row.querySelector('input[name="employee_cpf"]').value,
+            employer_cpf: row.querySelector('input[name="employer_cpf"]').value
+        };
 
-document.addEventListener('DOMContentLoaded', highlightSortColumn);
+        // Show loading indicator
+        const saveBtn = row.querySelector('.btn-success');
+        const originalIcon = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        saveBtn.disabled = true;
+
+        fetch('{{ url_for("payroll_config_update") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Reload page to reflect changes nicely (or update DOM manually, simplifies "net pay" recalc rely on server)
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                    saveBtn.innerHTML = originalIcon;
+                    saveBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                alert('Error saving configuration: ' + error);
+                saveBtn.innerHTML = originalIcon;
+                saveBtn.disabled = false;
+            });
+    }
 </script>
-
 {% endblock %}

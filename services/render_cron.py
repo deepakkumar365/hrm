@@ -51,62 +51,53 @@ def create_attendance_direct():
     """Create attendance records directly (requires app context)"""
     try:
         # Add the project directory to Python path
-        project_dir = os.path.dirname(os.path.abspath(__file__))
+        project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         sys.path.insert(0, project_dir)
         
         # Import Flask app and models
         from app import app, db
         from core.models import Employee, Attendance
+        from services.daily_attendance_task import process_eod_attendance
+        from services.attendance_service import AttendanceService
         from datetime import date, datetime
         
-        def create_daily_attendance_records(target_date=None):
-            """Create attendance records for all active employees for a specific date"""
-            if target_date is None:
-                target_date = date.today()
+        with app.app_context():
+            print(f"🚀 Starting Render Daily Cron Job at {datetime.now()}")
             
-            with app.app_context():
-                try:
-                    # Get all active employees
-                    employees = Employee.query.filter_by(is_active=True).all()
-                    created_count = 0
-                    
-                    for employee in employees:
-                        # Check if attendance record already exists
-                        existing_attendance = Attendance.query.filter_by(
-                            employee_id=employee.id,
-                            date=target_date
-                        ).first()
-                        
-                        if not existing_attendance:
-                            # Create new attendance record with default "Absent" status
-                            attendance = Attendance(
-                                employee_id=employee.id,
-                                date=target_date,
-                                status='Absent',
-                                regular_hours=0,
-                                total_hours=0,
-                                overtime_hours=0,
-                                created_at=datetime.utcnow(),
-                                updated_at=datetime.utcnow()
-                            )
-                            db.session.add(attendance)
-                            created_count += 1
-                    
-                    db.session.commit()
-                    print(f"Successfully created attendance records for {created_count} employees on {target_date}")
-                    return created_count
-                    
-                except Exception as e:
-                    db.session.rollback()
-                    print(f"Error creating attendance records: {e}")
-                    return 0
-        
-        # Create attendance records for today
-        return create_daily_attendance_records()
+            # 1. AUTO-CLOSE SHIFTS (Phase 1)
+            print("\n[Phase 1] Auto-Closing Forgotten Shifts...")
+            try:
+                active_employees = Employee.query.filter_by(is_active=True).all()
+                today = date.today()
+                for emp in active_employees:
+                    AttendanceService.auto_close_previous_days(emp.id, today)
+                db.session.commit()
+                print("✅ Phase 1 Completed.")
+            except Exception as e:
+                print(f"❌ Phase 1 Failed: {e}")
+                db.session.rollback()
+
+            # 2. PROCESS EOD ATTENDANCE (Phase 2)
+            print("\n[Phase 2] Running EOD Processing...")
+            target_date = date.today() # Render cron usually runs EOD for *current* day if scheduled effectively late, or yesterday if scheduled at 00:00
+            # If standard schedule is 00:00, it should process YESTERDAY. A None arg defaults to yesterday.
+            # However, if user wants parity with "Run EOD Task Now", let's be careful.
+            # daily_attendance_task.process_eod_attendance() defaults to yesterday.
+            # If user runs this manual command, presumably they want it NOW. but usually cron runs for "yesterday".
+            # Let's keep it default (yesterday) to be safe for midnight runs.
+            
+            result = process_eod_attendance() 
+            
+            if result.get('success'):
+                print("✅ Phase 2 Completed Successfully.")
+                return True
+            else:
+                print(f"❌ Phase 2 Ended with issues: {result.get('error')}")
+                return False
         
     except Exception as e:
         print(f"Error in direct creation: {e}")
-        return 0
+        return False
 
 if __name__ == "__main__":
     print("========================================")

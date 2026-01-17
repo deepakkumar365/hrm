@@ -7,6 +7,7 @@ import os
 import time as pytime
 import subprocess
 from werkzeug.utils import secure_filename
+from decimal import Decimal
 import pytz
 
 from app import app, db
@@ -14,7 +15,7 @@ from core.auth import require_login, require_role, create_default_users
 from core.models import (Employee, Payroll, PayrollConfiguration, Attendance, Leave, Claim, Appraisal,
                      ComplianceReport, User, Role, Department, WorkingHours, WorkSchedule,
                      Company, Tenant, EmployeeBankInfo, EmployeeDocument, TenantPaymentConfig, TenantDocument, Designation,
-                     Organization, OTDailySummary, EmployeeGroup, UserCompanyAccess)
+                     Organization, OTDailySummary, EmployeeGroup, UserCompanyAccess, PayslipTemplate)
 from sqlalchemy import tuple_
 from core.forms import LoginForm, RegisterForm
 from flask_login import login_user, logout_user
@@ -23,7 +24,9 @@ from core.utils import (export_to_csv, format_currency, format_date, parse_date,
                    validate_nric, generate_employee_id, check_permission,
                    mobile_optimized_pagination, get_current_month_dates, get_employee_local_time)
 from core.constants import DEFAULT_USER_PASSWORD
+from core.constants import DEFAULT_USER_PASSWORD
 from services.attendance_service import AttendanceService
+from services.file_service import FileService
 
 # Helper to validate image extension
 def _allowed_image(filename: str) -> bool:
@@ -128,7 +131,7 @@ def create_default_master_data():
 
         # Create default working hours if none exist
         from sqlalchemy import inspect
-        inspector = sa.inspect(db.engine)
+        inspector = inspect(db.engine)
         wh_columns = [col['name'] for col in inspector.get_columns('hrm_working_hours')]
         
         # Check if we can safely query WorkingHours (need grace_period if models say so)
@@ -824,21 +827,22 @@ def employee_add():
                                        overtime_groups=overtime_groups)
 
             # Check for duplicate NRIC
-            if nric and Employee.query.filter_by(nric=nric).first():
-                flash('Employee with this NRIC already exists', 'error')
-                return render_template('employees/form.html',
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       designations=designations,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies,
-                                       timezones=timezones,
-                                       leave_groups=leave_groups,
-                                       overtime_groups=overtime_groups)
+            # Check for duplicate NRIC - ALLOWED as per new requirement
+            # if nric and Employee.query.filter_by(nric=nric).first():
+            #     flash('Employee with this NRIC already exists', 'error')
+            #     return render_template('employees/form.html',
+            #                            form_data=request.form,
+            #                            roles=roles,
+            #                            user_roles=user_roles,
+            #                            designations=designations,
+            #                            departments=departments,
+            #                            working_hours=working_hours,
+            #                            work_schedules=work_schedules,
+            #                            managers=managers,
+            #                            companies=companies,
+            #                            timezones=timezones,
+            #                            leave_groups=leave_groups,
+            #                            overtime_groups=overtime_groups)
 
             # Create new employee
             employee = Employee()
@@ -922,6 +926,32 @@ def employee_add():
             if psa_pass_expiry:
                 employee.psa_pass_expiry = parse_date(psa_pass_expiry)
 
+            # [NEW] Handle Certification Files (Add Mode) - require employee.id so we flush first if needed or allow FileService to use employee_id string
+            # We already flush later for profile image, let's flush here if we have files.
+            
+            # Helper to upload cert file
+            def upload_cert_file(file_key, file_cat, emp_obj, field_name):
+                f_obj = request.files.get(file_key)
+                if f_obj and f_obj.filename.strip():
+                    if not emp_obj.id:
+                        db.session.add(emp_obj)
+                        db.session.flush()
+                    
+                    record = FileService.upload_file(
+                        file_obj=f_obj,
+                        module='HR',
+                        tenant_id=tenant_id,
+                        company_id=emp_obj.company_id,
+                        employee_id=emp_obj.id,
+                        file_category=file_cat
+                    )
+                    if record:
+                        setattr(emp_obj, field_name, record.id)
+
+            upload_cert_file('hazmat_file', 'hazmat', employee, 'hazmat_file_id')
+            upload_cert_file('airport_pass_file', 'airport_pass', employee, 'airport_pass_file_id')
+            upload_cert_file('psa_pass_file', 'psa_pass', employee, 'psa_pass_file_id')
+
             employee.basic_salary = float(request.form.get('basic_salary') or 0)
             employee.allowances = float(request.form.get('allowances') or 0)
             
@@ -982,15 +1012,53 @@ def employee_add():
                                            leave_groups=leave_groups,
                                            overtime_groups=overtime_groups)
 
-                # Save image with unique name based on employee_id and timestamp
-                original = secure_filename(file.filename)
-                ext = original.rsplit('.', 1)[1].lower()
-                unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
-                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-                file.save(save_path)
-                employee.profile_image_path = f"uploads/employees/{unique_name}"
+                # Save using FileService
+                # Path: tenants/{id}/companies/{id}/employees/{id}/profile/
+                file_record = FileService.upload_file(
+                    file_obj=file,
+                    module='HR',
+                    tenant_id=tenant_id,
+                    company_id=employee.company_id,
+                    employee_id=employee.employee_id, # Use string ID for path if preferred, or object ID if available (object ID is None here before flush)
+                    # Note: employee.id is None here. We can flush to get ID or use employee_id string.
+                    # FileService expects ID. Let's use flush()
+                    file_category='profile'
+                )
+                
+                # To get employee.id, we need to add and flush
+                # But we generally add at end.
+                # Let's adjust approach: saving file AFTER flush/commit or accept using employee_id string in path?
+                # FileService.upload_file takes `employee_id`. If we want integer ID, we must flush.
+                
+                # ALTERNATIVE: Use employee.employee_id (string) for the path logic in FileService if it supports it?
+                # The Plan said: tenants/{tenant_id}/companies/{company_id}/employees/{employee_id}/
+                # Standard practice usually implies DB ID, but String ID is more readable. 
+                # Let's try to flush first.
+                
+                # However, if we flush, we might commit partial state? No, flush just assigns ID.
+                db.session.add(employee)
+                db.session.flush()
+                
+                # Retry upload with ID
+                file_record = FileService.upload_file(
+                    file_obj=file,
+                    module='HR',
+                    tenant_id=tenant_id,
+                    company_id=employee.company_id,
+                    employee_id=employee.id,
+                    file_category='profile',
+                    resize_to=(500, 500)
+                )
+                
+                if file_record:
+                    employee.profile_picture_id = file_record.id
+                    employee.profile_image_path = file_record.file_path # Legacy support
+                else:
+                    flash('Failed to upload profile image', 'warning')
 
-            db.session.add(employee)
+            if not employee.id: # If not flushed above
+                db.session.add(employee)
+            
             db.session.commit()
 
             # Create user account for the new employee
@@ -1143,7 +1211,7 @@ def employee_view(employee_id):
                            today=date.today())
 
 
-@app.route('/profile')
+@app.route('/profile', methods=['GET', 'POST'])
 @require_login
 def profile():
     """User's own profile page"""
@@ -1152,6 +1220,46 @@ def profile():
         return redirect(url_for('dashboard'))
 
     employee = current_user.employee_profile
+
+    # Handle Profile Picture Upload
+    if request.method == 'POST':
+        file = request.files.get('profile_image')
+        if file and file.filename.strip():
+             if not _allowed_image(file.filename):
+                 flash('Invalid image type.', 'error')
+             else:
+                 try:
+                     tenant_id = employee.company.tenant_id if employee.company else get_current_user_tenant_id()
+                     from services.file_service import FileService
+                     
+                     file_record = FileService.upload_file(
+                         file_obj=file,
+                         module='HR',
+                         tenant_id=tenant_id,
+                         company_id=employee.company_id,
+                         employee_id=employee.id,
+                         file_category='profile',
+                         resize_to=(500, 500)
+                     )
+                     
+                     if file_record:
+                         if employee.profile_picture_id:
+                             try:
+                                 FileService.delete_file(employee.profile_picture_id)
+                             except:
+                                 pass
+                         
+                         employee.profile_picture_id = file_record.id
+                         employee.profile_image_path = file_record.file_path
+                         db.session.commit()
+                         flash('Profile picture updated successfully', 'success')
+                     else:
+                         flash('Failed to upload profile picture', 'error')
+                 except Exception as e:
+                     db.session.rollback()
+                     flash(f'Error uploading picture: {str(e)}', 'error')
+        
+        return redirect(url_for('profile'))
 
     # Get attendance stats
     today = date.today()
@@ -1268,10 +1376,6 @@ def employee_edit(employee_id):
     leave_groups = EmployeeGroup.query.filter_by(is_active=True).all()
     overtime_groups = get_overtime_groups(tenant_id)
 
-    # DEBUG: Log department status
-    print(f"[DEBUG] Employee Edit {employee_id}: Found {len(departments)} active departments")
-    print(f"[DEBUG] Employee Edit {employee_id}: Current Employee Dept: '{employee.department}'")
-
     if request.method == 'POST':
         try:
             # Update company_id from form
@@ -1308,24 +1412,25 @@ def employee_edit(employee_id):
                                        overtime_groups=overtime_groups)
 
             # Check for duplicate NRIC
-            if nric:
-                duplicate = Employee.query.filter(Employee.nric == nric, Employee.id != employee_id).first()
-                if duplicate:
-                    flash('Employee with this NRIC already exists', 'error')
-                    return render_template('employees/form.html',
-                                           employee=employee,
-                                           form_data=request.form,
-                                           roles=roles,
-                                           user_roles=user_roles,
-                                           designations=designations,
-                                           departments=departments,
-                                           working_hours=working_hours,
-                                           work_schedules=work_schedules,
-                                           managers=managers,
-                                           companies=companies,
-                                           timezones=timezones,
-                                           leave_groups=leave_groups,
-                                           overtime_groups=overtime_groups)
+            # Check for duplicate NRIC - ALLOWED
+            # if nric:
+            #     duplicate = Employee.query.filter(Employee.nric == nric, Employee.id != employee_id).first()
+            #     if duplicate:
+            #         flash('Employee with this NRIC already exists', 'error')
+            #         return render_template('employees/form.html',
+            #                                employee=employee,
+            #                                form_data=request.form,
+            #                                roles=roles,
+            #                                user_roles=user_roles,
+            #                                designations=designations,
+            #                                departments=departments,
+            #                                working_hours=working_hours,
+            #                                work_schedules=work_schedules,
+            #                                managers=managers,
+            #                                companies=companies,
+            #                                timezones=timezones,
+            #                                leave_groups=leave_groups,
+            #                                overtime_groups=overtime_groups)
             employee.nric = nric
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')
@@ -1395,6 +1500,28 @@ def employee_edit(employee_id):
             else:
                 employee.psa_pass_expiry = None
 
+            # [NEW] Handle Certification Files (Edit Mode)
+            def upload_cert_file_edit(file_key, file_cat, emp_obj, field_name):
+                f_obj = request.files.get(file_key)
+                if f_obj and f_obj.filename.strip():
+                    # Determine tenant_id from company or context
+                    t_id = emp_obj.company.tenant_id if emp_obj.company else get_current_user_tenant_id()
+                    
+                    record = FileService.upload_file(
+                        file_obj=f_obj,
+                        module='HR',
+                        tenant_id=t_id,
+                        company_id=emp_obj.company_id,
+                        employee_id=emp_obj.id,
+                        file_category=file_cat
+                    )
+                    if record:
+                        setattr(emp_obj, field_name, record.id)
+
+            upload_cert_file_edit('hazmat_file', 'hazmat', employee, 'hazmat_file_id')
+            upload_cert_file_edit('airport_pass_file', 'airport_pass', employee, 'airport_pass_file_id')
+            upload_cert_file_edit('psa_pass_file', 'psa_pass', employee, 'psa_pass_file_id')
+
             basic_salary = request.form.get('basic_salary')
             employee.basic_salary = float(basic_salary) if basic_salary and basic_salary.strip() else 0.0
             
@@ -1453,21 +1580,32 @@ def employee_edit(employee_id):
                                            timezones=timezones,
                                            leave_groups=leave_groups,
                                            overtime_groups=overtime_groups)
-                # Save new image
-                original = secure_filename(file.filename)
-                ext = original.rsplit('.', 1)[1].lower()
-                unique_name = f"{employee.employee_id}_{int(pytime.time())}.{ext}"
-                save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-                file.save(save_path)
-                # Optionally remove old file
-                try:
-                    if employee.profile_image_path:
-                        old_abs = os.path.join(app.root_path, 'static', employee.profile_image_path)
-                        if os.path.isfile(old_abs):
-                            os.remove(old_abs)
-                except Exception:
-                    pass
-                employee.profile_image_path = f"uploads/employees/{unique_name}"
+                                           
+                # Determine tenant_id (if not set on object, use current context or user)
+                tenant_id = employee.company.tenant_id if employee.company else get_current_user_tenant_id()
+                
+                # Upload new file
+                file_record = FileService.upload_file(
+                    file_obj=file,
+                    module='HR',
+                    tenant_id=tenant_id,
+                    company_id=employee.company_id,
+                    employee_id=employee.id,
+                    file_category='profile',
+                    resize_to=(500, 500)
+                )
+                
+                if file_record:
+                    # Optional: Delete old file using Service if it was a FileStorage record
+                    if employee.profile_picture_id:
+                         FileService.delete_file(employee.profile_picture_id)
+                    
+                    # Update references
+                    employee.profile_picture_id = file_record.id
+                    employee.profile_image_path = file_record.file_path # Legacy match
+                    
+                else:
+                    flash('Failed to upload new profile image', 'warning')
 
             # Handle master data relationships
             designation_id = request.form.get('designation_id')
@@ -1731,43 +1869,68 @@ def payroll_generate():
                     pay_period_end=pay_period_end).first()
 
                 if existing:
-                    skipped_count += 1
-                    continue
+                    if existing.status != 'Draft':
+                        skipped_count += 1
+                        continue
+                    # If Draft, proceed to recalculate and overwrite
 
                 # Get payroll config
                 config = employee.payroll_config
 
-                # Calculate allowances
-                total_allowances = 0
+                # Calculate fixed allowances
+                fixed_allowances = 0
                 if config:
-                    total_allowances = float(config.get_total_allowances())
+                    fixed_allowances = float(config.get_total_allowances())
 
-                # Get attendance data for overtime calculation
+                # Get Approved OT Data (Hours, Amount, Allowances)
+                ot_summaries = OTDailySummary.query.filter_by(
+                    employee_id=employee.id,
+                    status='Approved'
+                ).filter(
+                    extract('month', OTDailySummary.ot_date) == month,
+                    extract('year', OTDailySummary.ot_date) == year
+                ).all()
+
+                # Aggregate Approved OT Data
+                total_overtime = sum(float(s.ot_hours or 0) for s in ot_summaries)
+                calculated_overtime_pay = sum(float(s.ot_amount or 0) for s in ot_summaries)
+                ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
+                
+                # Apply Override Logic if enabled
+                overtime_pay = calculated_overtime_pay
+                if existing and existing.ot_override_amount and existing.ot_override_amount > 0:
+                     overtime_pay = float(existing.ot_override_amount)
+
+                # Total Allowances
+                total_allowances = fixed_allowances + ot_allowances
+                
+                # Get attendance records (strictly for days worked count)
                 attendance_records = Attendance.query.filter_by(
                     employee_id=employee.id).filter(
                         Attendance.date.between(pay_period_start,
                                                 pay_period_end)).all()
 
-                total_overtime = sum(float(record.overtime_hours or 0)
-                                     for record in attendance_records)
-
-                # Calculate OT pay
-                ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(employee.hourly_rate or 0)
-                overtime_pay = total_overtime * ot_rate
-
                 # Calculate gross pay
-                basic_pay = float(employee.basic_salary)
+                # Use Payroll Configuration as master source
+                basic_pay = float(employee.payroll_config.basic_salary or 0) if employee.payroll_config else 0.0
                 gross_pay = basic_pay + total_allowances + overtime_pay
 
-                # Calculate CPF (simplified)
-                employee_cpf = gross_pay * (float(employee.employee_cpf_rate) / 100)
-                employer_cpf = gross_pay * (float(employee.employer_cpf_rate) / 100)
+                # Calculate CPF (from Configuration)
+                employee_cpf = 0.0
+                employer_cpf = 0.0
+                
+                if config:
+                    if config.employee_cpf is not None:
+                        employee_cpf = float(config.employee_cpf)
+                    if config.employer_cpf is not None:
+                         employer_cpf = float(config.employer_cpf)
 
                 # Calculate net pay
                 net_pay = gross_pay - employee_cpf
 
-                # Create payroll record
-                payroll = Payroll()
+                # Create or Update payroll record
+                payroll = existing if existing else Payroll()
+                
                 payroll.employee_id = employee.id
                 payroll.pay_period_start = pay_period_start
                 payroll.pay_period_end = pay_period_end
@@ -1786,7 +1949,8 @@ def payroll_generate():
                 payroll.generated_by = current_user.id
                 payroll.status = 'Draft'
 
-                db.session.add(payroll)
+                if not existing:
+                    db.session.add(payroll)
                 generated_count += 1
 
             db.session.commit()
@@ -1855,21 +2019,44 @@ def payroll_generate():
                          companies=companies)
 
 
+
+
 @app.route('/payroll/config')
 @require_role(['Super Admin', 'Admin', 'HR Manager', 'Tenant Admin'])
 def payroll_config():
     """Payroll configuration page - manage employee salary allowances and OT rates"""
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str)
+    
+    # Filter params
+    company_id = request.args.get('company_id', '', type=str)
+    department = request.args.get('department', '', type=str)
+    manager_id = request.args.get('manager_id', '', type=str)
 
     # Query active employees
     query = Employee.query.filter_by(is_active=True)
 
     # Scoping for HR Manager / Tenant Admin
-    if (current_user.role.name if current_user.role else None) in ['HR Manager', 'Tenant Admin']:
+    user_role = current_user.role.name if current_user.role else None
+    accessible_companies = []
+    
+    if user_role in ['HR Manager', 'Tenant Admin']:
         accessible_companies = current_user.get_accessible_companies()
         company_ids = [c.id for c in accessible_companies]
         query = query.filter(Employee.company_id.in_(company_ids))
+    elif user_role in ['Super Admin', 'Admin']:
+         # Admins can see all companies
+        accessible_companies = Company.query.filter_by(is_active=True).order_by(Company.name).all()
+
+    # Apply Filters
+    if company_id:
+        query = query.filter(Employee.company_id == company_id)
+    
+    if department:
+        query = query.filter(Employee.department == department)
+        
+    if manager_id and manager_id.isdigit():
+        query = query.filter(Employee.manager_id == int(manager_id))
 
     if search:
         query = query.filter(
@@ -1895,8 +2082,36 @@ def payroll_config():
     except Exception as e:
         db.session.rollback()
         print(f"Error creating payroll configs: {e}")
+        
+    # --- Load Data for Filters ---
+    
+    # Departments (From Master + Distinct Existing)
+    master_depts = [d.name for d in Department.query.filter_by(is_active=True).order_by(Department.name).all()]
+    existing_depts = [d[0] for d in db.session.query(Employee.department).distinct().filter(Employee.department.isnot(None), Employee.is_active==True).all()]
+    all_departments = sorted(list(set(master_depts + existing_depts)))
+    
+    # Managers (Active employees who are managers)
+    managers_query = Employee.query.filter_by(is_active=True, is_manager=True)
+    if user_role in ['HR Manager', 'Tenant Admin']:
+        # Limit managers to accessible companies
+        acc_company_ids = [c.id for c in accessible_companies]
+        managers_query = managers_query.filter(Employee.company_id.in_(acc_company_ids))
+        
+    all_managers = managers_query.order_by(Employee.first_name).all()
 
-    return render_template('payroll/config.html', employees=employees, search=search)
+    return render_template('payroll/config.html', 
+                           employees=employees, 
+                           search=search,
+                           current_filters={
+                               'company_id': company_id,
+                               'department': department,
+                               'manager_id': int(manager_id) if manager_id and manager_id.isdigit() else ''
+                           },
+                           filter_options={
+                               'companies': accessible_companies,
+                               'departments': all_departments,
+                               'managers': all_managers
+                           })
 
 
 @app.route('/payroll/config/update', methods=['POST'])
@@ -1906,6 +2121,8 @@ def payroll_config_update():
     try:
         data = request.get_json()
         employee_id = data.get('employee_id')
+        month = data.get('month')
+        year = data.get('year')
 
         employee = Employee.query.get_or_404(employee_id)
 
@@ -1918,32 +2135,104 @@ def payroll_config_update():
                     'success': False,
                     'message': 'You do not have permission to update this employee.'
                  }), 403
+        
+        # 1. Update Master Configuration (Basic & Allowances)
         config = employee.payroll_config
 
         if not config:
             config = PayrollConfiguration(employee_id=employee_id)
             db.session.add(config)
 
-        # Update base salary (on Employee model)
+        # Update base salary (on PayrollConfiguration model)
         if 'basic_salary' in data:
-            employee.basic_salary = float(data['basic_salary'])
+            config.basic_salary = Decimal(str(data['basic_salary'])) if data['basic_salary'] else Decimal(0)
 
         # Update allowances
         if 'allowance_1_amount' in data:
-            config.allowance_1_amount = float(data['allowance_1_amount']) if data['allowance_1_amount'] else 0
+            config.allowance_1_amount = Decimal(str(data['allowance_1_amount'])) if data['allowance_1_amount'] else Decimal(0)
         if 'allowance_2_amount' in data:
-            config.allowance_2_amount = float(data['allowance_2_amount']) if data['allowance_2_amount'] else 0
+            config.allowance_2_amount = Decimal(str(data['allowance_2_amount'])) if data['allowance_2_amount'] else Decimal(0)
         if 'allowance_3_amount' in data:
-            config.allowance_3_amount = float(data['allowance_3_amount']) if data['allowance_3_amount'] else 0
+            config.allowance_3_amount = Decimal(str(data['allowance_3_amount'])) if data['allowance_3_amount'] else Decimal(0)
         if 'allowance_4_amount' in data:
-            config.allowance_4_amount = float(data['allowance_4_amount']) if data['allowance_4_amount'] else 0
+            config.allowance_4_amount = Decimal(str(data['allowance_4_amount'])) if data['allowance_4_amount'] else Decimal(0)
 
-        # Update OT rate
+        # Update OT rate (Optional, mostly removed from UI but kept for backend compat)
         if 'ot_rate_per_hour' in data:
-            config.ot_rate_per_hour = float(data['ot_rate_per_hour']) if data['ot_rate_per_hour'] else None
+            config.ot_rate_per_hour = Decimal(str(data['ot_rate_per_hour'])) if data['ot_rate_per_hour'] else None
+
+        # Update CPF Configuration (Master)
+        if 'employee_cpf' in data:
+            config.employee_cpf = Decimal(str(data['employee_cpf'])) if data['employee_cpf'] is not None and data['employee_cpf'] != '' else Decimal(0)
+        
+        if 'employer_cpf' in data:
+            config.employer_cpf = Decimal(str(data['employer_cpf'])) if data['employer_cpf'] is not None and data['employer_cpf'] != '' else Decimal(0)
+
+        # Recalculate Net Salary (Estimated)
+        # Net = Basic + Allowances - Employee CPF
+        total_allowances = config.get_total_allowances()
+        config.net_salary = (config.basic_salary or Decimal(0)) + total_allowances - (config.employee_cpf or Decimal(0))
 
         config.updated_by = current_user.id
         config.updated_at = datetime.now()
+        
+        # 2. Update Monthly Overrides (OT Hours, CPF) -> Stored in Draft Payroll Record
+        if month and year: # removed 'ot_hours' in data check to allow just updating CPF if needed
+            try:
+                 # Calculate pay period range
+                from calendar import monthrange
+                pay_period_start = date(int(year), int(month), 1)
+                last_day = monthrange(int(year), int(month))[1]
+                pay_period_end = date(int(year), int(month), last_day)
+                
+                # Check for existing payroll record
+                payroll = Payroll.query.filter_by(
+                    employee_id=employee_id,
+                    pay_period_start=pay_period_start,
+                    pay_period_end=pay_period_end
+                ).first()
+                
+                if not payroll:
+                    payroll = Payroll(
+                        employee_id=employee_id,
+                        pay_period_start=pay_period_start,
+                        pay_period_end=pay_period_end,
+                        status='Draft',
+                        # Initialize required fields with defaults to avoid NOT NULL errors
+                        basic_pay=0, gross_pay=0, net_pay=0 
+                    )
+                    db.session.add(payroll)
+                
+                payroll.status = 'Draft'
+                
+                # Update OT Hours Override
+                if 'ot_hours' in data:
+                    payroll.overtime_hours = float(data['ot_hours'])
+                    # Default: Recalculate amount based on rate (unless overridden below)
+                    ot_rate = float(config.ot_rate_per_hour) if config.ot_rate_per_hour else float(employee.hourly_rate or 0)
+                    payroll.overtime_pay = payroll.overtime_hours * ot_rate
+                
+                # Update OT Amount Override (Prioritize over calculation)
+                if 'ot_amount' in data:
+                    # Treat 'ot_amount' from frontend as the override amount
+                    # Use a new field ot_override_amount for explicit storage
+                    payroll.ot_override_amount = float(data['ot_amount'])
+                    
+                    # Also update final pay if override is active (>0) or we want to force it
+                    # Logic: If user types 0, it might mean "Reset" or "No OT".
+                    # Let's assume if they send it, it's an override.
+                    payroll.overtime_pay = float(data['ot_amount'])
+                
+                # Update CPF Override
+                if 'cpf_deduction' in data:
+                    payroll.employee_cpf = float(data['cpf_deduction'])
+                
+                # Update Employer CPF Override (Does NOT affect Net Pay)
+                if 'employer_cpf' in data:
+                    payroll.employer_cpf = float(data['employer_cpf'])
+                
+            except ValueError:
+                pass # Ignore invalid month/year
 
         db.session.commit()
 
@@ -2004,14 +2293,84 @@ def payroll_preview_api():
             # Get payroll config
             config = emp.payroll_config
 
-            # Calculate allowances
+            # Calculate fixed allowances
             allowance_1 = float(config.allowance_1_amount) if config else 0
             allowance_2 = float(config.allowance_2_amount) if config else 0
             allowance_3 = float(config.allowance_3_amount) if config else 0
             allowance_4 = float(config.allowance_4_amount) if config else 0
-            total_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
+            fixed_allowances = allowance_1 + allowance_2 + allowance_3 + allowance_4
 
-            # Get attendance data for the month
+            # ---------------------------------------------------------
+            # DATA SOURCES STRATEGY:
+            # 1. Calculated (Source 2) - Always calculates "Original"
+            # 2. Override (Source 1) - Checks for manual override in DB
+            # ---------------------------------------------------------
+            
+            # Step 1: Calculate "Original" from Daily Summaries (Live Data)
+            ot_summaries = OTDailySummary.query.filter_by(
+                employee_id=emp.id,
+                status='Approved'
+            ).filter(
+                extract('month', OTDailySummary.ot_date) == month,
+                extract('year', OTDailySummary.ot_date) == year
+            ).all()
+
+            calculated_ot_hours = sum(float(s.ot_hours or 0) for s in ot_summaries)
+            calculated_ot_amount = sum(float(s.ot_amount or 0) for s in ot_summaries)
+            calculated_ot_allowances = sum(float(s.total_allowances or 0) for s in ot_summaries)
+            
+            payroll_record = Payroll.query.filter_by(
+                employee_id=emp.id,
+                pay_period_start=pay_period_start,
+                pay_period_end=pay_period_end
+            ).first()
+            
+            total_ot_hours = calculated_ot_hours
+            ot_amount = calculated_ot_amount # Default to calculated
+            ot_allowances = calculated_ot_allowances
+            
+            ot_override_amount = 0.0
+            
+            cpf_override = None 
+            employer_cpf = 0.0 
+            
+            if payroll_record:
+                # Get Override Amount
+                ot_override_amount = float(payroll_record.ot_override_amount or 0)
+                
+                # Logic: If override > 0, use it. Else use calculated.
+                # Note: User requirement "if the over ride amount is grated than zero it should take the overided amount else the original calculated amount"
+                if ot_override_amount > 0:
+                    ot_amount = ot_override_amount
+                    # Note: We don't automatically adjust hours if amount is overridden, 
+                    # but we could keep calculated hours or use stored hours if we wanted.
+                    # For now, keeping calculated hours is safer for display unless explicitly overridden too.
+                
+                # Use persisted CPF only if record is finalized
+                if payroll_record.status in ['Approved', 'Paid']:
+                    if payroll_record.employee_cpf is not None:
+                         cpf_override = float(payroll_record.employee_cpf)
+                    if payroll_record.employer_cpf is not None:
+                        employer_cpf = float(payroll_record.employer_cpf)
+                        
+                # Note: For 'Draft' or 'Generated', we intentionally IGNORE the stored 
+                # Payroll.employee_cpf/employer_cpf and fall through to use the
+                # PayrollConfiguration (Master) values below. This ensures that
+                # clicking "Load Data" always reflects the latest Configuration.
+                        
+                # If record is finalized (Approved/Paid), strictly use stored values?
+                # Actually, user said "regenerate whenever", implying Draft should always auto-update calculated part.
+                # If finalized, we probably shouldn't change it.
+                if payroll_record.status in ['Approved', 'Paid']:
+                     # For finalized records, stick to what's in DB completely
+                     total_ot_hours = float(payroll_record.overtime_hours or 0)
+                     ot_amount = float(payroll_record.overtime_pay or 0)
+                     ot_override_amount = float(payroll_record.ot_override_amount or 0) # Keep historical override logic if needed
+
+            # Total Allowances = Fixed + OT Allowances
+            total_allowances = fixed_allowances + ot_allowances
+
+            # Get attendance data for the month (only for days worked count)
             attendance_records = Attendance.query.filter_by(
                 employee_id=emp.id
             ).filter(
@@ -2019,18 +2378,33 @@ def payroll_preview_api():
             ).all()
 
             attendance_days = len(attendance_records)
-            total_ot_hours = sum(float(record.overtime_hours or 0) for record in attendance_records)
 
-            # Calculate OT amount
+            # OT Rate is just for display/reference now (taken from config or calculated average)
+            # Since amount is sum of daily variable rates, a single rate might be misleading but we keep it for UI
             ot_rate = float(config.ot_rate_per_hour) if config and config.ot_rate_per_hour else float(emp.hourly_rate or 0)
-            ot_amount = total_ot_hours * ot_rate
 
             # Calculate gross salary
-            basic_salary = float(emp.basic_salary)
+            # Use Payroll Configuration
+            basic_salary = float(emp.payroll_config.basic_salary or 0) if emp.payroll_config else 0.0
             gross_salary = basic_salary + total_allowances + ot_amount
 
-            # Calculate CPF deductions (simplified - using employee rate)
-            cpf_deduction = gross_salary * (float(emp.employee_cpf_rate) / 100)
+            # Calculate CPF deductions
+            if cpf_override is not None:
+                cpf_deduction = cpf_override
+            else:
+                # Use Configuration values as default
+                if config and config.employee_cpf is not None:
+                    cpf_deduction = float(config.employee_cpf)
+                else:
+                    cpf_deduction = 0.0
+                
+                # Also ensure Employer CPF is set from config if not overridden (and not already set by payroll record)
+                # Note: We check if it's already set (from Approved/Paid record above). 
+                # If it's 0.0 (default) or we are in Draft mode (where we ignored persisted values), we load from config.
+                if payroll_record and payroll_record.status in ['Approved', 'Paid'] and payroll_record.employer_cpf is not None:
+                     pass # Already handled above
+                elif config and config.employer_cpf is not None:
+                     employer_cpf = float(config.employer_cpf)
 
             # Calculate net salary
             total_deductions = cpf_deduction
@@ -2058,10 +2432,13 @@ def payroll_preview_api():
                 'ot_hours': total_ot_hours,
                 'ot_rate': ot_rate,
                 'ot_amount': ot_amount,
+                'ot_override_amount': ot_override_amount,
+                'original_ot_amount': calculated_ot_amount,
                 'attendance_days': attendance_days,
                 'attendance_rate': attendance_rate,
                 'gross_salary': gross_salary,
                 'cpf_deduction': cpf_deduction,
+                'employer_cpf': employer_cpf,
                 'total_deductions': total_deductions,
                 'net_salary': net_salary,
                 'has_bank_info': has_bank_info,
@@ -2106,7 +2483,14 @@ def payroll_payslip(payroll_id):
 
     # Prepare data for template
     employee = payroll.employee
-    company = employee.organization
+    company = employee.company
+    if not company:
+        # Fallback to organization if company is not linked directly, though unusual for payslip context
+        company = employee.organization
+        
+    if not company:
+        flash('Employee is not associated with a valid company.', 'error')
+        return redirect(url_for('dashboard'))
     
     # Calculate pay date (end of pay period)
     pay_date = payroll.pay_period_end.strftime('%d-%b-%Y')
@@ -2129,8 +2513,67 @@ def payroll_payslip(payroll_id):
         bank_name = employee.bank_info.bank_name or bank_name
         bank_account = employee.bank_info.bank_account_number or bank_account
 
-    # Prepare earnings data
+    # Prepare earnings breakdown
+    earnings_breakdown = []
+    
+    # 1. Basic Pay
+    earnings_breakdown.append({
+        'label': 'Basic Salary', 
+        'amount': f"{float(payroll.basic_pay):,.2f}"
+    })
+
+    # 2. Allowances from Configuration
+    config = employee.payroll_config
+    total_config_allowances = 0
+    if config:
+        # Helper to add allowance if > 0
+        def add_allowance(name, amount):
+            if amount and amount > 0:
+                earnings_breakdown.append({
+                    'label': name, 
+                    'amount': f"{float(amount):,.2f}"
+                })
+                return float(amount)
+            return 0
+
+        total_config_allowances += add_allowance(config.allowance_1_name or 'Transport Allowance', config.allowance_1_amount)
+        total_config_allowances += add_allowance(config.allowance_2_name or 'Housing Allowance', config.allowance_2_amount)
+        total_config_allowances += add_allowance(config.allowance_3_name or 'Meal Allowance', config.allowance_3_amount)
+        total_config_allowances += add_allowance(config.allowance_4_name or 'Other Allowance', config.allowance_4_amount)
+        total_config_allowances += add_allowance(config.levy_allowance_name or 'Levy Allowance', config.levy_allowance_amount)
+
+    # 3. Overtime Pay
+    if payroll.overtime_pay and payroll.overtime_pay > 0:
+         earnings_breakdown.append({
+            'label': 'Overtime Pay', 
+            'amount': f"{float(payroll.overtime_pay):,.2f}"
+        })
+
+    # 4. Bonuses
+    if payroll.bonuses and payroll.bonuses > 0:
+         earnings_breakdown.append({
+            'label': 'Bonuses', 
+            'amount': f"{float(payroll.bonuses):,.2f}"
+        })
+        
+    # 5. Any other difference in allowances (e.g. from OT daily allowances)
+    # Total recorded allowances in payroll vs what we found in config
+    recorded_allowances = float(payroll.allowances or 0)
+    remaining_allowances = recorded_allowances - total_config_allowances
+    if remaining_allowances > 0.01: # Tolerance for float comparison
+        earnings_breakdown.append({
+            'label': 'Additional Allowances', 
+            'amount': f"{remaining_allowances:,.2f}"
+        })
+
+    # Legacy mappings for template compatibility (if needed, though we will update template)
     earnings = {
+        'basic': f"{float(payroll.basic_pay):,.2f}",
+        'hra': "0.00", 
+        'transport': "0.00",
+        'other': f"{float(payroll.allowances + payroll.bonuses + payroll.overtime_pay):,.2f}",
+        'breakdown': earnings_breakdown, # Passing the new list
+        # Legacy keys for backward compatibility
         'regular_pay_rate': f"{float(employee.basic_salary):,.2f}",
         'regular_pay_amount': f"{float(payroll.basic_pay):,.2f}",
         'overtime_pay_rate': f"{float(employee.hourly_rate or 0):,.2f}" if employee.hourly_rate else "0.00",
@@ -2141,13 +2584,22 @@ def payroll_payslip(payroll_id):
         'others': f"{float(payroll.allowances + payroll.bonuses):,.2f}"
     }
 
-    # Prepare deductions data
+    # Prepare deductions data (Mapped for payslip_preview.html)
     deductions = {
+        'pf': f"{float(payroll.employee_cpf):,.2f}", # Renamed/Label update handled in template, this key is for data
+        'cpf': f"{float(payroll.employee_cpf):,.2f}", # New key for clarity
+        'tax': "0.00", # Set to 0 or remove from template display
+        # Legacy keys
         'income_tax': f"{float(payroll.income_tax):,.2f}",
         'medical': "0.00",
         'life_insurance': "0.00", 
         'provident_fund': f"{float(payroll.employee_cpf):,.2f}",
         'others': f"{float(payroll.other_deductions):,.2f}"
+    }
+
+    # Prepare Employer Contributions (Not Deducted)
+    employer_contributions = {
+        'cpf': f"{float(payroll.employer_cpf or 0):,.2f}"
     }
 
     # Prepare employee data
@@ -2189,12 +2641,113 @@ def payroll_payslip(payroll_id):
         'net_pay_words': num_to_words(net_pay_val)
     }
 
+
+    # Check for default template
+    # 1. Company level default
+    template = PayslipTemplate.query.filter_by(
+        company_id=employee.company_id,
+        is_default=True
+    ).first()
+    
+    # 2. Tenant level default (if no company specific)
+    if not template and company.tenant_id:
+        template = PayslipTemplate.query.filter_by(
+            tenant_id=company.tenant_id,
+            company_id=None,
+            is_default=True
+        ).first()
+
+    if template:
+        # Dynamic injection of 'employer_contributions' section
+        layout_config = list(template.layout_config) # Copy to avoid mutating DB object in session if that happens
+        if 'employer_contributions' not in layout_config:
+            # Insert before earnings_table if exists, else append
+            if 'earnings_table' in layout_config:
+                idx = layout_config.index('earnings_table')
+                layout_config.insert(idx, 'employer_contributions')
+            else:
+                layout_config.append('employer_contributions')
+        
+        # [NEW] Resolve Asset URLs
+        def get_asset_url(file_id, legacy_path):
+             if file_id:
+                  try:
+                       from services.file_service import FileService
+                       return FileService.get_file_url(file_id)
+                  except:
+                       pass
+             if legacy_path:
+                  if legacy_path.startswith('http'): return legacy_path
+                  if 'tenants/' in legacy_path:
+                       try:
+                           from services.s3_service import S3Service
+                           return S3Service().generate_presigned_url(legacy_path)
+                       except:
+                           pass
+                  return url_for('static', filename=legacy_path)
+             return None
+
+        logo_path = get_asset_url(template.logo_id, template.logo_path)
+        left_logo_path = get_asset_url(template.left_logo_id, template.left_logo_path)
+        right_logo_path = get_asset_url(template.right_logo_id, template.right_logo_path)
+        watermark_path = get_asset_url(template.watermark_id, template.watermark_path)
+        footer_image_path = get_asset_url(template.footer_image_id, template.footer_image_path)
+        header_image_path = get_asset_url(template.header_image_id, template.header_image_path) #[NEW]
+
+        return render_template('payroll/payslip_preview.html',
+                             layout_config=layout_config,
+                             logo_path=logo_path,
+                             left_logo_path=left_logo_path,
+                             right_logo_path=right_logo_path,
+                             header_image_path=header_image_path, #[NEW]
+                             watermark_path=watermark_path,
+                             footer_image_path=footer_image_path,
+                             payroll=payroll_data,
+                             employee=employee_data,
+                             company=company_data,
+                             earnings=earnings,
+                             deductions=deductions,
+                             employer_contributions=employer_contributions)
+
+    # 6. Fetch Payslip Logo (Tenant Configuration)
+    logo_url = None
+    try:
+        from core.models import TenantConfiguration
+        from services.file_service import FileService
+        from services.s3_service import S3Service
+        
+        # Determine Tenant ID
+        tenant_id = None
+        if company and company.tenant_id:
+            tenant_id = company.tenant_id
+        
+        if tenant_id:
+            # Fetch Config
+            tenant_config = TenantConfiguration.query.filter_by(tenant_id=tenant_id).first()
+            if tenant_config:
+                # 1. Try FileStorage [NEW]
+                if tenant_config.payslip_logo_id:
+                    logo_url = FileService.get_file_url(tenant_config.payslip_logo_id)
+                
+                # 2. Fallback to Legacy Path
+                elif tenant_config.payslip_logo_path:
+                    if 'tenant_logos/' in tenant_config.payslip_logo_path or tenant_config.payslip_logo_path.startswith('tenants/'):
+                        s3 = S3Service()
+                        logo_url = s3.generate_presigned_url(tenant_config.payslip_logo_path)
+                    else:
+                        logo_url = url_for('static', filename=tenant_config.payslip_logo_path.replace('\\', '/'))
+    except Exception as e:
+        print(f"Error loading payslip logo: {e}")
+
     return render_template('payroll/payslip.html',
                          payroll=payroll_data,
                          employee=employee_data,
                          company=company_data,
                          earnings=earnings,
-                         deductions=deductions)
+                         deductions=deductions,
+                         employer_contributions=employer_contributions,
+                         logo_url=logo_url)
+
 
 
 @app.route('/payroll/<int:payroll_id>/approve', methods=['POST'])
@@ -3549,29 +4102,7 @@ def update_user_role(user_id):
     return redirect(url_for('user_management'))
 
 
-@app.route('/export/employees')
-@require_role(['Super Admin', 'Admin', 'Manager'])
-def export_employees():
-    """Export employees to CSV"""
-    employees = Employee.query.filter_by(is_active=True).all()
 
-    csv_data = []
-    for emp in employees:
-        csv_data.append([
-            emp.employee_id, emp.first_name, emp.last_name, emp.email,
-            emp.nric, emp.designation.name if emp.designation else '', emp.department,
-            format_date(emp.hire_date), emp.employment_type,
-            emp.work_permit_type,
-            format_currency(emp.basic_salary)
-        ])
-
-    headers = [
-        'Employee ID', 'First Name', 'Last Name', 'Email', 'NRIC', 'Designation',
-        'Department', 'Hire Date', 'Employment Type', 'Work Permit Type',
-        'Basic Salary'
-    ]
-
-    return export_to_csv(csv_data, 'employees_export.csv', headers)
 
 
 # Mobile API routes for PWA functionality

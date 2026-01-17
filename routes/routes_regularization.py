@@ -67,6 +67,38 @@ def attendance_regularize_request():
             status='Pending',
             requested_by=current_user.id
         )
+
+        # Handle Proof File Upload
+        if 'proof' in request.files:
+            file = request.files['proof']
+            if file and file.filename != '':
+                try:
+                    # Get Tenant ID
+                    from services.file_service import FileService
+                    
+                    tenant_id = None
+                    if attendance.employee.company and attendance.employee.company.tenant_id:
+                        tenant_id = attendance.employee.company.tenant_id
+                    
+                    if tenant_id:
+                        file_record = FileService.upload_file(
+                            file_obj=file,
+                            module='ATTENDANCE',
+                            tenant_id=tenant_id,
+                            company_id=attendance.employee.company_id,
+                            employee_id=attendance.employee_id,
+                            file_category='regularization_proof'
+                        )
+                        
+                        if file_record:
+                            req.proof_file_id = file_record.id
+                            req.proof_path = file_record.file_path # Legacy support
+                except Exception as e:
+                     # Log error but don't fail the request entirely? Or fail?
+                     # Better to fail if upload was attempted but failed.
+                     db.session.rollback()
+                     flash(f'Error uploading proof document: {str(e)}', 'error')
+                     return redirect(url_for('attendance_list_view'))
         
         db.session.add(req)
         

@@ -195,12 +195,12 @@ def report_payroll_configuration():
                 'name': f"{emp.first_name} {emp.last_name}",
                 'company_code': emp.company.code if emp.company else 'N/A',
                 'designation': emp.designation.name if emp.designation else 'N/A',
-                'basic_salary': float(emp.basic_salary or 0),
+                'basic_salary': float(config.basic_salary or 0),
                 'allowances': float((config.allowance_1_amount or 0) + (config.allowance_2_amount or 0) + 
                                    (config.allowance_3_amount or 0) + (config.allowance_4_amount or 0)),
                 'employer_cpf': float(config.employer_cpf or 0),
                 'employee_cpf': float(config.employee_cpf or 0),
-                'gross_salary': float((emp.basic_salary or 0) + 
+                'gross_salary': float((config.basic_salary or 0) + 
                                      (config.allowance_1_amount or 0) + (config.allowance_2_amount or 0) + 
                                      (config.allowance_3_amount or 0) + (config.allowance_4_amount or 0)),
                 'net_salary': float(config.net_salary or 0),
@@ -243,7 +243,7 @@ def update_payroll_configuration(config_id):
         
         # Update fields based on what was sent
         if 'basic_salary' in data:
-            config.employee.basic_salary = float(data['basic_salary'])
+            config.basic_salary = float(data['basic_salary'])
         if 'employer_cpf' in data:
             config.employer_cpf = float(data['employer_cpf'])
         if 'employee_cpf' in data:

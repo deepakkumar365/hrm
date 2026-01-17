@@ -1,176 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payslip - {{ employee.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Calibri:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet"></head>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Calibri:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap"
+        rel="stylesheet">
+</head>
+
 <body>
 
-<div class="info-message">
-    <strong>Print Instructions:</strong> This payslip is optimized for printing. Use your browser's Print function (Ctrl+P or Cmd+P) to save or print this document. 
-    Set margins to minimal (0.5 inches) for best results.
-</div>
-
-<div class="payslip-container">
-
-    <!-- Company Header Bar -->
-    <div class="company-header">
-        <div class="company-name">{{ company.name }}</div>
-        <div class="company-slogan">FOR ALL YOUR FREIGHT SOLUTIONS</div>
-        <div class="company-contact">Tel: +65 9766 6641 | 6254 9447</div>
-        <div class="company-address">{{ company.address }}</div>
-        <div class="company-uen">UEN: {{ company.uen }}</div>
+    <div class="info-message">
+        <strong>Print Instructions:</strong> This payslip is optimized for printing. Use your browser's Print function
+        (Ctrl+P or Cmd+P) to save or print this document.
+        Set margins to minimal (0.5 inches) for best results.
     </div>
 
-    <!-- Salary Slip Title Section -->
-    <div class="slip-title-section">
-        <div class="slip-title">PAYROLL SALARY SLIP</div>
-        <div class="slip-subtitle">{{ payroll.pay_date }}</div>
+    <div class="payslip-container">
+
+        <!-- Company Header Bar -->
+        <div class="company-header">
+            <div class="company-name">{{ company.name }}</div>
+            <div class="company-slogan">FOR ALL YOUR FREIGHT SOLUTIONS</div>
+            <div class="company-contact">Tel: +65 9766 6641 | 6254 9447</div>
+            <div class="company-address">{{ company.address }}</div>
+            <div class="company-uen">UEN: {{ company.uen }}</div>
+        </div>
+
+        <!-- Salary Slip Title Section -->
+        <div class="slip-title-section">
+            <div class="slip-title">PAYROLL SALARY SLIP</div>
+            <div class="slip-subtitle">{{ payroll.pay_date }}</div>
+        </div>
+
+        <!-- Content Area with Background -->
+        <div class="content-area">
+
+            <!-- Employee Information Section -->
+            <div class="info-section">
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Employee Name:</td>
+                        <td class="value">{{ employee.name }}</td>
+                        <td class="label">Pay Date:</td>
+                        <td class="value">{{ payroll.pay_date }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">(NRIC/FIN/WORK PERMIT):</td>
+                        <td class="value">{{ employee.nric }}</td>
+                        <td class="label">Designation:</td>
+                        <td class="value">{{ employee.designation }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Nationality:</td>
+                        <td class="value">{{ employee.nationality }}</td>
+                        <td class="label"></td>
+                        <td class="value"></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Pay Details Section -->
+            <div class="pay-section">
+                <table class="pay-table">
+                    <thead>
+                        <tr>
+                            <th>Earnings</th>
+                            <th>Rate (SGD)</th>
+                            <th>Hours</th>
+                            <th>Amount (SGD)</th>
+                            <th>Deductions</th>
+                            <th>Amount (SGD)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Regular Pay</td>
+                            <td>{{ earnings.regular_pay_rate }}</td>
+                            <td>-</td>
+                            <td>{{ earnings.regular_pay_amount }}</td>
+                            <td>Income Tax</td>
+                            <td>{{ deductions.income_tax }}</td>
+                        </tr>
+                        <tr>
+                            <td>Overtime Pay</td>
+                            <td>{{ earnings.overtime_pay_rate }}</td>
+                            <td>{{ earnings.overtime_hours if earnings.overtime_hours else '-' }}</td>
+                            <td>{{ earnings.overtime_amount }}</td>
+                            <td>Medical</td>
+                            <td>{{ deductions.medical }}</td>
+                        </tr>
+                        <tr>
+                            <td>Holiday Pay</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>{{ earnings.holiday_pay }}</td>
+                            <td>Life Insurance</td>
+                            <td>{{ deductions.life_insurance }}</td>
+                        </tr>
+                        <tr>
+                            <td>Vacation Pay</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>{{ earnings.vacation_pay }}</td>
+                            <td>Loss of Pay</td>
+                            <td>{{ deductions.loss_of_pay }}</td>
+                        </tr>
+                        <tr>
+                            <td>Others</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>{{ earnings.others }}</td>
+                            <td>Central Provident Fund</td>
+                            <td>{{ deductions.provident_fund }}</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td>Other Deductions</td>
+                            <td>{{ deductions.others }}</td>
+                        </tr>
+                        <tr class="totals-row">
+                            <td colspan="3">Total (Gross)</td>
+                            <td>{{ payroll.total_earnings }}</td>
+                            <td>Total</td>
+                            <td>{{ payroll.total_deductions }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="summary-section">
+                <table class="summary-table">
+                    <tr>
+                        <td class="label">Total Earnings (SGD)</td>
+                        <td>{{ payroll.total_earnings }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Total Deductions (SGD)</td>
+                        <td>{{ payroll.total_deductions }}</td>
+                    </tr>
+                    <tr class="netpay-row">
+                        <td class="label">Net Pay (SGD)</td>
+                        <td>{{ payroll.net_pay }}</td>
+                    </tr>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- Footer Section -->
+        <div class="footer-wave">
+            <div class="footer-note">
+                This is a system-generated document. Hence, signature is not needed!
+            </div>
+            <div class="footer-contact">
+                Email: james.woo@aksfs.com | segar@aksfs.com | sashi@aksfs.com | acc@aksfs.com
+            </div>
+            <div class="footer-contact">
+                Website: www.aksgroup.com.sg
+            </div>
+            <div class="footer-logo">
+                AKS FREIGHT SOLUTIONS PTE.LTD.
+            </div>
+        </div>
+
     </div>
 
-    <!-- Content Area with Background -->
-    <div class="content-area">
-
-        <!-- Employee Information Section -->
-        <div class="info-section">
-            <table class="info-table">
-                <tr>
-                    <td class="label">Employee Name:</td>
-                    <td class="value">{{ employee.name }}</td>
-                    <td class="label">Pay Date:</td>
-                    <td class="value">{{ payroll.pay_date }}</td>
-                </tr>
-                <tr>
-                    <td class="label">NRIC/FIN/WP/SP:</td>
-                    <td class="value">{{ employee.nric }}</td>
-                    <td class="label">Designation:</td>
-                    <td class="value">{{ employee.designation }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Nationality:</td>
-                    <td class="value">{{ employee.nationality }}</td>
-                    <td class="label">Department:</td>
-                    <td class="value">{{ employee.department if employee.department else 'N/A' }}</td>
-                </tr>
-            </table>
-        </div>
-
-        <!-- Pay Details Section -->
-        <div class="pay-section">
-            <table class="pay-table">
-                <thead>
-                <tr>
-                    <th>Earnings</th>
-                    <th>Rate (SGD)</th>
-                    <th>Hours</th>
-                    <th>Amount (SGD)</th>
-                    <th>Deductions</th>
-                    <th>Amount (SGD)</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>Regular Pay</td>
-                    <td>{{ earnings.regular_pay_rate }}</td>
-                    <td>-</td>
-                    <td>{{ earnings.regular_pay_amount }}</td>
-                    <td>Income Tax</td>
-                    <td>{{ deductions.income_tax }}</td>
-                </tr>
-                <tr>
-                    <td>Overtime Pay</td>
-                    <td>{{ earnings.overtime_pay_rate }}</td>
-                    <td>{{ earnings.overtime_hours if earnings.overtime_hours else '-' }}</td>
-                    <td>{{ earnings.overtime_amount }}</td>
-                    <td>Medical</td>
-                    <td>{{ deductions.medical }}</td>
-                </tr>
-                <tr>
-                    <td>Holiday Pay</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>{{ earnings.holiday_pay }}</td>
-                    <td>Life Insurance</td>
-                    <td>{{ deductions.life_insurance }}</td>
-                </tr>
-                <tr>
-                    <td>Vacation Pay</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>{{ earnings.vacation_pay }}</td>
-                    <td>Loss of Pay</td>
-                    <td>{{ deductions.loss_of_pay }}</td>
-                </tr>
-                <tr>
-                    <td>Others</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td>{{ earnings.others }}</td>
-                    <td>Central Provident Fund</td>
-                    <td>{{ deductions.provident_fund }}</td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td>Other Deductions</td>
-                    <td>{{ deductions.others }}</td>
-                </tr>
-                <tr class="totals-row">
-                    <td colspan="3">Total (Gross)</td>
-                    <td>{{ payroll.total_earnings }}</td>
-                    <td>Total</td>
-                    <td>{{ payroll.total_deductions }}</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Summary Section -->
-        <div class="summary-section">
-            <table class="summary-table">
-                <tr>
-                    <td class="label">Total Earnings (SGD)</td>
-                    <td>{{ payroll.total_earnings }}</td>
-                </tr>
-                <tr>
-                    <td class="label">Total Deductions (SGD)</td>
-                    <td>{{ payroll.total_deductions }}</td>
-                </tr>
-                <tr class="netpay-row">
-                    <td class="label">Net Pay (SGD)</td>
-                    <td>{{ payroll.net_pay }}</td>
-                </tr>
-            </table>
-        </div>
-
+    <!-- Print and Back Buttons -->
+    <div class="print-button-container">
+        <button class="print-button" onclick="window.print()">🖨️ Print Payslip</button>
+        <a href="javascript:history.back()" class="back-button">← Back</a>
     </div>
-
-    <!-- Footer Section -->
-    <div class="footer-wave">
-        <div class="footer-note">
-            This is a system-generated document. Hence, signature is not needed!
-        </div>
-        <div class="footer-contact">
-            Email: james.woo@aksfs.com | segar@aksfs.com | sashi@aksfs.com | acc@aksfs.com
-        </div>
-        <div class="footer-contact">
-            Website: www.aksgroup.com.sg
-        </div>
-        <div class="footer-logo">
-            AKS FREIGHT SOLUTIONS PTE.LTD.
-        </div>
-    </div>
-
-</div>
-
-<!-- Print and Back Buttons -->
-<div class="print-button-container">
-    <button class="print-button" onclick="window.print()">🖨️ Print Payslip</button>
-    <a href="javascript:history.back()" class="back-button">← Back</a>
-</div>
 
 </body>
+
 </html>

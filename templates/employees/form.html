@@ -292,14 +292,7 @@
                             <div class="form-grid-item">
                                 <label for="email" class="form-label">Email</label>
                                 <input type="text" class="form-control" id="email" name="email"
-                                    value="{{ form_data.get('email') if form_data else (employee.email or '' if employee else '') }}"
-                                    {% if (current_user.role.name if current_user.role else None) not in ['HR
-                                    Manager', 'Super Admin' , 'Tenant Admin' ] %}readonly{% endif %}>
-                                {% if (current_user.role.name if current_user.role else None) not in ['HR Manager',
-                                'Super Admin', 'Tenant Admin'] %}
-                                <small class="text-muted d-block mt-1">Contact HR Manager or Admin to edit this
-                                    field</small>
-                                {% endif %}
+                                    value="{{ form_data.get('email') if form_data else (employee.email or '' if employee else '') }}">
                             </div>
                             <div class="form-grid-item">
                                 <label for="phone" class="form-label">Phone</label>
@@ -315,7 +308,7 @@
                                 {% endif %}
                                 <input type="text" class="form-control" id="nric" name="nric"
                                     value="{{ form_data.get('nric') if form_data else (employee.nric or '' if employee else '') }}"
-                                    placeholder="e.g., S1234567D or E12345678" {% if employee %}readonly{% endif %}>
+                                    placeholder="e.g., S1234567D or E12345678">
                             </div>
                             <div class="form-grid-item">
                                 <label for="date_of_birth" class="form-label">Date of Birth</label>
@@ -728,12 +721,40 @@
                                 <label for="hazmat_expiry" class="form-label">HAZMAT Expiry Date</label>
                                 <input type="date" class="form-control" id="hazmat_expiry" name="hazmat_expiry"
                                     value="{{ form_data.get('hazmat_expiry') if form_data else (employee.hazmat_expiry.strftime('%Y-%m-%d') if employee and employee.hazmat_expiry else '') | default('') }}">
+                                <div class="mt-2">
+                                    <label for="hazmat_file" class="form-label text-muted small">Upload
+                                        Certificate</label>
+                                    <input type="file" class="form-control form-control-sm" id="hazmat_file"
+                                        name="hazmat_file">
+                                    {% if employee and employee.hazmat_file_url %}
+                                    <div class="mt-1">
+                                        <a href="{{ employee.hazmat_file_url }}" target="_blank"
+                                            class="text-primary small">
+                                            <i class="fas fa-file-pdf me-1"></i>View HAZMAT Doc
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
                             <div class="form-grid-item">
                                 <label for="airport_pass_expiry" class="form-label">Airport Pass Expiry Date</label>
                                 <input type="date" class="form-control" id="airport_pass_expiry"
                                     name="airport_pass_expiry"
                                     value="{{ form_data.get('airport_pass_expiry') if form_data else (employee.airport_pass_expiry.strftime('%Y-%m-%d') if employee and employee.airport_pass_expiry else '') | default('') }}">
+                                <div class="mt-2">
+                                    <label for="airport_pass_file" class="form-label text-muted small">Upload Airport
+                                        Pass</label>
+                                    <input type="file" class="form-control form-control-sm" id="airport_pass_file"
+                                        name="airport_pass_file">
+                                    {% if employee and employee.airport_pass_file_url %}
+                                    <div class="mt-1">
+                                        <a href="{{ employee.airport_pass_file_url }}" target="_blank"
+                                            class="text-primary small">
+                                            <i class="fas fa-file-pdf me-1"></i>View Airport Pass
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
                             <div class="form-grid-item">
                                 <label for="psa_pass_number" class="form-label">PSA PASS NO</label>
@@ -745,28 +766,150 @@
                                 <label for="psa_pass_expiry" class="form-label">PSA PASS NO Expiry Date</label>
                                 <input type="date" class="form-control" id="psa_pass_expiry" name="psa_pass_expiry"
                                     value="{{ form_data.get('psa_pass_expiry') if form_data else (employee.psa_pass_expiry.strftime('%Y-%m-%d') if employee and employee.psa_pass_expiry else '') | default('') }}">
+                                <div class="mt-2">
+                                    <label for="psa_pass_file" class="form-label text-muted small">Upload PSA
+                                        Pass</label>
+                                    <input type="file" class="form-control form-control-sm" id="psa_pass_file"
+                                        name="psa_pass_file">
+                                    {% if employee and employee.psa_pass_file_url %}
+                                    <div class="mt-1">
+                                        <a href="{{ employee.psa_pass_file_url }}" target="_blank"
+                                            class="text-primary small">
+                                            <i class="fas fa-file-pdf me-1"></i>View PSA Pass
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Submit buttons -->
-                <div class="row mt-5 mb-5">
-                    <div class="col-12">
-                        <div class="d-flex gap-3 justify-content-end">
-                            <a href="{{ url_for('employee_list') }}" class="btn btn-light border text-secondary px-4">
-                                Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary px-5">
-                                <i class="fas fa-save me-2"></i>
-                                {{ "Update Employee" if employee else "Create Employee" }}
-                            </button>
+        </div>
+
+        <!-- Read-Only Documents Section (Edit Mode Only) -->
+        {% if employee %}
+        <div class="modern-card mt-4">
+            <div class="modern-card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-folder-open"></i>Official & Personal Documents
+                </h5>
+                <div class="ms-auto">
+                    {% if (current_user.role.name if current_user.role else None) in ['Super Admin', 'Admin', 'HR
+                    Manager'] %}
+                    <a href="{{ url_for('admin_document_upload') }}?employee_id={{ employee.id }}"
+                        class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-upload me-1"></i>Upload New
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% set official_docs = [] %}
+                {% set personal_docs = [] %}
+                {% for doc in employee.documents %}
+                {% if doc.category == 'Personal' %}
+                {% set _ = personal_docs.append(doc) %}
+                {% else %}
+                {% set _ = official_docs.append(doc) %}
+                {% endif %}
+                {% endfor %}
+
+                <!-- [NEW] Append Certifications to Personal Docs -->
+                {% if employee.hazmat_file_id %}
+                {% set _ = personal_docs.append({'document_type': 'HAZMAT Certificate', 'issue_date':
+                employee.hazmat_expiry, 'description': 'Certification Renewal', 'file_url': employee.hazmat_file_url,
+                'is_cert': true}) %}
+                {% endif %}
+                {% if employee.airport_pass_file_id %}
+                {% set _ = personal_docs.append({'document_type': 'Airport Pass', 'issue_date':
+                employee.airport_pass_expiry, 'description': 'Pass Renewal', 'file_url': employee.airport_pass_file_url,
+                'is_cert': true}) %}
+                {% endif %}
+                {% if employee.psa_pass_file_id %}
+                {% set _ = personal_docs.append({'document_type': 'PSA Pass', 'issue_date': employee.psa_pass_expiry,
+                'description': 'Pass Renewal', 'file_url': employee.psa_pass_file_url, 'is_cert': true}) %}
+                {% endif %}
+
+                <div class="row g-4">
+                    <!-- Official -->
+                    <div class="col-md-6">
+                        <h6 class="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">Official Documents
+                        </h6>
+                        {% if official_docs %}
+                        <div class="list-group list-group-flush">
+                            {% for doc in official_docs|sort(attribute='issue_date', reverse=True) %}
+                            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-medium small">{{ doc.document_type }}</div>
+                                    <div class="text-muted smaller" style="font-size: 0.75rem;">{{
+                                        doc.issue_date.strftime('%d %b %Y') }}</div>
+                                </div>
+                                <a href="{{ url_for('document_download', document_id=doc.id) }}"
+                                    class="btn btn-sm btn-light text-primary" target="_blank" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                            {% endfor %}
                         </div>
+                        {% else %}
+                        <p class="text-muted small">No official documents.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Personal -->
+                    <div class="col-md-6">
+                        <h6 class="text-muted text-uppercase small fw-bold mb-3 border-bottom pb-2">Personal Documents
+                        </h6>
+                        {% if personal_docs %}
+                        <div class="list-group list-group-flush">
+                            {% for doc in personal_docs|sort(attribute='issue_date', reverse=True) %}
+                            <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-medium small">{{ doc.document_type }}</div>
+                                    <div class="text-muted smaller" style="font-size: 0.75rem;">{{
+                                        doc.issue_date.strftime('%d %b %Y') if doc.issue_date else '-' }}</div>
+                                </div>
+                                {% if doc.is_cert %}
+                                <a href="{{ doc.file_url }}" class="btn btn-sm btn-light text-primary" target="_blank"
+                                    title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('document_download', document_id=doc.id) }}"
+                                    class="btn btn-sm btn-light text-primary" target="_blank" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted small">No personal documents.</p>
+                        {% endif %}
                     </div>
                 </div>
-            </form>
+            </div>
         </div>
+        {% endif %}
+
+        <!-- Submit buttons -->
+        <div class="row mt-5 mb-5">
+            <div class="col-12">
+                <div class="d-flex gap-3 justify-content-end">
+                    <a href="{{ url_for('employee_list') }}" class="btn btn-light border text-secondary px-4">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5">
+                        <i class="fas fa-save me-2"></i>
+                        {{ "Update Employee" if employee else "Create Employee" }}
+                    </button>
+                </div>
+            </div>
+        </div>
+        </form>
     </div>
+</div>
 </div>
 
 <script>

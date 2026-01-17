@@ -471,7 +471,8 @@
         <div class="modal fade" id="regularizationModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form method="POST" action="{{ url_for('attendance_regularize_request') }}">
+                    <form method="POST" action="{{ url_for('attendance_regularize_request') }}"
+                        enctype="multipart/form-data">
                         <div class="modal-header">
                             <h5 class="modal-title">Request Regularization</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -497,6 +498,14 @@
                                 <label class="form-label">Reason <span class="text-danger">*</span></label>
                                 <textarea name="reason" class="form-control" rows="3" required
                                     placeholder="e.g. Forgot to clock out, System error, worked from client site..."></textarea>
+                            </div>
+
+                            <!-- [NEW] Proof Document Upload -->
+                            <div class="mb-3">
+                                <label class="form-label">Supporting Document (Optional)</label>
+                                <input type="file" name="proof" class="form-control" accept=".pdf,.png,.jpg,.jpeg">
+                                <div class="form-text small">Upload proof (e.g. email approval, client sign-off). Max
+                                    5MB.</div>
                             </div>
                         </div>
                         <div class="modal-footer">

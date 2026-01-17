@@ -17,7 +17,8 @@ from sqlalchemy import and_, or_
 import logging
 
 from app import app, db
-from core.models import OTAttendance, OTApproval, OTRequest, Employee, User, Role, Company, Department, OTType, OTDailySummary, PayrollConfiguration, Attendance
+from app import app, db
+from core.models import OTAttendance, OTApproval, OTRequest, Employee, User, Role, Company, Department, OTType, OTDailySummary, PayrollConfiguration, Attendance, AuditLog
 from core.auth import require_login, require_role
 
 logger = logging.getLogger(__name__)
@@ -240,18 +241,11 @@ def log_ot_entry():
         if not ot_type:
             return jsonify({'success': False, 'message': 'Invalid OT Type'}), 400
             
-        # Determine Base Rate
-        base_rate = 0
-        if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
-             base_rate = float(employee.payroll_config.ot_rate_per_hour)
-        elif employee.hourly_rate:
-             base_rate = float(employee.hourly_rate)
-        elif employee.basic_salary:
-             base_rate = float(employee.basic_salary) / 173.33
-             
-        # Effective Rate = Base * Multiplier
-        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 1.0
-        effective_rate = round(base_rate * multiplier, 2)
+        # Effective Rate = Multiplier (User simplified logic: Multiplier IS the Rate)
+        # We ignore base salary/hourly rate entirely.
+        
+        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 0.0
+        effective_rate = round(multiplier, 2)
         
         # Total Amount
         total_amount = round(effective_rate * quantity, 2)
@@ -551,17 +545,9 @@ def submit_ot_attendance(attendance_id):
             # Recalculate amount if 0 (Self-Correction for old records or missing rates)
             current_amount = float(ot_attendance.amount) if ot_attendance.amount else 0
             if current_amount == 0 and requested_hours > 0:
-                base_rate = 0
-                if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
-                     base_rate = float(employee.payroll_config.ot_rate_per_hour)
-                elif employee.hourly_rate:
-                     base_rate = float(employee.hourly_rate)
-                elif employee.basic_salary:
-                     # Standard 173.33 hours/month
-                     base_rate = float(employee.basic_salary) / 173.33
-                
-                multiplier = float(ot_attendance.ot_type.rate_multiplier) if ot_attendance.ot_type and ot_attendance.ot_type.rate_multiplier else 1.0
-                effective_rate = round(base_rate * multiplier, 2)
+                # Simplified Logic: Rate = Multiplier
+                multiplier = float(ot_attendance.ot_type.rate_multiplier) if ot_attendance.ot_type and ot_attendance.ot_type.rate_multiplier else 0.0
+                effective_rate = round(multiplier, 2)
                 
                 calculated_amount = round(effective_rate * requested_hours, 2)
                 
@@ -1064,6 +1050,14 @@ def ot_manager_bulk_action():
                     # If multiple, applying same date/qty is risky.
                     # LIMITATION: Modification only works for single item approval via the modal.
                     
+                    # Update Approval Record
+                    approval.status = 'manager_approved'
+                    approval.comments = comments if comments else 'Approved by Manager'
+                    approval.updated_at = datetime.now()
+                    
+                    # Create Audit Log for Modifications
+                    old_amount = ot_request.amount
+                    
                     if len(approval_ids) == 1:
                         if modified_date:
                             ot_request.ot_date = datetime.strptime(modified_date, '%Y-%m-%d').date()
@@ -1071,15 +1065,24 @@ def ot_manager_bulk_action():
                             ot_request.ot_type_id = int(modified_ot_type_id)
                         if modified_quantity:
                             ot_request.requested_hours = float(modified_quantity)
+                        
                         if modified_amount:
-                            ot_request.amount = float(modified_amount)
+                            new_amount = float(modified_amount)
+                            if new_amount != float(old_amount or 0):
+                                ot_request.amount = new_amount
+                                # Log amendment
+                                audit = AuditLog(
+                                    user_id=current_user.id,
+                                    action='OT_AMOUNT_AMEND_MANAGER',
+                                    resource_type='OTRequest',
+                                    resource_id=str(ot_request.id),
+                                    changes=f'Amount changed from {old_amount} to {new_amount}',
+                                    status='Success'
+                                )
+                                db.session.add(audit)
+
                         if modified_reason:
                             ot_request.reason = modified_reason
-
-                    # Update Approval Record
-                    approval.status = 'manager_approved'
-                    approval.comments = comments if comments else 'Approved by Manager'
-                    approval.updated_at = datetime.now()
                     
                     # Update Request Status
                     ot_request.status = 'manager_approved'
@@ -1205,6 +1208,7 @@ def ot_approval():
                 action = request.form.get('action')  # approve or reject
                 comments = request.form.get('comments', '')
                 modified_hours = request.form.get('modified_hours')
+                modified_amount = request.form.get('modified_amount')
 
                 # Get allowance fields
                 allowances = {
@@ -1225,7 +1229,7 @@ def ot_approval():
                 ot_request = OTRequest.query.get(ot_request_id)
                 if not ot_request:
                     flash('OT request not found', 'danger')
-                    return redirect(url_for('ot_approval'))
+                    return redirect('/ot/approval')
                 
                 # Check company access
                 user_company_id = None
@@ -1234,7 +1238,7 @@ def ot_approval():
                 
                 if user_company_id and ot_request.company_id != user_company_id:
                     flash('Access Denied', 'danger')
-                    return redirect(url_for('ot_approval'))
+                    return redirect('/ot/approval')
                 
                 # Get Level 2 approval record
                 ot_approval_l2 = OTApproval.query.filter_by(
@@ -1244,88 +1248,140 @@ def ot_approval():
                 
                 if not ot_approval_l2:
                     flash('HR approval record not found', 'danger')
-                    return redirect(url_for('ot_approval'))
-                
+                    return redirect('/ot/approval')
+                    
                 if action == 'approve':
-                    # HR Approves - FINAL APPROVAL
-                    ot_approval_l2.status = 'hr_approved'
-                    ot_approval_l2.comments = comments
-                    if modified_hours:
-                        ot_approval_l2.approved_hours = float(modified_hours)
-                        ot_request.approved_hours = float(modified_hours)
+                    # ✅ 1:1 Mapping: Find Summary for THIS Request (or create)
+                    ot_summary = OTDailySummary.query.filter_by(
+                        ot_request_id=ot_request.id
+                    ).first()
+                    
+                    if not ot_summary:
+                        # Create new summary for this request
+                        # Simplified Logic: Rate = Multiplier
+                        multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 0.0
+                        ot_rate_per_hour = round(multiplier, 2)
 
-                    # ✅ Update OTDailySummary with hours and allowances
-                    ot_summary = OTDailySummary.query.filter_by(ot_request_id=ot_request_id).first()
-                    if ot_summary:
-                        if modified_hours:
-                            ot_amount = float(modified_hours) * float(ot_summary.ot_rate_per_hour or 0)
-                            ot_summary.ot_hours = float(modified_hours)
-                            ot_summary.ot_amount = ot_amount
-
-                        # Update allowances from form data
-                        for allowance_field, value in allowances.items():
-                            setattr(ot_summary, allowance_field, value)
-
-                        # Calculate totals (total_allowances and total_amount)
-                        ot_summary.calculate_totals()
-
-                        ot_summary.status = 'Approved'
-                        ot_summary.modified_by = current_user.username
-                        ot_summary.modified_at = datetime.now()
-                        logger.info(f"[OT_APPROVAL] Updated OTDailySummary with allowances and totals")
-                    # Don't update created_at - it's immutable. It tracks when the approval record was created
-
-                    # Update OTRequest status - NOW READY FOR PAYROLL
+                        ot_summary = OTDailySummary(
+                            employee_id=ot_request.employee_id,
+                            company_id=ot_request.company_id,
+                            ot_request_id=ot_request.id, 
+                            ot_date=ot_request.ot_date,
+                            ot_hours=0, 
+                            ot_rate_per_hour=ot_rate_per_hour,
+                            ot_amount=0,
+                            created_by=current_user.username
+                        )
+                        db.session.add(ot_summary)
+                        logger.info(f"[OT_APPROVAL] Creating 1:1 OTDailySummary for Request {ot_request.id}")
+                    
+                    # Update Request Status
                     ot_request.status = 'hr_approved'
                     ot_request.approver_id = current_user.id
                     ot_request.approved_at = datetime.now()
                     ot_request.approval_comments = comments
+                    ot_request.approved_hours = float(modified_hours) if modified_hours else ot_request.requested_hours
+                    
+                    # Handle HR Amount Amendment
+                    if modified_amount:
+                        old_amount = ot_request.amount
+                        new_amount = float(modified_amount)
+                        if new_amount != float(old_amount or 0):
+                            ot_request.amount = new_amount
+                            # Log amendment
+                            audit = AuditLog(
+                                user_id=current_user.id,
+                                action='OT_AMOUNT_AMEND_HR',
+                                resource_type='OTRequest',
+                                resource_id=str(ot_request.id),
+                                changes=f'Amount changed from {old_amount} to {new_amount}',
+                                status='Success'
+                            )
+                            db.session.add(audit)
 
-                    flash(f'✓ OT Final Approved with allowances. Ready for Payroll calculation.', 'success')
+                    db.session.flush()
+
+                    # Calculate Amount for THIS Request
+                    h = float(ot_request.approved_hours)
+                    
+                    # Re-verify rate (in case emp config changed, but sticking to created summary rate is usually safer unless 0)
+                    if not ot_summary.ot_rate_per_hour:
+                         # recalculate if missing
+                         # Simplified Logic: Rate = Multiplier
+                         multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 0.0
+                         ot_summary.ot_rate_per_hour = round(multiplier, 2)
+
+                    ot_summary.ot_hours = h
+                    ot_summary.ot_amount = round(h * float(ot_summary.ot_rate_per_hour), 2)
+                    
+                    # Update allowances from form data
+                    for allowance_field, value in allowances.items():
+                        setattr(ot_summary, allowance_field, value)
+
+                    # Calculate totals
+                    ot_summary.calculate_totals()
+
+                    ot_summary.status = 'Approved'
+                    ot_summary.modified_by = current_user.username
+                    ot_summary.modified_at = datetime.now()
+                    
+                    flash(f'✓ OT Final Approved. {h}h recorded.', 'success')
                 
                 elif action == 'reject':
                     # HR Rejects - Send back to Manager
                     ot_approval_l2.status = 'hr_rejected'
                     ot_approval_l2.comments = comments
-                    # Don't update created_at - it's immutable. It tracks when the approval record was created
                     
                     # Update OTRequest status
                     ot_request.status = 'hr_rejected'
                     
-                    # ✅ Mark OTDailySummary as rejected (don't delete, keep audit trail)
-                    ot_summary = OTDailySummary.query.filter_by(ot_request_id=ot_request_id).first()
+                    # Find and update summary if exists (e.g. was previously approved)
+                    ot_summary = OTDailySummary.query.filter_by(
+                         ot_request_id=ot_request.id
+                    ).first()
+
                     if ot_summary:
+                        # Mark as rejected or Zero out
+                        ot_summary.ot_hours = 0
+                        ot_summary.ot_amount = 0
                         ot_summary.status = 'Rejected'
-                        ot_summary.notes = f'Rejected by HR Manager: {comments}'
+                        ot_summary.calculate_totals()
                         ot_summary.modified_by = current_user.username
                         ot_summary.modified_at = datetime.now()
-                        logger.info(f"[OT_APPROVAL] Marked OTDailySummary as Rejected")
-                    
+
                     # Get Level 1 approval and reset it to pending_manager
                     ot_approval_l1 = OTApproval.query.filter_by(
-                        ot_request_id=ot_request_id,
+                        ot_request_id=ot_request.id,
                         approval_level=1
                     ).first()
                     
                     if ot_approval_l1:
-                        ot_approval_l1.status = 'pending_manager'  # Back to pending for manager review
+                        ot_approval_l1.status = 'pending_manager'
                         ot_approval_l1.comments = f'{ot_approval_l1.comments}\n\n[HR Rejected - {comments}]'
                     
                     flash(f'✗ OT Rejected. Returned to Manager for review.', 'danger')
                 
                 db.session.commit()
-                return redirect(url_for('ot_approval'))
+                return redirect('/ot/approval')
             
             except Exception as e:
                 db.session.rollback()
                 logger.error(f"Error processing HR approval: {str(e)}")
                 flash(f'Error: {str(e)}', 'danger')
-                return redirect(url_for('ot_approval'))
+                return redirect('/ot/approval')
         
         # GET: Display OT pending HR approval
-        user_company_id = None
-        if user_role != 'Super Admin' and hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
-            user_company_id = current_user.employee_profile.company_id
+        
+        if user_role == 'Super Admin':
+            company_ids = None # All
+            logger.info(f"[OT_APPROVAL_DEBUG] Super Admin - No company filter")
+        else:
+            accessible_companies = current_user.get_accessible_companies()
+            company_ids = [c.id for c in accessible_companies]
+            logger.info(f"[OT_APPROVAL_DEBUG] User {current_user.username} - Accessible Companies: {len(company_ids)}")
+            if len(company_ids) == 0:
+                 logger.warning(f"[OT_APPROVAL_DEBUG] User has NO accessible companies!")
+                 flash(f"Debug: You have access to 0 companies. Check your Employee Profile or Access settings.", "warning")
         
         # Query OTApproval Level 2 with pending_hr status
         query = OTApproval.query.filter(
@@ -1333,42 +1389,50 @@ def ot_approval():
             OTApproval.status.in_(['pending_hr', 'hr_rejected'])
         )
         
-        if user_company_id:
-            query = query.join(OTRequest).filter(OTRequest.company_id == user_company_id)
+        if company_ids is not None:
+            if company_ids:
+                 query = query.join(OTRequest).filter(OTRequest.company_id.in_(company_ids))
+                 logger.info(f"[OT_APPROVAL_DEBUG] Filtered by {len(company_ids)} companies")
+            else:
+                 query = query.filter(OTApproval.id == None) # No access
+                 logger.warning(f"[OT_APPROVAL_DEBUG] Blocked query due to no company access")
+
+        total_pending = query.count()
+        logger.info(f"[OT_APPROVAL_DEBUG] Total Pending found: {total_pending}")
+        
+        # Consolidate flash
+        if company_ids is not None:
+            if len(company_ids) > 0:
+                 flash(f"Debug: Access to {len(company_ids)} companies. Found {total_pending} pending requests.", "info")
+        elif user_role == 'Super Admin':
+             flash(f"Debug: Super Admin Access (All Companies). Found {total_pending} pending requests.", "info")
         
         page = request.args.get('page', 1, type=int)
         pending_approvals = query.order_by(OTApproval.created_at.asc()).paginate(page=page, per_page=20)
         
         # Get statistics
-        if user_company_id:
-            pending_hr_count = OTApproval.query.join(OTRequest).filter(
-                OTApproval.approval_level == 2,
-                OTApproval.status == 'pending_hr',
-                OTRequest.company_id == user_company_id
-            ).count()
-            hr_approved_count = OTApproval.query.join(OTRequest).filter(
-                OTApproval.approval_level == 2,
-                OTApproval.status == 'hr_approved',
-                OTRequest.company_id == user_company_id
-            ).count()
-            hr_rejected_count = OTApproval.query.join(OTRequest).filter(
-                OTApproval.approval_level == 2,
-                OTApproval.status == 'hr_rejected',
-                OTRequest.company_id == user_company_id
-            ).count()
-        else:
-            pending_hr_count = OTApproval.query.filter(
-                OTApproval.approval_level == 2,
-                OTApproval.status == 'pending_hr'
-            ).count()
-            hr_approved_count = OTApproval.query.filter(
-                OTApproval.approval_level == 2,
-                OTApproval.status == 'hr_approved'
-            ).count()
-            hr_rejected_count = OTApproval.query.filter(
-                OTApproval.approval_level == 2,
-                OTApproval.status == 'hr_rejected'
-            ).count()
+        # Reuse filtered base queries or create new ones? Creating new for clarity
+        stats_query = OTApproval.query.join(OTRequest)
+        if company_ids is not None:
+             if company_ids:
+                 stats_query = stats_query.filter(OTRequest.company_id.in_(company_ids))
+             else:
+                 stats_query = stats_query.filter(OTRequest.id == None)
+
+        pending_hr_count = stats_query.filter(
+            OTApproval.approval_level == 2,
+            OTApproval.status == 'pending_hr'
+        ).count()
+        
+        hr_approved_count = stats_query.filter(
+            OTApproval.approval_level == 2,
+            OTApproval.status == 'hr_approved'
+        ).count()
+        
+        hr_rejected_count = stats_query.filter(
+            OTApproval.approval_level == 2,
+            OTApproval.status == 'hr_rejected'
+        ).count()
         
         stats = {
             'pending_hr': pending_hr_count,

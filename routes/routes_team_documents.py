@@ -12,6 +12,9 @@ from app import app, db
 from core.auth import require_login, require_role
 from core.models import Employee, EmployeeDocument, User, Organization, Designation
 from core.utils import format_date
+from core.utils import format_date
+from services.file_service import FileService
+from services.s3_service import S3Service
 
 
 # =====================================================
@@ -129,7 +132,7 @@ def get_team_member_profile(member_id):
         'nationality': member.nationality or '-',
         'phone_display': member.phone or 'Not provided',
         'email_display': member.email or 'Not provided',
-        'photo_url': f"static/uploads/photos/{member.profile_image_path}" if member.profile_image_path else None,
+        'photo_url': member.photo_url, # Use model property
         'manager_name': f"{member.manager.first_name} {member.manager.last_name}" if member.manager else 'No Manager',
         'is_active': member.is_active
     }
@@ -171,9 +174,14 @@ def documents_list():
         EmployeeDocument.issue_date.desc()
     ).all()
 
+    # Check if user can view all company documents (HR/Admin)
+    user_role_name = current_user.role.name if current_user.role else None
+    can_view_all_docs = user_role_name in ['Super Admin', 'Admin', 'HR Manager']
+
     return render_template('documents/documents_tiles.html',
                          documents=documents,
-                         current_employee=current_employee)
+                         current_employee=current_employee,
+                         can_view_all_docs=can_view_all_docs)
 
 
 @app.route('/documents/download/<int:document_id>')
@@ -214,7 +222,27 @@ def document_download(document_id):
             flash('Payroll record not found for this salary slip.', 'danger')
             return redirect(url_for('documents_list'))
     
-    # Handle other document types - serve from file system
+    # Handle other document types
+    # 1. New FileStorage System [NEW]
+    if document.file_storage_id:
+        presigned_url = FileService.get_file_url(document.file_storage_id)
+        if presigned_url:
+            return redirect(presigned_url)
+        else:
+             flash('Error generating download link.', 'danger')
+             return redirect(url_for('documents_list'))
+
+    # 2. Legacy S3 Paths
+    if document.file_path.startswith('documents/') or document.file_path.startswith('tenants/'):
+        s3 = S3Service()
+        presigned_url = s3.generate_presigned_url(document.file_path)
+        if presigned_url:
+            return redirect(presigned_url)
+        else:
+            flash('Error generating download link.', 'danger')
+            return redirect(url_for('documents_list'))
+            
+    # Fallback for local files
     file_path = os.path.join(app.root_path, 'static', document.file_path)
     
     if not os.path.exists(file_path):
@@ -243,6 +271,7 @@ def admin_document_upload():
         month = request.form.get('month', type=int) if request.form.get('month') else None
         year = request.form.get('year', type=int) if request.form.get('year') else None
         description = request.form.get('description', '')
+        category = request.form.get('category', 'Official') # Default to Official
         
         # Validate inputs
         if not employee_id or not document_type or not issue_date:
@@ -270,27 +299,38 @@ def admin_document_upload():
             flash('Invalid file type. Allowed: PDF, DOC, DOCX, JPG, PNG', 'danger')
             return redirect(url_for('admin_document_upload'))
         
-        # Create upload directory if it doesn't exist
-        upload_dir = os.path.join(app.root_path, 'static', 'uploads', 'documents')
-        os.makedirs(upload_dir, exist_ok=True)
+        # Upload using FileService
+        # Hierarchy: tenants/{id}/companies/{id}/employees/{id}/documents/
         
-        # Generate secure filename
-        filename = secure_filename(file.filename)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{employee.employee_id}_{document_type.replace(' ', '_')}_{timestamp}_{filename}"
+        tenant_id = employee.company.tenant_id if employee.company and employee.company.tenant_id else None
+        # Fallback if tenant_id is missing (should verify data integrity)
+        if not tenant_id and current_user.organization and current_user.organization.tenant_id:
+             tenant_id = current_user.organization.tenant_id
+
+        if not tenant_id:
+             flash('System Error: Tenant ID missing for this employee.', 'danger')
+             return redirect(url_for('admin_document_upload'))
+
+        file_record = FileService.upload_file(
+            file_obj=file,
+            module='HR',
+            tenant_id=tenant_id,
+            company_id=employee.company_id,
+            employee_id=employee.id,
+            file_category='documents'
+        )
         
-        # Save file
-        file_path = os.path.join(upload_dir, filename)
-        file.save(file_path)
-        
-        # Store relative path in database
-        relative_path = os.path.join('uploads', 'documents', filename)
+        if not file_record:
+            flash('Failed to upload document.', 'danger')
+            return redirect(url_for('admin_document_upload'))
         
         # Create document record
         document = EmployeeDocument(
             employee_id=employee_id,
             document_type=document_type,
-            file_path=relative_path,
+            category=category, # Save category
+            file_path=file_record.file_path, # Legacy column support
+            file_storage_id=file_record.id,  # New FK
             issue_date=datetime.strptime(issue_date, '%Y-%m-%d').date(),
             month=month,
             year=year,
@@ -305,7 +345,17 @@ def admin_document_upload():
         return redirect(url_for('admin_document_upload'))
     
     # GET request - show upload form
-    employees = Employee.query.filter_by(is_active=True).order_by(Employee.first_name, Employee.last_name).all()
+    # Filter employees by accessible companies
+    accessible_companies = current_user.get_accessible_companies()
+    accessible_company_ids = [c.id for c in accessible_companies]
+    
+    if not accessible_company_ids:
+        employees = []
+    else:
+        employees = Employee.query.filter(
+            Employee.company_id.in_(accessible_company_ids),
+            Employee.is_active == True
+        ).order_by(Employee.first_name, Employee.last_name).all()
     document_types = ['Offer Letter', 'Appraisal Letter', 'Salary Slip']
     
     return render_template('documents/admin_upload.html',
@@ -336,8 +386,14 @@ def admin_documents_list():
     query = EmployeeDocument.query.join(Employee)
     
     # Filter by accessible companies - ALWAYS apply this for security
+    # Filter by accessible companies - ALWAYS apply this for security
     if accessible_company_ids:
         query = query.filter(Employee.company_id.in_(accessible_company_ids))
+    else:
+        # If no accessible companies, show no documents (unless Super Admin with no companies, which returns empty list anyway)
+        # But get_accessible_companies returns ALL for Super Admin, so this branch implies NO access.
+        from sqlalchemy import false
+        query = query.filter(false())
     
     # Filter by search (employee name or ID)
     if search:
@@ -377,28 +433,68 @@ def admin_documents_list():
         except (ValueError, TypeError):
             pass
     
+    # [NEW] If user_id is present, we might want to split into Personal/Official for view
+    personal_documents = []
+    official_documents = []
+    
+    # Execute query
     documents = query.order_by(EmployeeDocument.issue_date.desc()).paginate(
         page=page, per_page=20, error_out=False
     )
+    
+    if user_id:
+         # For single user view, we want to split.
+         # However, pagination makes this tricky if we want ALL docs split.
+         # But the requirement implies viewing "All" documents for a user.
+         # Let's fetch ALL if user_id is set? Or just rely on template to filter usage?
+         # Filter usage in template is easier if we have all.
+         # But let's stick to pagination for "All Documents" view,
+         # and maybe rely on the template to group them if we were showing a profile view.
+         # BUT `admin_documents_list` is a table view.
+         # The requirement "show separate sections" likely applies to the Employee Profile View, not necessarily this Admin Table List.
+         # Wait, plan said: "If user_id is present... Split into personal_documents and official_documents".
+         # Let's do that for the admin list view too if requested? 
+         # Actually, the user asked for "employee view or add page".
+         # For Admin List, let's just make sure `category` is available.
+         # BUT, I put it in the plan for `admin_documents_list`. Let's stick to plan if possible, 
+         # OR realizing `admin_documents_list` is a search table, maybe splitting is weird there?
+         # "Update document list UI to split Personal/Official" <- user might mean the Employee View.
+         # Plan says: "If user_id is present: Fetch all... Split...".
+         # Let's follow plan: IF user_id is selected, we fetch ALL (no pagination maybe?) or just paginated subset?
+         # Fetching all for a single user is usually safe (rare to have 100+ docs).
+         
+         if user_id:
+              all_user_docs = query.order_by(EmployeeDocument.issue_date.desc()).all()
+              personal_documents = [d for d in all_user_docs if d.category == 'Personal']
+              official_documents = [d for d in all_user_docs if d.category == 'Official' or not d.category]
+              # We can still pass 'documents' as paginated for the main table if we want, or suppress it.
+              # Let's pass them.
+    
     
     # Get available options for filters
     document_types = ['Offer Letter', 'Appraisal Letter', 'Salary Slip', 'ID Card', 'Contract', 'Other']
     
     # Get unique years from documents for accessible companies (sorted descending)
-    years_query = db.session.query(EmployeeDocument.year.distinct()).join(Employee).filter(
-        EmployeeDocument.year.isnot(None),
-        Employee.company_id.in_(accessible_company_ids)
-    ).order_by(EmployeeDocument.year.desc()).all()
-    available_years = sorted([y[0] for y in years_query if y[0]], reverse=True)
+    available_years = []
+    employees_query = []
     
-    # Get employees from accessible companies (for user filter)
-    employees_query = Employee.query.filter(
-        Employee.company_id.in_(accessible_company_ids),
-        Employee.is_active == True
-    ).order_by(Employee.first_name, Employee.last_name).all()
+    if accessible_company_ids:
+        years_query = db.session.query(EmployeeDocument.year.distinct()).join(Employee).filter(
+            EmployeeDocument.year.isnot(None),
+            Employee.company_id.in_(accessible_company_ids)
+        ).order_by(EmployeeDocument.year.desc()).all()
+        available_years = sorted([y[0] for y in years_query if y[0]], reverse=True)
+        
+        # Get employees from accessible companies (for user filter)
+        employees_query = Employee.query.filter(
+            Employee.company_id.in_(accessible_company_ids),
+            Employee.is_active == True
+        ).order_by(Employee.first_name, Employee.last_name).all()
     
     return render_template('documents/admin_list.html',
                          documents=documents,
+                         personal_documents=personal_documents,
+                         official_documents=official_documents,
                          document_types=document_types,
                          search=search,
                          selected_document_type=document_type,
@@ -418,12 +514,27 @@ def admin_document_delete(document_id):
     document = EmployeeDocument.query.get_or_404(document_id)
     
     # Delete file from filesystem
-    file_path = os.path.join(app.root_path, 'static', document.file_path)
-    if os.path.exists(file_path):
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            app.logger.error(f"Error deleting file {file_path}: {e}")
+    # Delete file
+    # Delete file from filesystem/S3
+    if document.file_storage_id:
+        # Use FileService to delete (removes from S3 and FileStorage table)
+        FileService.delete_file(document.file_storage_id)
+        # Note: EmployeeDocument record deletion is handled below
+        
+    elif document.file_path.startswith('documents/') or document.file_path.startswith('tenants/'):
+        # Legacy S3 Delete
+        s3 = S3Service()
+        if not s3.delete_file(document.file_path):
+            app.logger.error(f"Error deleting S3 file {document.file_path}")
+            
+    else:
+        # Local Delete
+        file_path = os.path.join(app.root_path, 'static', document.file_path)
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                app.logger.error(f"Error deleting file {file_path}: {e}")
     
     # Delete database record
     db.session.delete(document)

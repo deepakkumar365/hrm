@@ -10,6 +10,9 @@ from datetime import datetime
 import os
 from functools import wraps
 
+from services.file_service import FileService
+from services.s3_service import S3Service
+
 def require_login(f):
     """Decorator to require login"""
     @wraps(f)
@@ -66,9 +69,27 @@ def tenant_configuration():
             db.session.add(config)
             db.session.commit()
         
+        # Generate logo URL if exists
+        # Generate logo URL if exists
+        logo_url = None
+        
+        # 1. Try FileStorage Reference [NEW]
+        if config.payslip_logo_id:
+            logo_url = FileService.get_file_url(config.payslip_logo_id)
+            
+        # 2. Fallback to Legacy Path (S3 or Local)
+        if not logo_url and config.payslip_logo_path:
+             if 'tenant_logos/' in config.payslip_logo_path or config.payslip_logo_path.startswith('tenants/'):
+                 s3 = S3Service() # Use S3 service directly for legacy paths
+                 logo_url = s3.generate_presigned_url(config.payslip_logo_path)
+             else:
+                 # Legacy local file
+                 logo_url = url_for('static', filename=config.payslip_logo_path.replace('\\', '/'))
+        
         return render_template('tenant_configuration.html', 
                              tenant=tenant, 
-                             config=config)
+                             config=config,
+                             logo_url=logo_url)
     
     except Exception as e:
         flash(f'Error loading configuration: {str(e)}', 'error')
@@ -150,14 +171,20 @@ def tenant_logo_upload():
         file.seek(0)  # Reset to beginning
         
         # Save file
-        import secrets
+        # Upload using FileService
         tenant_id = current_user.organization.tenant_id
-        filename = secrets.token_hex(8) + '_' + file.filename
-        upload_dir = os.path.join('static', 'uploads', 'tenant_logos')
-        os.makedirs(upload_dir, exist_ok=True)
         
-        file_path = os.path.join(upload_dir, filename)
-        file.save(file_path)
+        # Upload to Global Config area
+        # FileService handles path: tenants/{tenant_id}/global/config/{filename}
+        file_record = FileService.upload_file(
+            file_obj=file,
+            module='Config',
+            tenant_id=tenant_id,
+            file_category='payslip_logos'
+        )
+        
+        if not file_record:
+             return jsonify({'success': False, 'message': 'Failed to upload logo'}), 500
         
         # Update configuration
         config = TenantConfiguration.query.filter_by(tenant_id=tenant_id).first()
@@ -165,15 +192,16 @@ def tenant_logo_upload():
             config = TenantConfiguration(tenant_id=tenant_id)
             db.session.add(config)
         
-        # Delete old logo if exists
-        if config.payslip_logo_path and os.path.exists(config.payslip_logo_path):
-            try:
-                os.remove(config.payslip_logo_path)
-            except:
-                pass  # Ignore if can't delete
+        # Delete old logo if exists (Optional: FileService handles delete later if needed)
+        # For now, we just update the reference. We can implement a cleanup job or delete logic here
         
-        config.payslip_logo_path = file_path
-        config.payslip_logo_filename = filename
+        # Update Configuration with new FileStorage ID coverage
+        config.payslip_logo_id = file_record.id
+        
+        # Legacy columns update (for backward compatibility if other systems read these)
+        config.payslip_logo_path = file_record.file_path
+        config.payslip_logo_filename = file_record.storage_filename
+        
         config.payslip_logo_uploaded_by = current_user.username
         config.payslip_logo_uploaded_at = datetime.now()
         config.updated_by = current_user.username
@@ -181,10 +209,13 @@ def tenant_logo_upload():
         
         db.session.commit()
         
+        # Generate presigned URL for response
+        logo_url = FileService.get_file_url(file_record.id)
+        
         return jsonify({
             'success': True, 
             'message': 'Logo uploaded successfully',
-            'logo_path': f'/static/{file_path.replace(chr(92), "/")}'  # Convert backslashes to forward slashes
+            'logo_path': logo_url
         })
     
     except Exception as e:

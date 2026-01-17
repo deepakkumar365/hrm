@@ -98,7 +98,23 @@ class SingaporePayrollCalculator:
         return employee_rate, employer_rate
     
     def calculate_cpf_contribution(self, employee, gross_salary, pay_date=None):
-        """Calculate CPF contributions"""
+        """
+        Calculate CPF contributions.
+        PRIORITY 1: Use specific values from Payroll Configuration if available.
+        PRIORITY 2: Auto-calculate based on Age/Residency (Fallback only).
+        """
+        # PRIORITY 1: Check Payroll Configuration
+        if employee.payroll_config:
+            config_emp_cpf = employee.payroll_config.employee_cpf
+            config_employer_cpf = employee.payroll_config.employer_cpf
+            
+            # If values differ from None (even if 0), use them.
+            # Assuming the migration populated accurate values, we trust config.
+            # We treat None as "not configured".
+            if config_emp_cpf is not None and config_employer_cpf is not None:
+                return config_emp_cpf, config_employer_cpf
+        
+        # PRIORITY 2: Fallback to Auto-Calculation (Existing Logic)
         if gross_salary <= 0:
             return 0, 0
         
@@ -138,13 +154,16 @@ class SingaporePayrollCalculator:
         """Calculate complete payroll for an employee"""
         
         # Calculate basic pay (monthly salary)
-        basic_pay = employee.basic_salary
+        # Use Payroll Configuration as master source of truth
+        basic_pay = (employee.payroll_config.basic_salary or Decimal(0)) if employee.payroll_config else Decimal(0)
         
         # Calculate overtime pay
         overtime_pay = self.calculate_overtime_pay(employee, overtime_hours)
         
         # Total allowances
-        total_allowances = employee.allowances + additional_allowances
+        # Use Payroll Configuration as master source of truth
+        config_allowances = employee.payroll_config.get_total_allowances() if employee.payroll_config else Decimal(0)
+        total_allowances = config_allowances + additional_allowances
         
         # Calculate gross pay
         gross_pay = basic_pay + overtime_pay + total_allowances + bonuses

@@ -932,16 +932,9 @@ def mobile_api_create_ot_request():
              return api_response('error', 'Reporting manager has no user account', None, 400)
 
         # 3. Calculate Amount (Logic from routes_ot.py)
-        base_rate = 0
-        if employee.payroll_config and employee.payroll_config.ot_rate_per_hour:
-             base_rate = float(employee.payroll_config.ot_rate_per_hour)
-        elif employee.hourly_rate:
-             base_rate = float(employee.hourly_rate)
-        elif employee.basic_salary:
-             base_rate = float(employee.basic_salary) / 173.33
-             
-        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 1.0
-        effective_rate = round(base_rate * multiplier, 2)
+        # 3. Calculate Amount (Simplified Logic: Rate = Multiplier)
+        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 0.0
+        effective_rate = round(multiplier, 2)
         total_amount = round(effective_rate * quantity, 2)
 
         # 4. Create OT Request (Directly to Pending Manager)
@@ -973,6 +966,7 @@ def mobile_api_create_ot_request():
             ot_date=ot_date,
             ot_type_id=ot_type_id,
             requested_hours=quantity,
+            amount=total_amount,
             reason=notes or 'Mobile OT Submission',
             status='pending_manager',
             created_by=user.username
@@ -1039,6 +1033,8 @@ def mobile_api_get_leave_requests():
             query = query.filter_by(employee_id=employee_id)
         
         if status:
+            # defined statuses are Capitalized (Pending, Approved, Rejected)
+            status = status.capitalize()
             query = query.filter_by(status=status)
         
         paginated = query.order_by(Leave.created_at.desc()).paginate(page=page, per_page=per_page)
@@ -1049,8 +1045,8 @@ def mobile_api_get_leave_requests():
                 'id': leave.id,
                 'employee_id': leave.employee_id,
                 'employee_name': f"{leave.employee.first_name} {leave.employee.last_name}" if leave.employee else None,
-                'from_date': leave.from_date.isoformat() if leave.from_date else None,
-                'to_date': leave.to_date.isoformat() if leave.to_date else None,
+                'from_date': leave.start_date.isoformat() if leave.start_date else None,
+                'to_date': leave.end_date.isoformat() if leave.end_date else None,
                 'leave_type': leave.leave_type,
                 'reason': leave.reason,
                 'status': leave.status,
@@ -1127,16 +1123,25 @@ def mobile_api_create_leave_request():
         try:
             from_date = datetime.fromisoformat(data['from_date']).date()
             to_date = datetime.fromisoformat(data['to_date']).date()
+            
+            # Calculate days requested
+            if to_date < from_date:
+                return api_response('error', 'End date cannot be before start date', None, 400)
+                
+            days_requested = (to_date - from_date).days + 1
+            if days_requested <= 0:
+                 days_requested = 1 # Fallback, though the date check above should catch this
         except:
             return api_response('error', 'Invalid date format. Use YYYY-MM-DD', None, 400)
         
         leave_request = Leave(
             employee_id=data['employee_id'],
-            from_date=from_date,
-            to_date=to_date,
+            start_date=from_date,
+            end_date=to_date,
+            days_requested=days_requested,
             leave_type=data['leave_type'],
             reason=data.get('reason', ''),
-            status='pending'
+            status='Pending'
         )
         
         db.session.add(leave_request)
@@ -1145,8 +1150,8 @@ def mobile_api_create_leave_request():
         return api_response('success', 'Leave request created', {
             'id': leave_request.id,
             'employee_id': leave_request.employee_id,
-            'from_date': leave_request.from_date.isoformat(),
-            'to_date': leave_request.to_date.isoformat(),
+            'from_date': leave_request.start_date.isoformat(),
+            'to_date': leave_request.end_date.isoformat(),
             'status': leave_request.status
         }, 201)
     

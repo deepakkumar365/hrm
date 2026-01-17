@@ -231,10 +231,18 @@ def leave_detail(leave_id):
                 current_user.employee_profile and
                 current_user.employee_profile.id == leave.employee_id):
             # Check if user is a manager or admin
-            if not (hasattr(current_user, 'role_name') and 
-                    current_user.role_name in ['Manager', 'Admin', 'Super Admin']):
+            role = current_user.role_name if hasattr(current_user, 'role_name') else None
+            is_manager = current_user.employee_profile.is_manager if hasattr(current_user, 'employee_profile') and current_user.employee_profile else False
+            
+            allowed_roles = ['Manager', 'Admin', 'Super Admin', 'HR Manager', 'Tenant Admin']
+            
+            if not (role in allowed_roles or is_manager):
                 flash("Unauthorized to view this leave request", "error")
                 return redirect(url_for('leave_list'))
+        
+        # Check if AJAX request for modal
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return render_template('leave/detail_modal.html', leave=leave)
         
         return render_template('leave/detail.html', leave=leave)
     except Exception as e:

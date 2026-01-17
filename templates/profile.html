@@ -104,9 +104,8 @@
             <div class="profile-hero-avatar">
                 <div class="profile-image-container w-100 h-100">
                     {% if hasattr(current_user, 'employee_profile') and current_user.employee_profile and
-                    current_user.employee_profile.profile_image_path %}
-                    <img src="{{ url_for('static', filename=current_user.employee_profile.profile_image_path) }}"
-                        alt="Profile photo" class="avatar-image">
+                    current_user.employee_profile.photo_url %}
+                    <img src="{{ current_user.employee_profile.photo_url }}" alt="Profile photo" class="avatar-image">
                     {% else %}
                     <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-light text-primary">
                         {{ current_user.first_name[0] if current_user.first_name else 'U' }}

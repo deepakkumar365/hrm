@@ -29,6 +29,8 @@
             padding: 10mm;
             box-sizing: border-box;
             background-color: white;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Header */
@@ -37,6 +39,8 @@
             text-align: center;
             border-bottom: 2px solid #000;
         }
+
+
 
         .company-name {
             font-size: 24px;
@@ -167,6 +171,7 @@
         .footer-section {
             padding: 10px;
             font-size: 11px;
+            margin-top: auto;
         }
 
         .remark-label {
@@ -194,8 +199,14 @@
 
             .payslip-box {
                 border: 2px solid #000;
-                width: 100%;
-                max-width: 100%;
+                width: 210mm;
+                max-width: 210mm;
+                height: auto;
+                max-height: 296mm;
+                padding: 10mm;
+                margin: 0;
+                overflow: hidden;
+                page-break-after: avoid;
             }
         }
     </style>
@@ -208,6 +219,9 @@
         <!-- Header (Using Redacted Style Placeholder or Company Name) -->
         <div class="header-section">
             <!-- Logo or Name -->
+            {% if logo_url %}
+            <img src="{{ logo_url }}" alt="Company Logo" style="max-height: 80px; margin-bottom: 10px;">
+            {% endif %}
             <div class="company-name">{{ company.name }}</div>
             <div style="font-size: 12px;">{{ company.address }}</div>
         </div>
@@ -228,17 +242,17 @@
                         employee.joining_date }}</span></div>
                 <div class="info-row"><span class="label">Designation</span> <span class="value">: {{
                         employee.designation }}</span></div>
-                <div class="info-row"><span class="label">Department</span> <span class="value">: {{ employee.department
-                        }}</span></div>
                 <div class="info-row"><span class="label">Location</span> <span class="value">: {{ employee.location
                         }}</span></div>
                 <div class="info-row"><span class="label">Bank</span> <span class="value">: {{ employee.bank_name
                         }}</span></div>
+                <div class="info-row"><span class="label">NRIC/FIN/Work Permit</span> <span class="value">: {{
+                        employee.nric or employee.work_permit_number or 'N/A' }}</span></div>
             </div>
             <div class="details-col">
                 <div class="info-row"><span class="label">Bank Account Number</span> <span class="value">: {{
                         employee.bank_account }}</span></div>
-                <div class="info-row"><span class="label">PAN/GIR No.(TDS)</span> <span class="value">: {{
+                <div class="info-row"><span class="label">(NRIC/FIN/WORK PERMIT)</span> <span class="value">: {{
                         employee.pan_number }}</span></div>
                 <div class="info-row"><span class="label">PF Account No.</span> <span class="value">: {{
                         employee.pf_number }}</span></div>
@@ -250,6 +264,26 @@
                 <div class="info-row"><span class="label">ESI No.</span> <span class="value">: {{ employee.esi_number
                         }}</span></div>
             </div>
+        </div>
+
+        <!-- Employer Contributions (Not Deducted) -->
+        <div style="border-bottom: 2px solid #000; margin-bottom: 0;">
+            <table class="pay-table" style="border: none;">
+                <thead>
+                    <tr>
+                        <th style="width: 70%; text-align: left; border: none; padding-left: 10px;">Employer
+                            Contributions (Not Deducted from Salary)</th>
+                        <th style="width: 30%; text-align: right; border: none; padding-right: 17px;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="border: none; padding-left: 10px;">Non-deducted Employer CPF</td>
+                        <td class="text-right" style="border: none; padding-right: 17px;">{{ employer_contributions.cpf
+                            }}</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <!-- Pay Table -->
@@ -318,16 +352,16 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>PF Amount</td>
-                            <td class="text-right">{{ deductions.provident_fund }}</td>
-                        </tr>
-                        <tr>
-                            <td>Income Tax/Professional Tax</td>
-                            <td class="text-right">{{ deductions.income_tax }}</td>
+                            <td>CPF</td>
+                            <td class="text-right">{{ deductions.cpf }}</td>
                         </tr>
                         <tr>
                             <td>Other Deductions</td>
                             <td class="text-right">{{ deductions.others }}</td>
+                        </tr>
+                        <tr>
+                            <td>&nbsp;</td>
+                            <td class="text-right"></td>
                         </tr>
                         <tr>
                             <td>&nbsp;</td>
