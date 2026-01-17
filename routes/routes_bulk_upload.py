@@ -15,7 +15,7 @@ import time as pytime
 
 from app import app, db
 from core.auth import require_login, require_role
-from core.models import Employee, User, Role, Department, WorkingHours, WorkSchedule, Company
+from core.models import Employee, User, Role, Department, WorkingHours, WorkSchedule, Company, Designation, EmployeeGroup
 from core.utils import parse_date, validate_nric, generate_employee_id
 from core.constants import DEFAULT_USER_PASSWORD
 
@@ -31,7 +31,6 @@ def employee_bulk_upload():
 @require_role(['Super Admin', 'Tenant Admin', 'HR Manager'])
 def download_employee_template():
     """Download Excel template for bulk employee upload"""
-    
     # Create a new workbook
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -42,6 +41,7 @@ def download_employee_template():
         ('Employee ID*', 'Auto-generated if left blank'),
         ('First Name*', 'Required'),
         ('Last Name*', 'Required'),
+        ('Father Name', 'Optional'),
         ('Email*', 'Required - must be unique'),
         ('Phone', 'Optional'),
         ('NRIC/Passport*', 'Required - must be unique (e.g., S1234567D)'),
@@ -50,14 +50,22 @@ def download_employee_template():
         ('Nationality', 'e.g., Singaporean, Malaysian, Indian'),
         ('Address', 'Full address'),
         ('Postal Code', 'e.g., 123456'),
+        ('Location', 'Work Location'),
+        ('Timezone', 'e.g., UTC, Asia/Singapore'),
         ('Company Code*', 'Required - Company code from system'),
         ('User Role*', 'Required - Super Admin/Admin/HR Manager/Manager/User'),
         ('Department', 'Department name'),
+        ('Designation', 'Designation Name'),
         ('Manager Employee ID', 'Employee ID of reporting manager'),
         ('Hire Date*', 'Required - Format: YYYY-MM-DD'),
         ('Employment Type*', 'Required - Full-time/Part-time/Contract/Intern'),
         ('Work Permit Type*', 'Required - Citizen/PR/Work Permit/S Pass/Employment Pass'),
+        ('Work Permit Number', 'Required if Work Permit Type is not Citizen/PR'),
         ('Work Permit Expiry', 'Format: YYYY-MM-DD (leave blank for Citizen/PR)'),
+        ('Hazmat Expiry', 'Format: YYYY-MM-DD'),
+        ('Airport Pass Expiry', 'Format: YYYY-MM-DD'),
+        ('PSA Pass Number', 'Optional'),
+        ('PSA Pass Expiry', 'Format: YYYY-MM-DD'),
         ('Basic Salary*', 'Required - Monthly salary in SGD'),
         ('Allowances', 'Monthly allowances in SGD (default: 0)'),
         ('Hourly Rate', 'Hourly rate for overtime calculation'),
@@ -67,8 +75,13 @@ def download_employee_template():
         ('Bank Name', 'e.g., DBS, OCBC, UOB'),
         ('Bank Account', 'Bank account number'),
         ('Account Holder Name', 'Name as per bank account'),
+        ('Swift Code', 'Bank Swift Code'),
+        ('IFSC Code', 'Bank IFSC Code'),
+        ('Termination Date', 'Format: YYYY-MM-DD (for inactive employees)'),
         ('Working Hours Name', 'Working hours configuration name'),
         ('Work Schedule Name', 'Work schedule name'),
+        ('Overtime Group', 'Overtime Group ID/Name'),
+        ('Employee Group', 'Employee Group Name'),
     ]
     
     # Style definitions
@@ -116,6 +129,7 @@ def download_employee_template():
         'EMP001',  # Employee ID
         'John',  # First Name
         'Doe',  # Last Name
+        'Sr.', # Father Name
         'john.doe@example.com',  # Email
         '+65 9123 4567',  # Phone
         'S1234567D',  # NRIC
@@ -124,14 +138,22 @@ def download_employee_template():
         'Singaporean',  # Nationality
         '123 Main Street, Singapore',  # Address
         '123456',  # Postal Code
+        'Singapore', # Location
+        'Asia/Singapore', # Timezone
         'COMP001',  # Company Code
         'User',  # User Role
         'Engineering',  # Department
+        'Software Engineer', # Designation
         'EMP000',  # Manager Employee ID
         '2024-01-01',  # Hire Date
         'Full-time',  # Employment Type
         'Citizen',  # Work Permit Type
+        '', # Work Permit Number
         '',  # Work Permit Expiry
+        '', # Hazmat Expiry
+        '', # Airport Pass Expiry
+        '', # PSA Pass Number
+        '', # PSA Pass Expiry
         '5000.00',  # Basic Salary
         '500.00',  # Allowances
         '30.00',  # Hourly Rate
@@ -141,8 +163,13 @@ def download_employee_template():
         'DBS',  # Bank Name
         '1234567890',  # Bank Account
         'John Doe',  # Account Holder Name
+        'SWIFT123', # Swift Code
+        'IFSC123', # IFSC Code
+        '', # Termination Date
         'Standard Hours',  # Working Hours
         'Day Shift',  # Work Schedule
+        'Group A', # OT Group
+        'Staff', # Employee Group
     ]
     
     for col_num, value in enumerate(sample_data, 1):
@@ -252,34 +279,47 @@ def upload_employee_excel():
                 provided_employee_id = str(row[0]).strip() if row[0] else None
                 first_name = row[1]
                 last_name = row[2]
-                email = row[3]
-                phone = row[4] if len(row) > 4 else None
-                nric = row[5] if len(row) > 5 else None
-                date_of_birth = row[6] if len(row) > 6 else None
-                gender = row[7] if len(row) > 7 else None
-                nationality = row[8] if len(row) > 8 else None
-                address = row[9] if len(row) > 9 else None
-                postal_code = row[10] if len(row) > 10 else None
-                company_code = row[11] if len(row) > 11 else None
-                # ... check indexes for other fields ...
-                user_role_name = row[12] if len(row) > 12 else 'User'
-                department = str(row[13]).strip() if len(row) > 13 and row[13] else None
-                manager_employee_id = row[14] if len(row) > 14 else None
-                hire_date = row[15] if len(row) > 15 else None
-                employment_type = row[16] if len(row) > 16 else None
-                work_permit_type = row[17] if len(row) > 17 else None
-                work_permit_expiry = row[18] if len(row) > 18 else None
-                basic_salary = row[19] if len(row) > 19 else None
-                allowances = row[20] if len(row) > 20 else 0
-                hourly_rate = row[21] if len(row) > 21 else None
-                employee_cpf_rate = row[22] if len(row) > 22 else 20.00
-                employer_cpf_rate = row[23] if len(row) > 23 else 17.00
-                cpf_account = row[24] if len(row) > 24 else None
-                bank_name = row[25] if len(row) > 25 else None
-                bank_account = row[26] if len(row) > 26 else None
-                account_holder_name = row[27] if len(row) > 27 else None
-                working_hours_name = row[28] if len(row) > 28 else None
-                work_schedule_name = row[29] if len(row) > 29 else None
+                father_name = row[3] if len(row) > 3 else None
+                email = row[4]
+                phone = row[5] if len(row) > 5 else None
+                nric = row[6] if len(row) > 6 else None
+                date_of_birth = row[7] if len(row) > 7 else None
+                gender = row[8] if len(row) > 8 else None
+                nationality = row[9] if len(row) > 9 else None
+                address = row[10] if len(row) > 10 else None
+                postal_code = row[11] if len(row) > 11 else None
+                location = row[12] if len(row) > 12 else None
+                timezone = row[13] if len(row) > 13 else 'UTC'
+                company_code = row[14] if len(row) > 14 else None
+                user_role_name = row[15] if len(row) > 15 else 'User'
+                department = str(row[16]).strip() if len(row) > 16 and row[16] else None
+                designation_name = str(row[17]).strip() if len(row) > 17 and row[17] else None
+                manager_employee_id = row[18] if len(row) > 18 else None
+                hire_date = row[19] if len(row) > 19 else None
+                employment_type = row[20] if len(row) > 20 else None
+                work_permit_type = row[21] if len(row) > 21 else None
+                work_permit_number = row[22] if len(row) > 22 else None
+                work_permit_expiry = row[23] if len(row) > 23 else None
+                hazmat_expiry = row[24] if len(row) > 24 else None
+                airport_pass_expiry = row[25] if len(row) > 25 else None
+                psa_pass_number = row[26] if len(row) > 26 else None
+                psa_pass_expiry = row[27] if len(row) > 27 else None
+                basic_salary = row[28] if len(row) > 28 else None
+                allowances = row[29] if len(row) > 29 else 0
+                hourly_rate = row[30] if len(row) > 30 else None
+                employee_cpf_rate = row[31] if len(row) > 31 else 20.00
+                employer_cpf_rate = row[32] if len(row) > 32 else 17.00
+                cpf_account = row[33] if len(row) > 33 else None
+                bank_name = row[34] if len(row) > 34 else None
+                bank_account = row[35] if len(row) > 35 else None
+                account_holder_name = row[36] if len(row) > 36 else None
+                swift_code = row[37] if len(row) > 37 else None
+                ifsc_code = row[38] if len(row) > 38 else None
+                termination_date = row[39] if len(row) > 39 else None
+                working_hours_name = row[40] if len(row) > 40 else None
+                work_schedule_name = row[41] if len(row) > 41 else None
+                overtime_group_id = row[42] if len(row) > 42 else None
+                employee_group_name = row[43] if len(row) > 43 else None
                 
                 # Validate mandatory fields
                 if not all([first_name, last_name, email, nric, company_code, hire_date, employment_type, work_permit_type, basic_salary]):
@@ -345,6 +385,24 @@ def upload_employee_excel():
                     else:
                         errors.append(f"Row {row_num}: Warning - Manager {manager_employee_id} not found, skipping manager assignment")
                 
+                # Get designation
+                designation_id = None
+                if designation_name:
+                    designation = Designation.query.filter_by(name=designation_name).first()
+                    if designation:
+                        designation_id = designation.id
+                    else:
+                        errors.append(f"Row {row_num}: Warning - Designation {designation_name} not found")
+
+                # Get employee group
+                employee_group_id = None
+                if employee_group_name:
+                    employee_group = EmployeeGroup.query.filter_by(name=employee_group_name, company_id=company.id).first()
+                    if employee_group:
+                        employee_group_id = employee_group.id
+                    else:
+                        errors.append(f"Row {row_num}: Warning - Employee Group {employee_group_name} not found")
+
                 # Get working hours
                 working_hours_id = None
                 if working_hours_name:
@@ -366,11 +424,20 @@ def upload_employee_excel():
                     hire_date = parse_date(hire_date)
                 if isinstance(work_permit_expiry, str) and work_permit_expiry:
                     work_permit_expiry = parse_date(work_permit_expiry)
+                if isinstance(hazmat_expiry, str) and hazmat_expiry:
+                    hazmat_expiry = parse_date(hazmat_expiry)
+                if isinstance(airport_pass_expiry, str) and airport_pass_expiry:
+                    airport_pass_expiry = parse_date(airport_pass_expiry)
+                if isinstance(psa_pass_expiry, str) and psa_pass_expiry:
+                    psa_pass_expiry = parse_date(psa_pass_expiry)
+                if isinstance(termination_date, str) and termination_date:
+                    termination_date = parse_date(termination_date)
                 
                 if is_update:
                     # Update existing employee
                     employee.first_name = first_name
                     employee.last_name = last_name
+                    employee.father_name = father_name
                     employee.email = email
                     employee.phone = phone
                     employee.nric = nric
@@ -379,13 +446,21 @@ def upload_employee_excel():
                     employee.nationality = nationality
                     employee.address = address
                     employee.postal_code = postal_code
+                    employee.location = location
+                    employee.timezone = timezone
                     employee.company_id = company.id
                     employee.department = department
+                    employee.designation_id = designation_id
                     employee.manager_id = manager_id
                     employee.hire_date = hire_date
                     employee.employment_type = employment_type
                     employee.work_permit_type = work_permit_type
+                    employee.work_permit_number = work_permit_number
                     employee.work_permit_expiry = work_permit_expiry
+                    employee.hazmat_expiry = hazmat_expiry
+                    employee.airport_pass_expiry = airport_pass_expiry
+                    employee.psa_pass_number = psa_pass_number
+                    employee.psa_pass_expiry = psa_pass_expiry
                     employee.basic_salary = float(basic_salary)
                     employee.allowances = float(allowances) if allowances else 0
                     employee.hourly_rate = float(hourly_rate) if hourly_rate else None
@@ -395,8 +470,13 @@ def upload_employee_excel():
                     employee.bank_name = bank_name
                     employee.bank_account = bank_account
                     employee.account_holder_name = account_holder_name
+                    employee.swift_code = swift_code
+                    employee.ifsc_code = ifsc_code
+                    employee.termination_date = termination_date
                     employee.working_hours_id = working_hours_id
                     employee.work_schedule_id = work_schedule_id
+                    employee.overtime_group_id = overtime_group_id
+                    employee.employee_group_id = employee_group_id
                     
                     # Update linked User
                     if employee.user:
@@ -412,6 +492,7 @@ def upload_employee_excel():
                         employee_id=employee_id,
                         first_name=first_name,
                         last_name=last_name,
+                        father_name=father_name,
                         email=email,
                         phone=phone,
                         nric=nric,
@@ -420,13 +501,21 @@ def upload_employee_excel():
                         nationality=nationality,
                         address=address,
                         postal_code=postal_code,
+                        location=location,
+                        timezone=timezone,
                         company_id=company.id,
                         department=department,
+                        designation_id=designation_id,
                         manager_id=manager_id,
                         hire_date=hire_date,
                         employment_type=employment_type,
                         work_permit_type=work_permit_type,
+                        work_permit_number=work_permit_number,
                         work_permit_expiry=work_permit_expiry,
+                        hazmat_expiry=hazmat_expiry,
+                        airport_pass_expiry=airport_pass_expiry,
+                        psa_pass_number=psa_pass_number,
+                        psa_pass_expiry=psa_pass_expiry,
                         basic_salary=float(basic_salary),
                         allowances=float(allowances) if allowances else 0,
                         hourly_rate=float(hourly_rate) if hourly_rate else None,
@@ -436,8 +525,13 @@ def upload_employee_excel():
                         bank_name=bank_name,
                         bank_account=bank_account,
                         account_holder_name=account_holder_name,
+                        swift_code=swift_code,
+                        ifsc_code=ifsc_code,
+                        termination_date=termination_date,
                         working_hours_id=working_hours_id,
                         work_schedule_id=work_schedule_id,
+                        overtime_group_id=overtime_group_id,
+                        employee_group_id=employee_group_id,
                         organization_id=current_user.organization_id,
                         is_active=True,
                         created_by=current_user.username
@@ -578,6 +672,7 @@ def export_employees():
         ('Employee ID*', 'Auto-generated if left blank'),
         ('First Name*', 'Required'),
         ('Last Name*', 'Required'),
+        ('Father Name', 'Optional'),
         ('Email*', 'Required - must be unique'),
         ('Phone', 'Optional'),
         ('NRIC/Passport*', 'Required - must be unique (e.g., S1234567D)'),
@@ -586,14 +681,22 @@ def export_employees():
         ('Nationality', 'e.g., Singaporean, Malaysian, Indian'),
         ('Address', 'Full address'),
         ('Postal Code', 'e.g., 123456'),
+        ('Location', 'Work Location'),
+        ('Timezone', 'e.g., UTC, Asia/Singapore'),
         ('Company Code*', 'Required - Company code from system'),
         ('User Role*', 'Required - Super Admin/Admin/HR Manager/Manager/User'),
         ('Department', 'Department name'),
+        ('Designation', 'Designation Name'),
         ('Manager Employee ID', 'Employee ID of reporting manager'),
         ('Hire Date*', 'Required - Format: YYYY-MM-DD'),
         ('Employment Type*', 'Required - Full-time/Part-time/Contract/Intern'),
         ('Work Permit Type*', 'Required - Citizen/PR/Work Permit/S Pass/Employment Pass'),
+        ('Work Permit Number', 'Required if Work Permit Type is not Citizen/PR'),
         ('Work Permit Expiry', 'Format: YYYY-MM-DD (leave blank for Citizen/PR)'),
+        ('Hazmat Expiry', 'Format: YYYY-MM-DD'),
+        ('Airport Pass Expiry', 'Format: YYYY-MM-DD'),
+        ('PSA Pass Number', 'Optional'),
+        ('PSA Pass Expiry', 'Format: YYYY-MM-DD'),
         ('Basic Salary*', 'Required - Monthly salary in SGD'),
         ('Allowances', 'Monthly allowances in SGD (default: 0)'),
         ('Hourly Rate', 'Hourly rate for overtime calculation'),
@@ -603,8 +706,13 @@ def export_employees():
         ('Bank Name', 'e.g., DBS, OCBC, UOB'),
         ('Bank Account', 'Bank account number'),
         ('Account Holder Name', 'Name as per bank account'),
+        ('Swift Code', 'Bank Swift Code'),
+        ('IFSC Code', 'Bank IFSC Code'),
+        ('Termination Date', 'Format: YYYY-MM-DD (for inactive employees)'),
         ('Working Hours Name', 'Working hours configuration name'),
         ('Work Schedule Name', 'Work schedule name'),
+        ('Overtime Group', 'Overtime Group ID/Name'),
+        ('Employee Group', 'Employee Group Name'),
     ]
 
     # Styles
@@ -646,11 +754,14 @@ def export_employees():
         role_name = emp.user.role.name if emp.user and emp.user.role else ''
         working_hours_name = emp.working_hours.name if emp.working_hours else ''
         work_schedule_name = emp.work_schedule.name if emp.work_schedule else ''
+        designation_name = emp.designation.name if emp.designation else ''
+        employee_group_name = emp.employee_group.name if emp.employee_group else ''
 
         row_data = [
             emp.employee_id,
             emp.first_name,
             emp.last_name,
+            emp.father_name,
             emp.email,
             emp.phone,
             emp.nric,
@@ -659,14 +770,22 @@ def export_employees():
             emp.nationality,
             emp.address,
             emp.postal_code,
+            emp.location,
+            emp.timezone,
             company_code,
             role_name,
             emp.department,
+            designation_name,
             manager_emp_id,
             emp.hire_date.strftime('%Y-%m-%d') if emp.hire_date else '',
             emp.employment_type,
             emp.work_permit_type,
+            emp.work_permit_number,
             emp.work_permit_expiry.strftime('%Y-%m-%d') if emp.work_permit_expiry else '',
+            emp.hazmat_expiry.strftime('%Y-%m-%d') if emp.hazmat_expiry else '',
+            emp.airport_pass_expiry.strftime('%Y-%m-%d') if emp.airport_pass_expiry else '',
+            emp.psa_pass_number,
+            emp.psa_pass_expiry.strftime('%Y-%m-%d') if emp.psa_pass_expiry else '',
             str(emp.basic_salary) if emp.basic_salary is not None else '',
             str(emp.allowances) if emp.allowances is not None else '',
             str(emp.hourly_rate) if emp.hourly_rate is not None else '',
@@ -676,8 +795,13 @@ def export_employees():
             emp.bank_name,
             emp.bank_account,
             emp.account_holder_name,
+            emp.swift_code,
+            emp.ifsc_code,
+            emp.termination_date.strftime('%Y-%m-%d') if emp.termination_date else '',
             working_hours_name,
-            work_schedule_name
+            work_schedule_name,
+            emp.overtime_group_id,
+            employee_group_name
         ]
 
         for col_num, value in enumerate(row_data, 1):
