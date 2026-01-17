@@ -62,7 +62,8 @@
                 {% if (current_user.role.name if current_user.role else None) in ['Tenant Admin', 'Super Admin',
                 'Admin', 'HR Manager', 'HR_MANAGER', 'ADMIN', 'SUPER_ADMIN'] %}
                 <div class="d-flex gap-2">
-                    <a href="{{ url_for('export_employees') }}" class="btn btn-light border text-secondary shadow-sm">
+                    <a href="{{ url_for('export_employees') }}" data-no-loader="true"
+                        class="btn btn-light border text-secondary shadow-sm">
                         <i class="fas fa-download me-1"></i>Export
                     </a>
                     <a href="{{ url_for('employee_add') }}" class="btn btn-primary shadow-sm">

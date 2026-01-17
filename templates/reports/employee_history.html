@@ -16,7 +16,8 @@
             <a href="{{ url_for('reports_menu') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-1"></i>Back to Reports
             </a>
-            <a href="{{ url_for('report_employee_history', export='csv') }}" class="btn btn-success">
+            <a href="{{ url_for('report_employee_history', export='csv') }}" class="btn btn-success"
+                data-no-loader="true">
                 <i class="fas fa-file-csv me-1"></i>Export CSV
             </a>
         </div>

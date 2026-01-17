@@ -616,6 +616,14 @@
                 });
             }
 
+            // Handle Back/Forward Cache (bfcache)
+            // This fixes the issue where the loader stays visible when clicking the back button
+            window.addEventListener('pageshow', function (event) {
+                // If the page was restored from the bfcache, or just normally shown
+                // we want to ensure any stale loader state is cleared.
+                hideLoader();
+            });
+
             // Show loader on form submission
             document.querySelectorAll('form').forEach(form => {
                 form.addEventListener('submit', function (e) {
@@ -647,7 +655,7 @@
                     // Check if it's an anchor tag for page navigation
                     if (this.tagName === 'A' && this.href && !this.hasAttribute('onclick')) {
                         // Only show loader if it's not a hash link or external link
-                        if (!this.href.includes('#') && !this.target === '_blank') {
+                        if (!this.href.includes('#') && !this.target === '_blank' && !this.hasAttribute('data-no-loader')) {
                             showLoader();
                         }
                     }
