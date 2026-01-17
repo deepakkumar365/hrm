@@ -827,21 +827,22 @@ def employee_add():
                                        overtime_groups=overtime_groups)
 
             # Check for duplicate NRIC
-            if nric and Employee.query.filter_by(nric=nric).first():
-                flash('Employee with this NRIC already exists', 'error')
-                return render_template('employees/form.html',
-                                       form_data=request.form,
-                                       roles=roles,
-                                       user_roles=user_roles,
-                                       designations=designations,
-                                       departments=departments,
-                                       working_hours=working_hours,
-                                       work_schedules=work_schedules,
-                                       managers=managers,
-                                       companies=companies,
-                                       timezones=timezones,
-                                       leave_groups=leave_groups,
-                                       overtime_groups=overtime_groups)
+            # Check for duplicate NRIC - ALLOWED as per new requirement
+            # if nric and Employee.query.filter_by(nric=nric).first():
+            #     flash('Employee with this NRIC already exists', 'error')
+            #     return render_template('employees/form.html',
+            #                            form_data=request.form,
+            #                            roles=roles,
+            #                            user_roles=user_roles,
+            #                            designations=designations,
+            #                            departments=departments,
+            #                            working_hours=working_hours,
+            #                            work_schedules=work_schedules,
+            #                            managers=managers,
+            #                            companies=companies,
+            #                            timezones=timezones,
+            #                            leave_groups=leave_groups,
+            #                            overtime_groups=overtime_groups)
 
             # Create new employee
             employee = Employee()
@@ -1411,24 +1412,25 @@ def employee_edit(employee_id):
                                        overtime_groups=overtime_groups)
 
             # Check for duplicate NRIC
-            if nric:
-                duplicate = Employee.query.filter(Employee.nric == nric, Employee.id != employee_id).first()
-                if duplicate:
-                    flash('Employee with this NRIC already exists', 'error')
-                    return render_template('employees/form.html',
-                                           employee=employee,
-                                           form_data=request.form,
-                                           roles=roles,
-                                           user_roles=user_roles,
-                                           designations=designations,
-                                           departments=departments,
-                                           working_hours=working_hours,
-                                           work_schedules=work_schedules,
-                                           managers=managers,
-                                           companies=companies,
-                                           timezones=timezones,
-                                           leave_groups=leave_groups,
-                                           overtime_groups=overtime_groups)
+            # Check for duplicate NRIC - ALLOWED
+            # if nric:
+            #     duplicate = Employee.query.filter(Employee.nric == nric, Employee.id != employee_id).first()
+            #     if duplicate:
+            #         flash('Employee with this NRIC already exists', 'error')
+            #         return render_template('employees/form.html',
+            #                                employee=employee,
+            #                                form_data=request.form,
+            #                                roles=roles,
+            #                                user_roles=user_roles,
+            #                                designations=designations,
+            #                                departments=departments,
+            #                                working_hours=working_hours,
+            #                                work_schedules=work_schedules,
+            #                                managers=managers,
+            #                                companies=companies,
+            #                                timezones=timezones,
+            #                                leave_groups=leave_groups,
+            #                                overtime_groups=overtime_groups)
             employee.nric = nric
             employee.address = request.form.get('address')
             employee.postal_code = request.form.get('postal_code')

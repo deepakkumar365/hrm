@@ -320,13 +320,14 @@ def upload_employee_excel():
                         continue
                 
                 # Check for duplicate NRIC (Update Logic)
-                if nric:
-                    existing_nric = Employee.query.filter_by(nric=nric).first()
-                    if existing_nric:
-                        if not is_update or (is_update and existing_nric.id != employee.id):
-                            errors.append(f"Row {row_num}: NRIC {nric} already exists for another employee")
-                            error_count += 1
-                            continue
+                # Check for duplicate NRIC (Update Logic) - ALLOWED as per new requirement
+                # if nric:
+                #     existing_nric = Employee.query.filter_by(nric=nric).first()
+                #     if existing_nric:
+                #         if not is_update or (is_update and existing_nric.id != employee.id):
+                #             errors.append(f"Row {row_num}: NRIC {nric} already exists for another employee")
+                #             error_count += 1
+                #             continue
                 
                 # Get user role
                 user_role = Role.query.filter_by(name=user_role_name).first()
