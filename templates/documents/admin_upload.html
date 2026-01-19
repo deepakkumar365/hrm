@@ -2,30 +2,101 @@
 
 {% block title %}Upload Employee Document - Nexar{% endblock %}
 
+{% block head %}
+<style>
+    .upload-zone {
+        border: 2px dashed #dee2e6;
+        border-radius: 0.5rem;
+        padding: 3rem 1.5rem;
+        text-align: center;
+        background-color: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+        border-color: #0d6efd;
+        background-color: #e9ecef;
+    }
+
+    .upload-zone input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .upload-icon {
+        font-size: 3rem;
+        color: #0d6efd;
+        margin-bottom: 1rem;
+    }
+
+    .file-list-area {
+        background-color: #ffffff;
+        border-radius: 0.5rem;
+        height: 100%;
+        min-height: 500px;
+        border: 1px solid #dee2e6;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .file-list-header {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fa;
+        font-weight: 600;
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+    }
+
+    .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .empty-state img {
+        max-width: 200px;
+        margin-bottom: 1.5rem;
+        opacity: 0.8;
+    }
+
+    .page-header-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <!-- Header -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <!-- Breadcrumb navigation -->
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ url_for('admin_documents_list') }}">Documents</a>
-                            </li>
-                            <li class="breadcrumb-item active" aria-current="page">Upload Document</li>
-                        </ol>
-                    </nav>
-                </div>
-                <div>
-                    <a href="{{ url_for('admin_documents_list') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to List
-                    </a>
-                </div>
-            </div>
-            <hr class="mt-0 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-1">Upload Document</h4>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_documents_list') }}">Documents</a></li>
+                    <li class="breadcrumb-item active">Upload</li>
+                </ol>
+            </nav>
         </div>
+        <a href="{{ url_for('admin_documents_list') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back
+        </a>
     </div>
 
     <!-- Flash Messages -->
@@ -41,19 +112,30 @@
     {% endif %}
     {% endwith %}
 
-    <!-- Upload Form -->
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-upload me-2"></i>Upload Employee Document
-                </div>
+    <div class="row g-4">
+        <!-- Left Panel: Upload Form -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
-                        <!-- Employee Selection -->
+                    <form method="POST" enctype="multipart/form-data" id="uploadForm">
+
+                        <!-- Document Type -->
+                        <div class="mb-4">
+                            <label for="document_type" class="form-label fw-bold">Document Type</label>
+                            <select class="form-select" id="document_type" name="document_type" required>
+                                <option value="">--Select--</option>
+                                <option value="Offer Letter">Offer Letter</option>
+                                <option value="Appraisal Letter">Appraisal Letter</option>
+                                <option value="Salary Slip">Salary Slip</option>
+                                <option value="ID Card">ID Card</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Employee Selection (Required for backend) -->
                         <div class="mb-3">
-                            <label for="employee_id" class="form-label">Employee <span
-                                    class="text-danger">*</span></label>
+                            <label for="employee_id" class="form-label fw-bold">Employee</label>
                             <select class="form-select" id="employee_id" name="employee_id" required>
                                 <option value="">Select Employee</option>
                                 {% for employee in employees %}
@@ -64,92 +146,100 @@
                             </select>
                         </div>
 
-                        <!-- Category -->
+                        <!-- Category (Required for backend) -->
                         <div class="mb-3">
-                            <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                            <label for="category" class="form-label fw-bold">Category</label>
                             <select class="form-select" id="category" name="category" required>
                                 <option value="Official" selected>Official</option>
                                 <option value="Personal">Personal</option>
                             </select>
                         </div>
 
-
-                        <!-- Document Type -->
-                        <div class="mb-3">
-                            <label for="document_type" class="form-label">Document Type <span
-                                    class="text-danger">*</span></label>
-                            <select class="form-select" id="document_type" name="document_type" required>
-                                <option value="">Select Document Type</option>
-                                <option value="Offer Letter">Offer Letter</option>
-                                <option value="Appraisal Letter">Appraisal Letter</option>
-                                <option value="Salary Slip">Salary Slip</option>
-                                <option value="ID Card">ID Card</option>
-                                <option value="Contract">Contract</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-
-                        <!-- Month (for Salary Slip) -->
-                        <div class="mb-3" id="month_field">
-                            <label for="month" class="form-label">Month</label>
-                            <select class="form-select" id="month" name="month">
-                                <option value="">Select Month</option>
-                                <option value="1">January</option>
-                                <option value="2">February</option>
-                                <option value="3">March</option>
-                                <option value="4">April</option>
-                                <option value="5">May</option>
-                                <option value="6">June</option>
-                                <option value="7">July</option>
-                                <option value="8">August</option>
-                                <option value="9">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                        </div>
-
-                        <!-- Year (for Salary Slip) -->
-                        <div class="mb-3" id="year_field">
-                            <label for="year" class="form-label">Year</label>
-                            <input type="number" class="form-control" id="year" name="year" min="2000" max="2100"
-                                placeholder="e.g., 2024">
-                        </div>
-
-                        <!-- Issue Date -->
-                        <div class="mb-3">
-                            <label for="issue_date" class="form-label">Issue Date</label>
-                            <input type="date" class="form-control" id="issue_date" name="issue_date">
-                        </div>
-
-                        <!-- Description -->
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" rows="3"
-                                placeholder="Optional description or notes"></textarea>
-                        </div>
-
-                        <!-- File Upload -->
-                        <div class="mb-3">
-                            <label for="document_file" class="form-label">Document File <span
-                                    class="text-danger">*</span></label>
-                            <input type="file" class="form-control" id="document_file" name="document_file"
-                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
-                            <div class="form-text">
-                                Allowed formats: PDF, DOC, DOCX, JPG, PNG (Max size: 10MB)
+                        <!-- Conditional Fields (Salary Slip) -->
+                        <div id="salary_fields" style="display: none;">
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Month</label>
+                                    <select class="form-select" name="month" id="month">
+                                        <option value="">Month</option>
+                                        {% for i in range(1, 13) %}
+                                        <option value="{{ i }}">{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Year</label>
+                                    <input type="number" class="form-control" name="year" id="year" placeholder="Year"
+                                        value="{{ 2024 }}">
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Submit Button -->
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{{ url_for('admin_documents_list') }}" class="btn btn-secondary">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </a>
+                        <!-- Other Fields -->
+                        <div class="mb-3">
+                            <label class="form-label">Issue Date</label>
+                            <input type="date" class="form-control" name="issue_date">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="2"
+                                placeholder="Optional notes"></textarea>
+                        </div>
+
+                        <!-- Drag & Drop Zone -->
+                        <div class="mb-4">
+                            <div class="upload-zone" id="dropZone">
+                                <input type="file" name="document_file" id="document_file"
+                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <h6 class="mb-2">Drag and drop</h6>
+                                <p class="text-muted small mb-3">------ Or ------</p>
+                                <button type="button" class="btn btn-primary btn-sm px-4">Browse Files</button>
+                                <div id="fileName" class="mt-2 text-success small fw-bold"></div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-upload me-1"></i>Upload Document
+                                Upload Document
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Document List / Placeholder -->
+        <div class="col-md-8">
+            <div class="file-list-area">
+                <div class="file-list-header d-flex justify-content-between align-items-center">
+                    <div class="row w-100 m-0">
+                        <div class="col-5">File Name</div>
+                        <div class="col-2">Type</div>
+                        <div class="col-5">Document Name</div>
+                    </div>
+                </div>
+
+                <!-- Content Area -->
+                <div class="empty-state">
+                    <!-- Illustration Placeholder -->
+                    <div class="mb-4">
+                        <svg width="200" height="150" viewBox="0 0 200 150" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <rect x="40" y="30" width="120" height="90" rx="4" fill="#F3F4F6" />
+                            <rect x="40" y="30" width="120" height="20" rx="4" fill="#E5E7EB" />
+                            <circle cx="100" cy="75" r="15" fill="#9CA3AF" opacity="0.5" />
+                            <rect x="70" y="100" width="60" height="8" rx="4" fill="#9CA3AF" opacity="0.5" />
+                            <!-- Person Illustration (Simplified) -->
+                            <circle cx="150" cy="110" r="25" fill="#fca5a5" />
+                            <path d="M150 110 L150 140 L180 140" stroke="#ef4444" stroke-width="2" />
+                        </svg>
+                    </div>
+                    <h5>Select an employee to view documents</h5>
+                    <p>Uploaded documents for the selected employee will appear here.</p>
                 </div>
             </div>
         </div>
@@ -157,25 +247,276 @@
 </div>
 
 <script>
-    // Show/hide month and year fields based on document type
+    const form = document.getElementById('uploadForm');
+    const employeeSelect = document.getElementById('employee_id');
+    const fileListArea = document.querySelector('.file-list-area');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('document_file');
+
+    // --- 1. Fetch Documents on Employee Change ---
+    employeeSelect.addEventListener('change', function () {
+        const employeeId = this.value;
+        if (employeeId) {
+            fetchDocuments(employeeId);
+        } else {
+            renderEmptyState();
+        }
+    });
+
+    function fetchDocuments(employeeId) {
+        // Show loading state
+        fileListArea.innerHTML = `
+            <div class="file-list-header d-flex justify-content-between align-items-center">
+                <div class="row w-100 m-0">
+                    <div class="col-5">File Name</div>
+                    <div class="col-2">Type</div>
+                    <div class="col-5">Document Name</div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-center align-items-center flex-grow-1 p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+
+        fetch(`/admin/documents/employee/${employeeId}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to load');
+                return response.json();
+            })
+            .then(data => {
+                if (data.length > 0) {
+                    renderDocuments(data);
+                } else {
+                    renderEmptyState('No documents found for this employee.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                fileListArea.innerHTML = `<div class="p-4 text-center text-danger">Error loading documents.</div>`;
+            });
+    }
+
+    function renderDocuments(documents) {
+        let html = `
+            <div class="file-list-header">
+                <div class="row w-100 m-0 fw-bold">
+                    <div class="col-5">File Name</div>
+                    <div class="col-3">Type</div>
+                    <div class="col-4">Actions</div>
+                </div>
+            </div>
+            <div class="flex-grow-1 overflow-auto" style="max-height: 600px;">
+                <table class="table table-hover mb-0">
+                    <tbody>
+        `;
+
+        documents.forEach(doc => {
+            html += `
+                <tr>
+                    <td class="col-5 align-middle">
+                        <div class="d-flex align-items-center">
+                            <i class="far fa-file-pdf text-danger me-2 fa-lg"></i>
+                            <div>
+                                <div class="fw-bold text-truncate" style="max-width: 200px;" title="${doc.file_name}">${doc.file_name}</div>
+                                <small class="text-muted">${doc.issue_date}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="col-3 align-middle"><span class="badge bg-light text-dark border">${doc.document_type}</span></td>
+                    <td class="col-4 align-middle">
+                        <div class="btn-group btn-group-sm">
+                            <a href="/documents/download/${doc.id}" class="btn btn-outline-primary" target="_blank" title="Download">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            <button type="button" class="btn btn-outline-danger" onclick="deleteDocument(${doc.id})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `   </tbody>
+                </table>
+            </div>`;
+
+        fileListArea.innerHTML = html;
+    }
+
+    function renderEmptyState(message = 'Select an employee to view documents') {
+        fileListArea.innerHTML = `
+            <div class="file-list-header">
+                 <div class="row w-100 m-0">
+                    <div class="col-5">File Name</div>
+                    <div class="col-2">Type</div>
+                    <div class="col-5">Document Name</div>
+                </div>
+            </div>
+            <div class="empty-state">
+                <div class="mb-4">
+                    <svg width="200" height="150" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="40" y="30" width="120" height="90" rx="4" fill="#F3F4F6"/>
+                        <rect x="40" y="30" width="120" height="20" rx="4" fill="#E5E7EB"/>
+                        <circle cx="100" cy="75" r="15" fill="#9CA3AF" opacity="0.5"/>
+                        <rect x="70" y="100" width="60" height="8" rx="4" fill="#9CA3AF" opacity="0.5"/>
+                         <circle cx="150" cy="110" r="25" fill="#fca5a5"/> 
+                         <path d="M150 110 L150 140 L180 140" stroke="#ef4444" stroke-width="2"/>
+                    </svg>
+                </div>
+                <h5>${message}</h5>
+                <p class="text-muted small">Uploaded documents will appear here.</p>
+            </div>
+        `;
+    }
+
+    // --- 3. AJAX Delete Document ---
+    window.deleteDocument = function (documentId) {
+        if (!confirm('Are you sure you want to delete this document?')) return;
+
+        fetch(`/admin/documents/delete/${documentId}`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to delete');
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Refresh list
+                    const employeeId = employeeSelect.value;
+                    if (employeeId) {
+                        fetchDocuments(employeeId);
+                    }
+                } else {
+                    alert('Delete failed: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during deletion.');
+            });
+    };
+
+    // --- 2. AJAX Form Submission ---
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+
+        const formData = new FormData(this);
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Refresh list
+                    const employeeId = employeeSelect.value;
+                    if (employeeId) {
+                        fetchDocuments(employeeId);
+                    }
+
+                    // Reset form but keep employee selected
+                    const currentEmp = employeeSelect.value;
+                    form.reset();
+                    employeeSelect.value = currentEmp;
+                    document.getElementById('fileName').textContent = '';
+
+                    // Show success toast/alert
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                    form.insertBefore(alertDiv, form.firstChild);
+
+                    setTimeout(() => alertDiv.remove(), 3000);
+                } else {
+                    alert('Upload failed: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred during upload.');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+    });
+
+    // File Input Change Handler
+    document.getElementById('document_file').addEventListener('change', function (e) {
+        const fileName = e.target.files[0]?.name;
+        if (fileName) {
+            document.getElementById('fileName').textContent = fileName;
+        }
+    });
+
+    // Drag and Drop Visual Feedback
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        dropZone.classList.add('dragover');
+    }
+
+    function unhighlight(e) {
+        dropZone.classList.remove('dragover');
+    }
+
+    dropZone.addEventListener('drop', function (e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        if (files[0]?.name) {
+            document.getElementById('fileName').textContent = files[0].name;
+        }
+    });
+
+    // Toggle Salary Fields
     document.getElementById('document_type').addEventListener('change', function () {
-        const monthField = document.getElementById('month_field');
-        const yearField = document.getElementById('year_field');
+        const salaryFields = document.getElementById('salary_fields');
         const monthInput = document.getElementById('month');
         const yearInput = document.getElementById('year');
 
         if (this.value === 'Salary Slip') {
-            monthField.style.display = 'block';
-            yearField.style.display = 'block';
+            salaryFields.style.display = 'block';
             monthInput.required = true;
             yearInput.required = true;
         } else {
-            monthField.style.display = 'none';
-            yearField.style.display = 'none';
+            salaryFields.style.display = 'none';
             monthInput.required = false;
             yearInput.required = false;
-            monthInput.value = '';
-            yearInput.value = '';
         }
     });
 </script>

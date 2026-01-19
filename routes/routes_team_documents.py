@@ -259,6 +259,36 @@ def document_download(document_id):
 # ADMIN ROUTES - Document Management (HR/Admin only)
 # =====================================================
 
+@app.route('/admin/documents/employee/<int:employee_id>')
+@require_login
+@require_role(['Super Admin', 'Admin', 'HR Manager'])
+def get_employee_documents(employee_id):
+    """Get documents for a specific employee (JSON)"""
+    # Verify access to this employee
+    employee = Employee.query.get_or_404(employee_id)
+    accessible_companies = current_user.get_accessible_companies()
+    if employee.company_id not in [c.id for c in accessible_companies]:
+        return jsonify({'error': 'Access denied'}), 403
+
+    documents = EmployeeDocument.query.filter_by(
+        employee_id=employee_id
+    ).order_by(EmployeeDocument.issue_date.desc()).all()
+    
+    doc_list = []
+    for doc in documents:
+        doc_list.append({
+            'id': doc.id,
+            'document_type': doc.document_type,
+            'category': doc.category,
+            'issue_date': doc.issue_date.strftime('%d %b %Y') if doc.issue_date else '-',
+            'description': doc.description or '',
+            'created_at': doc.created_at.strftime('%d %b %Y'),
+            'file_name': os.path.basename(doc.file_path) if doc.file_path else 'Document'
+        })
+        
+    return jsonify(doc_list)
+
+
 @app.route('/admin/documents/upload', methods=['GET', 'POST'])
 @require_login
 @require_role(['Super Admin', 'Admin', 'HR Manager'])
@@ -340,6 +370,9 @@ def admin_document_upload():
         
         db.session.add(document)
         db.session.commit()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+             return jsonify({'success': True, 'message': f'Document uploaded successfully for {employee.first_name}.'})
         
         flash(f'Document uploaded successfully for {employee.first_name} {employee.last_name}.', 'success')
         return redirect(url_for('admin_document_upload'))
@@ -539,6 +572,9 @@ def admin_document_delete(document_id):
     # Delete database record
     db.session.delete(document)
     db.session.commit()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+         return jsonify({'success': True, 'message': 'Document deleted successfully.'})
     
     flash('Document deleted successfully.', 'success')
     return redirect(url_for('admin_documents_list'))
