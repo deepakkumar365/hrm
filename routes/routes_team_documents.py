@@ -409,7 +409,7 @@ def admin_document_upload():
             message += " Errors: " + "; ".join(error_messages)
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-             return jsonify({'success': True, 'message': message})
+             return jsonify({'success': success_count > 0, 'message': message})
         
         flash(message, 'success' if success_count > 0 else 'danger')
         return redirect(url_for('admin_document_upload'))

@@ -434,6 +434,7 @@
                 }
             })
             .then(data => {
+                console.log('Upload response:', data);
                 if (data.success) {
                     // Refresh list
                     const employeeId = employeeSelect.value;
@@ -462,12 +463,15 @@
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error during upload fetch:', error);
                 alert('An error occurred during upload. Check console for details.');
             })
             .finally(() => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
+                console.log('Fetch finally block reached');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
             });
     });
 
