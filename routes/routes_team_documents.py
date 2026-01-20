@@ -283,7 +283,8 @@ def get_employee_documents(employee_id):
             'issue_date': doc.issue_date.strftime('%d %b %Y') if doc.issue_date else '-',
             'description': doc.description or '',
             'created_at': doc.created_at.strftime('%d %b %Y'),
-            'file_name': os.path.basename(doc.file_path) if doc.file_path else 'Document'
+            'created_at': doc.created_at.strftime('%d %b %Y'),
+            'file_name': doc.file.original_filename if doc.file else (os.path.basename(doc.file_path) if doc.file_path else 'Document')
         })
         
     return jsonify(doc_list)
@@ -303,78 +304,114 @@ def admin_document_upload():
         description = request.form.get('description', '')
         category = request.form.get('category', 'Official') # Default to Official
         
+        # Helper to return error
+        def return_error(msg):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': msg})
+            flash(msg, 'danger')
+            return redirect(url_for('admin_document_upload'))
+
         # Validate inputs
         if not employee_id or not document_type or not issue_date:
-            flash('Please fill in all required fields.', 'danger')
-            return redirect(url_for('admin_document_upload'))
+            return return_error('Please fill in all required fields.')
         
         employee = Employee.query.get(employee_id)
         if not employee:
-            flash('Employee not found.', 'danger')
-            return redirect(url_for('admin_document_upload'))
+            return return_error('Employee not found.')
         
         # Handle file upload
         if 'document_file' not in request.files:
-            flash('No file uploaded.', 'danger')
-            return redirect(url_for('admin_document_upload'))
+            return return_error('No file uploaded.')
         
-        file = request.files['document_file']
-        if file.filename == '':
-            flash('No file selected.', 'danger')
-            return redirect(url_for('admin_document_upload'))
+        files = request.files.getlist('document_file')
+        if not files or files[0].filename == '':
+            return return_error('No file selected.')
         
-        # Validate file extension
+        success_count = 0
+        error_messages = []
         allowed_extensions = {'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'}
-        if '.' not in file.filename or file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
-            flash('Invalid file type. Allowed: PDF, DOC, DOCX, JPG, PNG', 'danger')
-            return redirect(url_for('admin_document_upload'))
-        
-        # Upload using FileService
-        # Hierarchy: tenants/{id}/companies/{id}/employees/{id}/documents/
-        
+
         tenant_id = employee.company.tenant_id if employee.company and employee.company.tenant_id else None
         # Fallback if tenant_id is missing (should verify data integrity)
         if not tenant_id and current_user.organization and current_user.organization.tenant_id:
              tenant_id = current_user.organization.tenant_id
 
         if not tenant_id:
-             flash('System Error: Tenant ID missing for this employee.', 'danger')
-             return redirect(url_for('admin_document_upload'))
+             return return_error('System Error: Tenant ID missing for this employee.')
 
-        file_record = FileService.upload_file(
-            file_obj=file,
-            module='HR',
-            tenant_id=tenant_id,
-            company_id=employee.company_id,
-            employee_id=employee.id,
-            file_category='documents'
-        )
+        for file in files:
+            if file.filename == '':
+                continue
+                
+            # Validate file extension
+            if '.' not in file.filename or file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+                msg = f"Skipped {file.filename}: Invalid file type."
+                app.logger.warning(f"[UPLOAD WARNING] {msg}")
+                error_messages.append(msg)
+                continue
         
-        if not file_record:
-            flash('Failed to upload document.', 'danger')
-            return redirect(url_for('admin_document_upload'))
+            # Upload using FileService
+            try:
+                start_time = datetime.now()
+                app.logger.info(f"Starting upload for {file.filename}")
+                
+                file_record = FileService.upload_file(
+                    file_obj=file,
+                    module='HR',
+                    tenant_id=tenant_id,
+                    company_id=employee.company_id,
+                    employee_id=employee.id,
+                    file_category='documents'
+                )
+                
+                if not file_record:
+                    msg = f"Failed to upload {file.filename} (FileService returned None)."
+                    app.logger.error(f"[UPLOAD ERROR] {msg}")
+                    error_messages.append(msg)
+                    continue
+                
+                # Create document record
+                document = EmployeeDocument(
+                    employee_id=employee_id,
+                    document_type=document_type,
+                    category=category, # Save category
+                    file_path=file_record.file_path, # Legacy column support
+                    file_storage_id=file_record.id,  # New FK
+                    issue_date=datetime.strptime(issue_date, '%Y-%m-%d').date(),
+                    month=month,
+                    year=year,
+                    description=description,
+                    uploaded_by=current_user.id
+                )
+                
+                db.session.add(document)
+                success_count += 1
+                app.logger.info(f"[UPLOAD SUCCESS] {file.filename} uploaded successfully.")
+
+            except Exception as e:
+                msg = f"Exception during upload of {file.filename}: {str(e)}"
+                app.logger.error(f"[UPLOAD EXCEPTION] {msg}")
+                app.logger.error(traceback.format_exc())
+                error_messages.append(f"Error uploading {file.filename}: {str(e)}")
+                continue
         
-        # Create document record
-        document = EmployeeDocument(
-            employee_id=employee_id,
-            document_type=document_type,
-            category=category, # Save category
-            file_path=file_record.file_path, # Legacy column support
-            file_storage_id=file_record.id,  # New FK
-            issue_date=datetime.strptime(issue_date, '%Y-%m-%d').date(),
-            month=month,
-            year=year,
-            description=description,
-            uploaded_by=current_user.id
-        )
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            msg = f"Database commit failed: {str(e)}"
+            app.logger.error(f"[DB ERROR] {msg}")
+            app.logger.error(traceback.format_exc())
+            return return_error(f'Database error: {str(e)}')
         
-        db.session.add(document)
-        db.session.commit()
-        
+        message = f"Successfully uploaded {success_count} document(s) for {employee.first_name}."
+        if error_messages:
+            message += " Errors: " + "; ".join(error_messages)
+
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-             return jsonify({'success': True, 'message': f'Document uploaded successfully for {employee.first_name}.'})
+             return jsonify({'success': True, 'message': message})
         
-        flash(f'Document uploaded successfully for {employee.first_name} {employee.last_name}.', 'success')
+        flash(message, 'success' if success_count > 0 else 'danger')
         return redirect(url_for('admin_document_upload'))
     
     # GET request - show upload form
@@ -547,31 +584,38 @@ def admin_document_delete(document_id):
     document = EmployeeDocument.query.get_or_404(document_id)
     
     # Delete file from filesystem
-    # Delete file
-    # Delete file from filesystem/S3
-    if document.file_storage_id:
-        # Use FileService to delete (removes from S3 and FileStorage table)
-        FileService.delete_file(document.file_storage_id)
-        # Note: EmployeeDocument record deletion is handled below
-        
-    elif document.file_path.startswith('documents/') or document.file_path.startswith('tenants/'):
-        # Legacy S3 Delete
-        s3 = S3Service()
-        if not s3.delete_file(document.file_path):
-            app.logger.error(f"Error deleting S3 file {document.file_path}")
+    try:
+        # Delete file from filesystem/S3
+        if document.file_storage_id:
+            # Use FileService to delete (removes from S3 and FileStorage table)
+            FileService.delete_file(document.file_storage_id)
+            # Note: EmployeeDocument record deletion is handled below
             
-    else:
-        # Local Delete
-        file_path = os.path.join(app.root_path, 'static', document.file_path)
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except Exception as e:
-                app.logger.error(f"Error deleting file {file_path}: {e}")
-    
-    # Delete database record
-    db.session.delete(document)
-    db.session.commit()
+        elif document.file_path.startswith('documents/') or document.file_path.startswith('tenants/'):
+            # Legacy S3 Delete
+            s3 = S3Service()
+            if not s3.delete_file(document.file_path):
+                app.logger.error(f"Error deleting S3 file {document.file_path}")
+                
+        else:
+            # Local Delete
+            file_path = os.path.join(app.root_path, 'static', document.file_path)
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    app.logger.error(f"Error deleting file {file_path}: {e}")
+        
+        # Delete database record
+        db.session.delete(document)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting document {document_id}: {e}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+             return jsonify({'success': False, 'message': 'An error occurred while deleting the document.'})
+        flash('An error occurred while deleting the document.', 'danger')
+        return redirect(url_for('admin_documents_list'))
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
          return jsonify({'success': True, 'message': 'Document deleted successfully.'})

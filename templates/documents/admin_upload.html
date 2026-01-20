@@ -191,14 +191,15 @@
                         <div class="mb-4">
                             <div class="upload-zone" id="dropZone">
                                 <input type="file" name="document_file" id="document_file"
-                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" multiple required>
                                 <div class="upload-icon">
                                     <i class="fas fa-cloud-upload-alt"></i>
                                 </div>
                                 <h6 class="mb-2">Drag and drop</h6>
                                 <p class="text-muted small mb-3">------ Or ------</p>
                                 <button type="button" class="btn btn-primary btn-sm px-4">Browse Files</button>
-                                <div id="fileName" class="mt-2 text-success small fw-bold"></div>
+                                <div id="fileName" class="mt-2 text-success small fw-bold"
+                                    style="white-space: pre-line;"></div>
                             </div>
                         </div>
 
@@ -421,7 +422,17 @@
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-            .then(response => response.json())
+            .then(response => {
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    return response.json();
+                } else {
+                    return response.text().then(text => {
+                        console.error('Non-JSON Response:', text);
+                        throw new Error('Server returned non-JSON response');
+                    });
+                }
+            })
             .then(data => {
                 if (data.success) {
                     // Refresh list
@@ -452,7 +463,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred during upload.');
+                alert('An error occurred during upload. Check console for details.');
             })
             .finally(() => {
                 submitBtn.disabled = false;
@@ -462,10 +473,7 @@
 
     // File Input Change Handler
     document.getElementById('document_file').addEventListener('change', function (e) {
-        const fileName = e.target.files[0]?.name;
-        if (fileName) {
-            document.getElementById('fileName').textContent = fileName;
-        }
+        handleFiles(e.target.files);
     });
 
     // Drag and Drop Visual Feedback
@@ -498,10 +506,18 @@
         const dt = e.dataTransfer;
         const files = dt.files;
         fileInput.files = files;
-        if (files[0]?.name) {
-            document.getElementById('fileName').textContent = files[0].name;
-        }
+        handleFiles(files);
     });
+
+    function handleFiles(files) {
+        if (files && files.length > 0) {
+            if (files.length === 1) {
+                document.getElementById('fileName').textContent = files[0].name;
+            } else {
+                document.getElementById('fileName').textContent = `${files.length} files selected`;
+            }
+        }
+    }
 
     // Toggle Salary Fields
     document.getElementById('document_type').addEventListener('change', function () {
