@@ -17,7 +17,13 @@ except Exception:
     pass
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
+
+# Suppress verbose AWS and HTTP logs
+#logging.getLogger('boto3').setLevel(logging.WARNING)
+#logging.getLogger('botocore').setLevel(logging.WARNING)
+#logging.getLogger('s3transfer').setLevel(logging.WARNING)
+#logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 class Base(DeclarativeBase):
     pass
