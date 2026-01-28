@@ -122,6 +122,11 @@ except Exception:
 db = SQLAlchemy(app, model_class=Base)
 migrate = Migrate(app, db)
 
+from flask_apscheduler import APScheduler
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+
 # Import models so they're registered with SQLAlchemy metadata
 from core import models  # noqa: E402,F401
 

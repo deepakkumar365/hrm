@@ -368,6 +368,7 @@
                         <th class="col-money text-earn fw-bold">Gross</th>
                         <th class="col-money text-deduct">CPF(Emp)</th>
                         <th class="col-money text-deduct">CPF(Empr)</th>
+                        <th class="col-money text-deduct">Other Ded</th>
                         <th class="col-money bg-subtle-blue fw-bold text-primary">Net Pay</th>
                         <th>Status</th>
                         <th class="col-action">Actions</th>
@@ -405,6 +406,10 @@
                         </td>
                         <td class="col-money text-deduct">
                             {% if payroll.employer_cpf > 0 %}-{% endif %}{{ render_money(payroll.employer_cpf) }}
+                        </td>
+                        <td class="col-money text-deduct">
+                            {% if payroll.other_deductions > 0 %}-{% endif %}{{ render_money(payroll.other_deductions)
+                            }}
                         </td>
                         <td class="col-money bg-subtle-blue fw-bold text-primary">{{ render_money(payroll.net_pay) }}
                         </td>
@@ -450,7 +455,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="11" class="text-center py-5 text-muted">
+                        <td colspan="12" class="text-center py-5 text-muted">
                             <i class="fas fa-file-invoice-dollar fa-2x mb-2 opacity-25"></i>
                             <p class="mb-0">No payroll records found for the selected period.</p>
                         </td>

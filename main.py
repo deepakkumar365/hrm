@@ -52,6 +52,13 @@ from routes.routes_monitoring import monitoring_bp
 app.register_blueprint(monitoring_bp)
 from routes.routes_org_structure import org_structure_bp
 app.register_blueprint(org_structure_bp)
+
+from routes.routes_email import email_bp
+app.register_blueprint(email_bp)
+
+from routes.routes_scheduler import scheduler_bp
+app.register_blueprint(scheduler_bp)
+
 from core import cli_commands  # noqa: F401
 
 if __name__ == "__main__":
@@ -60,7 +67,11 @@ if __name__ == "__main__":
         try:
             from routes.routes import initialize_default_data
             initialize_default_data()
+            
+            # Initialize Scheduler Jobs
+            from services.scheduler_service import SchedulerService
+            SchedulerService.schedule_existing_jobs()
         except Exception as e:
-            print(f"⚠️ Warning: Could not initialize default data on startup: {e}")
+            print(f"⚠️ Warning: Could not initialize default data or scheduler on startup: {e}")
 
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=True)

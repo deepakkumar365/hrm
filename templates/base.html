@@ -410,6 +410,9 @@
 
                         {% if user_role == 'Super Admin' %}
                         <a class="nav-link" href="{{ url_for('monitoring.job_logs') }}">Job Monitoring</a>
+                        <a class="nav-link" href="{{ url_for('email.email_config') }}">Email Config</a>
+                        <a class="nav-link" href="{{ url_for('email.email_dashboard') }}">Email Dashboard</a>
+                        <a class="nav-link" href="{{ url_for('scheduler.list_jobs') }}">Report Scheduler</a>
                         {% endif %}
                     </div>
                 </div>

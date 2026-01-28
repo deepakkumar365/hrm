@@ -330,12 +330,21 @@
                             <td>CPF</td>
                             <td class="text-right">{{ deductions.cpf }}</td>
                         </tr>
+                        <tr>
+                            <td>Other Deductions</td>
+                            <td class="text-right">{{ deductions.others }}</td>
+                        </tr>
                         <tr class="fw-bold">
                             <td class="text-right">Total Deductions</td>
                             <td class="text-right">{{ payroll.total_deductions }}</td>
                         </tr>
                     </tbody>
                 </table>
+                {% if payroll.remarks %}
+                <div style="margin-top: 10px; font-size: 11px;">
+                    <strong>Remarks:</strong> {{ payroll.remarks }}
+                </div>
+                {% endif %}
             </div>
 
             {% elif section == 'net_pay' %}

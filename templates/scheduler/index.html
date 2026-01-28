@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}Report Scheduler - Nexar{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Report Schedules</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+            <i class="fas fa-plus fa-sm text-white-50"></i> Add Schedule
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-body py-2">
+            <form class="form-inline" method="GET">
+                <label class="my-1 mr-2" for="tenant_id">Filter by Tenant:</label>
+                <select class="form-select w-auto d-inline-block" name="tenant_id" onchange="this.form.submit()">
+                    <option value="">All Tenants</option>
+                    {% for tenant in tenants %}
+                    <option value="{{ tenant.id }}" {{ 'selected' if selected_tenant_id==tenant.id|string }}>{{
+                        tenant.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedules List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Active Schedules</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Tenant</th>
+                            <th>Report Type</th>
+                            <th>Cron Expression</th>
+                            <th>Recipients</th>
+                            <th>Last Run</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in schedules %}
+                        <tr>
+                            <td>{{ schedule.tenant.name if schedule.tenant else 'Unknown' }}</td>
+                            <td>{{ schedule.report_type }}</td>
+                            <td><code>{{ schedule.cron_expression }}</code></td>
+                            <td>
+                                {% for r in schedule.recipients %}
+                                <span class="badge bg-info text-dark">{{ r }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>{{ schedule.last_run_at.strftime('%Y-%m-%d %H:%M:%S') if schedule.last_run_at else
+                                'Never' }}</td>
+                            <td>
+                                <form action="{{ url_for('scheduler.trigger_job', id=schedule.id) }}" method="POST"
+                                    style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning" title="Run Now">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('scheduler.delete_job', id=schedule.id) }}" method="POST"
+                                    style="display:inline;" onsubmit="return confirm('Are you sure?');">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Schedule Modal -->
+<div class="modal fade" id="addScheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('scheduler.add_job') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="tenant_id" class="form-label">Tenant</label>
+                        <select class="form-select" name="tenant_id" required>
+                            {% for tenant in tenants %}
+                            <option value="{{ tenant.id }}" {{ 'selected' if selected_tenant_id==tenant.id|string }}>{{
+                                tenant.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="report_type" class="form-label">Report Type</label>
+                        <select class="form-select" name="report_type" required>
+                            <option value="Daily Attendance">Daily Attendance</option>
+                            <option value="Weekly Summary">Weekly Summary</option>
+                            <option value="Monthly Payroll">Monthly Payroll</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cron_expression" class="form-label">Cron Expression</label>
+                        <input type="text" class="form-control" name="cron_expression" placeholder="e.g. 30 18 * * 1-5"
+                            required>
+                        <small class="text-muted">Format: minute hour day month day_of_week</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="recipients" class="form-label">Recipients (comma separated)</label>
+                        <input type="text" class="form-control" name="recipients" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Create Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

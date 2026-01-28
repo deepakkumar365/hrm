@@ -425,15 +425,17 @@
                             <th class="col-money bg-subtle-success fw-bold">Gross Pay</th>
                             <th class="text-right">Employee CPF</th>
                             <th class="text-right">Employer CPF</th>
+                            <th class="text-right" title="Other Deductions">Other Ded</th>
                             <th class="text-right">Total Ded</th>
                             <th class="col-money bg-subtle-blue">Net Pay</th>
+                            <th class="text-left" style="min-width: 150px;">Remarks</th>
                             <th>Status</th>
                             <th class="col-action">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="employeeTableBody">
                         <tr>
-                            <td colspan="16" class="text-center py-5 text-muted">
+                            <td colspan="19" class="text-center py-5 text-muted">
                                 <i class="fas fa-search fa-2x mb-2 opacity-25"></i>
                                 <p class="mb-0">Select Company and Month to load data</p>
                             </td>
@@ -505,7 +507,7 @@
         tbody.innerHTML = '';
 
         if (employeeData.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="16" class="text-center py-5">No employees found.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="19" class="text-center py-5">No employees found.</td></tr>`;
             return;
         }
 
@@ -553,8 +555,13 @@
                      <td class="col-money bg-subtle-success fw-bold">$${formatNumber(emp.gross_salary)}</td>
                     <td><input type="number" step="0.01" class="inline-input text-deduct" id="edit-cpf-${emp.id}" value="${emp.cpf_deduction.toFixed(2)}"></td>
                      <td><input type="number" step="0.01" class="inline-input text-deduct" id="edit-employercpf-${emp.id}" value="${emp.employer_cpf.toFixed(2)}"></td>
+                     
+                     <td><input type="number" step="0.01" class="inline-input text-deduct" id="edit-otherded-${emp.id}" value="${(emp.other_deductions || 0).toFixed(2)}" placeholder="0.00"></td>
+                     
                     <td class="col-money text-muted opacity-50">-${formatNumber(emp.total_deductions)}</td>
                     <td class="col-money text-muted opacity-50">$${formatNumber(emp.net_salary)}</td>
+                    
+                    <td><input type="text" class="inline-input text-start" id="edit-remarks-${emp.id}" value="${emp.remarks || ''}" placeholder="Optional remarks"></td>
                     
                     <td><span class="badge bg-warning text-dark">Editing...</span></td>
                     
@@ -598,8 +605,10 @@
                     <td class="col-money bg-subtle-success fw-bold">$${formatNumber(emp.gross_salary)}</td>
                     <td class="col-money text-deduct">-${formatNumber(emp.cpf_deduction)}</td>
                     <td class="col-money text-deduct">-${formatNumber(emp.employer_cpf)}</td>
+                    <td class="col-money text-deduct">-${formatNumber(emp.other_deductions || 0)}</td>
                     <td class="col-money text-deduct">-${formatNumber(emp.total_deductions)}</td>
                     <td class="col-money bg-subtle-blue fw-bold text-primary">$${formatNumber(emp.net_salary)}</td>
+                    <td class="small text-muted text-truncate" style="max-width: 150px;" title="${emp.remarks || ''}">${emp.remarks || '-'}</td>
                     <td>${statusHtml}</td>
                     <td class="col-action">
                         <button type="button" class="btn btn-sm btn-light border py-0 px-2" onclick="editRow(${emp.id})">
@@ -688,8 +697,11 @@
             allowance_4_amount: document.getElementById(`edit-a4-${id}`).value,
             ot_hours: document.getElementById(`edit-othours-${id}`).value,
             ot_amount: document.getElementById(`edit-otamount-${id}`).value,
+            ot_amount: document.getElementById(`edit-otamount-${id}`).value,
             cpf_deduction: document.getElementById(`edit-cpf-${id}`).value,
             employer_cpf: document.getElementById(`edit-employercpf-${id}`).value,
+            other_deductions: document.getElementById(`edit-otherded-${id}`).value,
+            remarks: document.getElementById(`edit-remarks-${id}`).value,
             month: document.getElementById('month').value,
             year: document.getElementById('year').value,
             company_id: document.getElementById('company').value

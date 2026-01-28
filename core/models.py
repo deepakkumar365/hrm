@@ -773,6 +773,7 @@ class Payroll(db.Model):
     employer_cpf = db.Column(db.Numeric(10, 2), default=0)
     income_tax = db.Column(db.Numeric(10, 2), default=0)
     other_deductions = db.Column(db.Numeric(10, 2), default=0)
+    remarks = db.Column(db.Text, nullable=True)
 
     net_pay = db.Column(db.Numeric(10, 2), nullable=False)
 
@@ -1848,3 +1849,85 @@ class PayslipTemplate(db.Model):
     tenant = db.relationship('Tenant', backref=db.backref('payslip_templates', cascade='all, delete-orphan'))
     company = db.relationship('Company', backref=db.backref('payslip_templates', cascade='all, delete-orphan'))
     creator = db.relationship('User', foreign_keys=[created_by])
+
+class EmailConfig(db.Model):
+    """SMTP Configuration per tenant"""
+    __tablename__ = 'hrm_email_config'
+    __table_args__ = (
+        Index('idx_hrm_email_config_tenant_id', 'tenant_id'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False, unique=True)
+    
+    smtp_host = db.Column(db.String(255), nullable=False)
+    smtp_port = db.Column(db.Integer, nullable=False, default=587)
+    smtp_user = db.Column(db.String(255), nullable=False)
+    smtp_password = db.Column(db.String(255), nullable=False) # Encrypted or just stored? Stored for now.
+    from_email = db.Column(db.String(255), nullable=False)
+    from_name = db.Column(db.String(255), nullable=True)
+    
+    use_tls = db.Column(db.Boolean, default=True)
+    use_ssl = db.Column(db.Boolean, default=False)
+    
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    tenant = db.relationship('Tenant', backref=db.backref('email_config', uselist=False, cascade='all, delete-orphan'))
+
+    def __repr__(self):
+        return f'<EmailConfig tenant={self.tenant_id}>'
+
+class EmailLog(db.Model):
+    """Log of all emails sent"""
+    __tablename__ = 'hrm_email_log'
+    __table_args__ = (
+        Index('idx_hrm_email_log_tenant_id', 'tenant_id'),
+        Index('idx_hrm_email_log_sent_at', 'sent_at'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=True)
+    
+    recipient = db.Column(db.String(255), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), nullable=False) # 'Sent', 'Failed'
+    error_message = db.Column(db.Text, nullable=True)
+    
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    tenant = db.relationship('Tenant')
+
+    def __repr__(self):
+        return f'<EmailLog {self.recipient} - {self.status}>'
+
+class ReportSchedule(db.Model):
+    """Scheduled reports configuration"""
+    __tablename__ = 'hrm_report_schedule'
+    __table_args__ = (
+        Index('idx_hrm_report_schedule_tenant_id', 'tenant_id'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
+    
+    report_type = db.Column(db.String(50), nullable=False) # e.g., 'Daily Attendance'
+    cron_expression = db.Column(db.String(100), nullable=False) # e.g., '30 18 * * 1-5'
+    
+    recipients = db.Column(db.JSON, nullable=False) # List of email addresses
+    parameters = db.Column(db.JSON, default=dict) # Any report specific params
+    
+    is_active = db.Column(db.Boolean, default=True)
+    last_run_at = db.Column(db.DateTime, nullable=True)
+    next_run_at = db.Column(db.DateTime, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
+    
+    tenant = db.relationship('Tenant', backref=db.backref('report_schedules', cascade='all, delete-orphan'))
+    creator = db.relationship('User')
+
+    def __repr__(self):
+        return f'<ReportSchedule {self.report_type} tenant={self.tenant_id}>'

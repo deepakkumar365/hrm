@@ -1942,8 +1942,21 @@ def payroll_generate():
                 payroll.employee_cpf = employee_cpf
                 payroll.employer_cpf = employer_cpf
                 payroll.income_tax = 0
-                payroll.other_deductions = 0
+                payroll.income_tax = 0
+                
+                # Preserve existing deductions/remarks if re-generating draft
+                if existing and existing.status == 'Draft':
+                    payroll.other_deductions = existing.other_deductions or 0
+                    payroll.remarks = existing.remarks
+                elif not existing:
+                     payroll.other_deductions = 0
+                     payroll.remarks = ""
+                # If finalizing or just created, ensure net pay calculation includes it
+                # Note: net_pay above was calculated BEFORE reading stored deductions. Fix:
+                
+                net_pay = gross_pay - employee_cpf - float(payroll.other_deductions or 0)
                 payroll.net_pay = net_pay
+                
                 payroll.overtime_hours = total_overtime
                 payroll.days_worked = len(attendance_records)
                 payroll.generated_by = current_user.id
@@ -2161,6 +2174,10 @@ def payroll_config_update():
         if 'ot_rate_per_hour' in data:
             config.ot_rate_per_hour = Decimal(str(data['ot_rate_per_hour'])) if data['ot_rate_per_hour'] else None
 
+        # Update Remarks (Master Config - Optional, though usually per-payroll)
+        if 'remarks' in data:
+            config.remarks = data['remarks']
+
         # Update CPF Configuration (Master)
         if 'employee_cpf' in data:
             config.employee_cpf = Decimal(str(data['employee_cpf'])) if data['employee_cpf'] is not None and data['employee_cpf'] != '' else Decimal(0)
@@ -2230,6 +2247,14 @@ def payroll_config_update():
                 # Update Employer CPF Override (Does NOT affect Net Pay)
                 if 'employer_cpf' in data:
                     payroll.employer_cpf = float(data['employer_cpf'])
+
+                # Update Other Deductions Override
+                if 'other_deductions' in data:
+                    payroll.other_deductions = float(data['other_deductions'])
+
+                # Update Remarks Override
+                if 'remarks' in data:
+                    payroll.remarks = data['remarks']
                 
             except ValueError:
                 pass # Ignore invalid month/year
@@ -2330,6 +2355,8 @@ def payroll_preview_api():
             ot_allowances = calculated_ot_allowances
             
             ot_override_amount = 0.0
+            other_deductions = 0.0
+            remarks = ""
             
             cpf_override = None 
             employer_cpf = 0.0 
@@ -2337,6 +2364,8 @@ def payroll_preview_api():
             if payroll_record:
                 # Get Override Amount
                 ot_override_amount = float(payroll_record.ot_override_amount or 0)
+                other_deductions = float(payroll_record.other_deductions or 0)
+                remarks = payroll_record.remarks or ""
                 
                 # Logic: If override > 0, use it. Else use calculated.
                 # Note: User requirement "if the over ride amount is grated than zero it should take the overided amount else the original calculated amount"
@@ -2361,11 +2390,12 @@ def payroll_preview_api():
                 # If record is finalized (Approved/Paid), strictly use stored values?
                 # Actually, user said "regenerate whenever", implying Draft should always auto-update calculated part.
                 # If finalized, we probably shouldn't change it.
-                if payroll_record.status in ['Approved', 'Paid']:
-                     # For finalized records, stick to what's in DB completely
-                     total_ot_hours = float(payroll_record.overtime_hours or 0)
-                     ot_amount = float(payroll_record.overtime_pay or 0)
-                     ot_override_amount = float(payroll_record.ot_override_amount or 0) # Keep historical override logic if needed
+                    # For finalized records, stick to what's in DB completely
+                    total_ot_hours = float(payroll_record.overtime_hours or 0)
+                    ot_amount = float(payroll_record.overtime_pay or 0)
+                    ot_override_amount = float(payroll_record.ot_override_amount or 0) # Keep historical override logic if needed
+                    other_deductions = float(payroll_record.other_deductions or 0)
+                    remarks = payroll_record.remarks or ""
 
             # Total Allowances = Fixed + OT Allowances
             total_allowances = fixed_allowances + ot_allowances
@@ -2388,27 +2418,17 @@ def payroll_preview_api():
             basic_salary = float(emp.payroll_config.basic_salary or 0) if emp.payroll_config else 0.0
             gross_salary = basic_salary + total_allowances + ot_amount
 
-            # Calculate CPF deductions
+            # Calculate CPF Deduction
+            cpf_deduction = float(config.employee_cpf) if config and config.employee_cpf else 0.0
             if cpf_override is not None:
                 cpf_deduction = cpf_override
-            else:
-                # Use Configuration values as default
-                if config and config.employee_cpf is not None:
-                    cpf_deduction = float(config.employee_cpf)
-                else:
-                    cpf_deduction = 0.0
-                
-                # Also ensure Employer CPF is set from config if not overridden (and not already set by payroll record)
-                # Note: We check if it's already set (from Approved/Paid record above). 
-                # If it's 0.0 (default) or we are in Draft mode (where we ignored persisted values), we load from config.
-                if payroll_record and payroll_record.status in ['Approved', 'Paid'] and payroll_record.employer_cpf is not None:
-                     pass # Already handled above
-                elif config and config.employer_cpf is not None:
-                     employer_cpf = float(config.employer_cpf)
 
-            # Calculate net salary
-            total_deductions = cpf_deduction
-            net_salary = gross_salary - total_deductions
+            # Calculate Net Salary
+            net_salary = gross_salary - cpf_deduction - other_deductions
+            
+            # Calculate Total Deductions
+            total_deductions = cpf_deduction + other_deductions
+
 
             # Validation checks
             has_bank_info = bool(emp.bank_account and emp.bank_name)
@@ -2433,6 +2453,8 @@ def payroll_preview_api():
                 'ot_rate': ot_rate,
                 'ot_amount': ot_amount,
                 'ot_override_amount': ot_override_amount,
+                'other_deductions': other_deductions,
+                'remarks': remarks,
                 'original_ot_amount': calculated_ot_amount,
                 'attendance_days': attendance_days,
                 'attendance_rate': attendance_rate,
@@ -2638,7 +2660,8 @@ def payroll_payslip(payroll_id):
         'total_earnings': f"{float(payroll.gross_pay):,.2f}",
         'total_deductions': f"{float(payroll.employee_cpf + payroll.income_tax + payroll.other_deductions):,.2f}",
         'net_pay': f"{net_pay_val:,.2f}",
-        'net_pay_words': num_to_words(net_pay_val)
+        'net_pay_words': num_to_words(net_pay_val),
+        'remarks': payroll.remarks or ''
     }
 
 
