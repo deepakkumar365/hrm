@@ -17,7 +17,7 @@ flask-wtf>=1.2.2
 wtforms>=3.2.1
 python-dotenv>=1.0.1
 flasgger==0.9.7.1
-
 Flask-Mail>=0.9.1
 Flask-APScheduler>=1.12.4
 boto3
+pytz>=2023.3
