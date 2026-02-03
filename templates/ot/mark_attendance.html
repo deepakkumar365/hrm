@@ -155,6 +155,12 @@
                 </div>
 
                 <div class="form-group mb-3">
+                    <label class="form-label">Rate</label>
+                    <input type="number" class="form-control" id="rate" name="rate" placeholder="e.g. 1.5"
+                        step="0.01" min="0" oninput="calculatePreview()">
+                </div>
+
+                <div class="form-group mb-3">
                     <label class="form-label">Quantity (Hours/Units)</label>
                     <input type="number" class="form-control" id="quantity" name="quantity" placeholder="e.g. 2.0"
                         step="0.1" min="0.1" required oninput="calculatePreview()">
@@ -167,16 +173,9 @@
 
                 <!-- Live Calculation Preview -->
                 <div class="calc-row">
-                    <div class="calc-item">
-                        <div class="calc-label">Est. Rate</div>
-                        <div class="calc-value" id="previewRate">$0.00</div>
-                    </div>
-                    <div class="calc-item border-start border-end px-3">
-                        <div class="calc-label">Multiplier</div>
-                        <div class="calc-value" id="previewMult">1.0x</div>
-                    </div>
-                    <div class="calc-item">
-                        <div class="calc-label">Est. Amount</div>
+                    <!-- Removed Estimate Rate & Multiplier Display -->
+                    <div class="calc-item w-100">
+                        <div class="calc-label">Total Amount</div>
                         <div class="calc-value text-primary" id="previewTotal">$0.00</div>
                     </div>
                 </div>
@@ -293,20 +292,26 @@
     const HOURLY_RATE = {{ hourly_rate if hourly_rate else 0 }};
 
     // Calculate preview values
+    // Calculate preview values
     function calculatePreview() {
-        const typeSelect = document.getElementById('ot_type_id');
-        const selectedOption = typeSelect.options[typeSelect.selectedIndex];
-        const multiplier = parseFloat(selectedOption.getAttribute('data-multiplier') || 0);
+        // Simplified Logic: Total = Rate * Quantity
+        const rate = parseFloat(document.getElementById('rate').value || 0);
         const quantity = parseFloat(document.getElementById('quantity').value || 0);
+        
+        const totalAmount = rate * quantity;
 
-        // Simplified Logic: Rate = Multiplier (ignoring HOURLY_RATE)
-        const effectiveRate = multiplier;
-        const totalAmount = effectiveRate * quantity;
-
-        document.getElementById('previewMult').innerText = multiplier + 'x';
-        document.getElementById('previewRate').innerText = '$' + effectiveRate.toFixed(2);
         document.getElementById('previewTotal').innerText = '$' + totalAmount.toFixed(2);
     }
+    
+    // Update Rate when Type Changes
+    document.getElementById('ot_type_id').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const multiplier = parseFloat(selectedOption.getAttribute('data-multiplier') || 0);
+        
+        // Populate Rate input with Multiplier (User can override)
+        document.getElementById('rate').value = multiplier.toFixed(2);
+        calculatePreview();
+    });
 
     // Handle Form Submission (AJAX)
     document.getElementById('logOtForm').addEventListener('submit', async function (e) {
@@ -320,6 +325,7 @@
         const formData = {
             ot_date: document.getElementById('ot_date').value,
             ot_type_id: document.getElementById('ot_type_id').value,
+            rate: document.getElementById('rate').value,
             quantity: document.getElementById('quantity').value,
             notes: document.getElementById('notes').value
         };

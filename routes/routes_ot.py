@@ -244,11 +244,19 @@ def log_ot_entry():
         if not ot_type:
             return jsonify({'success': False, 'message': 'Invalid OT Type'}), 400
             
-        # Effective Rate = Multiplier (User simplified logic: Multiplier IS the Rate)
-        # We ignore base salary/hourly rate entirely.
+        # Effective Rate Logic
+        # 1. Check if 'rate' is provided in request (User manual override)
+        input_rate = data.get('rate')
         
-        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 0.0
-        effective_rate = round(multiplier, 2)
+        if input_rate is not None and str(input_rate).strip() != '':
+             try:
+                 effective_rate = float(input_rate)
+             except ValueError:
+                 return jsonify({'success': False, 'message': 'Invalid rate format'}), 400
+        else:
+             # 2. Fallback: Rate = Multiplier
+             multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 0.0
+             effective_rate = round(multiplier, 2)
         
         # Total Amount
         total_amount = round(effective_rate * quantity, 2)
