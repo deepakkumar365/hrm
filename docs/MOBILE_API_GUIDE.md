@@ -327,6 +327,76 @@ Request Body:
 
 ---
 
+
+### OT Management Endpoints
+
+#### 1. Get OT Types
+**GET** `/api/ot/types`
+
+Headers:
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "message": "OT Types retrieved",
+  "data": [
+    {
+      "id": 1,
+      "name": "General Overtime",
+      "multiplier": 1.5,
+      "code": "OT1.5"
+    },
+    {
+      "id": 2,
+      "name": "Public Holiday",
+      "multiplier": 2.0,
+      "code": "PH2.0"
+    }
+  ]
+}
+```
+
+#### 2. Create OT Request
+**POST** `/api/ot/request`
+
+Headers:
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Request Body:
+```json
+{
+  "ot_date": "2024-01-15",
+  "ot_type_id": 1,
+  "quantity": 2.5,
+  "rate": 15.00,
+  "notes": "Project Deadline Work"
+}
+```
+*Note: `rate` is optional. If provided, it overrides the default multiplier-based calculation.*
+
+**Response (200):**
+```json
+{
+  "status": "success",
+  "message": "OT request submitted successfully",
+  "data": {
+    "id": 12,
+    "status": "pending_manager",
+    "amount": 37.50,
+    "rate": 15.00
+  }
+}
+```
+
+---
+
 ### Leave Management Endpoints
 
 #### 1. Get Leave Requests

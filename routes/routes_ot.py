@@ -140,7 +140,10 @@ def mark_ot_attendance():
             # Fix SAWarning: Pass query directly to in_(), not subquery()
             company_ids = db.session.query(Company.id).filter_by(tenant_id=tenant_id)
             ot_types = OTType.query.filter(
-                OTType.company_id.in_(company_ids),
+                or_(
+                    OTType.company_id.in_(company_ids),
+                    OTType.company_id == None
+                ),
                 OTType.is_active == True
             ).order_by(OTType.display_order).all()
         else:

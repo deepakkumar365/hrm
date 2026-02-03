@@ -886,6 +886,9 @@ def mobile_api_create_ot_request():
             quantity:
               type: number
               description: Number of hours
+            rate:
+              type: number
+              description: Optional rate override (per hour/unit)
             notes:
               type: string
     responses:
@@ -932,9 +935,19 @@ def mobile_api_create_ot_request():
              return api_response('error', 'Reporting manager has no user account', None, 400)
 
         # 3. Calculate Amount (Logic from routes_ot.py)
-        # 3. Calculate Amount (Simplified Logic: Rate = Multiplier)
-        multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 0.0
-        effective_rate = round(multiplier, 2)
+        # Check if rate is provided in input (override multiplier logic)
+        input_rate = data.get('rate')
+        
+        if input_rate is not None:
+             try:
+                 effective_rate = float(input_rate)
+             except ValueError:
+                 return api_response('error', 'Invalid rate format', None, 400)
+        else:
+             # Simplified Logic: Rate = Multiplier
+             multiplier = float(ot_type.rate_multiplier) if ot_type.rate_multiplier else 0.0
+             effective_rate = round(multiplier, 2)
+             
         total_amount = round(effective_rate * quantity, 2)
 
         # 4. Create OT Request (Directly to Pending Manager)
@@ -989,7 +1002,8 @@ def mobile_api_create_ot_request():
         return api_response('success', 'OT request submitted successfully', {
             'id': ot_request.id,
             'status': 'pending_manager',
-            'amount': total_amount
+            'amount': total_amount,
+            'rate': effective_rate
         }, 200)
 
     except Exception as e:
