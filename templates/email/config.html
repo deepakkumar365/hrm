@@ -47,35 +47,71 @@
                     <form method="POST" action="{{ url_for('email.email_config') }}">
                         <input type="hidden" name="tenant_id" value="{{ selected_tenant_id }}">
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="smtp_host" class="form-label">SMTP Host</label>
-                                <input type="text" class="form-control" id="smtp_host" name="smtp_host"
-                                    value="{{ config.smtp_host if config else '' }}" required>
+                        <div class="mb-4">
+                            <label for="provider" class="form-label font-weight-bold">Email Provider</label>
+                            <select class="form-select" id="provider" name="provider" onchange="toggleProviderFields()">
+                                <option value="SMTP" {{ 'selected' if not config or config.provider=='SMTP' }}>Standard
+                                    SMTP</option>
+                                <option value="AWS_SES" {{ 'selected' if config and config.provider=='AWS_SES' }}>AWS
+                                    SES (Simple Email Service)</option>
+                                <option value="AWS_SNS" {{ 'selected' if config and config.provider=='AWS_SNS' }}>AWS
+                                    SNS (Simple Notification Service)</option>
+                            </select>
+                        </div>
+
+                        <!-- SMTP Settings -->
+                        <div id="smtp_fields" class="provider-fields">
+                            <h6 class="text-primary mb-3">SMTP Settings</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="smtp_host" class="form-label">SMTP Host</label>
+                                    <input type="text" class="form-control" id="smtp_host" name="smtp_host"
+                                        value="{{ config.smtp_host if config else '' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="smtp_port" class="form-label">SMTP Port</label>
+                                    <input type="number" class="form-control" id="smtp_port" name="smtp_port"
+                                        value="{{ config.smtp_port if config else '587' }}">
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="smtp_port" class="form-label">SMTP Port</label>
-                                <input type="number" class="form-control" id="smtp_port" name="smtp_port"
-                                    value="{{ config.smtp_port if config else '587' }}" required>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="smtp_user" class="form-label">SMTP User</label>
+                                    <input type="text" class="form-control" id="smtp_user" name="smtp_user"
+                                        value="{{ config.smtp_user if config else '' }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="smtp_password" class="form-label">SMTP Password</label>
+                                    <input type="password" class="form-control" id="smtp_password" name="smtp_password"
+                                        value="{{ config.smtp_password if config else '' }}">
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="smtp_user" class="form-label">SMTP User</label>
-                                <input type="text" class="form-control" id="smtp_user" name="smtp_user"
-                                    value="{{ config.smtp_user if config else '' }}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="smtp_password" class="form-label">SMTP Password</label>
-                                <input type="password" class="form-control" id="smtp_password" name="smtp_password"
-                                    value="{{ config.smtp_password if config else '' }}" required>
+                        <!-- AWS Settings -->
+                        <div id="aws_fields" class="provider-fields" style="display:none;">
+                            <h6 class="text-primary mb-3">AWS Configuration</h6>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="aws_region" class="form-label">AWS Region</label>
+                                    <input type="text" class="form-control" id="aws_region" name="aws_region"
+                                        placeholder="e.g. us-east-1" value="{{ config.aws_region if config else '' }}">
+                                </div>
+                                <div id="sns_topic_div" class="col-md-6" style="display:none;">
+                                    <label for="aws_topic_arn" class="form-label">SNS Topic ARN</label>
+                                    <input type="text" class="form-control" id="aws_topic_arn" name="aws_topic_arn"
+                                        value="{{ config.aws_topic_arn if config else '' }}">
+                                </div>
                             </div>
                         </div>
 
+                        <h6 class="text-primary mb-3">Sender Information</h6>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="from_email" class="form-label">From Email</label>
+                                <label for="from_email" class="form-label">From Email (Must be verified in SES if using
+                                    AWS)</label>
                                 <input type="email" class="form-control" id="from_email" name="from_email"
                                     value="{{ config.from_email if config else '' }}" required>
                             </div>
@@ -87,15 +123,17 @@
                         </div>
 
                         <div class="mb-3">
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" id="use_tls" name="use_tls" {{ 'checked'
-                                    if config and config.use_tls }}>
-                                <label class="form-check-label" for="use_tls">Use TLS</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" id="use_ssl" name="use_ssl" {{ 'checked'
-                                    if config and config.use_ssl }}>
-                                <label class="form-check-label" for="use_ssl">Use SSL</label>
+                            <div id="smtp_options" class="form-check form-check-inline">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="use_tls" name="use_tls"
+                                        {{ 'checked' if config and config.use_tls }}>
+                                    <label class="form-check-label" for="use_tls">Use TLS</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="use_ssl" name="use_ssl"
+                                        {{ 'checked' if config and config.use_ssl }}>
+                                    <label class="form-check-label" for="use_ssl">Use SSL</label>
+                                </div>
                             </div>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
@@ -154,6 +192,31 @@
 
 {% block scripts %}
 <script>
+    function toggleProviderFields() {
+        const provider = document.getElementById('provider').value;
+        const smtpFields = document.getElementById('smtp_fields');
+        const awsFields = document.getElementById('aws_fields');
+        const snsTopicDiv = document.getElementById('sns_topic_div');
+        const smtpOptions = document.getElementById('smtp_options');
+
+        if (provider === 'SMTP') {
+            smtpFields.style.display = 'block';
+            awsFields.style.display = 'none';
+            snsTopicDiv.style.display = 'none';
+            smtpOptions.style.display = 'inline-block';
+        } else {
+            smtpFields.style.display = 'none';
+            awsFields.style.display = 'block';
+            smtpOptions.style.display = 'none';
+
+            if (provider === 'AWS_SNS') {
+                snsTopicDiv.style.display = 'block';
+            } else {
+                snsTopicDiv.style.display = 'none';
+            }
+        }
+    }
+
     function sendTestEmail() {
         const form = document.getElementById('testEmailForm');
         const resultDiv = document.getElementById('testResult');
@@ -177,5 +240,9 @@
                 resultDiv.innerHTML = `<div class="alert alert-danger">Error: ${error}</div>`;
             });
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleProviderFields();
+    });
 </script>
 {% endblock %}

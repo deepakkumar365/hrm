@@ -38,7 +38,9 @@
                     <thead>
                         <tr>
                             <th>Tenant</th>
+                            <th>Company</th>
                             <th>Report Type</th>
+                            <th>Date Filter</th>
                             <th>Cron Expression</th>
                             <th>Recipients</th>
                             <th>Last Run</th>
@@ -49,7 +51,10 @@
                         {% for schedule in schedules %}
                         <tr>
                             <td>{{ schedule.tenant.name if schedule.tenant else 'Unknown' }}</td>
+                            <td>{{ schedule.company.name if schedule.company else 'All Companies' }}</td>
                             <td>{{ schedule.report_type }}</td>
+                            <td><span class="badge bg-secondary">{{ schedule.date_filter_type or 'Yesterday' }}</span>
+                            </td>
                             <td><code>{{ schedule.cron_expression }}</code></td>
                             <td>
                                 {% for r in schedule.recipients %}
@@ -59,23 +64,70 @@
                             <td>{{ schedule.last_run_at.strftime('%Y-%m-%d %H:%M:%S') if schedule.last_run_at else
                                 'Never' }}</td>
                             <td>
-                                <form action="{{ url_for('scheduler.trigger_job', id=schedule.id) }}" method="POST"
-                                    style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-warning" title="Run Now">
-                                        <i class="fas fa-play"></i>
+                                <div class="btn-group">
+                                    <form action="{{ url_for('scheduler.trigger_job', id=schedule.id) }}" method="POST"
+                                        style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Run Now">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-info preview-schedule-btn"
+                                        data-id="{{ schedule.id }}" title="Preview">
+                                        <i class="fas fa-eye"></i>
                                     </button>
-                                </form>
-                                <form action="{{ url_for('scheduler.delete_job', id=schedule.id) }}" method="POST"
-                                    style="display:inline;" onsubmit="return confirm('Are you sure?');">
-                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete">
-                                        <i class="fas fa-trash"></i>
+                                    <button type="button" class="btn btn-sm btn-outline-primary edit-schedule-btn"
+                                        data-id="{{ schedule.id }}" title="Edit">
+                                        <i class="fas fa-edit"></i>
                                     </button>
-                                </form>
+                                    <form action="{{ url_for('scheduler.delete_job', id=schedule.id) }}" method="POST"
+                                        style="display:inline;" onsubmit="return confirm('Are you sure?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Report Modal -->
+<div class="modal fade" id="previewReportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="previewTitle">Report Preview</h5>
+                    <small class="text-muted" id="previewSubtitle"></small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="previewLoader" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Generating preview...</p>
+                </div>
+                <div id="previewContent" class="table-responsive" style="display:none; max-height: 60vh;">
+                    <table class="table table-sm table-striped table-hover table-bordered" id="previewTable">
+                        <thead class="table-dark sticky-top">
+                            <tr id="previewTableHeader"></tr>
+                        </thead>
+                        <tbody id="previewTableBody"></tbody>
+                    </table>
+                    <div id="previewEmpty" class="text-center py-4" style="display:none;">
+                        <p class="text-muted">No data found for the selected criteria.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -91,6 +143,7 @@
             </div>
             <form method="POST" action="{{ url_for('scheduler.add_job') }}">
                 <div class="modal-body">
+                    {% if current_user.role.name == 'Super Admin' %}
                     <div class="mb-3">
                         <label for="tenant_id" class="form-label">Tenant</label>
                         <select class="form-select" name="tenant_id" required>
@@ -100,23 +153,46 @@
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="company_id" class="form-label">Company (Optional)</label>
+                        <select class="form-select" name="company_id">
+                            <option value="">All Accessible Companies</option>
+                            {% for comp in companies %}
+                            <option value="{{ comp.id }}">{{ comp.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">If blank, report will include data for all companies.</small>
+                    </div>
                     <div class="mb-3">
                         <label for="report_type" class="form-label">Report Type</label>
                         <select class="form-select" name="report_type" required>
-                            <option value="Daily Attendance">Daily Attendance</option>
-                            <option value="Weekly Summary">Weekly Summary</option>
-                            <option value="Monthly Payroll">Monthly Payroll</option>
+                            <option value="Daily Attendance">Monthly Attendance Register</option>
+                            <option value="Absentee Report">Daily Absentee Report</option>
+                            <option value="Overtime Report">Overtime Request Report</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="cron_expression" class="form-label">Cron Expression</label>
-                        <input type="text" class="form-control" name="cron_expression" placeholder="e.g. 30 18 * * 1-5"
-                            required>
-                        <small class="text-muted">Format: minute hour day month day_of_week</small>
+                        <label for="date_filter_type" class="form-label">Date Filter</label>
+                        <select class="form-select" name="date_filter_type" required>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="today">Today</option>
+                            <option value="last_7_days">Last 7 Days</option>
+                            <option value="last_30_days">Last 30 Days</option>
+                            <option value="current_month">Current Month</option>
+                            <option value="previous_month">Previous Month</option>
+                        </select>
                     </div>
                     <div class="mb-3">
-                        <label for="recipients" class="form-label">Recipients (comma separated)</label>
-                        <input type="text" class="form-control" name="recipients" required>
+                        <label for="cron_expression" class="form-label">Execution Time (Cron)</label>
+                        <input type="text" class="form-control" name="cron_expression" placeholder="e.g. 30 18 * * 1-5"
+                            required>
+                        <small class="text-muted d-block">Format: minute hour day month day_of_week</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="recipients" class="form-label">Recipients (comma separated emails)</label>
+                        <input type="text" class="form-control" name="recipients"
+                            placeholder="manager@example.com, hr@example.com" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -127,4 +203,193 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Schedule Modal -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editScheduleForm" method="POST">
+                <div class="modal-body">
+                    {% if current_user.role.name == 'Super Admin' %}
+                    <div class="mb-3">
+                        <label for="edit_tenant_id" class="form-label">Tenant</label>
+                        <select class="form-select" name="tenant_id" id="edit_tenant_id" required>
+                            {% for tenant in tenants %}
+                            <option value="{{ tenant.id }}">{{ tenant.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="edit_company_id" class="form-label">Company (Optional)</label>
+                        <select class="form-select" name="company_id" id="edit_company_id">
+                            <option value="">All Accessible Companies</option>
+                            {% for comp in companies %}
+                            <option value="{{ comp.id }}">{{ comp.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_report_type" class="form-label">Report Type</label>
+                        <select class="form-select" name="report_type" id="edit_report_type" required>
+                            <option value="Daily Attendance">Monthly Attendance Register</option>
+                            <option value="Absentee Report">Daily Absentee Report</option>
+                            <option value="Overtime Report">Overtime Request Report</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_date_filter_type" class="form-label">Date Filter</label>
+                        <select class="form-select" name="date_filter_type" id="edit_date_filter_type" required>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="today">Today</option>
+                            <option value="last_7_days">Last 7 Days</option>
+                            <option value="last_30_days">Last 30 Days</option>
+                            <option value="current_month">Current Month</option>
+                            <option value="previous_month">Previous Month</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_cron_expression" class="form-label">Execution Time (Cron)</label>
+                        <input type="text" class="form-control" name="cron_expression" id="edit_cron_expression"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_recipients" class="form-label">Recipients</label>
+                        <input type="text" class="form-control" name="recipients" id="edit_recipients" required>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active">
+                        <label class="form_check_label" for="edit_is_active">
+                            Active
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- Edit Logic ---
+        const editBtns = document.querySelectorAll('.edit-schedule-btn');
+        const editModal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
+        const editForm = document.getElementById('editScheduleForm');
+
+        editBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                fetch(`/scheduler/jobs/${id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert('Error: ' + data.error);
+                            return;
+                        }
+                        editForm.action = `/scheduler/jobs/edit/${id}`;
+                        if (document.getElementById('edit_tenant_id')) {
+                            document.getElementById('edit_tenant_id').value = data.tenant_id;
+                        }
+                        document.getElementById('edit_company_id').value = data.company_id || '';
+                        document.getElementById('edit_report_type').value = data.report_type;
+                        document.getElementById('edit_date_filter_type').value = data.date_filter_type;
+                        document.getElementById('edit_cron_expression').value = data.cron_expression;
+                        document.getElementById('edit_recipients').value = data.recipients;
+                        document.getElementById('edit_is_active').checked = data.is_active;
+
+                        editModal.show();
+                    })
+                    .catch(err => {
+                        console.error('Fetch error:', err);
+                        alert('Could not fetch schedule details');
+                    });
+            });
+        });
+
+        // --- Preview Logic ---
+        const previewBtns = document.querySelectorAll('.preview-schedule-btn');
+        const previewModalHtml = document.getElementById('previewReportModal');
+        const previewModal = new bootstrap.Modal(previewModalHtml);
+        const previewTitle = document.getElementById('previewTitle');
+        const previewSubtitle = document.getElementById('previewSubtitle');
+        const previewLoader = document.getElementById('previewLoader');
+        const previewContent = document.getElementById('previewContent');
+        const previewEmpty = document.getElementById('previewEmpty');
+        const headerRow = document.getElementById('previewTableHeader');
+        const bodyTable = document.getElementById('previewTableBody');
+
+        previewBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+
+                // Reset UI
+                previewTitle.textContent = 'Report Preview';
+                previewSubtitle.textContent = 'Loading...';
+                previewLoader.style.display = 'block';
+                previewContent.style.display = 'none';
+                previewEmpty.style.display = 'none';
+                headerRow.innerHTML = '';
+                bodyTable.innerHTML = '';
+
+                previewModal.show();
+
+                fetch(`/scheduler/preview/${id}`)
+                    .then(response => response.json())
+                    .then(res => {
+                        if (res.error) {
+                            alert('Error: ' + res.error);
+                            previewModal.hide();
+                            return;
+                        }
+
+                        previewTitle.textContent = `${res.report_type} Preview`;
+                        previewSubtitle.textContent = `Period: ${res.start_date} to ${res.end_date}`;
+                        previewLoader.style.display = 'none';
+
+                        if (!res.data || res.data.length === 0) {
+                            previewEmpty.style.display = 'block';
+                            previewContent.style.display = 'block';
+                            return;
+                        }
+
+                        previewContent.style.display = 'block';
+
+                        // Header
+                        const keys = Object.keys(res.data[0]);
+                        keys.forEach(key => {
+                            const th = document.createElement('th');
+                            th.textContent = key;
+                            headerRow.appendChild(th);
+                        });
+
+                        // Body
+                        res.data.forEach(row => {
+                            const tr = document.createElement('tr');
+                            keys.forEach(key => {
+                                const td = document.createElement('td');
+                                td.textContent = row[key];
+                                tr.appendChild(td);
+                            });
+                            bodyTable.appendChild(tr);
+                        });
+                    })
+                    .catch(err => {
+                        console.error('Fetch error:', err);
+                        alert('Could not generate report preview');
+                        previewModal.hide();
+                    });
+            });
+        });
+    });
+</script>
 {% endblock %}

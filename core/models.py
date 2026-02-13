@@ -1860,10 +1860,18 @@ class EmailConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False, unique=True)
     
-    smtp_host = db.Column(db.String(255), nullable=False)
-    smtp_port = db.Column(db.Integer, nullable=False, default=587)
-    smtp_user = db.Column(db.String(255), nullable=False)
-    smtp_password = db.Column(db.String(255), nullable=False) # Encrypted or just stored? Stored for now.
+    smtp_host = db.Column(db.String(255), nullable=True)
+    smtp_port = db.Column(db.Integer, nullable=True, default=587)
+    smtp_user = db.Column(db.String(255), nullable=True)
+    smtp_password = db.Column(db.String(255), nullable=True) 
+    
+    # AWS Settings
+    provider = db.Column(db.String(20), default='SMTP') # SMTP, AWS_SES, AWS_SNS
+    aws_access_key = db.Column(db.String(255), nullable=True)
+    aws_secret_key = db.Column(db.String(255), nullable=True)
+    aws_region = db.Column(db.String(50), nullable=True)
+    aws_topic_arn = db.Column(db.String(255), nullable=True) # For SNS
+    
     from_email = db.Column(db.String(255), nullable=False)
     from_name = db.Column(db.String(255), nullable=True)
     
@@ -1911,9 +1919,11 @@ class ReportSchedule(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
+    company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
     
     report_type = db.Column(db.String(50), nullable=False) # e.g., 'Daily Attendance'
     cron_expression = db.Column(db.String(100), nullable=False) # e.g., '30 18 * * 1-5'
+    date_filter_type = db.Column(db.String(50), nullable=True) # e.g. 'yesterday', 'last_7_days', 'current_month'
     
     recipients = db.Column(db.JSON, nullable=False) # List of email addresses
     parameters = db.Column(db.JSON, default=dict) # Any report specific params
@@ -1927,6 +1937,7 @@ class ReportSchedule(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
     
     tenant = db.relationship('Tenant', backref=db.backref('report_schedules', cascade='all, delete-orphan'))
+    company = db.relationship('Company')
     creator = db.relationship('User')
 
     def __repr__(self):

@@ -125,7 +125,10 @@ migrate = Migrate(app, db)
 from flask_apscheduler import APScheduler
 scheduler = APScheduler()
 scheduler.init_app(app)
-scheduler.start()
+
+# Only start the scheduler if enabled (defaults to True)
+if os.environ.get("ENABLE_SCHEDULER", "true").lower() == "true":
+    scheduler.start()
 
 # Import models so they're registered with SQLAlchemy metadata
 from core import models  # noqa: E402,F401

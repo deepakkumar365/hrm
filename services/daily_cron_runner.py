@@ -15,6 +15,11 @@ Sequence:
    - Calculates 'Late' / 'Half Day' status.
    - Uses `process_eod_attendance` from `daily_attendance_task.py`.
 
+3. Trigger Scheduled Reports:
+   - Finds all active report schedules.
+   - Generates and emails them to recipients.
+   - Uses `run_report_job` from `scheduler_service.py`.
+
 Usage:
     python services/daily_cron_runner.py
 """
@@ -28,9 +33,10 @@ project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_dir)
 
 from app import app, db
-from core.models import Employee, JobExecutionLog
+from core.models import Employee, JobExecutionLog, ReportSchedule
 from services.attendance_service import AttendanceService
 from services.daily_attendance_task import process_eod_attendance
+from services.scheduler_service import run_report_job
 
 def run_daily_cron():
     print("🚀 Starting Unified Daily Cron Job...")
@@ -72,6 +78,23 @@ def run_daily_cron():
                 
         except Exception as e:
             print(f"❌ Phase 2 Critical Failure: {e}")
+
+        # ==================================================================
+        # PHASE 3: Trigger Scheduled Reports (Midnight Run)
+        # ==================================================================
+        print("\n[Phase 3] Triggering Scheduled Reports...")
+        try:
+            active_schedules = ReportSchedule.query.filter_by(is_active=True).all()
+            print(f"Found {len(active_schedules)} active report schedules.")
+            
+            for schedule in active_schedules:
+                print(f" - Running: {schedule.report_type} (ID: {schedule.id})")
+                run_report_job(schedule.id)
+                
+            print("✅ Phase 3 Completed: All active reports processed.")
+            
+        except Exception as e:
+            print(f"❌ Phase 3 Failed: {e}")
 
     print("\n🏁 Daily Cron Job Finished.")
 

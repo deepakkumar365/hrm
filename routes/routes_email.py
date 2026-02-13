@@ -14,29 +14,38 @@ email_bp = Blueprint('email', __name__, url_prefix='/email')
 
 @email_bp.route('/config', methods=['GET', 'POST'])
 @login_required
-@require_role('Super Admin')
 def email_config():
     """Manage Email Configuration for Tenants"""
     try:
-        # Get selected tenant from query param or default to current user's tenant if applicable
-        # But Super Admin can manage ANY tenant.
-        # So we should probably show a list or a selector.
-        
-        # For simplicity, if tenant_id is not provided, show list of tenants to simpler UI?
-        # Or just show a dropdown in the config page.
-        
-        tenants = Tenant.query.all()
-        selected_tenant_id = request.args.get('tenant_id')
-        
-        if not selected_tenant_id and tenants:
-            selected_tenant_id = str(tenants[0].id)
-            
+        if current_user.role.name not in ['Super Admin', 'Tenant Admin', 'HR Manager']:
+            return "Unauthorized", 403
+
+        # Scoping logic
+        if current_user.role.name == 'Super Admin':
+            tenants = Tenant.query.all()
+            selected_tenant_id = request.args.get('tenant_id')
+            if not selected_tenant_id and tenants:
+                selected_tenant_id = str(tenants[0].id)
+        else:
+            # Tenant Admin / HR Manager can only see their own tenant
+            tenant = getattr(current_user, 'tenant', None)
+            if not tenant:
+                flash('No tenant associated with user', 'danger')
+                return redirect(url_for('index'))
+            tenants = [tenant]
+            selected_tenant_id = str(tenant.id)
+
         current_config = None
         if selected_tenant_id:
             current_config = EmailConfig.query.filter_by(tenant_id=selected_tenant_id).first()
 
         if request.method == 'POST':
             tenant_id = request.form.get('tenant_id')
+            
+            # Security check for POST
+            if current_user.role.name != 'Super Admin':
+                tenant_id = str(current_user.tenant.id)
+
             if not tenant_id:
                 flash('Tenant ID is required', 'danger')
                 return redirect(url_for('email.email_config'))
@@ -46,10 +55,20 @@ def email_config():
                 config = EmailConfig(tenant_id=tenant_id)
                 db.session.add(config)
             
+            config.provider = request.form.get('provider', 'SMTP')
+            
+            # SMTP Fields
             config.smtp_host = request.form.get('smtp_host')
-            config.smtp_port = int(request.form.get('smtp_port', 587))
+            config.smtp_port = int(request.form.get('smtp_port', 587)) if request.form.get('smtp_port') else None
             config.smtp_user = request.form.get('smtp_user')
             config.smtp_password = request.form.get('smtp_password')
+            
+            # AWS Fields
+            config.aws_access_key = request.form.get('aws_access_key')
+            config.aws_secret_key = request.form.get('aws_secret_key')
+            config.aws_region = request.form.get('aws_region')
+            config.aws_topic_arn = request.form.get('aws_topic_arn')
+
             config.from_email = request.form.get('from_email')
             config.from_name = request.form.get('from_name')
             config.use_tls = 'use_tls' in request.form
@@ -62,11 +81,13 @@ def email_config():
 
         return render_template(
             'email/config.html',
-            tenants=tenants,
+            tenants=tenants if current_user.role.name == 'Super Admin' else [],
             selected_tenant_id=selected_tenant_id,
             config=current_config
         )
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         flash(f'Error loading email config: {str(e)}', 'danger')
         return redirect(url_for('index'))
 
@@ -76,10 +97,16 @@ def email_config():
 
 @email_bp.route('/test', methods=['POST'])
 @login_required
-@require_role('Super Admin')
 def send_test_email():
     try:
+        if current_user.role.name not in ['Super Admin', 'Tenant Admin', 'HR Manager']:
+            return "Unauthorized", 403
+
         tenant_id = request.form.get('tenant_id')
+        
+        # Security check for tenant_id
+        if current_user.role.name != 'Super Admin':
+            tenant_id = str(current_user.tenant.id)
         recipient = request.form.get('test_recipient')
         
         if not tenant_id or not recipient:
@@ -105,17 +132,27 @@ def send_test_email():
 @email_bp.route('/dashboard', methods=['GET'])
 @email_bp.route('/dashboard/logs', methods=['GET'])
 @login_required
-@require_role('Super Admin')
 def email_dashboard():
     try:
+        if current_user.role.name not in ['Super Admin', 'Tenant Admin', 'HR Manager']:
+            return "Unauthorized", 403
+
+        query = EmailLog.query
+        if current_user.role.name != 'Super Admin':
+             tenant = getattr(current_user, 'tenant', None)
+             if not tenant:
+                 flash('No tenant associated with user', 'danger')
+                 return redirect(url_for('index'))
+             query = query.filter_by(tenant_id=tenant.id)
+
         # Stats
-        total_sent = EmailLog.query.filter_by(status='Sent').count()
-        total_failed = EmailLog.query.filter_by(status='Failed').count()
+        total_sent = query.filter_by(status='Sent').count()
+        total_failed = query.filter_by(status='Failed').count()
         
         # Recent logs
         page = request.args.get('page', 1, type=int)
         per_page = 20
-        logs = EmailLog.query.order_by(EmailLog.sent_at.desc()).paginate(page=page, per_page=per_page)
+        logs = query.order_by(EmailLog.sent_at.desc()).paginate(page=page, per_page=per_page)
         
         return render_template(
             'email/dashboard.html',
