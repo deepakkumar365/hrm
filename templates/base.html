@@ -387,7 +387,7 @@
                 {% endif %}
 
                 <!-- Access Control (Admin) -->
-                {% if check_ui_access(user_role, 'Admin Settings') != 'Hidden' %}
+                {% if check_ui_access(user_role, 'Admin Settings') != 'Hidden' or user_role == 'HR Manager' %}
                 <div class="nav-group">
                     <a class="sidebar-link" href="#" role="button">
                         <i class="fas fa-shield-alt"></i>
@@ -410,8 +410,14 @@
 
                         {% if user_role == 'Super Admin' %}
                         <a class="nav-link" href="{{ url_for('monitoring.job_logs') }}">Job Monitoring</a>
+                        {% endif %}
+
+                        {% if user_role in ['Super Admin', 'Tenant Admin', 'HR Manager'] %}
                         <a class="nav-link" href="{{ url_for('email.email_config') }}">Email Config</a>
                         <a class="nav-link" href="{{ url_for('email.email_dashboard') }}">Email Dashboard</a>
+                        {% endif %}
+
+                        {% if user_role in ['Super Admin', 'Tenant Admin', 'HR Manager'] %}
                         <a class="nav-link" href="{{ url_for('scheduler.list_jobs') }}">Report Scheduler</a>
                         {% endif %}
                     </div>

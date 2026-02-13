@@ -9,84 +9,162 @@ class EmailService:
     @staticmethod
     def send_email(tenant_id, recipient, subject, body, is_html=True, attachments=None):
         """
-        Send an email using the tenant's SMTP configuration.
-        Falls back to system configuration if tenant config is missing.
+        Send an email using the tenant's SMTP or AWS configuration.
         """
         try:
-            # 1. Get Tenant Config
             config = EmailConfig.query.filter_by(tenant_id=tenant_id, is_active=True).first()
             
-            smtp_host = None
-            smtp_port = None
-            smtp_user = None
-            smtp_password = None
-            from_email = None
-            use_tls = True
-            use_ssl = False
-
-            if config:
-                smtp_host = config.smtp_host
-                smtp_port = config.smtp_port
-                smtp_user = config.smtp_user
-                smtp_password = config.smtp_password
-                from_email = config.from_email
-                use_tls = config.use_tls
-                use_ssl = config.use_ssl
-            else:
-                # Fallback to system env vars
-                smtp_host = current_app.config.get('MAIL_SERVER')
-                smtp_port = current_app.config.get('MAIL_PORT')
-                smtp_user = current_app.config.get('MAIL_USERNAME')
-                smtp_password = current_app.config.get('MAIL_PASSWORD')
-                from_email = current_app.config.get('MAIL_DEFAULT_SENDER')
-                use_tls = current_app.config.get('MAIL_USE_TLS', True)
-                use_ssl = current_app.config.get('MAIL_USE_SSL', False)
+            provider = config.provider if config else 'SMTP'
             
-            if not smtp_host or not from_email:
-                raise Exception("No SMTP configuration found for tenant or system.")
-
-            # 2. Construct Message
-            msg = MIMEMultipart()
-            msg['From'] = from_email
-            msg['To'] = recipient
-            msg['Subject'] = subject
+            if provider == 'AWS_SES':
+                return EmailService._send_via_aws_ses(config, recipient, subject, body, is_html, attachments)
+            elif provider == 'AWS_SNS':
+                return EmailService._send_via_aws_sns(config, recipient, subject, body)
             
-            msg.attach(MIMEText(body, 'html' if is_html else 'plain'))
-            
-            # Handle attachments if any (list of dicts {filename, data, content_type})
-            if attachments:
-                from email.mime.base import MIMEBase
-                from email import encoders
-                for att in attachments:
-                    part = MIMEBase('application', 'octet-stream')
-                    part.set_payload(att['data'])
-                    encoders.encode_base64(part)
-                    part.add_header('Content-Disposition', f"attachment; filename= {att['filename']}")
-                    msg.attach(part)
-
-            # 3. Connect and Send
-            if use_ssl:
-                server = smtplib.SMTP_SSL(smtp_host, smtp_port)
-            else:
-                server = smtplib.SMTP(smtp_host, smtp_port)
-                if use_tls:
-                    server.starttls()
-            
-            if smtp_user and smtp_password:
-                server.login(smtp_user, smtp_password)
-                
-            server.sendmail(from_email, recipient, msg.as_string())
-            server.quit()
-            
-            # 4. Log Success
-            EmailService.log_email(tenant_id, recipient, subject, 'Sent')
-            return True, "Email sent successfully"
+            # Default SMTP logic
+            return EmailService._send_via_smtp(tenant_id, config, recipient, subject, body, is_html, attachments)
 
         except Exception as e:
-            # 5. Log Failure
             current_app.logger.error(f"Failed to send email: {str(e)}")
             EmailService.log_email(tenant_id, recipient, subject, 'Failed', str(e))
             return False, str(e)
+
+    @staticmethod
+    def _send_via_smtp(tenant_id, config, recipient, subject, body, is_html, attachments):
+        smtp_host = config.smtp_host if config else current_app.config.get('MAIL_SERVER')
+        smtp_port = config.smtp_port if config else current_app.config.get('MAIL_PORT')
+        smtp_user = config.smtp_user if config else current_app.config.get('MAIL_USERNAME')
+        smtp_password = config.smtp_password if config else current_app.config.get('MAIL_PASSWORD')
+        from_email = config.from_email if config else current_app.config.get('MAIL_DEFAULT_SENDER')
+        use_tls = config.use_tls if config else current_app.config.get('MAIL_USE_TLS', True)
+        use_ssl = config.use_ssl if config else current_app.config.get('MAIL_USE_SSL', False)
+
+        if not smtp_host or not from_email:
+            raise Exception("No SMTP configuration found for tenant or system.")
+
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = recipient
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'html' if is_html else 'plain'))
+
+        if attachments:
+            from email.mime.base import MIMEBase
+            from email import encoders
+            for att in attachments:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(att['data'])
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', f"attachment; filename= {att['filename']}")
+                msg.attach(part)
+
+        if use_ssl:
+            server = smtplib.SMTP_SSL(smtp_host, smtp_port)
+        else:
+            server = smtplib.SMTP(smtp_host, smtp_port)
+            if use_tls:
+                server.starttls()
+        
+        if smtp_user and smtp_password:
+            server.login(smtp_user, smtp_password)
+            
+        server.sendmail(from_email, recipient, msg.as_string())
+        server.quit()
+        
+        EmailService.log_email(tenant_id, recipient, subject, 'Sent')
+        return True, "Email sent successfully"
+
+    @staticmethod
+    def _send_via_aws_ses(config, recipient, subject, body, is_html, attachments):
+        import boto3
+        from botocore.exceptions import ClientError
+        
+        # Prefer DB config, fallback to environment
+        aws_key = config.aws_access_key or current_app.config.get('AWS_ACCESS_KEY_ID')
+        aws_secret = config.aws_secret_key or current_app.config.get('AWS_SECRET_ACCESS_KEY')
+        aws_region = config.aws_region or current_app.config.get('AWS_REGION')
+
+        client = boto3.client(
+            'ses',
+            aws_access_key_id=aws_key,
+            aws_secret_access_key=aws_secret,
+            region_name=aws_region
+        )
+
+        source = config.from_email
+        if config.from_name:
+            source = f"{config.from_name} <{config.from_email}>"
+
+        if attachments:
+            # SES requires raw email for attachments
+            msg = MIMEMultipart()
+            msg['Subject'] = subject
+            msg['From'] = source
+            msg['To'] = recipient
+            msg.attach(MIMEText(body, 'html' if is_html else 'plain'))
+            
+            from email.mime.base import MIMEBase
+            from email import encoders
+            for att in attachments:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(att['data'])
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', f"attachment; filename= {att['filename']}")
+                msg.attach(part)
+                
+            response = client.send_raw_email(
+                Source=source,
+                Destinations=[recipient],
+                RawMessage={'Data': msg.as_string()}
+            )
+        else:
+            response = client.send_email(
+                Destination={'ToAddresses': [recipient]},
+                Message={
+                    'Body': {
+                        'Html': {'Charset': 'UTF-8', 'Data': body} if is_html else {'Charset': 'UTF-8', 'Data': body},
+                        'Text': {'Charset': 'UTF-8', 'Data': body} if not is_html else {'Charset': 'UTF-8', 'Data': body}
+                    },
+                    'Subject': {'Charset': 'UTF-8', 'Data': subject},
+                },
+                Source=source
+            )
+        
+        EmailService.log_email(config.tenant_id, recipient, subject, 'Sent')
+        return True, "Email sent via AWS SES"
+
+    @staticmethod
+    def _send_via_aws_sns(config, recipient, subject, body):
+        import boto3
+        
+        # Prefer DB config, fallback to environment
+        aws_key = config.aws_access_key or current_app.config.get('AWS_ACCESS_KEY_ID')
+        aws_secret = config.aws_secret_key or current_app.config.get('AWS_SECRET_ACCESS_KEY')
+        aws_region = config.aws_region or current_app.config.get('AWS_REGION')
+
+        client = boto3.client(
+            'sns',
+            aws_access_key_id=aws_key,
+            aws_secret_access_key=aws_secret,
+            region_name=aws_region
+        )
+        
+        if config.aws_topic_arn:
+            # Publish to Topic
+            client.publish(
+                TopicArn=config.aws_topic_arn,
+                Message=body,
+                Subject=subject
+            )
+        else:
+            # Direct to Email (Note: This usually requires the email to be AWS-verified if using SES-backed SNS)
+            # Actually SNS publish doesn't take 'ToAddress' for emails directly easily without a topic
+            # But we can publish to a phone number or use it for general notifications.
+            # If it's a "Report", publishing to a Topic is more appropriate.
+            raise Exception("AWS SNS requires a Topic ARN for report delivery.")
+
+        EmailService.log_email(config.tenant_id, recipient, subject, 'Sent')
+        return True, "Notification sent via AWS SNS"
 
     @staticmethod
     def log_email(tenant_id, recipient, subject, status, error_message=None):

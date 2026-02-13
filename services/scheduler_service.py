@@ -57,28 +57,64 @@ def run_report_job(schedule_id):
             if not schedule or not schedule.is_active:
                 return
 
-            # Logic to generate and send report
-            # This would likely call another service like ReportService
-            # For now, we'll just log and maybe send a test email
-            
             from services.email_service import EmailService
+            from services.report_service import ReportService
             
-            current_app.logger.info(f"Running report {schedule.report_type} for Tenant {schedule.tenant_id}")
+            current_app.logger.info(f"Running report {schedule.report_type} (ID: {schedule.id}) for Tenant {schedule.tenant_id}")
             
-            # Example: Send email to recipients
+            # 1. Determine Date Range
+            start_date, end_date = ReportService.get_dates_from_filter(schedule.date_filter_type or 'yesterday')
+            
+            # 2. Generate Report Content
+            csv_content = None
+            filename = f"report_{schedule.report_type.lower().replace(' ', '_')}_{start_date}.csv"
+            
+            if schedule.report_type == 'Daily Attendance':
+                csv_content = ReportService.generate_attendance_register_csv(
+                    schedule.tenant_id, schedule.company_id, start_date, end_date
+                )
+            elif schedule.report_type == 'Absentee Report':
+                csv_content = ReportService.generate_absentee_report_csv(
+                    schedule.tenant_id, schedule.company_id, start_date
+                )
+            elif schedule.report_type == 'Overtime Report':
+                csv_content = ReportService.generate_overtime_report_csv(
+                    schedule.tenant_id, schedule.company_id, start_date, end_date
+                )
+            else:
+                current_app.logger.warning(f"Unknown report type: {schedule.report_type}")
+                return
+
+            if not csv_content:
+                current_app.logger.warning(f"No content generated for report {schedule.id}")
+                return
+
+            # 3. Prepare Attachment
+            attachments = [{
+                'filename': filename,
+                'data': csv_content.encode('utf-8'),
+                'content_type': 'text/csv'
+            }]
+
+            # 4. Send email to recipients
             if schedule.recipients:
-                subject = f"Scheduled Report: {schedule.report_type}"
-                body = f"This is your scheduled report for {schedule.report_type}."
+                subject = f"Scheduled Report: {schedule.report_type} ({start_date})"
+                body = f"""
+                <p>Hello,</p>
+                <p>Please find attached the scheduled <b>{schedule.report_type}</b> for the period <b>{start_date}</b> to <b>{end_date}</b>.</p>
+                <p>Regards,<br>HR Manager System</p>
+                """
                 
-                # Iterate recipients (supports JSON list)
                 recipients = schedule.recipients if isinstance(schedule.recipients, list) else []
                 for recipient in recipients:
-                    EmailService.send_email(schedule.tenant_id, recipient, subject, body)
+                    EmailService.send_email(schedule.tenant_id, recipient, subject, body, attachments=attachments)
             
-            # Update last run
+            # 5. Update last run
             schedule.last_run_at = datetime.utcnow()
             db.session.commit()
             
         except Exception as e:
             current_app.logger.error(f"Error executing job {schedule_id}: {str(e)}")
+            import traceback
+            current_app.logger.error(traceback.format_exc())
 from datetime import datetime
