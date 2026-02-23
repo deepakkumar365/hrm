@@ -59,57 +59,111 @@ def run_report_job(schedule_id):
 
             from services.email_service import EmailService
             from services.report_service import ReportService
+            from core.models import Company, User
             
             current_app.logger.info(f"Running report {schedule.report_type} (ID: {schedule.id}) for Tenant {schedule.tenant_id}")
             
             # 1. Determine Date Range
             start_date, end_date = ReportService.get_dates_from_filter(schedule.date_filter_type or 'yesterday')
             
-            # 2. Generate Report Content
-            csv_content = None
-            filename = f"report_{schedule.report_type.lower().replace(' ', '_')}_{start_date}.csv"
+            # 2. Determine scope
+            is_consolidated = (schedule.scope == 'consolidated')
             
-            if schedule.report_type == 'Daily Attendance':
-                csv_content = ReportService.generate_attendance_register_csv(
-                    schedule.tenant_id, schedule.company_id, start_date, end_date
-                )
-            elif schedule.report_type == 'Absentee Report':
-                csv_content = ReportService.generate_absentee_report_csv(
-                    schedule.tenant_id, schedule.company_id, start_date
-                )
-            elif schedule.report_type == 'Overtime Report':
-                csv_content = ReportService.generate_overtime_report_csv(
-                    schedule.tenant_id, schedule.company_id, start_date, end_date
-                )
+            if is_consolidated:
+                # Get all accessible companies for this schedule
+                companies_to_report = []
+                if schedule.created_by:
+                    creator = User.query.get(schedule.created_by)
+                    if creator:
+                        companies_to_report = creator.get_accessible_companies()
+                
+                # Fallback: all companies in the tenant
+                if not companies_to_report:
+                    companies_to_report = Company.query.filter_by(tenant_id=schedule.tenant_id).all()
+                
+                if not companies_to_report:
+                    current_app.logger.warning(f"No companies found for consolidated report {schedule.id}")
+                    return
+                
+                # Generate a single combined CSV with Company column
+                from services.report_service import ReportService
+                all_data = []
+                for comp in companies_to_report:
+                    if schedule.report_type == 'Daily Attendance':
+                        rows = ReportService.get_attendance_register_data(
+                            schedule.tenant_id, comp.id, start_date, end_date, include_company_name=True
+                        )
+                    elif schedule.report_type == 'Absentee Report':
+                        rows = ReportService.get_absentee_report_data(
+                            schedule.tenant_id, comp.id, start_date, include_company_name=True
+                        )
+                    elif schedule.report_type == 'Overtime Report':
+                        rows = ReportService.get_overtime_report_data(
+                            schedule.tenant_id, comp.id, start_date, end_date, include_company_name=True
+                        )
+                    else:
+                        rows = []
+                    all_data.extend(rows)
+                
+                if not all_data:
+                    current_app.logger.warning(f"No data generated for consolidated report {schedule.id}")
+                    return
+                
+                # Write single CSV
+                import io, csv
+                output = io.StringIO()
+                writer = csv.DictWriter(output, fieldnames=all_data[0].keys())
+                writer.writeheader()
+                writer.writerows(all_data)
+                csv_content = output.getvalue()
+                
+                filename = f"consolidated_{schedule.report_type.lower().replace(' ', '_')}_{start_date}_to_{end_date}.csv"
+                attachments = [{
+                    'filename': filename,
+                    'data': csv_content.encode('utf-8'),
+                    'content_type': 'text/csv'
+                }]
+                
+                subject = f"Consolidated Report: {schedule.report_type} ({start_date} to {end_date})"
+                company_list = ', '.join([c.name for c in companies_to_report])
+                body = f"""
+                <p>Hello,</p>
+                <p>Please find attached the consolidated <b>{schedule.report_type}</b> for the period <b>{start_date}</b> to <b>{end_date}</b>.</p>
+                <p>This report covers <b>{len(companies_to_report)}</b> companies: {company_list}</p>
+                <p>Regards,<br>HR Manager System</p>
+                """
             else:
-                current_app.logger.warning(f"Unknown report type: {schedule.report_type}")
-                return
-
-            if not csv_content:
-                current_app.logger.warning(f"No content generated for report {schedule.id}")
-                return
-
-            # 3. Prepare Attachment
-            attachments = [{
-                'filename': filename,
-                'data': csv_content.encode('utf-8'),
-                'content_type': 'text/csv'
-            }]
-
-            # 4. Send email to recipients
-            if schedule.recipients:
+                # Single-company mode (existing behavior)
+                csv_content = _generate_report_csv(
+                    schedule.report_type, schedule.tenant_id, schedule.company_id,
+                    start_date, end_date, include_company_name=False
+                )
+                
+                if not csv_content:
+                    current_app.logger.warning(f"No content generated for report {schedule.id}")
+                    return
+                
+                filename = f"report_{schedule.report_type.lower().replace(' ', '_')}_{start_date}.csv"
+                attachments = [{
+                    'filename': filename,
+                    'data': csv_content.encode('utf-8'),
+                    'content_type': 'text/csv'
+                }]
+                
                 subject = f"Scheduled Report: {schedule.report_type} ({start_date})"
                 body = f"""
                 <p>Hello,</p>
                 <p>Please find attached the scheduled <b>{schedule.report_type}</b> for the period <b>{start_date}</b> to <b>{end_date}</b>.</p>
                 <p>Regards,<br>HR Manager System</p>
                 """
-                
+
+            # 3. Send email to recipients
+            if schedule.recipients:
                 recipients = schedule.recipients if isinstance(schedule.recipients, list) else []
                 for recipient in recipients:
                     EmailService.send_email(schedule.tenant_id, recipient, subject, body, attachments=attachments)
             
-            # 5. Update last run
+            # 4. Update last run
             schedule.last_run_at = datetime.utcnow()
             db.session.commit()
             
@@ -117,4 +171,25 @@ def run_report_job(schedule_id):
             current_app.logger.error(f"Error executing job {schedule_id}: {str(e)}")
             import traceback
             current_app.logger.error(traceback.format_exc())
+
+
+def _generate_report_csv(report_type, tenant_id, company_id, start_date, end_date, include_company_name=False):
+    """Helper to generate CSV content for a single report type and company."""
+    from services.report_service import ReportService
+    
+    if report_type == 'Daily Attendance':
+        return ReportService.generate_attendance_register_csv(
+            tenant_id, company_id, start_date, end_date
+        )
+    elif report_type == 'Absentee Report':
+        return ReportService.generate_absentee_report_csv(
+            tenant_id, company_id, start_date
+        )
+    elif report_type == 'Overtime Report':
+        return ReportService.generate_overtime_report_csv(
+            tenant_id, company_id, start_date, end_date
+        )
+    return None
+
 from datetime import datetime
+

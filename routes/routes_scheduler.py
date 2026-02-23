@@ -83,15 +83,22 @@ def add_job():
                      flash('Invalid company selected', 'danger')
                      return redirect(url_for('scheduler.list_jobs'))
 
+        scope = request.form.get('scope', 'single')  # 'single' or 'consolidated'
+        
         if not tenant_id or not report_type or not cron or not recipients:
             flash('Basic fields (Tenant, Report Type, Cron, Recipients) are required', 'danger')
             return redirect(url_for('scheduler.list_jobs'))
             
         recipient_list = [r.strip() for r in recipients.split(',') if r.strip()]
         
+        # If consolidated, force company_id to None
+        if scope == 'consolidated':
+            company_id = None
+        
         schedule = ReportSchedule(
             tenant_id=tenant_id,
             company_id=company_id if company_id else None,
+            scope=scope,
             report_type=report_type,
             cron_expression=cron,
             date_filter_type=date_filter,
@@ -154,6 +161,7 @@ def get_job(id):
             'id': schedule.id,
             'tenant_id': str(schedule.tenant_id),
             'company_id': str(schedule.company_id) if schedule.company_id else '',
+            'scope': schedule.scope or 'single',
             'report_type': schedule.report_type,
             'cron_expression': schedule.cron_expression,
             'date_filter_type': schedule.date_filter_type,
@@ -192,7 +200,15 @@ def edit_job(id):
                  flash('Invalid company selected', 'danger')
                  return redirect(url_for('scheduler.list_jobs'))
         
-        schedule.company_id = company_id if company_id else None
+        scope = request.form.get('scope', 'single')
+        schedule.scope = scope
+        
+        # If consolidated, force company_id to None
+        if scope == 'consolidated':
+            schedule.company_id = None
+        else:
+            schedule.company_id = company_id if company_id else None
+        
         schedule.report_type = request.form.get('report_type')
         schedule.cron_expression = request.form.get('cron_expression')
         schedule.date_filter_type = request.form.get('date_filter_type')
@@ -248,24 +264,58 @@ def preview_job(id):
                  return jsonify({'error': 'Unauthorized'}), 403
 
         from services.report_service import ReportService
+        from core.models import Company, User
         start_date, end_date = ReportService.get_dates_from_filter(schedule.date_filter_type or 'yesterday')
         
-        data = []
-        if schedule.report_type == 'Daily Attendance':
-            data = ReportService.get_attendance_register_data(
-                schedule.tenant_id, schedule.company_id, start_date, end_date
-            )
-        elif schedule.report_type == 'Absentee Report':
-            data = ReportService.get_absentee_report_data(
-                schedule.tenant_id, schedule.company_id, start_date
-            )
-        elif schedule.report_type == 'Overtime Report':
-            data = ReportService.get_overtime_report_data(
-                schedule.tenant_id, schedule.company_id, start_date, end_date
-            )
+        is_consolidated = (schedule.scope == 'consolidated')
+        
+        if is_consolidated:
+            # Get all accessible companies
+            companies_to_report = []
+            if schedule.created_by:
+                creator = User.query.get(schedule.created_by)
+                if creator:
+                    companies_to_report = creator.get_accessible_companies()
+            if not companies_to_report:
+                companies_to_report = Company.query.filter_by(tenant_id=schedule.tenant_id).all()
+            
+            # Collect data from all companies with company name
+            all_data = []
+            for comp in companies_to_report:
+                if schedule.report_type == 'Daily Attendance':
+                    rows = ReportService.get_attendance_register_data(
+                        schedule.tenant_id, comp.id, start_date, end_date, include_company_name=True
+                    )
+                elif schedule.report_type == 'Absentee Report':
+                    rows = ReportService.get_absentee_report_data(
+                        schedule.tenant_id, comp.id, start_date, include_company_name=True
+                    )
+                elif schedule.report_type == 'Overtime Report':
+                    rows = ReportService.get_overtime_report_data(
+                        schedule.tenant_id, comp.id, start_date, end_date, include_company_name=True
+                    )
+                else:
+                    rows = []
+                all_data.extend(rows)
+            data = all_data
+        else:
+            data = []
+            if schedule.report_type == 'Daily Attendance':
+                data = ReportService.get_attendance_register_data(
+                    schedule.tenant_id, schedule.company_id, start_date, end_date
+                )
+            elif schedule.report_type == 'Absentee Report':
+                data = ReportService.get_absentee_report_data(
+                    schedule.tenant_id, schedule.company_id, start_date
+                )
+            elif schedule.report_type == 'Overtime Report':
+                data = ReportService.get_overtime_report_data(
+                    schedule.tenant_id, schedule.company_id, start_date, end_date
+                )
 
         return jsonify({
             'report_type': schedule.report_type,
+            'scope': schedule.scope or 'single',
             'start_date': str(start_date),
             'end_date': str(end_date),
             'data': data

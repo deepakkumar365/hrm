@@ -1921,6 +1921,9 @@ class ReportSchedule(db.Model):
     tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
     company_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_company.id', ondelete='CASCADE'), nullable=True)
     
+    # 'single' = one specific company (or NULL for all), 'consolidated' = one CSV per accessible company
+    scope = db.Column(db.String(20), default='single', nullable=False)
+    
     report_type = db.Column(db.String(50), nullable=False) # e.g., 'Daily Attendance'
     cron_expression = db.Column(db.String(100), nullable=False) # e.g., '30 18 * * 1-5'
     date_filter_type = db.Column(db.String(50), nullable=True) # e.g. 'yesterday', 'last_7_days', 'current_month'
