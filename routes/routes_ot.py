@@ -1112,6 +1112,8 @@ def ot_manager_bulk_action():
                         
                         if not ot_summary:
                             multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 0.0
+                            # Use amended amount if provided; otherwise calculate from hours × multiplier
+                            final_ot_amount = float(modified_amount) if modified_amount else round(float(ot_request.requested_hours) * multiplier, 2)
                             ot_summary = OTDailySummary(
                                 employee_id=ot_request.employee_id,
                                 company_id=ot_request.company_id,
@@ -1119,10 +1121,19 @@ def ot_manager_bulk_action():
                                 ot_date=ot_request.ot_date,
                                 ot_hours=ot_request.requested_hours, 
                                 ot_rate_per_hour=round(multiplier, 2),
-                                ot_amount=round(float(ot_request.requested_hours) * multiplier, 2),
+                                ot_amount=final_ot_amount,
                                 created_by=current_user.username
                             )
                             db.session.add(ot_summary)
+                        else:
+                            # Existing summary: override amount with amended value if provided
+                            if modified_amount:
+                                ot_summary.ot_amount = float(modified_amount)
+
+                        # ✅ FIX: Also update OTAttendance.amount to reflect the approved/amended amount
+                        if ot_attendance:
+                            ot_attendance.amount = ot_summary.ot_amount
+                            ot_attendance.modified_at = datetime.utcnow()
                         
                         ot_summary.status = 'Approved'
                         ot_summary.modified_by = current_user.username
@@ -1351,8 +1362,24 @@ def ot_approval():
                          ot_summary.ot_rate_per_hour = round(multiplier, 2)
 
                     ot_summary.ot_hours = h
-                    ot_summary.ot_amount = round(h * float(ot_summary.ot_rate_per_hour), 2)
-                    
+
+                    # Use amended amount if provided; otherwise calculate from hours × rate
+                    if modified_amount:
+                        final_ot_amount = float(modified_amount)
+                    else:
+                        final_ot_amount = round(h * float(ot_summary.ot_rate_per_hour), 2)
+
+                    ot_summary.ot_amount = final_ot_amount
+
+                    # ✅ FIX: Also update OTAttendance.amount so the original record reflects the approved amount
+                    ot_attendance_record = OTAttendance.query.filter_by(
+                        employee_id=ot_request.employee_id,
+                        ot_date=ot_request.ot_date
+                    ).first()
+                    if ot_attendance_record:
+                        ot_attendance_record.amount = final_ot_amount
+                        ot_attendance_record.modified_at = datetime.utcnow()
+
                     # Update allowances from form data
                     for allowance_field, value in allowances.items():
                         setattr(ot_summary, allowance_field, value)
