@@ -38,6 +38,7 @@
                     <thead>
                         <tr>
                             <th>Tenant</th>
+                            <th>Scope</th>
                             <th>Company</th>
                             <th>Report Type</th>
                             <th>Date Filter</th>
@@ -51,6 +52,13 @@
                         {% for schedule in schedules %}
                         <tr>
                             <td>{{ schedule.tenant.name if schedule.tenant else 'Unknown' }}</td>
+                            <td>
+                                {% if schedule.scope == 'consolidated' %}
+                                <span class="badge bg-success">Consolidated</span>
+                                {% else %}
+                                <span class="badge bg-primary">Individual</span>
+                                {% endif %}
+                            </td>
                             <td>{{ schedule.company.name if schedule.company else 'All Companies' }}</td>
                             <td>{{ schedule.report_type }}</td>
                             <td><span class="badge bg-secondary">{{ schedule.date_filter_type or 'Yesterday' }}</span>
@@ -155,6 +163,23 @@
                     </div>
                     {% endif %}
                     <div class="mb-3">
+                        <label class="form-label">Report Scope</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="scope" id="scope_single"
+                                    value="single" checked onchange="toggleCompanyDropdown('add')">
+                                <label class="form-check-label" for="scope_single">Individual Company</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="scope" id="scope_consolidated"
+                                    value="consolidated" onchange="toggleCompanyDropdown('add')">
+                                <label class="form-check-label" for="scope_consolidated">Consolidated (All
+                                    Companies)</label>
+                            </div>
+                        </div>
+                        <small class="text-muted">Consolidated sends one CSV per company in a single email.</small>
+                    </div>
+                    <div class="mb-3" id="add_company_group">
                         <label for="company_id" class="form-label">Company (Optional)</label>
                         <select class="form-select" name="company_id">
                             <option value="">All Accessible Companies</option>
@@ -225,6 +250,22 @@
                     </div>
                     {% endif %}
                     <div class="mb-3">
+                        <label class="form-label">Report Scope</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="scope" id="edit_scope_single"
+                                    value="single" checked onchange="toggleCompanyDropdown('edit')">
+                                <label class="form-check-label" for="edit_scope_single">Individual Company</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="scope" id="edit_scope_consolidated"
+                                    value="consolidated" onchange="toggleCompanyDropdown('edit')">
+                                <label class="form-check-label" for="edit_scope_consolidated">Consolidated (All
+                                    Companies)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="edit_company_group">
                         <label for="edit_company_id" class="form-label">Company (Optional)</label>
                         <select class="form-select" name="company_id" id="edit_company_id">
                             <option value="">All Accessible Companies</option>
@@ -301,6 +342,13 @@
                             document.getElementById('edit_tenant_id').value = data.tenant_id;
                         }
                         document.getElementById('edit_company_id').value = data.company_id || '';
+                        // Set scope radio
+                        if (data.scope === 'consolidated') {
+                            document.getElementById('edit_scope_consolidated').checked = true;
+                        } else {
+                            document.getElementById('edit_scope_single').checked = true;
+                        }
+                        toggleCompanyDropdown('edit');
                         document.getElementById('edit_report_type').value = data.report_type;
                         document.getElementById('edit_date_filter_type').value = data.date_filter_type;
                         document.getElementById('edit_cron_expression').value = data.cron_expression;
@@ -391,5 +439,20 @@
             });
         });
     });
+
+    // --- Scope Toggle Logic ---
+    function toggleCompanyDropdown(mode) {
+        if (mode === 'add') {
+            const isConsolidated = document.getElementById('scope_consolidated').checked;
+            const group = document.getElementById('add_company_group');
+            group.style.display = isConsolidated ? 'none' : 'block';
+        } else {
+            const isConsolidated = document.getElementById('edit_scope_consolidated').checked;
+            const group = document.getElementById('edit_company_group');
+            group.style.display = isConsolidated ? 'none' : 'block';
+        }
+    }
+    // Make it globally accessible for onclick handlers
+    window.toggleCompanyDropdown = toggleCompanyDropdown;
 </script>
 {% endblock %}

@@ -55,38 +55,65 @@ class ReportService:
         return output.getvalue()
 
     @staticmethod
-    def get_attendance_register_data(tenant_id, company_id=None, start_date=None, end_date=None):
-        """Get attendance register data as a list of dicts"""
+    def get_attendance_register_data(tenant_id, company_id=None, start_date=None, end_date=None, include_company_name=False):
+        """Get detailed attendance register data as a list of dicts (one row per record)"""
         emp_query = Employee.query.filter_by(is_active=True)
         if company_id:
             emp_query = emp_query.filter(Employee.company_id == company_id)
         
         employees = emp_query.order_by(Employee.first_name).all()
         emp_ids = [e.id for e in employees]
+        emp_map = {e.id: e for e in employees}
         
         attendance_records = Attendance.query.filter(
             Attendance.date.between(start_date, end_date),
             Attendance.employee_id.in_(emp_ids)
-        ).all()
+        ).order_by(Attendance.date, Attendance.employee_id).all()
         
-        attendance_map = {}
-        for record in attendance_records:
-            attendance_map[(record.employee_id, record.date)] = record.status
-
-        days = []
-        curr = start_date
-        while curr <= end_date:
-            days.append(curr)
-            curr += timedelta(days=1)
-            
         report_data = []
-        for emp in employees:
-            row = {
-                'Employee Name': f"{emp.first_name} {emp.last_name}",
-                'Employee ID': emp.employee_id
-            }
-            for d in days:
-                row[d.strftime('%Y-%m-%d')] = attendance_map.get((emp.id, d), '-')
+        for record in attendance_records:
+            emp = emp_map.get(record.employee_id)
+            if not emp:
+                continue
+            
+            # Clock In — prefer DateTime, fall back to Time
+            clock_in_val = ''
+            if record.clock_in_time:
+                clock_in_val = record.clock_in_time.strftime('%H:%M:%S')
+            elif record.clock_in:
+                clock_in_val = record.clock_in.strftime('%H:%M')
+            
+            # Clock Out — prefer DateTime, fall back to Time
+            clock_out_val = ''
+            if record.clock_out_time:
+                clock_out_val = record.clock_out_time.strftime('%H:%M:%S')
+            elif record.clock_out:
+                clock_out_val = record.clock_out.strftime('%H:%M')
+            
+            # Build row in the exact desired column order
+            row = {}
+            if include_company_name:
+                row['Company'] = emp.company.name if emp.company else 'N/A'
+            row['Employee ID'] = emp.employee_id
+            row['Employee Name'] = f"{emp.first_name} {emp.last_name}"
+            row['Department'] = emp.department or ''
+            row['Date'] = record.date.strftime('%Y-%m-%d')
+            row['Clock In'] = clock_in_val
+            row['Clock Out'] = clock_out_val
+            row['Break Start'] = record.break_start.strftime('%H:%M') if record.break_start else ''
+            row['Break End'] = record.break_end.strftime('%H:%M') if record.break_end else ''
+            row['Regular Hours'] = float(record.regular_hours) if record.regular_hours else 0
+            row['Overtime Hours'] = float(record.overtime_hours) if record.overtime_hours else 0
+            row['Total Hours'] = float(record.total_hours) if record.total_hours else 0
+            row['Status'] = record.status or ''
+            row['Sub Status'] = record.sub_status or ''
+            row['Late'] = 'Yes' if record.is_late else 'No'
+            row['Late (mins)'] = record.late_minutes or 0
+            row['Early Departure'] = 'Yes' if record.is_early_departure else 'No'
+            row['Early Dept (mins)'] = record.early_departure_minutes or 0
+            row['LOP'] = 'Yes' if record.lop else 'No'
+            row['Remarks'] = record.remarks or ''
+            
             report_data.append(row)
             
         return report_data
@@ -113,7 +140,7 @@ class ReportService:
         return output.getvalue()
 
     @staticmethod
-    def get_absentee_report_data(tenant_id, company_id=None, target_date=None):
+    def get_absentee_report_data(tenant_id, company_id=None, target_date=None, include_company_name=False):
         """Get absentee report data as a list of dicts"""
         query = Attendance.query.join(Employee).filter(
             Attendance.date == target_date,
@@ -126,12 +153,14 @@ class ReportService:
         
         report_data = []
         for record in records:
-            report_data.append({
-                'Date': record.date.strftime('%Y-%m-%d'),
-                'Employee ID': record.employee.employee_id,
-                'Employee Name': f"{record.employee.first_name} {record.employee.last_name}",
-                'Department': record.employee.department or 'N/A'
-            })
+            row = {}
+            if include_company_name:
+                row['Company'] = record.employee.company.name if record.employee.company else 'N/A'
+            row['Date'] = record.date.strftime('%Y-%m-%d')
+            row['Employee ID'] = record.employee.employee_id
+            row['Employee Name'] = f"{record.employee.first_name} {record.employee.last_name}"
+            row['Department'] = record.employee.department or 'N/A'
+            report_data.append(row)
             
         return report_data
 
@@ -157,7 +186,7 @@ class ReportService:
         return output.getvalue()
 
     @staticmethod
-    def get_overtime_report_data(tenant_id, company_id=None, start_date=None, end_date=None):
+    def get_overtime_report_data(tenant_id, company_id=None, start_date=None, end_date=None, include_company_name=False):
         """Get overtime report data as a list of dicts"""
         query = OTRequest.query.filter(OTRequest.ot_date.between(start_date, end_date))
         if company_id:
@@ -169,15 +198,17 @@ class ReportService:
         for record in records:
             emp_name = f"{record.employee.first_name} {record.employee.last_name}" if record.employee else "Unknown"
             ot_type_name = record.ot_type.name if record.ot_type else "N/A"
-            report_data.append({
-                'Date': record.ot_date.strftime('%Y-%m-%d'),
-                'Employee ID': record.employee.employee_id if record.employee else '',
-                'Employee Name': emp_name,
-                'OT Type': ot_type_name,
-                'Hours': record.requested_hours,
-                'Amount': record.amount,
-                'Status': record.status,
-                'Reason': record.reason or ''
-            })
+            row = {}
+            if include_company_name:
+                row['Company'] = record.company.name if record.company else 'N/A'
+            row['Date'] = record.ot_date.strftime('%Y-%m-%d')
+            row['Employee ID'] = record.employee.employee_id if record.employee else ''
+            row['Employee Name'] = emp_name
+            row['OT Type'] = ot_type_name
+            row['Hours'] = record.requested_hours
+            row['Amount'] = record.amount
+            row['Status'] = record.status
+            row['Reason'] = record.reason or ''
+            report_data.append(row)
             
         return report_data
