@@ -2,7 +2,7 @@
 from flask import request, render_template, redirect, url_for, jsonify, flash
 from flask_login import current_user
 from app import app, db
-from core.models import Leave, Employee, User, LeaveType, Company, Tenant, EmployeeGroup, EmployeeGroupLeaveAllocation
+from core.models import Leave, Employee, User, LeaveType, Company, Tenant, EmployeeGroup, EmployeeGroupLeaveAllocation, AuditLog
 from core.auth import require_login, require_role
 from datetime import datetime, timedelta
 from sqlalchemy import and_, or_
@@ -271,6 +271,24 @@ def leave_approve(leave_id):
         leave.status = 'Approved'
         leave.approved_by = current_user.id
         leave.approved_at = datetime.utcnow()
+        
+        # 🚀 Audit Log for Admin Bypass 🚀
+        is_admin = current_user.role_name in ['Tenant Admin', 'Super Admin']
+        is_direct_manager = False
+        if hasattr(current_user, 'employee_profile') and current_user.employee_profile:
+            is_direct_manager = (leave.employee.manager_id == current_user.employee_profile.id)
+            
+        if is_admin and not is_direct_manager:
+            audit = AuditLog(
+                user_id=current_user.id,
+                action='LEAVE_APPROVE_BYPASS',
+                resource_type='Leave',
+                resource_id=str(leave.id),
+                changes=f'Tenant Admin approved leave for {leave.employee.first_name} (Bypassed Manager)',
+                status='Success'
+            )
+            db.session.add(audit)
+            logger.info(f"LEAVE_BYPASS: Admin {current_user.id} approved Leave {leave.id}")
         
         db.session.commit()
         
