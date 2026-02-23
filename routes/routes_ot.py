@@ -1038,8 +1038,10 @@ def ot_manager_bulk_action():
                 # Get Approval Record
                 approval = OTApproval.query.get(approval_id)
                 
-                # Security Check
-                if not approval or approval.approver_id != current_user.id or approval.status != 'pending_manager':
+                # Security Check: Allow assigned manager OR Tenant/Super Admin
+                is_admin = current_user.role.name in ['Tenant Admin', 'Super Admin']
+                if not approval or (approval.approver_id != current_user.id and not is_admin) or approval.status != 'pending_manager':
+                    logger.warning(f"OT_APPROVAL_DENIED: {current_user.id} tried to approve {approval_id} (Approver: {approval.approver_id}, Admin: {is_admin}, Status: {approval.status})")
                     error_count += 1
                     continue
                 
@@ -1053,14 +1055,6 @@ def ot_manager_bulk_action():
                     modified_amount = request.form.get('modified_amount')
                     modified_reason = request.form.get('modified_reason')
 
-                    # Update Request if modifications exist (only for the specific item if single, or all if bulk? 
-                    # The modal usually is for single item modification. If bulk, we skip modification or apply to all?
-                    # The current UI modal is per-item. Bulk modify is complex.
-                    # Assumption: The modification fields are passed when actioning likely a SINGLE item via the specific form or modal.
-                    # However, the form submits to this route. If `approval_ids` contains one ID, we can apply mods. 
-                    # If multiple, applying same date/qty is risky.
-                    # LIMITATION: Modification only works for single item approval via the modal.
-                    
                     # Update Approval Record
                     approval.status = 'manager_approved'
                     approval.comments = comments if comments else 'Approved by Manager'
@@ -1095,61 +1089,106 @@ def ot_manager_bulk_action():
                         if modified_reason:
                             ot_request.reason = modified_reason
                     
-                    # Update Request Status
-                    ot_request.status = 'manager_approved'
-                    
-                    # Create Level 2 Approval (HR)
-                    # Find HR Manager to assign
-                    hr_approver_id = None
-                    hr_role = Role.query.filter_by(name='HR Manager').first()
-                    if hr_role:
-                        # Find first active HR Manager
-                        hr_user = User.query.filter_by(role_id=hr_role.id, is_active=True).first()
-                        if hr_user:
-                            hr_approver_id = hr_user.id
-                    
-                    # Fallback: Tenant Admin
-                    if not hr_approver_id:
-                        admin_role = Role.query.filter_by(name='Tenant Admin').first()
-                        if admin_role:
-                            admin_user = User.query.filter_by(role_id=admin_role.id, is_active=True).first()
-                            if admin_user:
-                                hr_approver_id = admin_user.id
-                    
-                    # Fallback: Super Admin
-                    if not hr_approver_id:
-                        sa_role = Role.query.filter_by(name='Super Admin').first()
-                        if sa_role:
-                            sa_user = User.query.filter_by(role_id=sa_role.id, is_active=True).first()
-                            if sa_user:
-                                hr_approver_id = sa_user.id
-                                
-                    if not hr_approver_id:
-                        raise Exception("Cannot proceed: No valid HR Manager or Admin found to assign next approval level.")
+                    # 🚀 BYPASS LOGIC FOR ADMINS 🚀
+                    if is_admin:
+                        # Direct Approval to final state (Skip Level 2)
+                        ot_request.status = 'hr_approved'
+                        ot_request.approver_id = current_user.id
+                        ot_request.approved_at = datetime.now()
+                        ot_request.approval_comments = f"[Admin Bypass] {comments}"
+                        
+                        # Set OTAttendance status
+                        ot_attendance = OTAttendance.query.filter_by(
+                            employee_id=ot_request.employee_id, 
+                            ot_date=ot_request.ot_date
+                        ).first()
+                        if ot_attendance:
+                            ot_attendance.status = 'hr_approved'
+                            
+                        # Handle OTDailySummary (Logic mirrors HR approval finalization)
+                        ot_summary = OTDailySummary.query.filter_by(
+                            ot_request_id=ot_request.id
+                        ).first()
+                        
+                        if not ot_summary:
+                            multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 0.0
+                            # Use amended amount if provided; otherwise calculate from hours × multiplier
+                            final_ot_amount = float(modified_amount) if modified_amount else round(float(ot_request.requested_hours) * multiplier, 2)
+                            ot_summary = OTDailySummary(
+                                employee_id=ot_request.employee_id,
+                                company_id=ot_request.company_id,
+                                ot_request_id=ot_request.id, 
+                                ot_date=ot_request.ot_date,
+                                ot_hours=ot_request.requested_hours, 
+                                ot_rate_per_hour=round(multiplier, 2),
+                                ot_amount=final_ot_amount,
+                                created_by=current_user.username
+                            )
+                            db.session.add(ot_summary)
+                        else:
+                            # Existing summary: override amount with amended value if provided
+                            if modified_amount:
+                                ot_summary.ot_amount = float(modified_amount)
 
-                    hr_approval = OTApproval(
-                        ot_request_id=ot_request.id,
-                        approver_id=hr_approver_id,
-                        approval_level=2,
-                        status='pending_hr',
-                        comments='Pending HR Approval'
-                    )
-                    hr_approval = OTApproval(
-                        ot_request_id=ot_request.id,
-                        approver_id=hr_approver_id,
-                        approval_level=2,
-                        status='pending_hr',
-                        comments='Pending HR Approval'
-                    )
-                    db.session.add(hr_approval)
-                    
-                    # Update Original OT Attendance Status
-                    ot_attendance = OTAttendance.query.filter_by(
-                        employee_id=ot_request.employee_id, 
-                        ot_date=ot_request.ot_date
-                    ).first()
-                    if ot_attendance:
-                        ot_attendance.status = 'manager_approved'
+                        # ✅ FIX: Also update OTAttendance.amount to reflect the approved/amended amount
+                        if ot_attendance:
+                            ot_attendance.amount = ot_summary.ot_amount
+                            ot_attendance.modified_at = datetime.utcnow()
+                        
+                        ot_summary.status = 'Approved'
+                        ot_summary.modified_by = current_user.username
+                        ot_summary.modified_at = datetime.now()
+                        ot_summary.calculate_totals()
+                        
+                        logger.info(f"OT_BYPASS: Admin {current_user.id} finalized OT {ot_request.id}")
+                        
+                    else:
+                        # STANDARD MULTI-TIER FLOW
+                        ot_request.status = 'manager_approved'
+                        
+                        # Update OTAttendance Status
+                        ot_attendance = OTAttendance.query.filter_by(
+                            employee_id=ot_request.employee_id, 
+                            ot_date=ot_request.ot_date
+                        ).first()
+                        if ot_attendance:
+                            ot_attendance.status = 'manager_approved'
+
+                        # Create Level 2 Approval (HR Manager)
+                        hr_approver_id = None
+                        hr_role = Role.query.filter_by(name='HR Manager').first()
+                        
+                        if hr_role:
+                            # Try to find HR for this specific company first
+                            hr_user = User.query.filter_by(
+                                role_id=hr_role.id, 
+                                is_active=True,
+                                company_id=ot_request.company_id
+                            ).first()
+                            
+                            if not hr_user:
+                                # Fallback to any HR Manager
+                                hr_user = User.query.filter_by(role_id=hr_role.id, is_active=True).first()
+                            
+                            if hr_user:
+                                hr_approver_id = hr_user.id
+                        
+                        # If no HR found, fallback to first Tenant Admin or Super Admin
+                        if not hr_approver_id:
+                            admin_role = Role.query.filter(Role.name.in_(['Tenant Admin', 'Super Admin'])).first()
+                            if admin_role:
+                                admin_user = User.query.filter_by(role_id=admin_role.id, is_active=True).first()
+                                if admin_user:
+                                    hr_approver_id = admin_user.id
+
+                        hr_approval = OTApproval(
+                            ot_request_id=ot_request.id,
+                            approver_id=hr_approver_id,
+                            approval_level=2,
+                            status='pending_hr',
+                            comments='Pending HR Approval'
+                        )
+                        db.session.add(hr_approval)
                     
                 elif action == 'reject':
                     # Update Approval Record
@@ -1323,8 +1362,24 @@ def ot_approval():
                          ot_summary.ot_rate_per_hour = round(multiplier, 2)
 
                     ot_summary.ot_hours = h
-                    ot_summary.ot_amount = round(h * float(ot_summary.ot_rate_per_hour), 2)
-                    
+
+                    # Use amended amount if provided; otherwise calculate from hours × rate
+                    if modified_amount:
+                        final_ot_amount = float(modified_amount)
+                    else:
+                        final_ot_amount = round(h * float(ot_summary.ot_rate_per_hour), 2)
+
+                    ot_summary.ot_amount = final_ot_amount
+
+                    # ✅ FIX: Also update OTAttendance.amount so the original record reflects the approved amount
+                    ot_attendance_record = OTAttendance.query.filter_by(
+                        employee_id=ot_request.employee_id,
+                        ot_date=ot_request.ot_date
+                    ).first()
+                    if ot_attendance_record:
+                        ot_attendance_record.amount = final_ot_amount
+                        ot_attendance_record.modified_at = datetime.utcnow()
+
                     # Update allowances from form data
                     for allowance_field, value in allowances.items():
                         setattr(ot_summary, allowance_field, value)
