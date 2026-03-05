@@ -880,14 +880,57 @@ def ot_manager_approval():
 
         # GET Request - Show Dashboard
         status_filter = request.args.get('status', 'pending') # Default to pending, but UI will have 'all' option
+        company_id = request.args.get('company_id')
+        date_filter = request.args.get('date_filter', 'all')
+        start_date_str = request.args.get('start_date')
+        end_date_str = request.args.get('end_date')
         
         page = request.args.get('page', 1, type=int)
         
+        # Determine accessible companies
+        accessible_companies = []
+        company_ids = []
+        is_super_admin = current_user.role.name == 'Super Admin'
+        if not is_super_admin:
+            accessible_companies = current_user.get_accessible_companies()
+            company_ids = [c.id for c in accessible_companies]
+        else:
+            accessible_companies = Company.query.all()
+            
         # Base Query: Approvals assigned to this manager (Level 1)
-        query = OTApproval.query.filter_by(
-            approver_id=current_user.id,
-            approval_level=1
+        query = db.session.query(OTApproval).join(OTRequest).filter(
+            OTApproval.approver_id == current_user.id,
+            OTApproval.approval_level == 1
         )
+        
+        # Apply Company Filter
+        if company_id:
+            query = query.filter(OTRequest.company_id == int(company_id))
+        elif not is_super_admin:
+            if company_ids:
+                query = query.filter(OTRequest.company_id.in_(company_ids))
+            else:
+                query = query.filter(OTRequest.id == None) # No companies assigned
+                
+        # Apply Date Filter
+        if date_filter == 'today':
+            today = datetime.now().date()
+            query = query.filter(OTRequest.ot_date == today)
+        elif date_filter == 'this_week':
+            today = datetime.now().date()
+            start_of_week = today - timedelta(days=today.weekday())
+            query = query.filter(OTRequest.ot_date >= start_of_week)
+        elif date_filter == 'this_month':
+            today = datetime.now().date()
+            start_of_month = today.replace(day=1)
+            query = query.filter(OTRequest.ot_date >= start_of_month)
+        elif date_filter == 'custom' and start_date_str and end_date_str:
+            try:
+                start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                query = query.filter(OTRequest.ot_date.between(start_date, end_date))
+            except ValueError:
+                pass
         
         # Apply Status Filter
         if status_filter == 'all':
@@ -909,10 +952,37 @@ def ot_manager_approval():
         # Pagination
         approvals = query.paginate(page=page, per_page=20)
         
-        # Stats for the Header
-        pending_count = OTApproval.query.filter_by(approver_id=current_user.id, approval_level=1, status='pending_manager').count()
-        approved_count = OTApproval.query.filter_by(approver_id=current_user.id, approval_level=1, status='manager_approved').count()
-        rejected_count = OTApproval.query.filter_by(approver_id=current_user.id, approval_level=1, status='manager_rejected').count()
+        # Stats for the Header (company & date scoped)
+        base_stats_query = db.session.query(OTApproval).join(OTRequest).filter(
+            OTApproval.approver_id == current_user.id,
+            OTApproval.approval_level == 1
+        )
+        # Re-apply company filter logic
+        if company_id:
+            base_stats_query = base_stats_query.filter(OTRequest.company_id == int(company_id))
+        elif not is_super_admin:
+            if company_ids:
+                base_stats_query = base_stats_query.filter(OTRequest.company_id.in_(company_ids))
+            else:
+                base_stats_query = base_stats_query.filter(OTRequest.id == None)
+                
+        # Re-apply date filter logic
+        if date_filter == 'today':
+            base_stats_query = base_stats_query.filter(OTRequest.ot_date == today)
+        elif date_filter == 'this_week':
+            base_stats_query = base_stats_query.filter(OTRequest.ot_date >= start_of_week)
+        elif date_filter == 'this_month':
+            base_stats_query = base_stats_query.filter(OTRequest.ot_date >= start_of_month)
+        elif date_filter == 'custom' and start_date_str and end_date_str:
+            try:
+                # Assuming variables are still valid from previous try/except block
+                base_stats_query = base_stats_query.filter(OTRequest.ot_date.between(start_date, end_date))
+            except Exception:
+                pass
+                
+        pending_count = base_stats_query.filter(OTApproval.status == 'pending_manager').count()
+        approved_count = base_stats_query.filter(OTApproval.status == 'manager_approved').count()
+        rejected_count = base_stats_query.filter(OTApproval.status == 'manager_rejected').count()
         
         stats = {
             'pending': pending_count,
@@ -923,17 +993,20 @@ def ot_manager_approval():
 
         # Get active OT Types for the modification dropdown
         ot_types = []
-        if manager_employee.company_id:
-             ot_types = OTType.query.filter_by(company_id=manager_employee.company_id, is_active=True).all()
-        # Fallback or additional global types? For now company specific or all if no company set (safer to show none if no company)
-        if not ot_types and not manager_employee.company_id:
-             # Maybe tenant based? Assuming manager has company.
-             pass
+        if company_ids:
+            ot_types = OTType.query.filter(OTType.company_id.in_(company_ids), OTType.is_active == True).all()
+        elif is_super_admin:
+            ot_types = OTType.query.filter_by(is_active=True).all()
 
         return render_template('ot/manager_approval_dashboard.html',
                              approvals=approvals,
                              stats=stats,
                              ot_types=ot_types,
+                             companies=accessible_companies,
+                             selected_company=company_id,
+                             date_filter=date_filter,
+                             start_date=start_date_str,
+                             end_date=end_date_str,
                              current_filter=status_filter)
 
     except Exception as e:
@@ -1038,7 +1111,7 @@ def ot_manager_bulk_action():
                 # Get Approval Record
                 approval = OTApproval.query.get(approval_id)
                 
-                # Security Check: Allow assigned manager OR Tenant/Super Admin
+                        # Security Check: Allow assigned manager OR Tenant/Super Admin
                 is_admin = current_user.role.name in ['Tenant Admin', 'Super Admin']
                 if not approval or (approval.approver_id != current_user.id and not is_admin) or approval.status != 'pending_manager':
                     logger.warning(f"OT_APPROVAL_DENIED: {current_user.id} tried to approve {approval_id} (Approver: {approval.approver_id}, Admin: {is_admin}, Status: {approval.status})")
@@ -1046,6 +1119,12 @@ def ot_manager_bulk_action():
                     continue
                 
                 ot_request = approval.ot_request
+                
+                # Check company scoped access for manager (Fixes Cross-Company Auth bug)
+                if not is_admin and ot_request.company_id != current_user.employee_profile.company_id:
+                    logger.warning(f"OT_APPROVAL_DENIED: {current_user.id} tried to approve {approval_id} for different company")
+                    error_count += 1
+                    continue
                 
                 if action == 'approve':
                     # Check for modifications
@@ -1146,13 +1225,46 @@ def ot_manager_bulk_action():
                         # STANDARD MULTI-TIER FLOW
                         ot_request.status = 'manager_approved'
                         
-                        # Update OTAttendance Status
+                        # Update OTAttendance Status and propagate amended values
                         ot_attendance = OTAttendance.query.filter_by(
                             employee_id=ot_request.employee_id, 
                             ot_date=ot_request.ot_date
                         ).first()
                         if ot_attendance:
                             ot_attendance.status = 'manager_approved'
+                            if len(approval_ids) == 1:
+                                if modified_amount:
+                                    ot_attendance.amount = float(modified_amount)
+                                if modified_quantity:
+                                    ot_attendance.ot_hours = float(modified_quantity)
+                                    ot_attendance.quantity = float(modified_quantity)
+                                ot_attendance.modified_at = datetime.utcnow()
+
+                        # Auto-create OTDailySummary for HR Manager Payroll Grid
+                        ot_summary = OTDailySummary.query.filter_by(
+                            ot_request_id=ot_request.id
+                        ).first()
+                        
+                        if not ot_summary:
+                            multiplier = float(ot_request.ot_type.rate_multiplier) if ot_request.ot_type and ot_request.ot_type.rate_multiplier else 0.0
+                            # Use amended amount if provided; otherwise calculate
+                            final_ot_amount = float(modified_amount) if (len(approval_ids) == 1 and modified_amount) else round(float(ot_request.requested_hours) * multiplier, 2)
+                            ot_summary = OTDailySummary(
+                                employee_id=ot_request.employee_id,
+                                company_id=ot_request.company_id,
+                                ot_request_id=ot_request.id, 
+                                ot_date=ot_request.ot_date,
+                                ot_hours=ot_request.requested_hours, 
+                                ot_rate_per_hour=round(multiplier, 2),
+                                ot_amount=final_ot_amount,
+                                status='Draft',  # Ready for HR Manager
+                                created_by=current_user.username
+                            )
+                            db.session.add(ot_summary)
+                        else:
+                            if len(approval_ids) == 1 and modified_amount:
+                                ot_summary.ot_amount = float(modified_amount)
+                            ot_summary.status = 'Draft'
 
                         # Create Level 2 Approval (HR Manager)
                         hr_approver_id = None

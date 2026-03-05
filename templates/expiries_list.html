@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Upcoming Expiries - Nexar{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 text-gray-800 mb-0">Upcoming Expiries</h2>
+        <a href="{{ request.referrer or url_for('dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card shadow border-0 rounded-4">
+        <div class="card-body p-4">
+            {% if expiries %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="expiriesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>Designation</th>
+                            <th>Expiry Type</th>
+                            <th>Expiry Date</th>
+                            <th>Days Remaining</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exp in expiries %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar bg-light-primary text-primary rounded-circle d-flex align-items-center justify-content-center me-3"
+                                        style="width: 40px; height: 40px;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-dark fw-bold">{{ exp.name }}</h6>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ exp.designation }}</td>
+                            <td><span class="badge bg-secondary">{{ exp.type }}</span></td>
+                            <td>{{ exp.date.strftime('%d %b %Y') }}</td>
+                            <td>{{ exp.days_left }} Days</td>
+                            <td>
+                                {% if exp.days_left < 0 %} <span class="badge bg-danger rounded-pill px-3"><i
+                                        class="fas fa-times-circle me-1"></i>Expired</span>
+                                    {% elif exp.days_left <= 15 %} <span
+                                        class="badge bg-warning rounded-pill px-3 text-dark"><i
+                                            class="fas fa-exclamation-triangle me-1"></i>Urgent</span>
+                                        {% else %}
+                                        <span class="badge bg-info rounded-pill px-3"><i
+                                                class="fas fa-clock me-1"></i>Upcoming</span>
+                                        {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                </div>
+                <h4 class="text-gray-800">No Upcoming Expiries</h4>
+                <p class="text-muted">There are no document or permit expirations found for the upcoming period.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script>
+    $(document).ready(function () {
+        if ($('#expiriesTable').length) {
+            $('#expiriesTable').DataTable({
+                order: [[4, 'asc']], // Sort by Days Remaining by default
+                pageLength: 25,
+                language: {
+                    search: "Search expiries:",
+                    searchPlaceholder: "Name, type, or status..."
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
