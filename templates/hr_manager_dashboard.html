@@ -274,6 +274,71 @@
         <div class="grid-col-3 d-flex flex-column gap-3">
 
 
+            <!-- Upcoming Birthdays -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <span>Upcoming Birthdays</span>
+                    <i class="fas fa-birthday-cake" style="color: #2ecc71"></i>
+                </div>
+                {% if upcoming_birthdays %}
+                <div class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto;">
+                    {% for bday in upcoming_birthdays %}
+                    <div class="d-flex align-items-center gap-3 p-2 border-bottom">
+                        <div class="profile-avatar"
+                            style="width: 36px; height: 36px; font-size: 0.9rem; background: rgba(46, 204, 113, 0.1); color: #2ecc71;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem; color: #333;">{{ bday.name }}</div>
+                            <div style="font-size: 0.75rem; color: #777;">{{ bday.date.strftime('%d %b') }} • {{
+                                bday.designation }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    No upcoming birthdays
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Upcoming Expiries -->
+            <div class="dash-card">
+                <div class="dash-card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span>Upcoming Expiries</span>
+                        <i class="fas fa-exclamation-triangle" style="color: #e74c3c"></i>
+                    </div>
+                    <a href="{{ url_for('expiries_list') }}" class="btn btn-sm btn-outline-danger"
+                        style="font-size: 0.8rem; padding: 0.1rem 0.4rem;">View All</a>
+                </div>
+                {% if upcoming_expiries %}
+                <div class="d-flex flex-column gap-2" style="max-height: 250px; overflow-y: auto;">
+                    {% for exp in upcoming_expiries %}
+                    <div class="d-flex align-items-center gap-3 p-2 border-bottom"
+                        style="border-left: 3px solid #e74c3c !important;">
+                        <div class="profile-avatar"
+                            style="width: 36px; height: 36px; font-size: 0.9rem; background: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem; color: #333;">{{ exp.name }}</div>
+                            <div style="font-size: 0.75rem; color: #777;">
+                                <strong>{{ exp.type }}</strong> in {{ exp.days_left }} days ({{ exp.date.strftime('%d
+                                %b') }})
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    No upcoming expiries
+                </div>
+                {% endif %}
+            </div>
+
             <!-- Payroll History -->
             <div class="dash-card">
                 <div class="dash-card-header">

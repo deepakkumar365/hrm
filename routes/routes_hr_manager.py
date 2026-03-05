@@ -370,6 +370,54 @@ def hr_manager_dashboard():
     payroll_history = get_payroll_history(selected_company_id)
     pending_ot_approvals = get_ot_pending_approvals(selected_company_id)
     
+    # Get Upcoming Birthdays and Expiries for the selected company
+    upcoming_birthdays = []
+    upcoming_expiries = []
+    
+    employees = Employee.query.filter_by(company_id=selected_company_id, is_active=True).all()
+    for emp in employees:
+        # Birthdays
+        if emp.date_of_birth:
+            dob_this_year = emp.date_of_birth.replace(year=today.year)
+            if dob_this_year < today:
+                dob_this_year = dob_this_year.replace(year=today.year + 1)
+            
+            days_until = (dob_this_year - today).days
+            if 0 <= days_until <= 30:
+                upcoming_birthdays.append({
+                    'name': f"{emp.first_name} {emp.last_name}",
+                    'designation': emp.designation.name if emp.designation else 'Employee',
+                    'location': emp.location or 'Office',
+                    'phone': emp.phone,
+                    'date': dob_this_year,
+                    'is_today': days_until == 0
+                })
+                
+        # Expiries
+        expiry_fields = {
+            'Work Permit': emp.work_permit_expiry,
+            'HAZMAT Cert': emp.hazmat_expiry,
+            'Airport Pass': emp.airport_pass_expiry,
+            'PSA Pass': emp.psa_pass_expiry
+        }
+        
+        for exp_name, exp_date in expiry_fields.items():
+            if exp_date:
+                days_until_exp = (exp_date - today).days
+                if days_until_exp <= 30:
+                    upcoming_expiries.append({
+                        'name': f"{emp.first_name} {emp.last_name}",
+                        'designation': emp.designation.name if emp.designation else 'Employee',
+                        'type': exp_name,
+                        'date': exp_date,
+                        'days_left': days_until_exp,
+                        'is_today': days_until_exp == 0
+                    })
+    
+    # Sort by date
+    upcoming_birthdays.sort(key=lambda x: x['date'])
+    upcoming_expiries.sort(key=lambda x: x['date'])
+    
     # Convert payroll_history to JSON for chart
     payroll_history_json = json.dumps([
         {
@@ -393,6 +441,8 @@ def hr_manager_dashboard():
         'payroll_history': payroll_history,
         'payroll_history_json': payroll_history_json,
         'pending_ot_approvals': pending_ot_approvals,
+        'upcoming_birthdays': upcoming_birthdays,
+        'upcoming_expiries': upcoming_expiries,
         'month_name': today.strftime('%B %Y')
     }
     

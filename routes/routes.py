@@ -488,12 +488,31 @@ def dashboard():
         {'name': 'New Year', 'date': date(2026, 1, 1), 'day': 'Thursday'}
     ]
 
-    # Get Upcoming Birthdays
+    # Get Upcoming Birthdays and Expiries
     upcoming_birthdays = []
+    upcoming_expiries = []
     today = date.today()
-    # Logic to find birthdays in next 30 days
-    employees = Employee.query.filter(Employee.is_active == True).all()
+    
+    # Base query for employees based on user role
+    emp_query = Employee.query.filter(Employee.is_active == True)
+    if user_role_name == 'Manager' and hasattr(current_user, 'employee_profile'):
+        emp_query = emp_query.filter(Employee.manager_id == current_user.employee_profile.id)
+    elif user_role_name in ['Super Admin', 'Admin']:
+        # Admins can see all employees
+        pass
+    else:
+        # Regular employee only sees their own company's employees or just themselves
+        # Typically they see company birthdays
+        if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+            emp_query = emp_query.filter(Employee.company_id == current_user.employee_profile.company_id)
+        else:
+            # Fallback to no one if no company
+            emp_query = emp_query.filter(Employee.id == -1) 
+
+    employees = emp_query.all()
+    
     for emp in employees:
+        # Birthdays
         if emp.date_of_birth:
             dob_this_year = emp.date_of_birth.replace(year=today.year)
             if dob_this_year < today:
@@ -509,9 +528,31 @@ def dashboard():
                     'date': dob_this_year,
                     'is_today': days_until == 0
                 })
+                
+        # Expiries
+        expiry_fields = {
+            'Work Permit': emp.work_permit_expiry,
+            'HAZMAT Cert': emp.hazmat_expiry,
+            'Airport Pass': emp.airport_pass_expiry,
+            'PSA Pass': emp.psa_pass_expiry
+        }
+        
+        for exp_name, exp_date in expiry_fields.items():
+            if exp_date:
+                days_until_exp = (exp_date - today).days
+                if days_until_exp <= 30:
+                    upcoming_expiries.append({
+                        'name': f"{emp.first_name} {emp.last_name}",
+                        'designation': emp.designation.name if emp.designation else 'Employee',
+                        'type': exp_name,
+                        'date': exp_date,
+                        'days_left': days_until_exp,
+                        'is_today': days_until_exp == 0
+                    })
     
-    # Sort birthdays by date
+    # Sort by date
     upcoming_birthdays.sort(key=lambda x: x['date'])
+    upcoming_expiries.sort(key=lambda x: x['date'])
 
     # Get current month attendance rate
     start_date, end_date = get_current_month_dates()
@@ -595,9 +636,70 @@ def dashboard():
                            recent_attendance=recent_attendance,
                            upcoming_holidays=upcoming_holidays,
                            upcoming_birthdays=upcoming_birthdays,
+                           upcoming_expiries=upcoming_expiries,
                            moment=datetime.now,
                            leave_calendar_url=leave_calendar_url)
 
+
+@app.route('/expiries')
+@require_login
+def expiries_list():
+    """List all upcoming expiries (e.g. next 90 days) for accessible employees"""
+    user_role_name = current_user.role.name if current_user.role else None
+    today = date.today()
+    upcoming_expiries = []
+    
+    # Base query for employees based on user role
+    emp_query = Employee.query.filter(Employee.is_active == True)
+    
+    # Scope check similar to dashboard
+    if user_role_name == 'Manager' and hasattr(current_user, 'employee_profile'):
+        emp_query = emp_query.filter(Employee.manager_id == current_user.employee_profile.id)
+    elif user_role_name in ['HR Manager', 'Tenant Admin']:
+        accessible_companies = current_user.get_accessible_companies()
+        company_ids = [c.id for c in accessible_companies]
+        emp_query = emp_query.filter(Employee.company_id.in_(company_ids))
+    elif user_role_name in ['Super Admin', 'Admin']:
+        # Admins can see all employees
+        pass
+    else:
+        # Regular employee only sees their own company's employees or just themselves
+        if hasattr(current_user, 'employee_profile') and current_user.employee_profile and current_user.employee_profile.company_id:
+            emp_query = emp_query.filter(Employee.company_id == current_user.employee_profile.company_id)
+        else:
+            emp_query = emp_query.filter(Employee.id == -1) 
+
+    employees = emp_query.all()
+    
+    # Check expiries up to 90 days out for the 'View All' page
+    LOOKAHEAD_DAYS = 90
+    
+    for emp in employees:
+        expiry_fields = {
+            'Work Permit': emp.work_permit_expiry,
+            'HAZMAT Cert': emp.hazmat_expiry,
+            'Airport Pass': emp.airport_pass_expiry,
+            'PSA Pass': emp.psa_pass_expiry
+        }
+        
+        for exp_name, exp_date in expiry_fields.items():
+            if exp_date:
+                days_until_exp = (exp_date - today).days
+                # Show anything that expires in the next 90 days OR is already expired (any negative number)
+                if days_until_exp <= 90:
+                    upcoming_expiries.append({
+                        'name': f"{emp.first_name} {emp.last_name}",
+                        'designation': emp.designation.name if emp.designation else 'Employee',
+                        'type': exp_name,
+                        'date': exp_date,
+                        'days_left': days_until_exp,
+                        'is_today': days_until_exp == 0
+                    })
+                    
+    # Sort by date (closest first)
+    upcoming_expiries.sort(key=lambda x: x['date'])
+    
+    return render_template('expiries_list.html', expiries=upcoming_expiries)
 
 # Employee Management Routes
 @app.route('/employees')
