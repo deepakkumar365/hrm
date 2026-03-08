@@ -76,13 +76,11 @@ class EmailService:
 
     @staticmethod
     def _send_via_aws_ses(config, recipient, subject, body, is_html, attachments):
-        import boto3
-        from botocore.exceptions import ClientError
-        
-        # Prefer DB config, fallback to environment
-        aws_key = config.aws_access_key or current_app.config.get('AWS_ACCESS_KEY_ID')
-        aws_secret = config.aws_secret_key or current_app.config.get('AWS_SECRET_ACCESS_KEY')
-        aws_region = config.aws_region or current_app.config.get('AWS_REGION')
+        import os
+        # Prefer DB config, fallback to system config, then to direct environment
+        aws_key = config.aws_access_key or current_app.config.get('AWS_ACCESS_KEY_ID') or os.environ.get('AWS_ACCESS_KEY_ID')
+        aws_secret = config.aws_secret_key or current_app.config.get('AWS_SECRET_ACCESS_KEY') or os.environ.get('AWS_SECRET_ACCESS_KEY')
+        aws_region = config.aws_region or current_app.config.get('AWS_REGION') or os.environ.get('AWS_REGION')
 
         client = boto3.client(
             'ses',
@@ -136,11 +134,12 @@ class EmailService:
     @staticmethod
     def _send_via_aws_sns(config, recipient, subject, body):
         import boto3
+        import os
         
-        # Prefer DB config, fallback to environment
-        aws_key = config.aws_access_key or current_app.config.get('AWS_ACCESS_KEY_ID')
-        aws_secret = config.aws_secret_key or current_app.config.get('AWS_SECRET_ACCESS_KEY')
-        aws_region = config.aws_region or current_app.config.get('AWS_REGION')
+        # Prefer DB config, fallback to system config, then to direct environment
+        aws_key = config.aws_access_key or current_app.config.get('AWS_ACCESS_KEY_ID') or os.environ.get('AWS_ACCESS_KEY_ID')
+        aws_secret = config.aws_secret_key or current_app.config.get('AWS_SECRET_ACCESS_KEY') or os.environ.get('AWS_SECRET_ACCESS_KEY')
+        aws_region = config.aws_region or current_app.config.get('AWS_REGION') or os.environ.get('AWS_REGION')
 
         client = boto3.client(
             'sns',
