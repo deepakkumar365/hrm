@@ -83,18 +83,43 @@ def run_daily_cron():
         # PHASE 3: Trigger Scheduled Reports (Midnight Run)
         # ==================================================================
         print("\n[Phase 3] Triggering Scheduled Reports...")
+        
+        # Start Phase 3 Job Log
+        phase3_log = JobExecutionLog(
+            job_name="Daily Scheduled Reports Cron",
+            status="Running",
+            details={'started_at': str(datetime.now())}
+        )
+        db.session.add(phase3_log)
+        db.session.commit()
+
         try:
             active_schedules = ReportSchedule.query.filter_by(is_active=True).all()
             print(f"Found {len(active_schedules)} active report schedules.")
             
+            summary = []
             for schedule in active_schedules:
                 print(f" - Running: {schedule.report_type} (ID: {schedule.id})")
+                # run_report_job now (ideally) handles its own detailed logging
+                # but we capture a high level summary here
                 run_report_job(schedule.id)
+                summary.append(f"Report ID {schedule.id} ({schedule.report_type}) triggered.")
                 
+            phase3_log.status = "Success"
+            phase3_log.completed_at = datetime.now()
+            phase3_log.details = {
+                'schedules_found': len(active_schedules),
+                'summary': summary
+            }
+            db.session.commit()
             print("✅ Phase 3 Completed: All active reports processed.")
             
         except Exception as e:
             print(f"❌ Phase 3 Failed: {e}")
+            phase3_log.status = "Failed"
+            phase3_log.completed_at = datetime.now()
+            phase3_log.details = {'error': str(e)}
+            db.session.commit()
 
     print("\n🏁 Daily Cron Job Finished.")
 
