@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}My Invoices - Nexar{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3><i class="fas fa-file-invoice me-2"></i>Invoices</h3>
+                    <p class="text-muted mb-0">View billing history and invoices for {{ tenant.name }}</p>
+                </div>
+            </div>
+
+            <!-- Invoices Table -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 text-primary"><i class="fas fa-list me-2"></i>Invoice History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle" id="tenantInvoicesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Amount</th>
+                                    <th>Issue Date</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for invoice in invoices %}
+                                <tr>
+                                    <td><span class="fw-bold">{{ invoice.invoice_number }}</span></td>
+                                    <td>{{ invoice.amount | currency }}</td>
+                                    <td>{{ invoice.issue_date.strftime('%d %b %Y') }}</td>
+                                    <td>
+                                        <span
+                                            class="{% if invoice.status == 'Overdue' %}text-danger fw-bold{% endif %}">
+                                            {{ invoice.due_date.strftime('%d %b %Y') }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if invoice.status == 'Paid' %}
+                                        <span class="badge bg-success rounded-pill px-3 py-2"><i
+                                                class="fas fa-check-circle me-1"></i> Paid</span>
+                                        {% elif invoice.status == 'Overdue' %}
+                                        <span class="badge bg-danger rounded-pill px-3 py-2"><i
+                                                class="fas fa-exclamation-circle me-1"></i> Overdue</span>
+                                        {% elif invoice.status == 'Cancelled' %}
+                                        <span class="badge bg-secondary rounded-pill px-3 py-2">Cancelled</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark rounded-pill px-3 py-2"><i
+                                                class="fas fa-clock me-1"></i> {{ invoice.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted small">
+                                        {{ invoice.description or '-' }}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('invoice_view', id=invoice.id) }}"
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-file-invoice me-1"></i> View Full Invoice
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <div class="empty-state">
+                                            <i class="fas fa-file-invoice fa-3x mb-3 text-light"></i>
+                                            <p class="mb-0">No invoices found for your tenant.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Invoice Details Modal -->
+<div class="modal fade" id="viewInvoiceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i>Invoice Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Invoice No:</div>
+                    <div class="col-sm-8 fw-bold" id="viewInstNumber"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Amount:</div>
+                    <div class="col-sm-8 fw-bold text-success fs-5" id="viewInstAmount"></div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Issue Date:</div>
+                    <div class="col-sm-8" id="viewInstIssueDate"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Due Date:</div>
+                    <div class="col-sm-8" id="viewInstDueDate"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Status:</div>
+                    <div class="col-sm-8" id="viewInstStatus"></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4 text-muted">Remarks:</div>
+                    <div class="col-sm-8" id="viewInstRemarks"></div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function viewInvoiceDetails(number, amount, issueDate, dueDate, status, description) {
+        document.getElementById('viewInstNumber').innerText = number;
+        document.getElementById('viewInstAmount').innerText = amount; // Will be raw usually but we pass raw or formatted, but the template sends raw.
+        // wait, I passed `invoice.amount` to JS, not formatted. Let's fix that.
+
+        // Quick format for JS
+        const formattedAmount = 'S$ ' + parseFloat(amount).toFixed(2);
+        document.getElementById('viewInstAmount').innerText = formattedAmount;
+
+        document.getElementById('viewInstIssueDate').innerText = issueDate;
+        document.getElementById('viewInstDueDate').innerText = dueDate;
+
+        let statusHtml = '';
+        if (status === 'Paid') {
+            statusHtml = '<span class="badge bg-success">Paid</span>';
+        } else if (status === 'Overdue') {
+            statusHtml = '<span class="badge bg-danger">Overdue</span>';
+        } else if (status === 'Cancelled') {
+            statusHtml = '<span class="badge bg-secondary">Cancelled</span>';
+        } else {
+            statusHtml = '<span class="badge bg-warning text-dark">' + status + '</span>';
+        }
+
+        document.getElementById('viewInstStatus').innerHTML = statusHtml;
+        document.getElementById('viewInstRemarks').innerText = description || 'N/A';
+
+        const modal = new bootstrap.Modal(document.getElementById('viewInvoiceModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

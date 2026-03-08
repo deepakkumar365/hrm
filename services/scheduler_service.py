@@ -51,7 +51,9 @@ class SchedulerService:
 
 def run_report_job(schedule_id):
     """The function executed by the scheduler"""
+    from core.models import JobExecutionLog
     with scheduler.app.app_context():
+        job_log = None
         try:
             schedule = ReportSchedule.query.get(schedule_id)
             if not schedule or not schedule.is_active:
@@ -61,6 +63,15 @@ def run_report_job(schedule_id):
             from services.report_service import ReportService
             from core.models import Company, User
             
+            # Start job logging
+            job_log = JobExecutionLog(
+                job_name=f"Report Job: {schedule.report_type}",
+                status="Running",
+                details={'schedule_id': schedule.id, 'tenant_id': str(schedule.tenant_id)}
+            )
+            db.session.add(job_log)
+            db.session.commit()
+
             current_app.logger.info(f"Running report {schedule.report_type} (ID: {schedule.id}) for Tenant {schedule.tenant_id}")
             
             # 1. Determine Date Range
@@ -83,6 +94,10 @@ def run_report_job(schedule_id):
                 
                 if not companies_to_report:
                     current_app.logger.warning(f"No companies found for consolidated report {schedule.id}")
+                    if job_log:
+                        job_log.status = "Skipped"
+                        job_log.details = {'reason': 'No companies found'}
+                        db.session.commit()
                     return
                 
                 # Generate a single combined CSV with Company column
@@ -107,6 +122,10 @@ def run_report_job(schedule_id):
                 
                 if not all_data:
                     current_app.logger.warning(f"No data generated for consolidated report {schedule.id}")
+                    if job_log:
+                        job_log.status = "Skipped"
+                        job_log.details = {'reason': 'No data found across companies'}
+                        db.session.commit()
                     return
                 
                 # Write single CSV
@@ -141,6 +160,10 @@ def run_report_job(schedule_id):
                 
                 if not csv_content:
                     current_app.logger.warning(f"No content generated for report {schedule.id}")
+                    if job_log:
+                        job_log.status = "Skipped"
+                        job_log.details = {'reason': 'No attendance data found for the selected period'}
+                        db.session.commit()
                     return
                 
                 filename = f"report_{schedule.report_type.lower().replace(' ', '_')}_{start_date}.csv"
@@ -158,19 +181,33 @@ def run_report_job(schedule_id):
                 """
 
             # 3. Send email to recipients
+            sent_count = 0
             if schedule.recipients:
                 recipients = schedule.recipients if isinstance(schedule.recipients, list) else []
                 for recipient in recipients:
                     EmailService.send_email(schedule.tenant_id, recipient, subject, body, attachments=attachments)
+                    sent_count += 1
             
             # 4. Update last run
             schedule.last_run_at = datetime.utcnow()
+            
+            if job_log:
+                job_log.status = "Success"
+                job_log.completed_at = datetime.utcnow()
+                job_log.details = {'emails_sent': sent_count, 'report_type': schedule.report_type}
+            
             db.session.commit()
             
         except Exception as e:
             current_app.logger.error(f"Error executing job {schedule_id}: {str(e)}")
             import traceback
-            current_app.logger.error(traceback.format_exc())
+            error_msg = traceback.format_exc()
+            current_app.logger.error(error_msg)
+            if job_log:
+                job_log.status = "Failed"
+                job_log.completed_at = datetime.utcnow()
+                job_log.details = {'error': str(e), 'traceback': error_msg}
+                db.session.commit()
 
 
 def _generate_report_csv(report_type, tenant_id, company_id, start_date, end_date, include_company_name=False):

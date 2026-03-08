@@ -159,7 +159,8 @@ def create_default_master_data():
             print("[WARNING] 'grace_period' column missing in 'hrm_working_hours'. Skipping WorkingHours initialization.")
 
         # Create default work schedules if none exist
-        if 'hrm_work_schedules' in tables:
+        tables = [col['name'] for col in inspector.get_columns('hrm_work_schedules')] if inspector.has_table('hrm_work_schedules') else []
+        if inspector.has_table('hrm_work_schedules'):
             if WorkSchedule.query.count() == 0:
                 from datetime import time
                 schedules = [

@@ -1945,3 +1945,39 @@ class ReportSchedule(db.Model):
 
     def __repr__(self):
         return f'<ReportSchedule {self.report_type} tenant={self.tenant_id}>'
+
+class Invoice(db.Model):
+    __tablename__ = 'hrm_invoices'
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_number = db.Column(db.String(50), unique=True, nullable=False)
+    tenant_id = db.Column(UUID(as_uuid=True), db.ForeignKey('hrm_tenant.id', ondelete='CASCADE'), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    subtotal = db.Column(db.Numeric(10, 2), nullable=True)
+    tax_rate = db.Column(db.Numeric(5, 2), default=0)
+    tax_amount = db.Column(db.Numeric(10, 2), default=0)
+    discount_amount = db.Column(db.Numeric(10, 2), default=0)
+    billing_address = db.Column(db.Text, nullable=True)
+    notes_terms = db.Column(db.Text, nullable=True)
+    
+    issue_date = db.Column(db.Date, nullable=False)
+    due_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(20), default='Pending') # Pending, Paid, Overdue, Cancelled
+    description = db.Column(db.Text, nullable=True)
+    file_path = db.Column(db.String(255), nullable=True) # Optional PDF attachment
+    created_by = db.Column(db.Integer, db.ForeignKey('hrm_users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    tenant = db.relationship('Tenant', backref=db.backref('invoices', lazy=True, cascade='all, delete-orphan'))
+    items = db.relationship('InvoiceItem', backref='invoice', lazy=True, cascade='all, delete-orphan')
+
+class InvoiceItem(db.Model):
+    __tablename__ = 'hrm_invoice_items'
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('hrm_invoices.id', ondelete='CASCADE'), nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    quantity = db.Column(db.Numeric(10, 2), default=1)
+    unit_price = db.Column(db.Numeric(10, 2), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False) # quantity * unit_price
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
