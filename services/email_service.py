@@ -77,6 +77,7 @@ class EmailService:
     @staticmethod
     def _send_via_aws_ses(config, recipient, subject, body, is_html, attachments):
         import os
+        import boto3
         # Prefer DB config, fallback to system config, then to direct environment
         aws_key = config.aws_access_key or current_app.config.get('AWS_ACCESS_KEY_ID') or os.environ.get('AWS_ACCESS_KEY_ID')
         aws_secret = config.aws_secret_key or current_app.config.get('AWS_SECRET_ACCESS_KEY') or os.environ.get('AWS_SECRET_ACCESS_KEY')
